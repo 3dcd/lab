@@ -223,13 +223,113 @@
       .grid{grid-template-columns:repeat(2, minmax(0,1fr));}
     }
 
-    @media (max-width:560px){
-      header{padding:0 18px;height:66px;}
-      .brand{font-size:18px;}
-      .brand small{display:none;}
-      main{padding-top:42px;}
-      .grid{grid-template-columns:1fr;gap:18px;}
-      .card{min-height:250px;}
+    @media (max-width:980px){
+      .grid{grid-template-columns:repeat(2, minmax(0,1fr));}
+    }
+
+    /* CELULAR: forzado a 2 columnas */
+    @media (max-width:700px){
+
+      header{
+        padding:0 14px;
+        height:60px;
+      }
+
+      .brand{
+        font-size:17px;
+      }
+
+      .brand small{
+        display:none;
+      }
+
+      .theme-dot{
+        width:36px;
+        height:36px;
+        font-size:17px;
+      }
+
+      main{
+        width:100%;
+        max-width:none;
+        padding:26px 10px 22px;
+      }
+
+      h1{
+        font-size:34px;
+        letter-spacing:.02em;
+      }
+
+      .subtitle{
+        font-size:14px;
+        margin:12px auto 12px;
+        max-width:300px;
+      }
+
+      .divider{
+        margin:15px 0 16px;
+      }
+
+      .hint{
+        font-size:13px;
+        margin-bottom:16px;
+      }
+
+      .grid{
+        display:grid !important;
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+        gap:10px !important;
+        width:100% !important;
+      }
+
+      .card{
+        width:100% !important;
+        min-width:0 !important;
+        min-height:168px;
+        padding:14px 8px 12px;
+        border-radius:18px;
+        box-shadow:0 9px 22px rgba(20,25,35,.09);
+      }
+
+      .icon{
+        width:50px;
+        height:50px;
+        border-radius:15px;
+        font-size:27px;
+        margin-bottom:11px;
+      }
+
+      .card h2{
+        font-size:12px;
+        line-height:1.12;
+        margin-bottom:6px;
+      }
+
+      .card p{
+        font-size:10.5px;
+        line-height:1.25;
+        max-width:120px;
+      }
+
+      .arrow{
+        padding-top:8px;
+        font-size:20px;
+      }
+
+      footer{
+        font-size:11px;
+        padding-top:22px;
+      }
+    }
+
+    /* Celulares muy angostos: mantiene 2 columnas pero más compacto */
+    @media (max-width:360px){
+      main{padding-left:8px;padding-right:8px;}
+      .grid{gap:8px !important;}
+      .card{min-height:158px;padding:12px 6px;}
+      .icon{width:46px;height:46px;font-size:25px;margin-bottom:9px;}
+      .card h2{font-size:11px;}
+      .card p{font-size:9.8px;}
     }
   </style>
 </head>
