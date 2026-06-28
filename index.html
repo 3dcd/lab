@@ -231,6 +231,101 @@
       .grid{grid-template-columns:1fr;gap:18px;}
       .card{min-height:250px;}
     }
+
+    .card.soon{
+      cursor:pointer;
+    }
+
+    .card.soon .arrow{
+      color:#9aa2af !important;
+    }
+
+    .modal-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(10,12,16,.34);
+      backdrop-filter:blur(10px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:50;
+      padding:22px;
+    }
+
+    .modal-overlay.show{
+      display:flex;
+    }
+
+    .modal-box{
+      width:min(420px, 100%);
+      background:rgba(255,255,255,.96);
+      border:1px solid rgba(255,255,255,.9);
+      border-radius:28px;
+      box-shadow:0 25px 70px rgba(0,0,0,.22);
+      padding:34px 28px 26px;
+      text-align:center;
+      animation:popIn .18s ease-out;
+    }
+
+    @keyframes popIn{
+      from{transform:scale(.94);opacity:0}
+      to{transform:scale(1);opacity:1}
+    }
+
+    .modal-icon{
+      width:74px;
+      height:74px;
+      border-radius:24px;
+      display:grid;
+      place-items:center;
+      margin:0 auto 18px;
+      background:#f0f1f3;
+      color:#7b828c;
+      font-size:36px;
+    }
+
+    .modal-box h3{
+      margin:0 0 10px;
+      font-size:24px;
+      letter-spacing:.02em;
+      font-weight:900;
+    }
+
+    .modal-box p{
+      margin:0 auto 22px;
+      color:#667080;
+      font-size:16px;
+      line-height:1.45;
+      max-width:320px;
+    }
+
+    .modal-close{
+      appearance:none;
+      border:0;
+      border-radius:999px;
+      background:#101114;
+      color:#fff;
+      padding:13px 22px;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    @media (max-width:560px){
+      .modal-box{
+        border-radius:24px;
+        padding:28px 22px 22px;
+      }
+
+      .modal-box h3{
+        font-size:21px;
+      }
+
+      .modal-box p{
+        font-size:14px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -248,7 +343,7 @@
     <div class="hint">Seleccioná una herramienta para comenzar</div>
 
     <section class="grid">
-      <a class="card" href="./video/">
+      <a class="card soon" href="#" data-tool="Video Interactivo">
         <div class="icon purple">▷</div>
         <h2>VIDEO INTERACTIVO</h2>
         <p>Herramienta para crear experiencias interactivas con video.</p>
@@ -262,7 +357,7 @@
         <div class="arrow" style="color:#ff7a1a">→</div>
       </a>
 
-      <a class="card" href="./texturas/">
+      <a class="card soon" href="#" data-tool="Texturas">
         <div class="icon green">▧</div>
         <h2>TEXTURAS</h2>
         <p>Generador y visor de texturas para proyectos 3D y gráficos.</p>
@@ -276,28 +371,28 @@
         <div class="arrow" style="color:#1669b2">→</div>
       </a>
 
-      <a class="card" href="./juegos/">
+      <a class="card soon" href="#" data-tool="Juegos">
         <div class="icon yellow">♢</div>
         <h2>JUEGOS</h2>
         <p>Experimentos lúdicos y juegos educativos interactivos.</p>
         <div class="arrow" style="color:#e1a400">→</div>
       </a>
 
-      <a class="card" href="./experimentos/">
+      <a class="card soon" href="#" data-tool="Experimentos">
         <div class="icon purple">⌬</div>
         <h2>EXPERIMENTOS</h2>
         <p>Pruebas y prototipos en desarrollo constante.</p>
         <div class="arrow" style="color:#7d5cff">→</div>
       </a>
 
-      <a class="card" href="./herramientas/">
+      <a class="card soon" href="#" data-tool="Herramientas">
         <div class="icon cyan">⌕</div>
         <h2>HERRAMIENTAS</h2>
         <p>Utilidades y herramientas para el día a día.</p>
         <div class="arrow" style="color:#0a9cd8">→</div>
       </a>
 
-      <a class="card" href="./proyectos/">
+      <a class="card soon" href="#" data-tool="Proyectos">
         <div class="icon pink">▭</div>
         <h2>PROYECTOS</h2>
         <p>Proyectos personales, documentación y desarrollos propios.</p>
@@ -307,5 +402,50 @@
 
     <footer>3DCD LAB © 2025 &nbsp; | &nbsp; Hecho con pasión y muchas pruebas.</footer>
   </main>
+
+  <div class="modal-overlay" id="devModal" aria-hidden="true">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-icon">⌬</div>
+      <h3 id="modalTitle">En construcción</h3>
+      <p>Esta herramienta todavía está en desarrollo dentro de 3DCD LAB. Por ahora podés probar DTF Plancha y Visor 3D.</p>
+      <button class="modal-close" id="modalClose">Entendido</button>
+    </div>
+  </div>
+
+  <script>
+    const modal = document.getElementById('devModal');
+    const closeBtn = document.getElementById('modalClose');
+    const modalTitle = document.getElementById('modalTitle');
+
+    document.querySelectorAll('.card.soon').forEach(card => {
+      card.addEventListener('click', event => {
+        event.preventDefault();
+        const toolName = card.dataset.tool || 'Herramienta';
+        modalTitle.textContent = toolName + ' · En construcción';
+        modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+      });
+    });
+
+    function closeModal(){
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', event => {
+      if(event.target === modal){
+        closeModal();
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      if(event.key === 'Escape'){
+        closeModal();
+      }
+    });
+  </script>
+
 </body>
 </html>
