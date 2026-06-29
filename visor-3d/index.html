@@ -418,7 +418,7 @@
           shadow-intensity="1"
           shadow-softness="0.65"
           exposure="1"
-          environment-image="./reflejo-exterior.jpg"
+          environment-image="neutral"
           camera-orbit="0deg 75deg 105%"
           field-of-view="30deg"
           interaction-prompt="none">
@@ -437,7 +437,7 @@
           <div>
             <div class="drop-icon">◇</div>
             <h2>Soltá acá tu modelo 3D</h2>
-            <p>Formato recomendado: <b>.glb</b>. El fondo se mantiene blanco y la imagen exterior se usa como entorno de reflejo para metales.</p>
+            <p>Formato recomendado: <b>.glb</b>. El fondo se mantiene blanco. Los reflejos se pueden activar desde el panel lateral.</p>
           </div>
         </div>
       </div>
@@ -492,7 +492,7 @@
 
         <div class="group">
           <h2>Entorno / reflejos</h2>
-          <div class="note">El fondo del visor queda blanco. Esta imagen solo se usa como ambiente para que los metales del GLB reflejen cielo, árboles y horizonte.</div>
+          <div class="note">El visor inicia sin reflejos activos. Si querés, podés activar el entorno para que los metales reflejen cielo, árboles y horizonte.</div>
 
           <div class="env-box">
             <img src="./reflejo-exterior.jpg" alt="Entorno de reflejo" />
@@ -502,7 +502,7 @@
 
           <div class="row">
             <span>Reflejos activos</span>
-            <input id="useEnvironment" type="checkbox" checked />
+            <input id="useEnvironment" type="checkbox" />
             <span></span>
           </div>
 
@@ -514,8 +514,8 @@
 
           <div class="row">
             <span>Pulido extra</span>
-            <input id="roughnessBoost" type="range" min="0" max="1" step="0.05" value="0" />
-            <span class="value" id="roughnessBoostVal">0.00</span>
+            <input id="roughnessBoost" type="range" min="0" max="1" step="0.05" value="0.50" />
+            <span class="value" id="roughnessBoostVal">0.50</span>
           </div>
 
           <div class="info">
@@ -764,7 +764,7 @@
 
     setValueLabels();
     updateViewFilter();
-    setEnvironment(true);
+    setEnvironment(false);
   </script>
 </body>
 </html>
