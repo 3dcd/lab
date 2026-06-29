@@ -1359,7 +1359,56 @@ ${content}</svg>`;
       alert("Primero arrastrá una imagen. Después podés imprimir o guardar como PDF.");
       return;
     }
-    window.print();
+
+    const printCanvas = document.createElement("canvas");
+    printCanvas.width = pagePxW;
+    printCanvas.height = pagePxH;
+
+    const pctx = printCanvas.getContext("2d");
+    const layout = lastLayout || computeLayout();
+
+    for(const it of layout.items){
+      const logo = logos[it.logoIndex];
+      pctx.drawImage(logo.img, it.x, it.y, it.w, it.h);
+    }
+
+    const dataUrl = printCanvas.toDataURL("image/png");
+    const fmt = currentFormat();
+
+    const win = window.open("", "_blank");
+
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Impresión limpia</title>
+<style>
+@page{
+  size:${fmt.w}mm ${fmt.h}mm;
+  margin:0;
+}
+html,body{
+  margin:0;
+  padding:0;
+  background:#fff;
+}
+img{
+  width:100%;
+  display:block;
+}
+</style>
+</head>
+<body>
+<img src="${dataUrl}">
+</body>
+</html>`);
+
+    win.document.close();
+
+    setTimeout(() => {
+      win.focus();
+      win.print();
+    }, 500);
   });
 
   window.addEventListener("resize", () => applySheetSize(false));
