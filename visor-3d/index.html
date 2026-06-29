@@ -109,7 +109,7 @@
       min-height:calc(100vh - 135px);
       background:radial-gradient(circle at center,#ffffff 0,#fbfcfd 52%,#f0f2f5 100%);
       --poster-color:transparent;
-      filter:brightness(var(--view-brightness,1)) contrast(var(--view-contrast,1)) blur(var(--view-smooth,0.15px));
+      filter:brightness(var(--view-brightness,1)) contrast(var(--view-contrast,1));
     }
 
     .top-title{
@@ -663,12 +663,6 @@
             <input id="contrast" type="range" min="0.7" max="1.7" step="0.05" value="1" />
             <span class="value" id="contrastVal">1.00</span>
           </div>
-
-          <div class="row">
-            <span>Suavidad visual</span>
-            <input id="smoothness" type="range" min="0" max="0.6" step="0.05" value="0.15" />
-            <span class="value" id="smoothnessVal">0.15</span>
-          </div>
         </div>
 
         <div class="group">
@@ -700,7 +694,7 @@
           </div>
 
           <div class="info">
-            Nota: “Suavidad visual” ayuda a disimular bordes/triangulitos en algunos modelos. Si el GLB viene muy facetado de origen, el suavizado real conviene hacerlo en el archivo 3D.
+            Nota: el demo ya viene con suavizado real de normales activado para que las caras trianguladas se vean más continuas. Para otros GLB, el suavizado depende de cómo venga exportado el archivo.
           </div>
         </div>
 
@@ -730,7 +724,6 @@
     const exposure = document.getElementById('exposure');
     const brightness = document.getElementById('brightness');
     const contrast = document.getElementById('contrast');
-    const smoothness = document.getElementById('smoothness');
     const useEnvironment = document.getElementById('useEnvironment');
     const metalBoost = document.getElementById('metalBoost');
     const roughnessBoost = document.getElementById('roughnessBoost');
@@ -739,7 +732,6 @@
     const exposureVal = document.getElementById('exposureVal');
     const brightnessVal = document.getElementById('brightnessVal');
     const contrastVal = document.getElementById('contrastVal');
-    const smoothnessVal = document.getElementById('smoothnessVal');
     const metalBoostVal = document.getElementById('metalBoostVal');
     const roughnessBoostVal = document.getElementById('roughnessBoostVal');
 
@@ -758,10 +750,8 @@
     function updateViewFilter(){
       viewer.style.setProperty('--view-brightness', brightness.value);
       viewer.style.setProperty('--view-contrast', contrast.value);
-      viewer.style.setProperty('--view-smooth', smoothness.value + 'px');
       brightnessVal.textContent = Number(brightness.value).toFixed(2);
       contrastVal.textContent = Number(contrast.value).toFixed(2);
-      smoothnessVal.textContent = Number(smoothness.value).toFixed(2);
     }
 
     function setValueLabels(){
@@ -974,7 +964,6 @@
 
     brightness.addEventListener('input', updateViewFilter);
     contrast.addEventListener('input', updateViewFilter);
-    smoothness.addEventListener('input', updateViewFilter);
 
     useEnvironment.addEventListener('change', () => {
       setEnvironment(useEnvironment.checked);
