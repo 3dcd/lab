@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Plancha e impresión — 3DCD</title>
+<style>
+  *{box-sizing:border-box}
+
+  html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    overscroll-behavior:none;
+  }
+
+  body{
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#e9e9e9;
+    color:#111;
+  }
+
+  .app{
+    width:100vw;
+    height:100vh;
+    height:100dvh;
+    min-height:100svh;
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr) auto;
+    gap:10px;
+    padding:12px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    min-height:44px;
+  }
+
+  .brand{
+    font-size:13px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#333;
+    white-space:nowrap;
+    padding-left:2px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .mode-tabs{
+    display:inline-flex;
+    gap:4px;
+    background:rgba(255,255,255,.54);
+    border:1px solid rgba(0,0,0,.10);
+    padding:3px;
+    border-radius:999px;
+    letter-spacing:0;
+    text-transform:none;
+  }
+
+  .mode-tabs button{
+    border:0;
+    background:transparent;
+    padding:6px 9px;
+    color:#555;
+    font-size:11px;
+  }
+
+  .mode-tabs button.active{
+    background:#111;
+    color:#fff;
+  }
+
+  .actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    align-items:center;
+  }
+
+  button{
+    border:1px solid #bbb;
+    background:white;
+    color:#111;
+    border-radius:999px;
+    padding:9px 14px;
+    font-size:13px;
+    cursor:pointer;
+    font-family:inherit;
+    line-height:1;
+  }
+
+  button:hover{border-color:#111}
+  button.primary{background:#111;color:white;border-color:#111}
+
+  .icon-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-weight:500;
+  }
+
+  .icon{
+    width:15px;
+    height:15px;
+    display:inline-block;
+    vertical-align:-2px;
+    stroke:currentColor;
+    stroke-width:2;
+    fill:none;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+
+  .orientation-tabs{
+    display:flex;
+    gap:4px;
+    background:rgba(255,255,255,.46);
+    border:1px solid rgba(0,0,0,.08);
+    padding:4px;
+    border-radius:999px;
+  }
+
+  .orientation-tabs button{
+    border:0;
+    background:transparent;
+    padding:8px 10px;
+    color:#555;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+
+  .orientation-tabs button.active{
+    background:#111;
+    color:#fff;
+  }
+
+  .export-wrap{position:relative}
+
+  .export-menu{
+    position:absolute;
+    right:0;
+    top:calc(100% + 8px);
+    min-width:190px;
+    background:rgba(255,255,255,.96);
+    border:1px solid rgba(0,0,0,.12);
+    border-radius:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,.18);
+    padding:6px;
+    z-index:20;
+    display:none;
+  }
+
+  .export-menu.open{display:block}
+
+  .export-menu button{
+    width:100%;
+    border:0;
+    border-radius:11px;
+    background:transparent;
+    justify-content:flex-start;
+    padding:10px 11px;
+  }
+
+  .export-menu button:hover{background:#f1f1f1}
+
+  .format-tabs{
+    display:flex;
+    gap:6px;
+    background:rgba(255,255,255,.46);
+    border:1px solid rgba(0,0,0,.08);
+    padding:4px;
+    border-radius:999px;
+  }
+
+  .format-tabs button{
+    border:0;
+    background:transparent;
+    padding:8px 12px;
+    color:#555;
+  }
+
+  .format-tabs button.active{
+    background:#111;
+    color:#fff;
+  }
+
+  .pill{
+    background:rgba(255,255,255,.68);
+    border:1px solid #d2d2d2;
+    border-radius:999px;
+    padding:8px 10px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    color:#444;
+  }
+
+  input[type=number]{
+    width:54px;
+    border:0;
+    outline:0;
+    background:transparent;
+    font:inherit;
+    text-align:right;
+  }
+
+  .workspace{
+    position:relative;
+    min-height:0;
+    overflow:hidden;
+    border-radius:14px;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,.45), transparent 32%),
+      rgba(255,255,255,.20);
+    border:1px solid rgba(0,0,0,.06);
+  }
+
+  .viewport{
+    width:100%;
+    height:100%;
+    overflow:auto;
+    overscroll-behavior:contain;
+    touch-action:none;
+    padding:16px;
+    display:flex;
+    justify-content:flex-start;
+    align-items:flex-start;
+  }
+
+  .sheet-wrap{
+    position:relative;
+    flex:0 0 auto;
+    margin:0 auto;
+    border-radius:4px;
+    overflow:hidden;
+    box-shadow:0 18px 60px rgba(0,0,0,.20);
+    transform-origin:left top;
+    background:
+      linear-gradient(45deg,#f4f4f4 25%,transparent 25%),
+      linear-gradient(-45deg,#f4f4f4 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#f4f4f4 75%),
+      linear-gradient(-45deg,transparent 75%,#f4f4f4 75%);
+    background-size:22px 22px;
+    background-position:0 0,0 11px,11px -11px,-11px 0px;
+  }
+
+  canvas{
+    width:100%;
+    height:100%;
+    display:block;
+    background:transparent;
+  }
+
+  .hint{
+    position:absolute;
+    inset:18px;
+    border:1.5px dashed #999;
+    background:rgba(255,255,255,.78);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    pointer-events:none;
+    transition:.2s ease;
+    padding:22px;
+  }
+
+  .hint strong{font-size:22px;margin-bottom:8px}
+  .hint span{font-size:14px;color:#777;max-width:390px;line-height:1.35}
+  .sheet-wrap.has-logos .hint{opacity:0}
+  .sheet-wrap.dragover .hint{border-color:#111;background:rgba(255,255,255,.92)}
+
+  .bottom{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-height:70px;
+    overflow:hidden;
+  }
+
+  .logo-list{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    justify-content:center;
+    max-height:96px;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:2px;
+  }
+
+  .chip{
+    border:1px solid #d0d0d0;
+    background:rgba(255,255,255,.72);
+    color:#333;
+    border-radius:999px;
+    padding:5px 7px 5px 10px;
+    font-size:12px;
+    max-width:360px;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+
+  .chip .name{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    max-width:130px;
+  }
+
+  .size-control{
+    display:flex;
+    align-items:center;
+    gap:3px;
+    border-left:1px solid #ddd;
+    border-right:1px solid #ddd;
+    padding:0 6px;
+    white-space:nowrap;
+    color:#444;
+  }
+
+  .size-control button,
+  .chip .delete-btn{
+    width:20px;
+    height:20px;
+    padding:0;
+    border-radius:50%;
+    border:1px solid #ccc;
+    background:#fff;
+    line-height:18px;
+    font-size:13px;
+  }
+
+  .size-control .size-label{
+    min-width:42px;
+    text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .info{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    color:#555;
+    font-size:12px;
+    padding:0 4px;
+  }
+
+  #fileInput{display:none}
+
+  @media print{
+    html,body{
+      width:auto;
+      height:auto;
+      overflow:visible;
+      background:white;
+    }
+    .app{
+      display:block;
+      width:auto;
+      height:auto;
+      min-height:0;
+      padding:0;
+    }
+    .topbar,.bottom,.hint{display:none !important}
+    .workspace{
+      border:0;
+      background:white;
+      overflow:visible;
+      border-radius:0;
+    }
+    .viewport{
+      display:block;
+      overflow:visible;
+      padding:0;
+      width:auto;
+      height:auto;
+    }
+    .sheet-wrap{
+      box-shadow:none;
+      margin:0;
+      border-radius:0;
+      overflow:visible;
+      width:100% !important;
+      height:auto !important;
+      background:transparent;
+    }
+    canvas{
+      width:100% !important;
+      height:auto !important;
+      image-rendering:auto;
+    }
+  }
+
+  @media (max-width:720px){
+    .app{padding:8px;gap:8px}
+    .topbar{
+      align-items:flex-start;
+      flex-direction:column;
+    }
+    .actions{
+      width:100%;
+      justify-content:flex-start;
+    }
+    .format-tabs,
+    .orientation-tabs{
+      order:1;
+      width:100%;
+      overflow:auto;
+      border-radius:18px;
+    }
+    .format-tabs button{
+      white-space:nowrap;
+    }
+    .pill{
+      order:2;
+    }
+    .brand{
+      font-size:12px;
+    }
+    button{
+      padding:8px 11px;
+      font-size:12px;
+    }
+    .viewport{padding:10px}
+  }
+
+  @media (pointer:coarse){
+    .bottom{min-height:88px}
+    .logo-list{
+      justify-content:center;
+      flex-wrap:nowrap;
+      max-height:48px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      scroll-padding-inline:50%;
+      padding-left:8px;
+      padding-right:8px;
+    }
+    .logo-list.many-chips{
+      justify-content:flex-start;
+    }
+    .chip{flex:0 0 auto}
+  }
+
+  @media (min-width:721px) and (pointer:coarse){
+    .app{gap:8px}
+    .bottom{min-height:92px}
+    .logo-list{max-height:52px}
+  }
+
+  .mobile-menu-btn{
+    display:none;
+    border:1px solid rgba(0,0,0,.18);
+    background:rgba(255,255,255,.76);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    padding:9px 13px;
+    font-size:12px;
+  }
+  .mobile-menu-backdrop{display:none}
+
+  @media (max-width:720px){
+    .mobile-menu-btn{display:inline-flex;margin-left:auto}
+    .brand{width:100%;justify-content:space-between;padding-left:0}
+    .brand .mode-tabs{display:none}
+    .topbar{position:relative;z-index:30}
+
+    .actions{
+      position:fixed;
+      left:10px;
+      right:10px;
+      bottom:calc(10px + env(safe-area-inset-bottom));
+      z-index:60;
+      display:none;
+      flex-direction:column;
+      align-items:stretch;
+      justify-content:flex-start;
+      gap:8px;
+      max-height:72vh;
+      overflow:auto;
+      padding:12px;
+      border:1px solid rgba(0,0,0,.14);
+      border-radius:22px;
+      background:rgba(255,255,255,.72);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+      box-shadow:0 22px 70px rgba(0,0,0,.24);
+    }
+    body.mobile-menu-open .actions{display:flex}
+
+    .mobile-menu-backdrop{
+      display:none;
+      position:fixed;
+      inset:0;
+      z-index:50;
+      background:rgba(255,255,255,.18);
+      backdrop-filter:blur(3px);
+      -webkit-backdrop-filter:blur(3px);
+    }
+    body.mobile-menu-open .mobile-menu-backdrop{display:block}
+
+    .actions > *,
+    .format-tabs,
+    .orientation-tabs,
+    .pill,
+    .export-wrap,
+    .actions button{width:100%}
+
+    .format-tabs,
+    .orientation-tabs,
+    .actions .mode-tabs{
+      display:flex;
+      order:0;
+      justify-content:flex-start;
+      overflow:auto;
+      border-radius:18px;
+      background:rgba(255,255,255,.54);
+    }
+    .pill{
+      justify-content:space-between;
+      min-height:42px;
+      background:rgba(255,255,255,.58);
+    }
+    .export-menu{
+      position:static;
+      margin-top:8px;
+      width:100%;
+      box-shadow:none;
+      background:rgba(255,255,255,.60);
+    }
+    .workspace{border-radius:18px}
+    .bottom{padding-bottom:58px}
+  }
+
+</style>
+</head>
+<body>
+<div id="mobileMenuBackdrop" class="mobile-menu-backdrop"></div>
+<main class="app">
+  <div class="topbar">
+    <div class="brand">
+      <span>3DCD · Plancha e impresión</span>
+      <button id="mobileMenuBtn" class="mobile-menu-btn" type="button">Opciones</button>
+      <span class="mode-tabs" id="modeTabs">
+        <button data-mode="textil" class="active">Textil</button>
+        <button data-mode="uv">UV</button>
+      </span>
+    </div>
+    <div class="actions">
+      <span class="mode-tabs mobile-mode-tabs" id="mobileModeTabs">
+        <button data-mode="textil" class="active">Textil</button>
+        <button data-mode="uv">UV</button>
+      </span>
+      <div class="format-tabs" id="formatTabs">
+        <button data-format="A4" class="active">A4</button>
+        <button data-format="A3">A3</button>
+        <button data-format="60x100">60×100</button>
+        <button data-format="60x150">60×150</button>
+      </div>
+      <div class="orientation-tabs" id="orientationTabs" aria-label="Orientación de hoja">
+        <button data-orientation="vertical" class="active" title="Hoja vertical">↕ Vertical</button>
+        <button data-orientation="horizontal" title="Hoja horizontal">↔ Horizontal</button>
+      </div>
+      <label class="pill">Sep. <input id="gap" type="number" value="4" min="0" max="30"> mm</label>
+      <label class="pill">Zoom <input id="zoomInput" type="number" value="100" min="20" max="500"> %</label>
+      <button id="cleanBtn" class="icon-btn" title="Limpiar plancha">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 15h10l1-15"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        Limpiar
+      </button>
+      <div class="export-wrap">
+        <button id="exportMenuBtn" class="icon-btn primary" title="Exportar archivo">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          Exportar
+        </button>
+        <div class="export-menu" id="exportMenu">
+          <button id="exportPngBtn" class="icon-btn">PNG transparente 300 dpi</button>
+          <button id="exportSvgBtn" class="icon-btn">SVG editable / proyecto</button>
+        </div>
+      </div>
+      <button id="printBtn" class="icon-btn" title="Imprimir o guardar como PDF">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/><path d="M18 12h.01"/></svg>
+        Imprimir
+      </button>
+    </div>
+  </div>
+
+  <section class="workspace">
+    <div class="viewport" id="viewport">
+      <div id="dropZone" class="sheet-wrap">
+        <canvas id="sheet"></canvas>
+        <div class="hint">
+          <strong>Arrastrá imágenes aquí</strong>
+          <span>Soltá SVG, PNG o JPG. Prepará planchas para DTF o armá una hoja rápida para imprimir en tu impresora. Si soltás un SVG guardado por esta herramienta, recupera la plancha completa.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bottom">
+    <div class="logo-list" id="logoList"></div>
+    <div class="info">
+      <span id="status">Sin logos cargados.</span>
+      <span>Imprimir abre la ventana del sistema: podés elegir impresora o guardar como PDF.</span>
+    </div>
+  </section>
+
+  <input id="fileInput" type="file" multiple accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg" />
+</main>
+
+<script>
+(() => {
+  const DPI = 300;
+  const PX_PER_MM = DPI / 25.4;
+
+  const FORMATS = {
+    A4: {label:"A4", w:210, h:297},
+    A3: {label:"A3", w:297, h:420},
+    "60x100": {label:"60x100cm", w:600, h:1000},
+    "60x150": {label:"60x150cm", w:600, h:1500}
+  };
+
+  const PRINT_MARGIN_X_MM = 10;
+  const PRINT_MARGIN_Y_MM = 5;
+  const LOGO_LONG_SIDE_MM = 80;
+  const PREVIEW_MAX_SIDE = 8192;
+  const PREVIEW_MAX_PIXELS = 32000000;
+
+  const canvas = document.getElementById("sheet");
+  const ctx = canvas.getContext("2d");
+  const dropZone = document.getElementById("dropZone");
+  const viewport = document.getElementById("viewport");
+  const fileInput = document.getElementById("fileInput");
+  const gapInput = document.getElementById("gap");
+  const zoomInput = document.getElementById("zoomInput");
+  const statusEl = document.getElementById("status");
+  const logoList = document.getElementById("logoList");
+  const formatTabs = document.getElementById("formatTabs");
+  const orientationTabs = document.getElementById("orientationTabs");
+  const modeTabs = document.getElementById("modeTabs");
+  const exportMenuBtn = document.getElementById("exportMenuBtn");
+  const exportMenu = document.getElementById("exportMenu");
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  const mobileMenuBackdrop = document.getElementById("mobileMenuBackdrop");
+  const mobileModeTabs = document.getElementById("mobileModeTabs");
+
+  let dtfMode = "textil";
+  let orientation = "vertical";
+
+  let logos = [];
+  let lastLayout = null;
+  let formatKey = "A4";
+  let zoom = 1;
+  let baseSheetW = 0;
+  let baseSheetH = 0;
+  let pagePxW = 0;
+  let pagePxH = 0;
+  let previewScale = 1;
+
+  function mm(v){ return Math.round(v * PX_PER_MM); }
+
+  function safeName(text){
+    return (text || "logo")
+      .toLowerCase()
+      .replace(/\.[^/.]+$/, "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "logo";
+  }
+
+  function escapeXml(s){
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;");
+  }
+
+  function currentFormat(){
+    const base = FORMATS[formatKey] || FORMATS.A4;
+    if(orientation === "horizontal"){
+      return {label:base.label, w:base.h, h:base.w};
+    }
+    return {...base};
+  }
+
+  function orientationLabel(){
+    return orientation === "horizontal" ? "horizontal" : "vertical";
+  }
+
+  function currentModeLabel(){
+    return dtfMode === "uv" ? "DTF UV" : "DTF textil";
+  }
+
+  function currentModeSlug(){
+    return dtfMode === "uv" ? "dtf-uv" : "dtf-textil";
+  }
+
+  function setActiveModeButton(){
+    [modeTabs, mobileModeTabs].forEach(group => {
+      if(!group) return;
+      group.querySelectorAll("button").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.mode === dtfMode);
+      });
+    });
+  }
+
+  function availableViewportSize(){
+    const rect = viewport.getBoundingClientRect();
+    return {
+      w: Math.max(260, rect.width - 34),
+      h: Math.max(260, rect.height - 34)
+    };
+  }
+
+  function fitWidthForScreen(fmt){
+    const av = availableViewportSize();
+    const fitByWidth = av.w;
+    const fitByHeight = av.h * (fmt.w / fmt.h);
+    return Math.max(120, Math.min(fitByWidth, fitByHeight));
+  }
+
+  function computePreviewScale(w, h){
+    // En iPad/Safari los canvas enormes pueden quedar en blanco.
+    // La vista previa se dibuja más liviana, pero las medidas/exportación SVG conservan la escala real.
+    const bySide = Math.min(1, PREVIEW_MAX_SIDE / Math.max(w, h));
+    const byArea = Math.min(1, Math.sqrt(PREVIEW_MAX_PIXELS / Math.max(1, w * h)));
+    return Math.max(0.08, Math.min(bySide, byArea));
+  }
+
+  function updateSheetCssSize(){
+    dropZone.style.width = (baseSheetW * zoom) + "px";
+    dropZone.style.height = (baseSheetH * zoom) + "px";
+  }
+
+  function centerSheet(){
+    requestAnimationFrame(() => {
+      const extraX = Math.max(0, (dropZone.offsetWidth - viewport.clientWidth) / 2);
+      viewport.scrollLeft = extraX;
+      viewport.scrollTop = 0;
+    });
+  }
+
+  function applySheetSize(autoFit=false){
+    const fmt = currentFormat();
+
+    pagePxW = mm(fmt.w);
+    pagePxH = mm(fmt.h);
+    previewScale = computePreviewScale(pagePxW, pagePxH);
+    canvas.width = Math.max(1, Math.round(pagePxW * previewScale));
+    canvas.height = Math.max(1, Math.round(pagePxH * previewScale));
+
+    baseSheetW = fitWidthForScreen(fmt);
+    baseSheetH = baseSheetW * (fmt.h / fmt.w);
+
+    if(autoFit){
+      zoom = 1;
+      zoomInput.value = 100;
+    }
+
+    updateSheetCssSize();
+    draw();
+    if(autoFit) centerSheet();
+  }
+
+  function targetSizeForLogo(logo){
+    const aspect = logo.w / logo.h;
+    const longSideMM = logo.sizeMM || LOGO_LONG_SIDE_MM;
+    let targetWMM, targetHMM;
+
+    if(aspect >= 1){
+      targetWMM = longSideMM;
+      targetHMM = longSideMM / aspect;
+    } else {
+      targetHMM = longSideMM;
+      targetWMM = longSideMM * aspect;
+    }
+
+    return {w:mm(targetWMM), h:mm(targetHMM), wMM:targetWMM, hMM:targetHMM};
+  }
+
+  function computeLayout(){
+    const gapPx = mm(Number(gapInput.value));
+    const marginX = mm(PRINT_MARGIN_X_MM);
+    const marginY = mm(PRINT_MARGIN_Y_MM);
+
+    const usableX = marginX;
+    const usableY = marginY;
+    const usableW = pagePxW - marginX * 2;
+    const usableH = pagePxH - marginY * 2;
+
+    const sizes = logos.map(targetSizeForLogo);
+
+    const rowData = logos.map((logo, i) => {
+      const s = sizes[i];
+      const cols = Math.max(1, Math.floor((usableW + gapPx) / (s.w + gapPx)));
+      return {
+        logoIndex:i,
+        w:s.w,
+        h:s.h,
+        cols,
+        rows:0,
+        copies:0
+      };
+    });
+
+    let usedH = 0;
+
+    for(const rd of rowData){
+      const addH = rd.h + (usedH > 0 ? gapPx : 0);
+      if(usedH + addH <= usableH){
+        rd.rows += 1;
+        rd.copies += rd.cols;
+        usedH += addH;
+      }
+    }
+
+    while(true){
+      let best = null;
+      for(const rd of rowData){
+        const addH = gapPx + rd.h;
+        if(usedH + addH > usableH) continue;
+        const ratio = rd.rows;
+        if(!best || ratio < best.ratio){
+          best = {rd, ratio, addH};
+        }
+      }
+      if(!best) break;
+      best.rd.rows += 1;
+      best.rd.copies += best.rd.cols;
+      usedH += best.addH;
+    }
+
+    const activeRows = rowData.reduce((acc, rd) => acc + rd.rows, 0);
+    const totalH = rowData.reduce((acc, rd) => acc + rd.rows * rd.h, 0) + Math.max(0, activeRows - 1) * gapPx;
+
+    let y = usableY + Math.floor((usableH - totalH) / 2);
+    const items = [];
+
+    for(const rd of rowData){
+      if(rd.rows <= 0) continue;
+
+      const rowW = rd.cols * rd.w + (rd.cols - 1) * gapPx;
+      const startX = usableX + Math.floor((usableW - rowW) / 2);
+
+      for(let r=0; r<rd.rows; r++){
+        for(let c=0; c<rd.cols; c++){
+          const x = startX + c * (rd.w + gapPx);
+          items.push({
+            logoIndex:rd.logoIndex,
+            x,
+            y,
+            w:rd.w,
+            h:rd.h
+          });
+        }
+        y += rd.h + gapPx;
+      }
+    }
+
+    const counts = Array(logos.length).fill(0);
+    items.forEach(it => counts[it.logoIndex]++);
+
+    return {
+      gapPx,
+      marginX,
+      marginY,
+      usableX,
+      usableY,
+      usableW,
+      usableH,
+      rowData,
+      items,
+      totalSlots:items.length,
+      counts,
+      usedH:totalH
+    };
+  }
+
+  function draw(){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.setTransform(previewScale,0,0,previewScale,0,0);
+
+    if(!logos.length){
+      lastLayout = null;
+      dropZone.classList.remove("has-logos");
+      statusEl.textContent = "Sin logos cargados.";
+      renderLogoList();
+      return;
+    }
+
+    dropZone.classList.add("has-logos");
+    lastLayout = computeLayout();
+
+    for(const it of lastLayout.items){
+      const logo = logos[it.logoIndex];
+      ctx.drawImage(logo.img, it.x, it.y, it.w, it.h);
+    }
+
+    const fmt = currentFormat();
+    statusEl.textContent =
+      `${currentModeLabel()} · ${fmt.label} ${orientationLabel()} · ${fmt.w}×${fmt.h} mm · ${lastLayout.totalSlots} logos · ${logos.length} archivo/s · separación ${gapInput.value} mm`;
+
+    renderLogoList(lastLayout.counts);
+  }
+
+  function renderLogoList(counts=[]){
+    logoList.innerHTML = "";
+    logoList.classList.toggle("many-chips", logos.length > 1);
+    logos.forEach((logo, i) => {
+      const div = document.createElement("div");
+      div.className = "chip";
+
+      const label = document.createElement("span");
+      label.className = "name";
+      label.textContent = counts[i] ? `${logo.name} × ${counts[i]}` : logo.name;
+
+      const sizeBox = document.createElement("span");
+      sizeBox.className = "size-control";
+
+      const minus = document.createElement("button");
+      minus.textContent = "−";
+      minus.title = "Achicar 10 mm";
+      minus.addEventListener("click", () => {
+        logos[i].sizeMM = Math.max(20, (logos[i].sizeMM || LOGO_LONG_SIDE_MM) - 10);
+        draw();
+      });
+
+      const sizeLabel = document.createElement("span");
+      sizeLabel.className = "size-label";
+      sizeLabel.textContent = `${logo.sizeMM || LOGO_LONG_SIDE_MM} mm`;
+
+      const plus = document.createElement("button");
+      plus.textContent = "+";
+      plus.title = "Agrandar 10 mm";
+      plus.addEventListener("click", () => {
+        logos[i].sizeMM = Math.min(300, (logos[i].sizeMM || LOGO_LONG_SIDE_MM) + 10);
+        draw();
+      });
+
+      sizeBox.appendChild(minus);
+      sizeBox.appendChild(sizeLabel);
+      sizeBox.appendChild(plus);
+
+      const btn = document.createElement("button");
+      btn.className = "delete-btn";
+      btn.textContent = "×";
+      btn.title = "Eliminar logo";
+      btn.addEventListener("click", () => {
+        logos.splice(i, 1);
+        draw();
+      });
+
+      div.appendChild(label);
+      div.appendChild(sizeBox);
+      div.appendChild(btn);
+      logoList.appendChild(div);
+    });
+  }
+
+  function dataUrlFromSvgText(svgText){
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgText);
+  }
+
+  function loadImageFromDataUrl(dataUrl){
+    return new Promise((resolve,reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+
+  async function addLogoFromData({name, dataUrl, svgText="", sizeMM=LOGO_LONG_SIDE_MM}){
+    const img = await loadImageFromDataUrl(dataUrl);
+    logos.push({
+      name: safeName(name),
+      originalName: name || "logo",
+      dataUrl,
+      svgText,
+      sizeMM: Number(sizeMM) || LOGO_LONG_SIDE_MM,
+      img,
+      w: img.naturalWidth || img.width,
+      h: img.naturalHeight || img.height
+    });
+    draw();
+  }
+
+  function readAsDataURL(file){
+    return new Promise((resolve,reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function readAsText(file){
+    return new Promise((resolve,reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsText(file);
+    });
+  }
+
+  function extractProjectMetadata(svgText){
+    const match = svgText.match(/<metadata[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/metadata>/i);
+    if(!match) return null;
+    try{
+      const meta = JSON.parse(match[1].trim());
+      if(meta && meta.app === "3DCD Plancha DTF" && Array.isArray(meta.logos)){
+        return meta;
+      }
+    }catch(e){}
+    return null;
+  }
+
+  async function loadProjectFromMetadata(meta){
+    logos = [];
+    if(meta.formatKey && FORMATS[meta.formatKey]){
+      formatKey = meta.formatKey;
+      setActiveFormatButton();
+    }
+    if(meta.orientation){
+      orientation = meta.orientation === "horizontal" ? "horizontal" : "vertical";
+      setActiveOrientationButton();
+    }
+    if(meta.dtfMode) {
+      dtfMode = meta.dtfMode;
+      setActiveModeButton();
+    }
+    if(meta.gap_mm !== undefined) gapInput.value = meta.gap_mm;
+    for(const item of meta.logos){
+      await addLogoFromData({
+        name:item.originalName || item.name || "logo",
+        dataUrl:item.dataUrl,
+        svgText:item.svgText || "",
+        sizeMM:item.sizeMM || LOGO_LONG_SIDE_MM
+      });
+    }
+    applySheetSize(true);
+  }
+
+  async function handleFiles(files){
+    const list = Array.from(files || []);
+    for(const file of list){
+      const isSvg = file.type.includes("svg") || file.name.toLowerCase().endsWith(".svg");
+      if(isSvg){
+        const svgText = await readAsText(file);
+        const meta = extractProjectMetadata(svgText);
+        if(meta){
+          await loadProjectFromMetadata(meta);
+          continue;
+        }
+        const dataUrl = dataUrlFromSvgText(svgText);
+        await addLogoFromData({name:file.name, dataUrl, svgText});
+      }else{
+        const dataUrl = await readAsDataURL(file);
+        await addLogoFromData({name:file.name, dataUrl, svgText:""});
+      }
+    }
+    draw();
+  }
+
+  function stamp(){
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mo = String(now.getMonth()+1).padStart(2,"0");
+    const da = String(now.getDate()).padStart(2,"0");
+    return `${yyyy}-${mo}-${da}`;
+  }
+
+
+  function crc32(bytes){
+    let table = crc32.table;
+    if(!table){
+      table = crc32.table = new Uint32Array(256);
+      for(let n=0; n<256; n++){
+        let c = n;
+        for(let k=0; k<8; k++){
+          c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        table[n] = c >>> 0;
+      }
+    }
+    let c = 0xffffffff;
+    for(let i=0; i<bytes.length; i++){
+      c = table[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+    }
+    return (c ^ 0xffffffff) >>> 0;
+  }
+
+  function writeUint32BE(arr, offset, value){
+    arr[offset] = (value >>> 24) & 255;
+    arr[offset+1] = (value >>> 16) & 255;
+    arr[offset+2] = (value >>> 8) & 255;
+    arr[offset+3] = value & 255;
+  }
+
+  function dataURLToBytes(dataURL){
+    const base64 = dataURL.split(",")[1];
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0; i<bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  function bytesToDataURL(bytes){
+    let bin = "";
+    const chunkSize = 0x8000;
+    for(let i=0; i<bytes.length; i+=chunkSize){
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i+chunkSize));
+    }
+    return "data:image/png;base64," + btoa(bin);
+  }
+
+  function pngDataURLWithDPI(dataURL, dpi){
+    const bytes = dataURLToBytes(dataURL);
+    const ppm = Math.round(dpi / 0.0254); // 300 dpi = 11811 pixels per meter
+
+    // Insert pHYs chunk immediately after IHDR.
+    const insertAt = 8 + 4 + 4 + 13 + 4;
+
+    const type = new TextEncoder().encode("pHYs");
+    const data = new Uint8Array(9);
+    writeUint32BE(data, 0, ppm);
+    writeUint32BE(data, 4, ppm);
+    data[8] = 1; // unit = meter
+
+    const chunk = new Uint8Array(4 + 4 + 9 + 4);
+    writeUint32BE(chunk, 0, 9);
+    chunk.set(type, 4);
+    chunk.set(data, 8);
+
+    const crcInput = new Uint8Array(4 + 9);
+    crcInput.set(type, 0);
+    crcInput.set(data, 4);
+    writeUint32BE(chunk, 17, crc32(crcInput));
+
+    const out = new Uint8Array(bytes.length + chunk.length);
+    out.set(bytes.subarray(0, insertAt), 0);
+    out.set(chunk, insertAt);
+    out.set(bytes.subarray(insertAt), insertAt + chunk.length);
+
+    return bytesToDataURL(out);
+  }
+
+
+  function renderToCanvas(targetCanvas, scale=1){
+    const targetCtx = targetCanvas.getContext("2d");
+    targetCtx.setTransform(1,0,0,1,0,0);
+    targetCtx.clearRect(0,0,targetCanvas.width,targetCanvas.height);
+    targetCtx.setTransform(scale,0,0,scale,0,0);
+    const layout = lastLayout || computeLayout();
+    for(const it of layout.items){
+      const logo = logos[it.logoIndex];
+      targetCtx.drawImage(logo.img, it.x, it.y, it.w, it.h);
+    }
+  }
+
+  function exportPNG(){
+    if(!logos.length){
+      alert("Primero arrastrá uno o varios logos.");
+      return;
+    }
+    if(!lastLayout) lastLayout = computeLayout();
+    const a = document.createElement("a");
+    const fmt = currentFormat();
+    const names = logos.map(l => l.name).slice(0,3).join("-");
+    a.download = `${stamp()}__${currentModeSlug()}-${fmt.label.replaceAll(" ","").replaceAll(".","")}__${names || "logos"}__${logos.length}-logos.png`;
+
+    try{
+      const out = document.createElement("canvas");
+      out.width = pagePxW;
+      out.height = pagePxH;
+      renderToCanvas(out, 1);
+      a.href = pngDataURLWithDPI(out.toDataURL("image/png"), 300);
+    }catch(err){
+      // Si el navegador no permite generar una imagen tan grande, al menos exporta la vista previa.
+      alert("Este formato es muy grande para exportar PNG desde este dispositivo. Te conviene usar SVG editable para 60×100 o 60×150, o exportar el PNG desde la Mac.");
+      draw();
+      return;
+    }
+    a.click();
+  }
+
+  function exportSVG(){
+    if(!logos.length){
+      alert("Primero arrastrá uno o varios logos.");
+      return;
+    }
+    if(!lastLayout) lastLayout = computeLayout();
+    const fmt = currentFormat();
+
+    const meta = {
+      app: "3DCD Plancha DTF",
+      created: new Date().toISOString(),
+      formatKey,
+      orientation,
+      dtfMode,
+      dtfModeLabel: currentModeLabel(),
+      page: {format:fmt.label, width_mm:fmt.w, height_mm:fmt.h, dpi:DPI},
+      printable_margin_mm: {left:PRINT_MARGIN_X_MM, right:PRINT_MARGIN_X_MM, top:PRINT_MARGIN_Y_MM, bottom:PRINT_MARGIN_Y_MM},
+      gap_mm: Number(gapInput.value),
+      logo_rule: "longest side = 80mm",
+      layout: {
+        total:lastLayout.totalSlots,
+        counts:lastLayout.counts,
+        grouped_bands:true
+      },
+      logos: logos.map(l => ({
+        name:l.name,
+        originalName:l.originalName,
+        dataUrl:l.dataUrl,
+        svgText:l.svgText || "",
+        sizeMM:l.sizeMM || LOGO_LONG_SIDE_MM,
+        width:l.w,
+        height:l.h
+      }))
+    };
+
+    let defs = "";
+    let content = `<g id="logos">\n`;
+
+    logos.forEach((l, i) => {
+      if(l.svgText){
+        const clean = l.svgText
+          .replace(/<\?xml[\s\S]*?\?>/i,"")
+          .replace(/<!DOCTYPE[\s\S]*?>/i,"")
+          .trim();
+        defs += `<symbol id="logo_${i}" viewBox="0 0 ${l.w} ${l.h}">${clean}</symbol>\n`;
+      }
+    });
+
+    for(const it of lastLayout.items){
+      const l = logos[it.logoIndex];
+      if(l.svgText){
+        content += `<use href="#logo_${it.logoIndex}" x="${it.x}" y="${it.y}" width="${it.w}" height="${it.h}"/>\n`;
+      }else{
+        content += `<image href="${l.dataUrl}" x="${it.x}" y="${it.y}" width="${it.w}" height="${it.h}" preserveAspectRatio="xMidYMid meet"/>\n`;
+      }
+    }
+    content += `</g>\n`;
+
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="${fmt.w}mm"
+     height="${fmt.h}mm"
+     viewBox="0 0 ${pagePxW} ${pagePxH}">
+<title>${escapeXml(currentModeLabel())} ${escapeXml(fmt.label)}</title>
+<desc>Plancha transparente ${escapeXml(currentModeLabel())} generada por 3DCD. Reimportable por esta herramienta.</desc>
+<metadata><![CDATA[
+${JSON.stringify(meta, null, 2)}
+]]></metadata>
+<defs>
+${defs}</defs>
+${content}</svg>`;
+
+    const blob = new Blob([svg], {type:"image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const names = logos.map(l => l.name).slice(0,3).join("-");
+    a.download = `${stamp()}__${currentModeSlug()}-editable-${fmt.label.replaceAll(" ","").replaceAll(".","")}__${names || "logos"}__${logos.length}-logos.svg`;
+    a.href = url;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function setZoom(value, focalClientX=null, focalClientY=null){
+    const oldZoom = zoom;
+    const nextZoom = Math.min(5, Math.max(.2, value));
+    if(Math.abs(nextZoom - oldZoom) < 0.0001) return;
+
+    let contentX = null;
+    let contentY = null;
+    let focalX = 0;
+    let focalY = 0;
+
+    if(focalClientX !== null && focalClientY !== null){
+      const vp = viewport.getBoundingClientRect();
+      focalX = focalClientX - vp.left;
+      focalY = focalClientY - vp.top;
+      contentX = (viewport.scrollLeft + focalX) / oldZoom;
+      contentY = (viewport.scrollTop + focalY) / oldZoom;
+    }
+
+    zoom = nextZoom;
+    zoomInput.value = Math.round(zoom * 100);
+    updateSheetCssSize();
+
+    if(contentX !== null){
+      viewport.scrollLeft = contentX * zoom - focalX;
+      viewport.scrollTop = contentY * zoom - focalY;
+    }
+  }
+
+  function setActiveFormatButton(){
+    formatTabs.querySelectorAll("button").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.format === formatKey);
+    });
+  }
+
+  function setActiveOrientationButton(){
+    orientationTabs.querySelectorAll("button").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.orientation === orientation);
+    });
+  }
+
+  dropZone.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", e => handleFiles(e.target.files));
+
+  ["dragenter","dragover"].forEach(ev => dropZone.addEventListener(ev, e => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+  }));
+  ["dragleave","drop"].forEach(ev => dropZone.addEventListener(ev, e => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+  }));
+  dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    handleFiles(e.dataTransfer.files);
+  });
+
+  gapInput.addEventListener("input", draw);
+
+  function handleModeClick(e){
+    const btn = e.target.closest("button[data-mode]");
+    if(!btn) return;
+    dtfMode = btn.dataset.mode;
+    setActiveModeButton();
+    draw();
+  }
+  modeTabs.addEventListener("click", handleModeClick);
+  if(mobileModeTabs) mobileModeTabs.addEventListener("click", handleModeClick);
+
+  formatTabs.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-format]");
+    if(!btn) return;
+    formatKey = btn.dataset.format;
+    setActiveFormatButton();
+    applySheetSize(true);
+  });
+
+  orientationTabs.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-orientation]");
+    if(!btn) return;
+    orientation = btn.dataset.orientation === "horizontal" ? "horizontal" : "vertical";
+    setActiveOrientationButton();
+    applySheetSize(true);
+  });
+
+  zoomInput.addEventListener("input", () => setZoom(Number(zoomInput.value)/100));
+
+  viewport.addEventListener("wheel", e => {
+    if(!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+    setZoom(zoom + delta, e.clientX, e.clientY);
+  }, {passive:false});
+
+  function gestureInfo(points){
+    const pts = Array.from(points.values());
+    if(pts.length < 2) return null;
+    const cx = (pts[0].x + pts[1].x) / 2;
+    const cy = (pts[0].y + pts[1].y) / 2;
+    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    return {cx, cy, dist};
+  }
+
+  let pinch = null;
+  viewport.addEventListener("pointerdown", e => {
+    if(e.pointerType === "mouse") return;
+    viewport.setPointerCapture(e.pointerId);
+    if(!pinch) pinch = {points:new Map(), startDist:0, startZoom:zoom, lastCenter:null};
+    pinch.points.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if(pinch.points.size === 2){
+      const info = gestureInfo(pinch.points);
+      pinch.startDist = info.dist;
+      pinch.startZoom = zoom;
+      pinch.lastCenter = {x:info.cx, y:info.cy};
+    }
+  });
+
+  viewport.addEventListener("pointermove", e => {
+    if(!pinch || !pinch.points.has(e.pointerId)) return;
+    e.preventDefault();
+    pinch.points.set(e.pointerId, {x:e.clientX, y:e.clientY});
+
+    if(pinch.points.size === 2){
+      const info = gestureInfo(pinch.points);
+      if(!info || pinch.startDist <= 0) return;
+
+      const nextZoom = pinch.startZoom * (info.dist / pinch.startDist);
+      setZoom(nextZoom, info.cx, info.cy);
+
+      if(pinch.lastCenter){
+        viewport.scrollLeft -= (info.cx - pinch.lastCenter.x);
+        viewport.scrollTop -= (info.cy - pinch.lastCenter.y);
+      }
+      pinch.lastCenter = {x:info.cx, y:info.cy};
+    }
+  }, {passive:false});
+
+  ["pointerup","pointercancel","pointerleave"].forEach(ev => viewport.addEventListener(ev, e => {
+    if(pinch && pinch.points) pinch.points.delete(e.pointerId);
+    if(pinch && pinch.points.size >= 2){
+      const info = gestureInfo(pinch.points);
+      pinch.startDist = info.dist;
+      pinch.startZoom = zoom;
+      pinch.lastCenter = {x:info.cx, y:info.cy};
+    }
+    if(pinch && pinch.points.size === 0) pinch = null;
+  }));
+
+  function closeMobileMenu(){
+    document.body.classList.remove("mobile-menu-open");
+    if(mobileMenuBtn) mobileMenuBtn.textContent = "Opciones";
+  }
+  function toggleMobileMenu(){
+    const open = !document.body.classList.contains("mobile-menu-open");
+    document.body.classList.toggle("mobile-menu-open", open);
+    if(mobileMenuBtn) mobileMenuBtn.textContent = open ? "Cerrar" : "Opciones";
+  }
+  if(mobileMenuBtn){
+    mobileMenuBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      toggleMobileMenu();
+    });
+  }
+  if(mobileMenuBackdrop){
+    mobileMenuBackdrop.addEventListener("click", closeMobileMenu);
+  }
+  window.addEventListener("resize", () => {
+    if(window.innerWidth > 720) closeMobileMenu();
+  });
+
+  document.getElementById("cleanBtn").addEventListener("click", () => {
+    logos = [];
+    fileInput.value = "";
+    draw();
+  });
+
+  exportMenuBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    exportMenu.classList.toggle("open");
+  });
+
+  document.addEventListener("click", e => {
+    if(!exportMenu.contains(e.target) && e.target !== exportMenuBtn){
+      exportMenu.classList.remove("open");
+    }
+  });
+
+  document.getElementById("exportPngBtn").addEventListener("click", () => {
+    exportMenu.classList.remove("open");
+    closeMobileMenu();
+    exportPNG();
+  });
+  document.getElementById("exportSvgBtn").addEventListener("click", () => {
+    exportMenu.classList.remove("open");
+    closeMobileMenu();
+    exportSVG();
+  });
+  document.getElementById("printBtn").addEventListener("click", () => {
+    closeMobileMenu();
+    if(!logos.length){
+      alert("Primero arrastrá una imagen. Después podés imprimir o guardar como PDF.");
+      return;
+    }
+
+    const printCanvas = document.createElement("canvas");
+    printCanvas.width = pagePxW;
+    printCanvas.height = pagePxH;
+
+    const pctx = printCanvas.getContext("2d");
+    const layout = lastLayout || computeLayout();
+
+    for(const it of layout.items){
+      const logo = logos[it.logoIndex];
+      pctx.drawImage(logo.img, it.x, it.y, it.w, it.h);
+    }
+
+    const dataUrl = printCanvas.toDataURL("image/png");
+    const fmt = currentFormat();
+
+    const win = window.open("", "_blank");
+
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Impresión limpia</title>
+<style>
+@page{
+  size:${fmt.w}mm ${fmt.h}mm;
+  margin:0;
+}
+html,body{
+  margin:0;
+  padding:0;
+  background:#fff;
+}
+img{
+  width:100%;
+  display:block;
+}
+  .mobile-menu-btn{
+    display:none;
+    border:1px solid rgba(0,0,0,.18);
+    background:rgba(255,255,255,.76);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    padding:9px 13px;
+    font-size:12px;
+  }
+  .mobile-menu-backdrop{display:none}
+
+  @media (max-width:720px){
+    .mobile-menu-btn{display:inline-flex;margin-left:auto}
+    .brand{width:100%;justify-content:space-between;padding-left:0}
+    .brand .mode-tabs{display:none}
+    .topbar{position:relative;z-index:30}
+
+    .actions{
+      position:fixed;
+      left:10px;
+      right:10px;
+      bottom:calc(10px + env(safe-area-inset-bottom));
+      z-index:60;
+      display:none;
+      flex-direction:column;
+      align-items:stretch;
+      justify-content:flex-start;
+      gap:8px;
+      max-height:72vh;
+      overflow:auto;
+      padding:12px;
+      border:1px solid rgba(0,0,0,.14);
+      border-radius:22px;
+      background:rgba(255,255,255,.72);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+      box-shadow:0 22px 70px rgba(0,0,0,.24);
+    }
+    body.mobile-menu-open .actions{display:flex}
+
+    .mobile-menu-backdrop{
+      display:none;
+      position:fixed;
+      inset:0;
+      z-index:50;
+      background:rgba(255,255,255,.18);
+      backdrop-filter:blur(3px);
+      -webkit-backdrop-filter:blur(3px);
+    }
+    body.mobile-menu-open .mobile-menu-backdrop{display:block}
+
+    .actions > *,
+    .format-tabs,
+    .orientation-tabs,
+    .pill,
+    .export-wrap,
+    .actions button{width:100%}
+
+    .format-tabs,
+    .orientation-tabs,
+    .actions .mode-tabs{
+      display:flex;
+      order:0;
+      justify-content:flex-start;
+      overflow:auto;
+      border-radius:18px;
+      background:rgba(255,255,255,.54);
+    }
+    .pill{
+      justify-content:space-between;
+      min-height:42px;
+      background:rgba(255,255,255,.58);
+    }
+    .export-menu{
+      position:static;
+      margin-top:8px;
+      width:100%;
+      box-shadow:none;
+      background:rgba(255,255,255,.60);
+    }
+    .workspace{border-radius:18px}
+    .bottom{padding-bottom:58px}
+  }
+
+</style>
+</head>
+<body>
+<img src="${dataUrl}">
+</body>
+</html>`);
+
+    win.document.close();
+
+    setTimeout(() => {
+      win.focus();
+      win.print();
+    }, 500);
+  });
+
+  window.addEventListener("resize", () => applySheetSize(false));
+
+  setActiveModeButton();
+  setActiveOrientationButton();
+  applySheetSize(true);
+})();
+</script>
+</body>
+</html>
