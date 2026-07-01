@@ -3,7 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bitácora V1</title>
+<title>Bitácora V2</title>
+<meta name="theme-color" content="#eef4ff" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Bitácora" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
 <style>
   :root{
     --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
@@ -55,6 +61,7 @@
       <button id="saveBtn" class="save" disabled>Guardar bitácora ZIP</button>
       <button id="loadBtn" class="open">Abrir ZIP</button>
       <button id="addAudioBtn" class="open">Agregar audio</button>
+      <button id="installBtn" class="open" style="display:none">Instalar app</button>
       <input id="projectFile" class="projectInput" type="file" accept=".zip,application/zip">
       <input id="audioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
     </div>
@@ -128,6 +135,37 @@ $('wrap').addEventListener('dragover',e=>{if(e.dataTransfer&&e.dataTransfer.type
 async function loadZip(file){try{if(typeof JSZip==='undefined')throw new Error('JSZip no disponible'); status.textContent='Abriendo bitácora...'; const zip=await JSZip.loadAsync(file); const pjFile=zip.file('bitacora.json')||zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto'); const pj=JSON.parse(await pjFile.async('string')); const nb=[]; for(const item of pj.blocks){const f=zip.file(item.filename); if(!f)continue; const blob=await f.async('blob'); nb.push({id:crypto.randomUUID(),name:item.name||'Nota',duration:item.duration||1,color:item.color||colors[nb.length%colors.length],blob:new Blob([blob],{type:item.type||blob.type}),type:item.type||blob.type,filename:item.filename,external:!!item.external,text:item.text||'',createdAt:item.createdAt||pj.created||new Date().toISOString()});} blocks=nb; startIndex=0; marcarGuardado('✓ Bitácora cargada.'); render();}catch(e){status.textContent='No pude abrir ese ZIP de Bitácora.';}}
 const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/')||(x.type||'').startsWith('video/')); if(f)loadZip(f); else if(media.length)addExternalFiles(media,insertionIndexFromPoint(e.clientX)); else status.textContent='Arrastrá un ZIP de Bitácora o un archivo de audio/video.';});
 window.addEventListener('pagehide',()=>{ if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); else releaseMic(); });
+
+// PWA: permite instalar Bitácora como acceso tipo app en la pantalla de inicio.
+let deferredInstallPrompt=null;
+const installBtn=document.getElementById('installBtn');
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  if(installBtn) installBtn.style.display='inline-block';
+});
+if(installBtn){
+  installBtn.onclick=async()=>{
+    if(!deferredInstallPrompt){
+      status.textContent='Para instalar: menú de Chrome ⋮ → Agregar a pantalla de inicio.';
+      return;
+    }
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice.catch(()=>{});
+    deferredInstallPrompt=null;
+    installBtn.style.display='none';
+  };
+}
+window.addEventListener('appinstalled',()=>{
+  if(installBtn) installBtn.style.display='none';
+  status.textContent='✓ Bitácora instalada en la pantalla de inicio.';
+});
+
 render();
 </script>
 </body>
