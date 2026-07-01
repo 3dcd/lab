@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Podcast por Bloques V7</title>
+<style>
+  :root{
+    --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
+    --line:#d7e2f0;--accent:#4f8cff;--accent2:#9ad7ff;--danger:#ff6b7a;--ok:#3ccf91;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--txt)}
+  .app{max-width:1280px;margin:0 auto;padding:18px}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:25px;margin:0;letter-spacing:-.02em}.hint{color:var(--mut);font-size:14px;margin-top:4px}
+  .panel{background:var(--card);border:1px solid #e3edf8;border-radius:26px;padding:18px;box-shadow:0 18px 55px rgba(45,79,120,.13)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;overflow:visible}
+  button{border:0;border-radius:16px;padding:11px 12px;font-weight:800;color:#162033;background:#edf4ff;cursor:pointer;box-shadow:0 7px 18px rgba(65,95,130,.14);white-space:nowrap}
+  button:hover{filter:brightness(1.02);transform:translateY(-1px)} button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .rec{background:#ff5c72;color:white}.stop{background:#ffd166;color:#3b2600}.play{background:#8ef1bf}.pause{background:#ffe7a3}.export{background:#9ad7ff}.save{background:#cfc2ff}.open{background:#ffc4e8}
+  input[type=range]{width:110px;accent-color:var(--accent)} label{font-weight:700;color:#344255;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .drop{border:2px dashed #b9cbe0;border-radius:22px;padding:16px;text-align:center;color:var(--mut);margin-bottom:14px;background:#f8fbff;font-weight:700}
+  .drop.drag{border-color:var(--accent);background:#eaf3ff;color:#0f4fb5}
+  .timelineWrap{position:relative;padding:22px 14px 42px;background:#f9fcff;border-radius:24px;min-height:260px;border:1px solid #e3edf8;overflow:hidden}
+  .timeline{display:flex;gap:10px;align-items:stretch;min-height:175px;position:relative;width:100%}
+  .block{position:relative;height:170px;border-radius:24px;padding:30px 12px 18px;display:flex;flex-direction:column;justify-content:center;gap:12px;cursor:grab;user-select:none;border:1px solid rgba(0,0,0,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);overflow:hidden;min-width:46px;transition:width .2s ease, transform .12s ease}
+  .block.external{height:128px;margin-top:22px;border-style:dashed;background:#dde8f5!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 8px 20px rgba(45,79,120,.10);gap:9px;padding-top:30px}.block.external .name{font-size:12px;padding-right:24px}.block.external .name:before{content:"Ext. · ";font-weight:900;color:#53667d}.block:active{cursor:grabbing;transform:scale(.99)}.block:hover{outline:3px solid rgba(79,140,255,.18)}.block.selected{outline:4px solid rgba(79,140,255,.45);transform:translateY(-2px)}
+  .name{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(10,20,35,.86);padding-right:30px}.dur{font-size:12px;font-weight:800;opacity:.75;color:rgba(10,20,35,.78)}
+  .del{position:absolute;right:9px;top:8px;width:28px;height:28px;border-radius:50%;padding:0;background:rgba(255,255,255,.78);color:#243142;box-shadow:none;line-height:24px;font-size:16px}
+  .playhead{position:absolute;top:10px;bottom:18px;width:4px;background:rgba(20,35,55,.72);border-radius:8px;left:12px;display:none;pointer-events:none;z-index:20;box-shadow:0 0 0 9999px rgba(80,120,160,.035),0 0 13px rgba(20,35,55,.28)}
+  .empty{color:var(--mut);padding:26px;text-align:center;width:100%;border-radius:18px;background:white;border:1px dashed #d5e3f2;font-weight:700}
+  .status{margin-top:12px;color:var(--mut);font-size:14px;font-weight:650}.mini{font-size:12px;color:var(--mut);font-weight:700}
+  .projectInput{display:none}.toolsLine{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.meter{position:absolute;right:18px;bottom:12px;display:none;align-items:center;gap:10px;padding:9px 14px;border-radius:17px;background:#fff3f5;border:1px solid #ffd4dc;color:#d83b53;font-weight:900;min-height:48px;z-index:30;box-shadow:0 8px 22px rgba(216,59,83,.12)}.meter.on{display:inline-flex}.bars{display:flex;gap:4px;align-items:center;height:44px}.bar{width:6px;height:8px;border-radius:6px;background:#ff5c72;transition:height .05s linear}
+  @media(max-width:900px){input[type=range]{width:135px}}
+  @media(max-width:640px){.app{padding:10px}.panel{padding:12px}.timelineWrap{min-height:230px}.timeline{min-height:150px}.block{height:148px;border-radius:22px}.name{font-size:13px}button{padding:11px 12px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div><h1>Podcast por Bloques</h1><div class="hint">Grabá partes, arrastrá audios externos, ordenalos y exportá un solo audio final.</div></div>
+    <div class="mini">Funciona local en el navegador.</div>
+  </header>
+  <div class="panel">
+    <div class="controls">
+      <button id="recBtn" class="rec">● Grabar</button>
+      <button id="stopBtn" class="stop" disabled>■ Detener</button>
+      <button id="playBtn" class="play" disabled>▶ Reproducir</button>
+      <button id="pauseBtn" class="pause" disabled>⏸ Pausar</button>
+      <label>Volumen <input id="vol" type="range" min="0" max="1" step="0.01" value="1"></label>
+      <button id="wavBtn" class="export" disabled>Exportar WAV</button>
+      <button id="saveBtn" class="save" disabled>Guardar proyecto ZIP</button>
+      <button id="loadBtn" class="open">Abrir ZIP</button>
+      <button id="addAudioBtn" class="open">Agregar audio</button>
+      <input id="projectFile" class="projectInput" type="file" accept=".zip,application/zip">
+      <input id="audioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
+    </div>
+    <div id="drop" class="drop">Arrastrá acá un ZIP de proyecto, o arrastrá un audio/video sobre los bloques para insertarlo entre partes.</div>
+    <div class="timelineWrap" id="wrap"><div class="playhead" id="head"></div><div class="timeline" id="timeline"><div class="empty">Todavía no hay audios. Tocá “Grabar”.</div></div><div id="meter" class="meter"><span>Grabando</span><div class="bars" id="bars"><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i></div></div></div>
+    <div class="status" id="status">Listo.</div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+let mediaRecorder, chunks=[], blocks=[], playing=false, currentAudio=null, raf=0, startIndex=0, micStream=null, audioCtxLive=null, analyser=null, meterRaf=0, playCtx=null, playSources=[], playStartedAt=0, playOffset=0, playRunId=0;
+const colors=['#9ad7ff','#9ff0c8','#ffe38f','#ffc2df','#d6c8ff','#ffb0b8','#b7f1ff','#ffd2a6','#c7ed9f','#e0e7ff'];
+const $=id=>document.getElementById(id);
+const recBtn=$('recBtn'), stopBtn=$('stopBtn'), playBtn=$('playBtn'), pauseBtn=$('pauseBtn'), wavBtn=$('wavBtn'), saveBtn=$('saveBtn'), timeline=$('timeline'), status=$('status'), head=$('head'), vol=$('vol'), meter=$('meter'), bars=[...$('bars').querySelectorAll('.bar')];
+function fmt(s){s=Math.max(0,Math.round(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function updateBtns(){const has=blocks.length>0; playBtn.disabled=!has||playing; wavBtn.disabled=!has; saveBtn.disabled=!has; pauseBtn.disabled=!playing; recBtn.disabled=playing; playBtn.textContent='▶ Reproducir'; pauseBtn.textContent='⏸ Pausar'; stopBtn.textContent='■ Detener';}
+function escapeHtml(s){return String(s).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
+function render(){
+  timeline.innerHTML='';
+  if(!blocks.length){startIndex=0; timeline.innerHTML='<div class="empty">Todavía no hay audios. Tocá “Grabar”.</div>'; head.style.display='none'; updateBtns(); return;}
+  const totalDur=blocks.reduce((a,b)=>a+Math.max(.2,b.duration||1),0);
+  const gapTotal=(blocks.length-1)*10;
+  blocks.forEach((b,i)=>{
+    const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=true; el.style.background=b.color; el.style.flex='0 0 calc('+((Math.max(.2,b.duration||1)/totalDur)*100).toFixed(4)+'% - '+(gapTotal/blocks.length).toFixed(2)+'px)'; el.dataset.id=b.id;
+    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="name">${i+1}. ${escapeHtml(b.name)}</div><div class="dur">${fmt(b.duration)}</div>`;
+    el.querySelector('.del').onclick=(ev)=>{ev.stopPropagation(); blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); render();};
+    function jump(){startIndex=i; status.textContent='Ubicado al inicio del bloque '+(i+1)+'. Doble toque sobre el bloque para escuchar desde ahí.'; render();}
+    el.onclick=(ev)=>{ev.preventDefault(); jump();};
+    el.ondblclick=(ev)=>{ev.preventDefault(); jump(); setTimeout(()=>playSingle(i),40);};
+    el.ondragstart=e=>e.dataTransfer.setData('text/plain',b.id);
+    el.ondragover=e=>e.preventDefault();
+    el.ondrop=e=>{e.preventDefault(); const from=e.dataTransfer.getData('text/plain'), to=b.id; if(from===to)return; const a=blocks.findIndex(x=>x.id===from), c=blocks.findIndex(x=>x.id===to); const [m]=blocks.splice(a,1); blocks.splice(c,0,m); render();};
+    timeline.appendChild(el);
+  });
+  updateBtns();
+}
+async function blobDuration(blob){return new Promise(res=>{const a=document.createElement('audio'); a.preload='metadata'; a.onloadedmetadata=()=>{URL.revokeObjectURL(a.src); res(isFinite(a.duration)?a.duration:1)}; a.onerror=()=>res(1); a.src=URL.createObjectURL(blob);});}
+async function getMic(){
+  if(micStream && micStream.active) return micStream;
+  micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+  setupMeter(micStream);
+  return micStream;
+}
+function setupMeter(stream){
+  try{
+    audioCtxLive=audioCtxLive||new (window.AudioContext||window.webkitAudioContext)();
+    analyser=audioCtxLive.createAnalyser(); analyser.fftSize=256;
+    const source=audioCtxLive.createMediaStreamSource(stream); source.connect(analyser);
+  }catch(e){}
+}
+function startMeter(){
+  meter.classList.add('on');
+  const data=new Uint8Array(analyser?analyser.frequencyBinCount:0);
+  const loop=()=>{
+    let level=.15;
+    if(analyser){analyser.getByteFrequencyData(data); level=(data.reduce((a,b)=>a+b,0)/(data.length||1))/255;}
+    bars.forEach((bar,i)=>{const h=8+Math.max(0,Math.min(1,level*2.7 + Math.sin(Date.now()/110+i)*.08))*36*(.55+(i%3)*.18); bar.style.height=h+'px';});
+    meterRaf=requestAnimationFrame(loop);
+  };
+  loop();
+}
+function stopMeter(){cancelAnimationFrame(meterRaf); meter.classList.remove('on'); bars.forEach(b=>b.style.height='5px');}
+recBtn.onclick=async()=>{try{const stream=await getMic(); chunks=[]; recBtn.disabled=true; stopBtn.disabled=true; playBtn.disabled=true; status.textContent='Preparando micrófono... empezá a hablar cuando diga “Grabando”.';
+  // Pequeña espera para no capturar el clic/toque inicial dentro del audio.
+  await new Promise(r=>setTimeout(r,450));
+  mediaRecorder=new MediaRecorder(stream); mediaRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)}; mediaRecorder.onstop=async()=>{stopMeter(); let rawBlob=new Blob(chunks,{type:mediaRecorder.mimeType||'audio/webm'}); let blob=await trimBlobEnd(rawBlob,0.32); const dur=await blobDuration(blob); blocks.push({id:crypto.randomUUID(),name:'Audio '+(blocks.length+1),duration:dur,color:colors[blocks.length%colors.length],blob,type:blob.type,filename:'audio-'+(blocks.length+1)+'.webm',external:false}); startIndex=blocks.length-1; status.textContent='Audio agregado como bloque. Tocá un bloque para ubicarte; doble toque para escuchar solo ese bloque.'; render();}; mediaRecorder.start(); startMeter(); stopBtn.disabled=false; status.textContent='Grabando... hablá ahora.';}catch(e){recBtn.disabled=false; stopBtn.disabled=true; status.textContent='No se pudo acceder al micrófono. Revisá permisos y usá HTTPS o localhost.';}};
+stopBtn.onclick=()=>{ if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); recBtn.disabled=false; stopBtn.disabled=true; };
+
+async function trimBlobEnd(blob, seconds=0.32){
+  // Recorta una pequeña cola para que no quede capturado el clic de “Detener”.
+  // Si el navegador no puede decodificar el formato, devuelve el original.
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const arr=await blob.arrayBuffer();
+    const buf=await ctx.decodeAudioData(arr.slice(0));
+    const keep=Math.max(0.12, buf.duration-seconds);
+    const frames=Math.max(1, Math.floor(keep*buf.sampleRate));
+    const off=new OfflineAudioContext(buf.numberOfChannels, frames, buf.sampleRate);
+    const src=off.createBufferSource(); src.buffer=buf; src.connect(off.destination); src.start(0);
+    const rendered=await off.startRendering();
+    try{ctx.close()}catch(e){}
+    return new Blob([bufferToWav(rendered)],{type:'audio/wav'});
+  }catch(e){ return blob; }
+}
+async function playSingle(i){
+  if(!blocks.length) return;
+
+  // Si ya hay algo sonando, lo corto y arranco el nuevo bloque.
+  // El playRunId evita que timers viejos corten el bloque nuevo cuando hacés doble clic rápido.
+  if(playing){
+    stopPlayback(false);
+    await new Promise(r=>setTimeout(r,20));
+  }
+
+  const runId=++playRunId;
+  startIndex=i; render();
+
+  try{
+    playing=true; updateBtns(); head.style.display='block'; status.textContent='Escuchando solo el bloque '+(i+1)+'...';
+    playCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const buf=await decode(blocks[i].blob, playCtx);
+
+    // Si durante la decodificación el usuario ya eligió otro bloque, este intento queda cancelado.
+    if(runId!==playRunId){ try{playCtx.close()}catch(e){} return; }
+
+    playOffset=blocks.slice(0,i).reduce((a,b)=>a+b.duration,0);
+    playStartedAt=playCtx.currentTime;
+    playSources=[];
+    const src=playCtx.createBufferSource(); src.buffer=buf;
+    const gain=playCtx.createGain(); gain.gain.value=Number(vol.value);
+    src.connect(gain).connect(playCtx.destination); src.start(playStartedAt);
+    playSources.push({src,gain});
+    animateSmooth(blocks.reduce((a,b)=>a+b.duration,0), buf.duration);
+    setTimeout(()=>{ if(playing && runId===playRunId) stopPlayback(false); }, Math.max(50,buf.duration*1000+80));
+  }catch(e){
+    if(runId===playRunId){ stopPlayback(false); status.textContent='No pude reproducir ese bloque.'; }
+  }
+}
+
+async function playSequence(){
+  if(!blocks.length || playing) return;
+  const runId=++playRunId;
+  try{
+    playing=true; updateBtns(); head.style.display='block'; status.textContent='Preparando reproducción...';
+    playCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const chosen=blocks.slice(startIndex);
+    const buffers=[];
+    for(const b of chosen){ buffers.push(await decode(b.blob, playCtx)); }
+    if(!playing || runId!==playRunId) return;
+    const total=blocks.reduce((a,b)=>a+b.duration,0);
+    playOffset=blocks.slice(0,startIndex).reduce((a,b)=>a+b.duration,0);
+    playStartedAt=playCtx.currentTime;
+    let t=0; playSources=[];
+    buffers.forEach(buf=>{ const src=playCtx.createBufferSource(); src.buffer=buf; const gain=playCtx.createGain(); gain.gain.value=Number(vol.value); src.connect(gain).connect(playCtx.destination); src.start(playStartedAt+t); playSources.push({src,gain}); t+=buf.duration; });
+    animateSmooth(total, t);
+    status.textContent='Reproduciendo secuencia...';
+    setTimeout(()=>{ if(playing && runId===playRunId) stopPlayback(false); }, Math.max(50,t*1000+80));
+  }catch(e){ if(runId===playRunId){ stopPlayback(true); status.textContent='No pude reproducir la secuencia en este navegador.'; } }
+}
+function animateSmooth(total, remaining){
+  cancelAnimationFrame(raf);
+  const loop=()=>{
+    if(!playing||!playCtx)return;
+    const elapsed=Math.min(remaining, Math.max(0, playCtx.currentTime-playStartedAt));
+    const now=playOffset+elapsed;
+    const available=timeline.clientWidth-4;
+    head.style.left=(12+(now/total)*available)+'px';
+    raf=requestAnimationFrame(loop);
+  };
+  loop();
+}
+function stopPlayback(paused=true){
+  playRunId++;
+  playing=false;
+  if(currentAudio){currentAudio.pause(); URL.revokeObjectURL(currentAudio.src); currentAudio=null;}
+  playSources.forEach(o=>{try{o.src.stop()}catch(e){}}); playSources=[];
+  if(playCtx){try{playCtx.close()}catch(e){} playCtx=null;}
+  cancelAnimationFrame(raf); head.style.display='none'; updateBtns(); status.textContent=paused?'Pausado.':'Listo.';
+}
+playBtn.onclick=()=>{startIndex=0; render(); status.textContent='Reproduciendo desde el comienzo...'; playSequence();};
+pauseBtn.onclick=()=>stopPlayback(true);
+vol.oninput=()=>{if(currentAudio)currentAudio.volume=Number(vol.value); playSources.forEach(o=>{if(o.gain)o.gain.gain.value=Number(vol.value);});};
+async function decode(blob,ctx){const arr=await blob.arrayBuffer(); return await ctx.decodeAudioData(arr.slice(0));}
+async function exportWav(){status.textContent='Preparando WAV...'; try{const total=blocks.reduce((a,b)=>a+b.duration,0)+1; const ctx=new OfflineAudioContext(1, 44100*Math.ceil(total), 44100); let t=0; for(const b of blocks){const buf=await decode(b.blob,ctx); const src=ctx.createBufferSource(); src.buffer=buf; src.connect(ctx.destination); src.start(t); t+=buf.duration;} const rendered=await ctx.startRendering(); const wav=bufferToWav(rendered); download(new Blob([wav],{type:'audio/wav'}),'podcast-final.wav'); status.textContent='WAV exportado.';}catch(e){status.textContent='No pude exportar WAV en este navegador.';}}
+function bufferToWav(buffer){const len=buffer.length, data=buffer.getChannelData(0), ab=new ArrayBuffer(44+len*2), v=new DataView(ab); function w(o,s){for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));} w(0,'RIFF'); v.setUint32(4,36+len*2,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,buffer.sampleRate,true); v.setUint32(28,buffer.sampleRate*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,len*2,true); let off=44; for(let i=0;i<len;i++,off+=2){let s=Math.max(-1,Math.min(1,data[i])); v.setInt16(off,s<0?s*0x8000:s*0x7fff,true);} return ab;}
+function download(blob,name){const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+wavBtn.onclick=exportWav;
+saveBtn.onclick=async()=>{ if(typeof JSZip==='undefined'){status.textContent='No cargó JSZip. Para subirlo online debería funcionar con internet.';return;} status.textContent='Armando ZIP...'; const zip=new JSZip(); const aud=zip.folder('audios'); const project={version:1,created:new Date().toISOString(),blocks:[]}; for(let i=0;i<blocks.length;i++){const b=blocks[i]; const ext=(b.type.includes('wav')?'wav':b.type.includes('mpeg')?'mp3':'webm'); const filename=`audio-${i+1}.${ext}`; aud.file(filename,b.blob); project.blocks.push({name:b.name,duration:b.duration,color:b.color,filename:'audios/'+filename,type:b.type,external:!!b.external});} zip.file('proyecto.json',JSON.stringify(project,null,2)); const blob=await zip.generateAsync({type:'blob'}); download(blob,'proyecto-podcast.zip'); status.textContent='Proyecto ZIP guardado.';};
+$('loadBtn').onclick=()=>$('projectFile').click(); $('projectFile').onchange=e=>{if(e.target.files[0])loadZip(e.target.files[0]); e.target.value='';};
+
+$('addAudioBtn').onclick=()=>$('audioFile').click();
+$('audioFile').onchange=e=>{ if(e.target.files.length) addExternalFiles([...e.target.files], blocks.length); e.target.value=''; };
+function mediaDuration(file){
+  return new Promise(res=>{
+    const isVideo=(file.type||'').startsWith('video/');
+    const el=document.createElement(isVideo?'video':'audio');
+    el.preload='metadata';
+    el.onloadedmetadata=()=>{ URL.revokeObjectURL(el.src); res(isFinite(el.duration)?el.duration:1); };
+    el.onerror=()=>{ try{URL.revokeObjectURL(el.src)}catch(e){}; res(1); };
+    el.src=URL.createObjectURL(file);
+  });
+}
+async function addExternalFiles(files, insertAt=blocks.length){
+  const usable=files.filter(f=>(f.type||'').startsWith('audio/') || (f.type||'').startsWith('video/'));
+  if(!usable.length){status.textContent='Ese archivo no parece audio/video. Probá con MP3, WAV, M4A, WEBM o un video con audio.'; return;}
+  status.textContent='Agregando audio externo...';
+  let idx=Math.max(0,Math.min(insertAt,blocks.length));
+  for(const f of usable){
+    const dur=await mediaDuration(f);
+    const extColor='#dde8f5';
+    const item={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),duration:dur,color:extColor,blob:f,type:f.type||'application/octet-stream',filename:f.name,external:true};
+    blocks.splice(idx,0,item); idx++;
+  }
+  startIndex=Math.max(0,idx-1); render(); status.textContent='Audio externo insertado. Es más petiso para diferenciarlo de lo grabado acá.';
+}
+function insertionIndexFromPoint(clientX){
+  const els=[...timeline.querySelectorAll('.block')];
+  if(!els.length)return 0;
+  for(let i=0;i<els.length;i++){
+    const r=els[i].getBoundingClientRect();
+    if(clientX < r.left + r.width/2) return i;
+  }
+  return els.length;
+}
+$('wrap').addEventListener('dragover',e=>{ if(e.dataTransfer && e.dataTransfer.types && [...e.dataTransfer.types].includes('Files')){e.preventDefault(); drop.classList.add('drag');} });
+$('wrap').addEventListener('drop',e=>{
+  const files=[...e.dataTransfer.files];
+  const media=files.filter(f=>(f.type||'').startsWith('audio/') || (f.type||'').startsWith('video/'));
+  if(media.length){ e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); addExternalFiles(media, insertionIndexFromPoint(e.clientX)); }
+});
+
+async function loadZip(file){try{ if(typeof JSZip==='undefined')throw new Error('JSZip no disponible'); status.textContent='Abriendo proyecto...'; const zip=await JSZip.loadAsync(file); const pjFile=zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto.json'); const pj=JSON.parse(await pjFile.async('string')); const nb=[]; for(const item of pj.blocks){const f=zip.file(item.filename); if(!f)continue; const blob=await f.async('blob'); nb.push({id:crypto.randomUUID(),name:item.name,duration:item.duration,color:item.color,blob:new Blob([blob],{type:item.type||blob.type}),type:item.type||blob.type,filename:item.filename,external:!!item.external});} blocks=nb; startIndex=0; render(); status.textContent='Proyecto cargado. Tocá un bloque para ubicarte; doble toque para escuchar solo ese bloque.';}catch(e){status.textContent='No pude abrir ese ZIP de proyecto.';}}
+const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/') || (x.type||'').startsWith('video/')); if(f)loadZip(f); else if(media.length)addExternalFiles(media, insertionIndexFromPoint(e.clientX)); else status.textContent='Arrastrá un ZIP de proyecto o un archivo de audio/video.';});
+render();
+</script>
+</body>
+</html>
