@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bitácora V2</title>
+<title>Bitácora V3</title>
 <meta name="theme-color" content="#eef4ff" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Bitácora" />
@@ -31,8 +31,8 @@
   .drop{border:2px dashed #b9cbe0;border-radius:22px;padding:14px;text-align:center;color:var(--mut);margin-bottom:14px;background:#f8fbff;font-weight:700}.drop.drag{border-color:var(--accent);background:#eaf3ff;color:#0f4fb5}
   .timelineWrap{position:relative;padding:18px 14px 36px;background:#f9fcff;border-radius:24px;min-height:330px;border:1px solid #e3edf8;overflow:hidden}
   .timeline{display:flex;gap:12px;align-items:stretch;min-height:250px;position:relative;width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;padding:4px 2px 18px;-webkit-overflow-scrolling:touch}
-  .block{position:relative;min-height:238px;border-radius:24px;padding:38px 14px 14px;display:flex;flex-direction:column;gap:10px;cursor:grab;user-select:none;border:1px solid rgba(0,0,0,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);overflow:hidden;min-width:260px;flex:0 0 calc((100% - 36px)/4);scroll-snap-align:start;transition:transform .12s ease}
-  .block.external{border-style:dashed;background:#dde8f5!important}.block:active{cursor:grabbing;transform:scale(.99)}.block:hover{outline:3px solid rgba(79,140,255,.18)}.block.selected{outline:4px solid rgba(79,140,255,.45);transform:translateY(-2px)}
+  .block{position:relative;min-height:238px;border-radius:24px;padding:38px 14px 14px;display:flex;flex-direction:column;gap:10px;cursor:default;user-select:none;border:1px solid rgba(0,0,0,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);overflow:hidden;min-width:260px;flex:0 0 calc((100% - 36px)/4);scroll-snap-align:start;transition:transform .12s ease}
+  .block.external{border-style:dashed;background:#dde8f5!important}.block:active{transform:none}.block:hover{outline:3px solid rgba(79,140,255,.18)}.block.selected{outline:4px solid rgba(79,140,255,.45);transform:translateY(-2px)}
   .topline{display:flex;align-items:center;gap:8px;justify-content:space-between}.name{font-weight:950;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(10,20,35,.9);padding-right:28px}.dur{font-size:12px;font-weight:850;opacity:.78;color:rgba(10,20,35,.78)}
   .created{font-size:12px;color:rgba(10,20,35,.62);font-weight:800}.noteText{width:100%;min-height:104px;resize:vertical;border:1px solid rgba(0,0,0,.09);border-radius:18px;padding:12px;background:rgba(255,255,255,.76);font:700 14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#172033;outline:none;user-select:text}.noteText:focus{border-color:#4f8cff;box-shadow:0 0 0 4px rgba(79,140,255,.16);background:#fff}
   .cardBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}.cardBtns button{padding:9px 10px;border-radius:14px;font-size:13px;box-shadow:0 5px 14px rgba(65,95,130,.11)}
@@ -89,9 +89,9 @@ function render(){
   timeline.innerHTML='';
   if(!blocks.length){startIndex=0; timeline.innerHTML='<div class="empty">Todavía no hay notas. Tocá “Nueva nota” y grabá un audio.</div>'; head.style.display='none'; updateBtns(); actualizarBotonGuardar(); return;}
   blocks.forEach((b,i)=>{
-    const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=true; el.style.background=b.color; el.dataset.id=b.id;
-    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="topline"><div class="name">${i+1}. ${escapeHtml(b.name||'Nota')}</div><div class="dur">${fmt(b.duration)}</div></div><div class="created">${fmtDate(b.createdAt)}</div><textarea class="noteText" placeholder="Escribir observación de esta nota...">${escapeHtml(b.text||'')}</textarea><div class="cardBtns"><button class="play one">▶ Audio</button><button class="selectBtn">Ubicar</button></div>`;
-    el.querySelector('.del').onclick=(ev)=>{ev.stopPropagation(); blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: nota borrada.'); render();};
+    const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=false; el.style.background=b.color; el.dataset.id=b.id;
+    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="topline"><div class="name">${i+1}. ${escapeHtml(b.name||'Nota')}</div><div class="dur">${fmt(b.duration)}</div></div><div class="created">${fmtDate(b.createdAt)}</div><textarea class="noteText" placeholder="Escribir observación de esta nota...">${escapeHtml(b.text||'')}</textarea><div class="cardBtns"><button class="play one">▶ Audio</button><button class="shareBtn">↗ Compartir</button><button class="selectBtn">Seleccionar</button></div>`;
+    el.querySelector('.del').onclick=(ev)=>{ev.stopPropagation(); if(!confirm('¿Estás seguro de que querés borrar esta nota?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: nota borrada.'); render();};
     const txt=el.querySelector('.noteText');
     txt.oninput=()=>{b.text=txt.value; marcarSinGuardar('Cambios sin guardar: texto editado.');};
     txt.onfocus=()=>{startIndex=i; setTimeout(()=>el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),250);};
@@ -99,10 +99,9 @@ function render(){
     function jump(){startIndex=i; status.textContent='Ubicado en la nota '+(i+1)+'.'; render();}
     el.querySelector('.selectBtn').onclick=(ev)=>{ev.stopPropagation(); jump();};
     el.querySelector('.play.one').onclick=(ev)=>{ev.stopPropagation(); startIndex=i; setTimeout(()=>playSingle(i),20);};
+    el.querySelector('.shareBtn').onclick=(ev)=>{ev.stopPropagation(); compartirNota(i);};
     el.onclick=(ev)=>{ if(ev.target.closest('textarea,button'))return; jump(); };
-    el.ondragstart=e=>{ if(e.target.closest('textarea,button')){e.preventDefault(); return;} e.dataTransfer.setData('text/plain',b.id); };
-    el.ondragover=e=>e.preventDefault();
-    el.ondrop=e=>{e.preventDefault(); const from=e.dataTransfer.getData('text/plain'), to=b.id; if(from===to)return; const a=blocks.findIndex(x=>x.id===from), c=blocks.findIndex(x=>x.id===to); const [m]=blocks.splice(a,1); blocks.splice(c,0,m); marcarSinGuardar('Cambios sin guardar: orden modificado.'); render();};
+    // En Bitácora las notas no se reordenan: quedan en el orden real de creación/recorrido.
     timeline.appendChild(el);
   });
   updateBtns(); actualizarBotonGuardar();
@@ -117,6 +116,42 @@ function releaseMic(){try{if(micStream){micStream.getTracks().forEach(track=>tra
 recBtn.onclick=async()=>{try{const stream=await getMic(); chunks=[]; recBtn.disabled=true; stopBtn.disabled=true; playBtn.disabled=true; status.textContent='Preparando micrófono... empezá a hablar cuando diga “Grabando”.'; await new Promise(r=>setTimeout(r,450)); mediaRecorder=new MediaRecorder(stream); mediaRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)}; mediaRecorder.onstop=async()=>{stopMeter(); releaseMic(); let rawBlob=new Blob(chunks,{type:mediaRecorder.mimeType||'audio/webm'}); let blob=await trimBlobEnd(rawBlob,0.32); const dur=await blobDuration(blob); blocks.push({id:crypto.randomUUID(),name:'Nota '+(blocks.length+1),duration:dur,color:colors[blocks.length%colors.length],blob,type:blob.type,filename:'audio-'+(blocks.length+1)+'.webm',external:false,text:'',createdAt:new Date().toISOString()}); startIndex=blocks.length-1; marcarSinGuardar('Cambios sin guardar: nota de audio agregada.'); render();}; mediaRecorder.start(); startMeter(); stopBtn.disabled=false; status.textContent='Grabando nota...';}catch(e){recBtn.disabled=false; stopBtn.disabled=true; status.textContent='No se pudo acceder al micrófono. Revisá permisos y usá HTTPS o localhost.';}};
 stopBtn.onclick=()=>{ if(mediaRecorder&&mediaRecorder.state!=='inactive'){mediaRecorder.stop();}else{releaseMic();} recBtn.disabled=false; stopBtn.disabled=true; };
 async function trimBlobEnd(blob, seconds=0.32){try{const ctx=new (window.AudioContext||window.webkitAudioContext)(); const arr=await blob.arrayBuffer(); const buf=await ctx.decodeAudioData(arr.slice(0)); const keep=Math.max(0.12,buf.duration-seconds); const frames=Math.max(1,Math.floor(keep*buf.sampleRate)); const off=new OfflineAudioContext(buf.numberOfChannels,frames,buf.sampleRate); const src=off.createBufferSource(); src.buffer=buf; src.connect(off.destination); src.start(0); const rendered=await off.startRendering(); try{ctx.close()}catch(e){} return new Blob([bufferToWav(rendered)],{type:'audio/wav'});}catch(e){return blob;}}
+
+function extensionFromType(type){
+  type=String(type||'');
+  if(type.includes('wav')) return 'wav';
+  if(type.includes('mpeg')||type.includes('mp3')) return 'mp3';
+  if(type.includes('mp4')||type.includes('m4a')) return 'm4a';
+  if(type.includes('ogg')) return 'ogg';
+  return 'webm';
+}
+async function compartirNota(i){
+  const b=blocks[i];
+  if(!b) return;
+  const texto=(b.text||'').trim();
+  const fecha=fmtDate(b.createdAt||new Date().toISOString());
+  const nombreBase=('bitacora-nota-'+(i+1)).replace(/[^a-z0-9\-_]+/gi,'-').toLowerCase();
+  const ext=extensionFromType(b.type||b.blob?.type||'audio/webm');
+  const file=new File([b.blob], nombreBase+'.'+ext, {type:b.type||b.blob?.type||'audio/webm'});
+  const mensaje=(texto ? texto+'\n\n' : '')+'Bitácora · Nota '+(i+1)+(fecha?' · '+fecha:'');
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], text:mensaje, title:'Bitácora · Nota '+(i+1)});
+      status.textContent='Nota compartida.';
+      return;
+    }
+    if(navigator.share){
+      await navigator.share({text:mensaje, title:'Bitácora · Nota '+(i+1)});
+      status.textContent='Se compartió el texto. Este navegador no permite adjuntar el audio desde la web.';
+      return;
+    }
+  }catch(e){
+    if(e && e.name==='AbortError') return;
+  }
+  download(b.blob, nombreBase+'.'+ext);
+  status.textContent='No pude abrir el menú de compartir. Descargué el audio de esta nota.';
+}
+
 async function playSingle(i){ if(!blocks.length)return; if(playing){stopPlayback(false); await new Promise(r=>setTimeout(r,20));} const runId=++playRunId; startIndex=i; render(); try{playing=true; updateBtns(); head.style.display='none'; status.textContent='Escuchando nota '+(i+1)+'...'; playCtx=new (window.AudioContext||window.webkitAudioContext)(); const buf=await decode(blocks[i].blob,playCtx); if(runId!==playRunId){try{playCtx.close()}catch(e){} return;} playSources=[]; const src=playCtx.createBufferSource(); src.buffer=buf; const gain=playCtx.createGain(); gain.gain.value=Number(vol.value); src.connect(gain).connect(playCtx.destination); src.start(playCtx.currentTime); playSources.push({src,gain}); setTimeout(()=>{if(playing&&runId===playRunId)stopPlayback(false);},Math.max(50,buf.duration*1000+80));}catch(e){if(runId===playRunId){stopPlayback(false); status.textContent='No pude reproducir esa nota.';}}}
 async function playSequence(){ if(!blocks.length||playing)return; const runId=++playRunId; try{playing=true; updateBtns(); head.style.display='none'; status.textContent='Preparando reproducción...'; playCtx=new (window.AudioContext||window.webkitAudioContext)(); const chosen=blocks.slice(startIndex); const buffers=[]; for(const b of chosen){buffers.push(await decode(b.blob,playCtx));} if(!playing||runId!==playRunId)return; playStartedAt=playCtx.currentTime; let t=0; playSources=[]; buffers.forEach(buf=>{const src=playCtx.createBufferSource(); src.buffer=buf; const gain=playCtx.createGain(); gain.gain.value=Number(vol.value); src.connect(gain).connect(playCtx.destination); src.start(playStartedAt+t); playSources.push({src,gain}); t+=buf.duration;}); status.textContent='Reproduciendo bitácora...'; setTimeout(()=>{if(playing&&runId===playRunId)stopPlayback(false);},Math.max(50,t*1000+80));}catch(e){if(runId===playRunId){stopPlayback(true); status.textContent='No pude reproducir la secuencia en este navegador.';}}}
 function stopPlayback(paused=true){playRunId++; playing=false; if(currentAudio){currentAudio.pause(); URL.revokeObjectURL(currentAudio.src); currentAudio=null;} playSources.forEach(o=>{try{o.src.stop()}catch(e){}}); playSources=[]; if(playCtx){try{playCtx.close()}catch(e){} playCtx=null;} cancelAnimationFrame(raf); head.style.display='none'; updateBtns(); status.textContent=paused?'Pausado.':'Listo.';}
@@ -131,9 +166,9 @@ $('loadBtn').onclick=()=>$('projectFile').click(); $('projectFile').onchange=e=>
 function mediaDuration(file){return new Promise(res=>{const isVideo=(file.type||'').startsWith('video/'); const el=document.createElement(isVideo?'video':'audio'); el.preload='metadata'; el.onloadedmetadata=()=>{URL.revokeObjectURL(el.src); res(isFinite(el.duration)?el.duration:1);}; el.onerror=()=>{try{URL.revokeObjectURL(el.src)}catch(e){}; res(1);}; el.src=URL.createObjectURL(file);});}
 async function addExternalFiles(files,insertAt=blocks.length){const usable=files.filter(f=>(f.type||'').startsWith('audio/')||(f.type||'').startsWith('video/')); if(!usable.length){status.textContent='Ese archivo no parece audio/video.'; return;} status.textContent='Agregando audio externo...'; let idx=Math.max(0,Math.min(insertAt,blocks.length)); for(const f of usable){const dur=await mediaDuration(f); const item={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),duration:dur,color:'#dde8f5',blob:f,type:f.type||'application/octet-stream',filename:f.name,external:true,text:'',createdAt:new Date().toISOString()}; blocks.splice(idx,0,item); idx++;} startIndex=Math.max(0,idx-1); marcarSinGuardar('Cambios sin guardar: audio externo insertado.'); render();}
 function insertionIndexFromPoint(clientX){const els=[...timeline.querySelectorAll('.block')]; if(!els.length)return 0; for(let i=0;i<els.length;i++){const r=els[i].getBoundingClientRect(); if(clientX<r.left+r.width/2)return i;} return els.length;}
-$('wrap').addEventListener('dragover',e=>{if(e.dataTransfer&&e.dataTransfer.types&&[...e.dataTransfer.types].includes('Files')){e.preventDefault(); drop.classList.add('drag');}}); $('wrap').addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const media=files.filter(f=>(f.type||'').startsWith('audio/')||(f.type||'').startsWith('video/')); if(media.length){e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); addExternalFiles(media,insertionIndexFromPoint(e.clientX));}});
+$('wrap').addEventListener('dragover',e=>{if(e.dataTransfer&&e.dataTransfer.types&&[...e.dataTransfer.types].includes('Files')){e.preventDefault(); drop.classList.add('drag');}}); $('wrap').addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const media=files.filter(f=>(f.type||'').startsWith('audio/')||(f.type||'').startsWith('video/')); if(media.length){e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); addExternalFiles(media,blocks.length);}});
 async function loadZip(file){try{if(typeof JSZip==='undefined')throw new Error('JSZip no disponible'); status.textContent='Abriendo bitácora...'; const zip=await JSZip.loadAsync(file); const pjFile=zip.file('bitacora.json')||zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto'); const pj=JSON.parse(await pjFile.async('string')); const nb=[]; for(const item of pj.blocks){const f=zip.file(item.filename); if(!f)continue; const blob=await f.async('blob'); nb.push({id:crypto.randomUUID(),name:item.name||'Nota',duration:item.duration||1,color:item.color||colors[nb.length%colors.length],blob:new Blob([blob],{type:item.type||blob.type}),type:item.type||blob.type,filename:item.filename,external:!!item.external,text:item.text||'',createdAt:item.createdAt||pj.created||new Date().toISOString()});} blocks=nb; startIndex=0; marcarGuardado('✓ Bitácora cargada.'); render();}catch(e){status.textContent='No pude abrir ese ZIP de Bitácora.';}}
-const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/')||(x.type||'').startsWith('video/')); if(f)loadZip(f); else if(media.length)addExternalFiles(media,insertionIndexFromPoint(e.clientX)); else status.textContent='Arrastrá un ZIP de Bitácora o un archivo de audio/video.';});
+const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/')||(x.type||'').startsWith('video/')); if(f)loadZip(f); else if(media.length)addExternalFiles(media,blocks.length); else status.textContent='Arrastrá un ZIP de Bitácora o un archivo de audio/video.';});
 window.addEventListener('pagehide',()=>{ if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); else releaseMic(); });
 
 // PWA: permite instalar Bitácora como acceso tipo app en la pantalla de inicio.
