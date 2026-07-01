@@ -115,11 +115,37 @@ function startMeter(){
   loop();
 }
 function stopMeter(){cancelAnimationFrame(meterRaf); meter.classList.remove('on'); bars.forEach(b=>b.style.height='5px');}
+
+function releaseMic(){
+  // Importante en celulares: liberar el micrófono al terminar,
+  // para que WhatsApp, llamadas u otras apps no lo vean como ocupado.
+  try{
+    if(micStream){
+      micStream.getTracks().forEach(track=>track.stop());
+      micStream=null;
+    }
+  }catch(e){}
+  try{
+    if(audioCtxLive){
+      audioCtxLive.close().catch(()=>{});
+      audioCtxLive=null;
+    }
+  }catch(e){}
+  analyser=null;
+}
 recBtn.onclick=async()=>{try{const stream=await getMic(); chunks=[]; recBtn.disabled=true; stopBtn.disabled=true; playBtn.disabled=true; status.textContent='Preparando micrófono... empezá a hablar cuando diga “Grabando”.';
   // Pequeña espera para no capturar el clic/toque inicial dentro del audio.
   await new Promise(r=>setTimeout(r,450));
-  mediaRecorder=new MediaRecorder(stream); mediaRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)}; mediaRecorder.onstop=async()=>{stopMeter(); let rawBlob=new Blob(chunks,{type:mediaRecorder.mimeType||'audio/webm'}); let blob=await trimBlobEnd(rawBlob,0.32); const dur=await blobDuration(blob); blocks.push({id:crypto.randomUUID(),name:'Audio '+(blocks.length+1),duration:dur,color:colors[blocks.length%colors.length],blob,type:blob.type,filename:'audio-'+(blocks.length+1)+'.webm',external:false}); startIndex=blocks.length-1; status.textContent='Audio agregado como bloque. Tocá un bloque para ubicarte; doble toque para escuchar solo ese bloque.'; render();}; mediaRecorder.start(); startMeter(); stopBtn.disabled=false; status.textContent='Grabando... hablá ahora.';}catch(e){recBtn.disabled=false; stopBtn.disabled=true; status.textContent='No se pudo acceder al micrófono. Revisá permisos y usá HTTPS o localhost.';}};
-stopBtn.onclick=()=>{ if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); recBtn.disabled=false; stopBtn.disabled=true; };
+  mediaRecorder=new MediaRecorder(stream); mediaRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)}; mediaRecorder.onstop=async()=>{stopMeter(); releaseMic(); let rawBlob=new Blob(chunks,{type:mediaRecorder.mimeType||'audio/webm'}); let blob=await trimBlobEnd(rawBlob,0.32); const dur=await blobDuration(blob); blocks.push({id:crypto.randomUUID(),name:'Audio '+(blocks.length+1),duration:dur,color:colors[blocks.length%colors.length],blob,type:blob.type,filename:'audio-'+(blocks.length+1)+'.webm',external:false}); startIndex=blocks.length-1; status.textContent='Audio agregado como bloque. Tocá un bloque para ubicarte; doble toque para escuchar solo ese bloque.'; render();}; mediaRecorder.start(); startMeter(); stopBtn.disabled=false; status.textContent='Grabando... hablá ahora.';}catch(e){recBtn.disabled=false; stopBtn.disabled=true; status.textContent='No se pudo acceder al micrófono. Revisá permisos y usá HTTPS o localhost.';}};
+stopBtn.onclick=()=>{
+  if(mediaRecorder&&mediaRecorder.state!=='inactive'){
+    mediaRecorder.stop();
+  }else{
+    releaseMic();
+  }
+  recBtn.disabled=false;
+  stopBtn.disabled=true;
+};
 
 async function trimBlobEnd(blob, seconds=0.32){
   // Recorta una pequeña cola para que no quede capturado el clic de “Detener”.
@@ -266,6 +292,7 @@ $('wrap').addEventListener('drop',e=>{
 
 async function loadZip(file){try{ if(typeof JSZip==='undefined')throw new Error('JSZip no disponible'); status.textContent='Abriendo proyecto...'; const zip=await JSZip.loadAsync(file); const pjFile=zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto.json'); const pj=JSON.parse(await pjFile.async('string')); const nb=[]; for(const item of pj.blocks){const f=zip.file(item.filename); if(!f)continue; const blob=await f.async('blob'); nb.push({id:crypto.randomUUID(),name:item.name,duration:item.duration,color:item.color,blob:new Blob([blob],{type:item.type||blob.type}),type:item.type||blob.type,filename:item.filename,external:!!item.external});} blocks=nb; startIndex=0; render(); status.textContent='Proyecto cargado. Tocá un bloque para ubicarte; doble toque para escuchar solo ese bloque.';}catch(e){status.textContent='No pude abrir ese ZIP de proyecto.';}}
 const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/') || (x.type||'').startsWith('video/')); if(f)loadZip(f); else if(media.length)addExternalFiles(media, insertionIndexFromPoint(e.clientX)); else status.textContent='Arrastrá un ZIP de proyecto o un archivo de audio/video.';});
+window.addEventListener('pagehide',()=>{ if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); else releaseMic(); });
 render();
 </script>
 </body>
