@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Crónica V3</title>
+<meta name="theme-color" content="#eef4ff" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Crónica" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<style>
+  :root{
+    --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
+    --line:#d7e2f0;--accent:#4f8cff;--danger:#ff6b7a;--ok:#3ccf91;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--txt)}
+  .app{max-width:1280px;margin:0 auto;padding:18px}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:26px;margin:0;letter-spacing:-.02em}.hint{color:var(--mut);font-size:14px;margin-top:4px}.mini{font-size:12px;color:var(--mut);font-weight:800}
+  .panel{background:var(--card);border:1px solid #e3edf8;border-radius:26px;padding:18px;box-shadow:0 18px 55px rgba(45,79,120,.13)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;overflow:visible}
+  #recBtn,#stopBtn,#playBtn,#pauseBtn{display:none!important}
+  button{border:0;border-radius:16px;padding:11px 12px;font-weight:800;color:#162033;background:#edf4ff;cursor:pointer;box-shadow:0 7px 18px rgba(65,95,130,.14);white-space:nowrap}
+  button:hover{filter:brightness(1.02);transform:translateY(-1px)} button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .rec{background:#ff5c72;color:white}.stop{background:#ffd166;color:#3b2600}.play{background:#8ef1bf}.pause{background:#ffe7a3}.export{background:#9ad7ff}.save{background:#cfc2ff}.open{background:#ffc4e8}
+  .save.unsaved{background:#ffb13d;color:#402600;animation:softSavePulse .85s ease-in-out infinite}.save.unsaved:hover{filter:none;transform:none}
+  @keyframes softSavePulse{0%,100%{background-color:#ffd18a}50%{background-color:#ff9f1f}}
+  input[type=range]{width:110px;accent-color:var(--accent)} label{font-weight:700;color:#344255;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .drop{border:2px dashed #b9cbe0;border-radius:22px;padding:14px;text-align:center;color:var(--mut);margin-bottom:14px;background:#f8fbff;font-weight:700}.drop.drag{border-color:var(--accent);background:#eaf3ff;color:#0f4fb5}
+  .timelineWrap{position:relative;padding:18px 14px 36px;background:#f9fcff;border-radius:24px;min-height:330px;border:1px solid #e3edf8;overflow:hidden}
+  .timeline{display:flex;gap:12px;align-items:stretch;min-height:250px;position:relative;width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;padding:4px 2px 18px;-webkit-overflow-scrolling:touch}
+  .block{position:relative;min-height:238px;border-radius:24px;padding:38px 14px 14px;display:flex;flex-direction:column;gap:10px;cursor:default;user-select:none;border:1px solid rgba(0,0,0,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);overflow:hidden;min-width:260px;flex:0 0 calc((100% - 36px)/4);scroll-snap-align:start;transition:transform .12s ease}
+  .block.external{border-style:dashed;background:#dde8f5!important}.block:active{transform:none}.block:hover{outline:3px solid rgba(79,140,255,.18)}.block.selected{outline:4px solid rgba(79,140,255,.45);transform:translateY(-2px)}
+  .topline{display:flex;align-items:center;gap:8px;justify-content:space-between}.name{font-weight:950;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(10,20,35,.9);padding-right:28px}.dur{font-size:12px;font-weight:850;opacity:.78;color:rgba(10,20,35,.78)}
+  .created{font-size:12px;color:rgba(10,20,35,.62);font-weight:800}.noteText{width:100%;min-height:104px;resize:vertical;border:1px solid rgba(0,0,0,.09);border-radius:18px;padding:12px;background:rgba(255,255,255,.76);font:700 14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#172033;outline:none;user-select:text}.noteText:focus{border-color:#4f8cff;box-shadow:0 0 0 4px rgba(79,140,255,.16);background:#fff}
+  .cardBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}.cardBtns button{padding:9px 10px;border-radius:14px;font-size:13px;box-shadow:0 5px 14px rgba(65,95,130,.11)}
+  .del{position:absolute;right:9px;top:8px;width:28px;height:28px;border-radius:50%;padding:0;background:rgba(255,255,255,.78);color:#243142;box-shadow:none;line-height:24px;font-size:16px}
+  .playhead{position:absolute;top:10px;bottom:18px;width:4px;background:rgba(20,35,55,.72);border-radius:8px;left:12px;display:none;pointer-events:none;z-index:20;box-shadow:0 0 13px rgba(20,35,55,.28)}
+  .empty{color:var(--mut);padding:26px;text-align:center;width:100%;border-radius:18px;background:white;border:1px dashed #d5e3f2;font-weight:800;display:flex;align-items:center;justify-content:center;min-height:220px}.status{margin-top:12px;color:var(--mut);font-size:14px;font-weight:650}.status.unsaved{color:#d87a00}.status.saved{color:#2a9d66}
+  .projectInput{display:none}.meter{position:absolute;right:18px;bottom:12px;display:none!important;align-items:center;gap:10px;padding:9px 14px;border-radius:17px;background:#fff3f5;border:1px solid #ffd4dc;color:#d83b53;font-weight:900;min-height:48px;z-index:30;box-shadow:0 8px 22px rgba(216,59,83,.12)}.meter.on{display:inline-flex}.bars{display:flex;gap:4px;align-items:center;height:44px}.bar{width:6px;height:8px;border-radius:6px;background:#ff5c72;transition:height .05s linear}
+
+  .timeline.recordingMode{overflow:hidden}
+  .newNoteCard{position:relative;min-height:238px;border-radius:24px;padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;user-select:none;border:2px dashed #b9cbe0;background:linear-gradient(135deg,#ffffff,#f1f7ff);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 12px 28px rgba(45,79,120,.10);min-width:220px;flex:0 0 260px;scroll-snap-align:start;text-align:center;color:#344255;transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease}
+  .newNoteCard:hover{border-color:var(--accent);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 14px 32px rgba(45,79,120,.16);transform:translateY(-2px)}
+  .newNoteIcon{width:62px;height:62px;border-radius:20px;background:#ff5c72;color:white;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 10px 24px rgba(255,92,114,.28)}
+  .newNoteTitle{font-size:18px;font-weight:950;letter-spacing:-.02em}.newNoteSub{font-size:13px;font-weight:800;color:var(--mut);max-width:190px;line-height:1.25}
+  .liveNote{position:relative;min-height:238px;border-radius:24px;padding:30px 16px 16px;display:flex;flex-direction:column;gap:12px;cursor:pointer;user-select:none;border:1px solid rgba(255,92,114,.24);background:linear-gradient(135deg,#ff7890,#ffd1d9)!important;box-shadow:inset 0 0 0 3px rgba(255,255,255,.28),0 14px 34px rgba(255,92,114,.20);overflow:hidden;min-width:210px;flex:0 0 260px;scroll-snap-align:start;animation:liveCardIn .24s ease-out both}
+  .liveNote:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 16px,rgba(255,255,255,.28) 16px 32px,rgba(255,255,255,.08) 32px 54px);z-index:1;pointer-events:none}
+  .liveNote:after{display:none}
+  .liveCancel{position:absolute;right:9px;top:8px;width:34px;height:34px;border-radius:999px;border:0;background:rgba(255,255,255,.86);color:#61101c;font-size:20px;font-weight:950;z-index:8;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(80,20,30,.16);padding:0}
+  .liveCancel:hover{filter:brightness(1.03);transform:scale(1.02)}
+  .liveNote > *{position:relative;z-index:2}.liveNote .liveCancel{position:absolute;right:9px;top:8px;z-index:8}.liveTitle{font-size:17px;font-weight:950;color:#3b1118;text-shadow:0 1px 0 rgba(255,255,255,.35)}.liveDur{font-size:34px;font-weight:950;color:#3b1118;letter-spacing:-.04em}.liveHint{font-size:13px;font-weight:850;color:rgba(59,17,24,.72)}
+  .liveWave{height:76px;border-radius:20px;background:rgba(255,255,255,.34);display:flex;gap:5px;align-items:center;justify-content:center;padding:10px;margin-top:auto;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+  .liveWave i{width:7px;min-height:8px;border-radius:9px;background:#ff315d;display:block;box-shadow:0 1px 0 rgba(255,255,255,.32);transition:height .05s linear}
+  @keyframes liveCardIn{from{opacity:.35;transform:scale(.72) translateY(22px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes recPulseDot{0%,100%{transform:scale(.9);box-shadow:0 0 0 0 rgba(255,23,68,.44)}50%{transform:scale(1.15);box-shadow:0 0 0 12px rgba(255,23,68,0)}}
+
+  .intervalCard{align-self:center;min-height:118px;border-radius:20px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer;user-select:none;border:2px dashed #b8c8da;background:#eef4fb;color:#53667d;box-shadow:inset 0 1px 0 rgba(255,255,255,.78),0 8px 20px rgba(45,79,120,.08);min-width:132px;flex:0 0 132px;scroll-snap-align:center;text-align:center;transition:transform .12s ease,outline .12s ease}
+  .intervalCard:hover{outline:3px solid rgba(79,140,255,.18);transform:translateY(-1px)}
+  .intervalIcon{width:36px;height:36px;border-radius:13px;background:#fff;color:#53667d;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 5px 12px rgba(45,79,120,.08)}
+  .intervalTitle{font-size:12px;font-weight:950;line-height:1.15}.intervalTime{font-size:15px;font-weight:950;color:#172033}.intervalLabel{font-size:11px;font-weight:800;color:#65758b;line-height:1.15;max-width:112px;max-height:34px;overflow:hidden}
+  .app.isRecording .controls button:not(#stopBtn), .app.isRecording .controls label{opacity:.38;pointer-events:none;filter:grayscale(.15)}
+  .app.isRecording #stopBtn{opacity:1;pointer-events:auto;filter:none}
+  @media(max-width:1100px){.block{flex-basis:calc((100% - 24px)/3)}}
+  @media(max-width:760px){.app{padding:10px}.panel{padding:12px}.timelineWrap{min-height:315px}.timeline{min-height:240px}.block{flex-basis:76vw;min-width:245px;min-height:230px}.newNoteCard,.liveNote{flex-basis:76vw;min-width:245px;min-height:230px}.noteText{min-height:98px}button{padding:11px 12px}input[type=range]{width:135px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div><h1>Crónica</h1><div class="hint">Grabá una nota de audio y agregale texto. Después guardá todo en un ZIP.</div></div>
+    <div class="mini">Audio + texto · local en el navegador.</div>
+  </header>
+  <div class="panel">
+    <div class="controls">
+      <button id="recBtn" class="rec">● Nueva nota</button>
+      <button id="stopBtn" class="stop" disabled>■ Detener</button>
+      <button id="playBtn" class="play" disabled>▶ Reproducir todo</button>
+      <button id="pauseBtn" class="pause" disabled>⏸ Pausar</button>
+      <label>Volumen <input id="vol" type="range" min="0" max="1" step="0.01" value="1"></label>
+      <button id="wavBtn" class="export" disabled>Exportar audio WAV</button>
+      <button id="saveBtn" class="save" disabled>Guardar bitácora ZIP</button>
+      <button id="loadBtn" class="open">Abrir ZIP</button>
+      <button id="addAudioBtn" class="open">Agregar audio</button>
+      <input id="projectFile" class="projectInput" type="file" accept=".zip,application/zip">
+      <input id="audioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
+    </div>
+    <div id="drop" class="drop">Arrastrá acá un ZIP de Crónica, o arrastrá un audio/video para crear una nota.</div>
+    <div class="timelineWrap" id="wrap"><div class="playhead" id="head"></div><div class="timeline" id="timeline"><div class="empty">Todavía no hay notas. Tocá “Nueva nota” y grabá un audio.</div></div><div id="meter" class="meter"><span>Grabando</span><div class="bars" id="bars"><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i></div></div></div>
+    <div class="status" id="status">Listo.</div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+let mediaRecorder, chunks=[], blocks=[], playing=false, currentAudio=null, raf=0, startIndex=0, micStream=null, audioCtxLive=null, analyser=null, meterRaf=0, playCtx=null, playSources=[], playStartedAt=0, playOffset=0, playRunId=0;
+let hayCambiosSinGuardar=false;
+let recordingBusy=false, recordingLive=false, recordingStart=0, recordingLiveDuration=0, recordingLiveRaf=0, liveLevel=.15, descartarGrabacionActual=false, playingNoteIndex=-1;
+const colors=['#9ad7ff','#9ff0c8','#ffe38f','#ffc2df','#d6c8ff','#ffb0b8','#b7f1ff','#ffd2a6','#c7ed9f','#e0e7ff'];
+const $=id=>document.getElementById(id);
+const recBtn=$('recBtn'), stopBtn=$('stopBtn'), playBtn=$('playBtn'), pauseBtn=$('pauseBtn'), wavBtn=$('wavBtn'), saveBtn=$('saveBtn'), timeline=$('timeline'), status=$('status'), head=$('head'), vol=$('vol'), meter=$('meter'), bars=[...$('bars').querySelectorAll('.bar')];
+function actualizarBotonGuardar(){ if(!saveBtn)return; const activo=hayCambiosSinGuardar && blocks.length>0; saveBtn.classList.toggle('unsaved',activo); saveBtn.textContent='Guardar bitácora ZIP'; }
+function marcarSinGuardar(msg){ hayCambiosSinGuardar=true; status.classList.remove('saved'); status.classList.add('unsaved'); actualizarBotonGuardar(); if(msg)status.textContent=msg; }
+function marcarGuardado(msg){ hayCambiosSinGuardar=false; status.classList.remove('unsaved'); status.classList.add('saved'); actualizarBotonGuardar(); if(msg)status.textContent=msg; }
+window.addEventListener('beforeunload',e=>{ if(hayCambiosSinGuardar){e.preventDefault(); e.returnValue='';} });
+function fmt(s){s=Math.max(0,Math.round(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function fmtDate(iso){try{return new Date(iso).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return ''}}
+function fmtInterval(sec){sec=Math.max(0,Math.round(Number(sec)||0)); const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60; if(h>0)return h+'h '+String(m).padStart(2,'0')+'m'; if(m>0)return m+'m '+String(s).padStart(2,'0')+'s'; return s+'s';}
+function editarIntervalo(i){ if(estaGrabando())return; const b=blocks[i]; if(!b)return; const secs=Math.max(0,Math.round(Number(b.intervalAfter)||0)); const actual=b.intervalLabel||''; const texto=prompt('Observación para este intervalo ('+fmtInterval(secs)+'):', actual); if(texto===null)return; b.intervalLabel=texto.trim(); marcarSinGuardar('Cambios sin guardar: observación del intervalo editada.'); render();}
+function estaGrabando(){return !!(recordingBusy || recordingLive || (mediaRecorder && mediaRecorder.state==='recording'));}
+function updateBtns(){const has=blocks.length>0; const rec=estaGrabando(); document.querySelector('.app')?.classList.toggle('isRecording',rec); playBtn.disabled=rec||!has||playing; wavBtn.disabled=rec||!has; saveBtn.disabled=rec||!has; pauseBtn.disabled=rec||!playing; recBtn.disabled=playing||rec; stopBtn.disabled=!rec; $('loadBtn').disabled=rec; $('addAudioBtn').disabled=rec; playBtn.textContent='▶ Reproducir todo'; pauseBtn.textContent='⏸ Pausar'; stopBtn.textContent='■ Detener';}
+function escapeHtml(s){return String(s).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
+function render(){
+  timeline.classList.toggle('recordingMode', recordingLive);
+  timeline.innerHTML='';
+  if(!blocks.length && !recordingLive){
+    startIndex=0;
+    timeline.innerHTML='<div class="newNoteCard" id="newNoteCard"><div class="newNoteIcon">●</div><div class="newNoteTitle">Tocá para crear nota</div><div class="newNoteSub">Se abre el micrófono y el cuadro empieza a grabar.</div></div>';
+    head.style.display='none';
+    const card=$('newNoteCard');
+    if(card) card.onclick=(ev)=>{ev.preventDefault(); iniciarGrabacionNota();};
+    updateBtns(); actualizarBotonGuardar(); return;
+  }
+  blocks.forEach((b,i)=>{
+    const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=false; el.style.background=b.color; el.dataset.id=b.id;
+    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="topline"><div class="name">${i+1}. ${escapeHtml(b.name||'Nota')}</div><div class="dur">${fmt(b.duration)}</div></div><div class="created">${fmtDate(b.createdAt)}</div><textarea class="noteText" placeholder="Escribir observación de esta nota...">${escapeHtml(b.text||'')}</textarea><div class="cardBtns"><button class="play one">${playing&&playingNoteIndex===i?'❚❚ Audio':'▶ Audio'}</button><button class="shareBtn">↗ Compartir</button></div>`;
+    el.querySelector('.del').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Estás seguro de que querés borrar esta nota?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: nota borrada.'); render();};
+    const txt=el.querySelector('.noteText');
+    txt.oninput=()=>{b.text=txt.value; marcarSinGuardar('Cambios sin guardar: texto editado.');};
+    txt.onfocus=()=>{ if(estaGrabando()) return; startIndex=i; setTimeout(()=>el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),250);};
+    txt.onclick=ev=>ev.stopPropagation(); txt.onpointerdown=ev=>ev.stopPropagation();
+    function jump(){ if(estaGrabando()) return; startIndex=i; status.textContent='Ubicado en la nota '+(i+1)+'.'; render();}
+    el.querySelector('.play.one').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(playing&&playingNoteIndex===i){stopPlayback(false); return;} startIndex=i; setTimeout(()=>playSingle(i),20);};
+    el.querySelector('.shareBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; compartirNota(i);};
+    el.onclick=(ev)=>{ if(ev.target.closest('textarea,button'))return; jump(); };
+    timeline.appendChild(el);
+    if(i<blocks.length-1){
+      const int=document.createElement('div');
+      int.className='intervalCard';
+      const secs=Math.max(0,Math.round(Number(b.intervalAfter)||0));
+      const label=escapeHtml(b.intervalLabel||'Agregar texto');
+      int.title='Tocar para escribir una observación del intervalo';
+      int.innerHTML=`<div class="intervalIcon">↔</div><div class="intervalTitle">Intervalo</div><div class="intervalTime">${fmtInterval(secs)}</div><div class="intervalLabel">${label}</div>`;
+      int.onclick=(ev)=>{ev.preventDefault(); ev.stopPropagation(); editarIntervalo(i);};
+      timeline.appendChild(int);
+    }
+  });
+  if(recordingLive){
+    const live=document.createElement('div');
+    live.className='liveNote selected';
+    const n=18;
+    const barsHtml=Array.from({length:n},()=>`<i style="height:12px"></i>`).join('');
+    live.innerHTML=`<button class="liveCancel" title="Cancelar y descartar">×</button><div class="liveTitle">● Grabando nueva nota</div><div class="liveDur" id="liveDur">${fmt(recordingLiveDuration)}</div><div class="liveHint">Tocá el cuadro para guardar. Tocá × para anular.</div><div class="liveWave" id="liveWave">${barsHtml}</div>`;
+    const cancelarBtn=live.querySelector('.liveCancel');
+    cancelarBtn.onclick=(ev)=>{ev.preventDefault(); ev.stopPropagation(); cancelarGrabacionActual(ev);};
+    cancelarBtn.addEventListener('touchend',(ev)=>{ev.preventDefault(); ev.stopPropagation(); cancelarGrabacionActual(ev);},{passive:false});
+    live.onclick=(ev)=>{ev.preventDefault(); detenerGrabacionRobusta(ev);};
+    live.addEventListener('touchend',(ev)=>{ev.preventDefault(); detenerGrabacionRobusta(ev);},{passive:false});
+    timeline.appendChild(live);
+    if(!window.__liveScrolledOnce){ window.__liveScrolledOnce=true; setTimeout(()=>live.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),20); }
+  }else{
+    const add=document.createElement('div');
+    add.className='newNoteCard';
+    add.innerHTML='<div class="newNoteIcon">●</div><div class="newNoteTitle">Nueva nota</div><div class="newNoteSub">Tocá acá y empezá a hablar.</div>';
+    add.onclick=(ev)=>{ev.preventDefault(); iniciarGrabacionNota();};
+    timeline.appendChild(add);
+  }
+  updateBtns(); actualizarBotonGuardar();
+  if(!recordingLive){ const selected=timeline.querySelector('.block.selected'); if(selected) setTimeout(()=>selected.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),30); }
+}
+async function blobDuration(blob){return new Promise(res=>{const a=document.createElement('audio'); a.preload='metadata'; a.onloadedmetadata=()=>{URL.revokeObjectURL(a.src); res(isFinite(a.duration)?a.duration:1)}; a.onerror=()=>res(1); a.src=URL.createObjectURL(blob);});}
+async function getMic(){ if(micStream && micStream.active)return micStream; micStream=await navigator.mediaDevices.getUserMedia({audio:true}); setupMeter(micStream); return micStream; }
+function setupMeter(stream){try{audioCtxLive=audioCtxLive||new (window.AudioContext||window.webkitAudioContext)(); analyser=audioCtxLive.createAnalyser(); analyser.fftSize=256; const source=audioCtxLive.createMediaStreamSource(stream); source.connect(analyser);}catch(e){}}
+function startMeter(){const data=new Uint8Array(analyser?analyser.frequencyBinCount:0); const loop=()=>{let level=.15; if(analyser){analyser.getByteFrequencyData(data); level=(data.reduce((a,b)=>a+b,0)/(data.length||1))/255;} liveLevel=liveLevel*.72 + Math.min(1,level*2.9)*.28; meterRaf=requestAnimationFrame(loop);}; loop();}
+function stopMeter(){cancelAnimationFrame(meterRaf); meter.classList.remove('on'); bars.forEach(b=>b.style.height='5px');}
+function releaseMic(){try{if(micStream){micStream.getTracks().forEach(track=>track.stop()); micStream=null;}}catch(e){} try{if(audioCtxLive){audioCtxLive.close().catch(()=>{}); audioCtxLive=null;}}catch(e){} analyser=null;}
+function startLiveRecordingBlock(){
+  recordingLive=true;
+  window.__liveScrolledOnce=false;
+  recordingStart=performance.now()-250;
+  recordingLiveDuration=.25;
+  render();
+  const loop=()=>{
+    if(!recordingLive) return;
+    recordingLiveDuration=(performance.now()-recordingStart)/1000;
+    const durEl=document.getElementById('liveDur');
+    if(durEl) durEl.textContent=fmt(recordingLiveDuration);
+    const wave=document.getElementById('liveWave');
+    if(wave){
+      [...wave.querySelectorAll('i')].forEach((bar,i)=>{
+        const h=Math.max(8,Math.min(62,10+(liveLevel*42)+(Math.sin(Date.now()/130+i*.75)+1)*7));
+        bar.style.height=h+'px';
+      });
+    }
+    recordingLiveRaf=requestAnimationFrame(loop);
+  };
+  recordingLiveRaf=requestAnimationFrame(loop);
+}
+function stopLiveRecordingBlock(){ recordingLive=false; window.__liveScrolledOnce=false; cancelAnimationFrame(recordingLiveRaf); recordingLiveDuration=0; }
+async function iniciarGrabacionNota(){
+  try{
+    if(estaGrabando() || playing) return;
+    descartarGrabacionActual=false;
+    recordingBusy=true;
+    updateBtns();
+    const stream=await getMic();
+    chunks=[];
+    status.textContent='Preparando micrófono...';
+    await new Promise(r=>setTimeout(r,90));
+    mediaRecorder=new MediaRecorder(stream);
+    mediaRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+    mediaRecorder.onstop=async()=>{
+      stopMeter();
+      stopLiveRecordingBlock();
+      releaseMic();
+      let rawBlob=new Blob(chunks,{type:mediaRecorder.mimeType||'audio/webm'});
+      if(descartarGrabacionActual){
+        chunks=[];
+        descartarGrabacionActual=false;
+        recordingBusy=false;
+        status.textContent='Grabación anulada. No se guardó ninguna nota.';
+        render();
+        return;
+      }
+      let blob=await trimBlobEnd(rawBlob,0.32);
+      const dur=await blobDuration(blob);
+      const nowIso=new Date().toISOString();
+      if(blocks.length){
+        const prev=blocks[blocks.length-1];
+        const prevTime=new Date(prev.endedAt||prev.createdAt||nowIso).getTime();
+        const nowTime=new Date(nowIso).getTime();
+        if(isFinite(prevTime)&&isFinite(nowTime)) prev.intervalAfter=Math.max(0,Math.round((nowTime-prevTime)/1000));
+        if(!prev.intervalLabel) prev.intervalLabel='Intervalo';
+      }
+      blocks.push({id:crypto.randomUUID(),name:'Nota '+(blocks.length+1),duration:dur,color:colors[blocks.length%colors.length],blob,type:blob.type,filename:'audio-'+(blocks.length+1)+'.webm',external:false,text:'',createdAt:nowIso,endedAt:nowIso});
+      startIndex=blocks.length-1;
+      descartarGrabacionActual=false;
+      recordingBusy=false;
+      marcarSinGuardar('Cambios sin guardar: nota de audio agregada.');
+      render();
+    };
+    mediaRecorder.start(250);
+    startLiveRecordingBlock();
+    startMeter();
+    recordingBusy=false;
+    status.textContent='Grabando nota... tocá el cuadro rosa para detener.';
+  }catch(e){
+    recordingBusy=false;
+    stopLiveRecordingBlock();
+    releaseMic();
+    updateBtns();
+    status.textContent='No se pudo acceder al micrófono. Revisá permisos y usá HTTPS o localhost.';
+  }
+}
+
+function cancelarGrabacionActual(ev){
+  if(ev){ev.preventDefault(); ev.stopPropagation();}
+  if(!estaGrabando()) return;
+  descartarGrabacionActual=true;
+  status.textContent='Anulando grabación...';
+  detenerGrabacionRobusta(ev);
+}
+
+function detenerGrabacionRobusta(ev){
+  if(ev){ev.preventDefault(); ev.stopPropagation();}
+  if(mediaRecorder && mediaRecorder.state==='recording'){
+    try{mediaRecorder.requestData && mediaRecorder.requestData();}catch(e){}
+    try{mediaRecorder.stop();}catch(e){recordingBusy=false; stopLiveRecordingBlock(); stopMeter(); releaseMic(); updateBtns();}
+  }else{
+    recordingBusy=false; stopLiveRecordingBlock(); stopMeter(); releaseMic(); updateBtns();
+  }
+}
+recBtn.onclick=iniciarGrabacionNota;
+stopBtn.onclick=detenerGrabacionRobusta;
+stopBtn.addEventListener('pointerdown',(ev)=>{if(estaGrabando())detenerGrabacionRobusta(ev);},{passive:false});
+async function trimBlobEnd(blob, seconds=0.32){try{const ctx=new (window.AudioContext||window.webkitAudioContext)(); const arr=await blob.arrayBuffer(); const buf=await ctx.decodeAudioData(arr.slice(0)); const keep=Math.max(0.12,buf.duration-seconds); const frames=Math.max(1,Math.floor(keep*buf.sampleRate)); const off=new OfflineAudioContext(buf.numberOfChannels,frames,buf.sampleRate); const src=off.createBufferSource(); src.buffer=buf; src.connect(off.destination); src.start(0); const rendered=await off.startRendering(); try{ctx.close()}catch(e){} return new Blob([bufferToWav(rendered)],{type:'audio/wav'});}catch(e){return blob;}}
+
+function extensionFromType(type){
+  type=String(type||'');
+  if(type.includes('wav')) return 'wav';
+  if(type.includes('mpeg')||type.includes('mp3')) return 'mp3';
+  if(type.includes('mp4')||type.includes('m4a')) return 'm4a';
+  if(type.includes('ogg')) return 'ogg';
+  return 'webm';
+}
+function abrirWhatsAppTexto(mensaje){
+  const url='https://wa.me/?text='+encodeURIComponent(mensaje);
+  window.open(url,'_blank','noopener');
+}
+async function compartirNota(i){
+  const b=blocks[i];
+  if(!b) return;
+  const texto=(b.text||'').trim();
+  const fecha=fmtDate(b.createdAt||new Date().toISOString());
+  const nombreBase=('bitacora-nota-'+(i+1)).replace(/[^a-z0-9\-_]+/gi,'-').toLowerCase();
+  const ext=extensionFromType(b.type||b.blob?.type||'audio/webm');
+  const file=new File([b.blob], nombreBase+'.'+ext, {type:b.type||b.blob?.type||'audio/webm'});
+  const mensaje=(texto ? texto+'\n\n' : '')+'Crónica · Nota '+(i+1)+(fecha?' · '+fecha:'');
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], text:mensaje, title:'Crónica · Nota '+(i+1)});
+      status.textContent='Nota compartida.';
+      return;
+    }
+    if(navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){
+      await navigator.share({text:mensaje, title:'Crónica · Nota '+(i+1)});
+      status.textContent='Se compartió el texto. Este navegador no permite adjuntar el audio desde la web.';
+      return;
+    }
+  }catch(e){
+    if(e && e.name==='AbortError') return;
+  }
+  abrirWhatsAppTexto(mensaje);
+  download(b.blob, nombreBase+'.'+ext);
+  status.textContent='Abrí WhatsApp con el texto y descargué el audio para adjuntarlo si hace falta.';
+}
+
+async function playSingle(i){
+  if(estaGrabando())return;
+  if(!blocks.length)return;
+  if(playing && playingNoteIndex===i){ stopPlayback(false); return; }
+  if(playing){ stopPlayback(false); await new Promise(r=>setTimeout(r,20)); }
+  const runId=++playRunId;
+  startIndex=i;
+  playing=true;
+  playingNoteIndex=i;
+  render();
+  try{
+    updateBtns();
+    head.style.display='none';
+    status.textContent='Escuchando nota '+(i+1)+'...';
+    playCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const buf=await decode(blocks[i].blob,playCtx);
+    if(runId!==playRunId){try{playCtx.close()}catch(e){} return;}
+    playSources=[];
+    const src=playCtx.createBufferSource(); src.buffer=buf;
+    const gain=playCtx.createGain(); gain.gain.value=Number(vol.value);
+    src.connect(gain).connect(playCtx.destination); src.start(playCtx.currentTime);
+    playSources.push({src,gain});
+    setTimeout(()=>{if(playing&&runId===playRunId)stopPlayback(false);},Math.max(50,buf.duration*1000+80));
+  }catch(e){
+    if(runId===playRunId){stopPlayback(false); status.textContent='No pude reproducir esa nota.';}
+  }
+}
+async function playSequence(){ if(estaGrabando())return; if(!blocks.length||playing)return; const runId=++playRunId; try{playing=true; updateBtns(); head.style.display='none'; status.textContent='Preparando reproducción...'; playCtx=new (window.AudioContext||window.webkitAudioContext)(); const chosen=blocks.slice(startIndex); const buffers=[]; for(const b of chosen){buffers.push(await decode(b.blob,playCtx));} if(!playing||runId!==playRunId)return; playStartedAt=playCtx.currentTime; let t=0; playSources=[]; buffers.forEach(buf=>{const src=playCtx.createBufferSource(); src.buffer=buf; const gain=playCtx.createGain(); gain.gain.value=Number(vol.value); src.connect(gain).connect(playCtx.destination); src.start(playStartedAt+t); playSources.push({src,gain}); t+=buf.duration;}); status.textContent='Reproduciendo bitácora...'; setTimeout(()=>{if(playing&&runId===playRunId)stopPlayback(false);},Math.max(50,t*1000+80));}catch(e){if(runId===playRunId){stopPlayback(true); status.textContent='No pude reproducir la secuencia en este navegador.';}}}
+function stopPlayback(paused=true){playRunId++; playing=false; playingNoteIndex=-1; if(currentAudio){currentAudio.pause(); URL.revokeObjectURL(currentAudio.src); currentAudio=null;} playSources.forEach(o=>{try{o.src.stop()}catch(e){}}); playSources=[]; if(playCtx){try{playCtx.close()}catch(e){} playCtx=null;} cancelAnimationFrame(raf); head.style.display='none'; updateBtns(); status.textContent=paused?'Pausado.':'Listo.'; render();}
+playBtn.onclick=()=>{startIndex=0; render(); playSequence();}; pauseBtn.onclick=()=>stopPlayback(true); vol.oninput=()=>{if(currentAudio)currentAudio.volume=Number(vol.value); playSources.forEach(o=>{if(o.gain)o.gain.gain.value=Number(vol.value);});};
+async function decode(blob,ctx){const arr=await blob.arrayBuffer(); return await ctx.decodeAudioData(arr.slice(0));}
+async function exportWav(){if(estaGrabando()) return; status.textContent='Preparando WAV...'; try{const total=blocks.reduce((a,b)=>a+b.duration,0)+1; const ctx=new OfflineAudioContext(1,44100*Math.ceil(total),44100); let t=0; for(const b of blocks){const buf=await decode(b.blob,ctx); const src=ctx.createBufferSource(); src.buffer=buf; src.connect(ctx.destination); src.start(t); t+=buf.duration;} const rendered=await ctx.startRendering(); const wav=bufferToWav(rendered); download(new Blob([wav],{type:'audio/wav'}),'bitacora-audio-final.wav'); status.textContent='WAV exportado.';}catch(e){status.textContent='No pude exportar WAV en este navegador.';}}
+function bufferToWav(buffer){const len=buffer.length,data=buffer.getChannelData(0),ab=new ArrayBuffer(44+len*2),v=new DataView(ab); function w(o,s){for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));} w(0,'RIFF'); v.setUint32(4,36+len*2,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,buffer.sampleRate,true); v.setUint32(28,buffer.sampleRate*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,len*2,true); let off=44; for(let i=0;i<len;i++,off+=2){let s=Math.max(-1,Math.min(1,data[i])); v.setInt16(off,s<0?s*0x8000:s*0x7fff,true);} return ab;}
+function download(blob,name){const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+wavBtn.onclick=exportWav;
+saveBtn.onclick=async()=>{ if(estaGrabando()) return; if(typeof JSZip==='undefined'){status.textContent='No cargó JSZip. Para subirlo online debería funcionar con internet.';return;} status.textContent='Armando ZIP...'; const zip=new JSZip(); const aud=zip.folder('audios'); const project={app:'Bitacora',version:1,created:new Date().toISOString(),blocks:[]}; for(let i=0;i<blocks.length;i++){const b=blocks[i]; const ext=(b.type||'').includes('wav')?'wav':(b.type||'').includes('mpeg')?'mp3':'webm'; const filename=`nota-${i+1}.${ext}`; aud.file(filename,b.blob); project.blocks.push({name:b.name,duration:b.duration,color:b.color,filename:'audios/'+filename,type:b.type,external:!!b.external,text:b.text||'',createdAt:b.createdAt||new Date().toISOString(),endedAt:b.endedAt||b.createdAt||new Date().toISOString(),intervalAfter:Number(b.intervalAfter||0),intervalLabel:b.intervalLabel||''});} zip.file('bitacora.json',JSON.stringify(project,null,2)); zip.file('proyecto.json',JSON.stringify(project,null,2)); const blob=await zip.generateAsync({type:'blob'}); download(blob,'bitacora.zip'); marcarGuardado('✓ Crónica ZIP guardada.');};
+$('loadBtn').onclick=()=>{if(estaGrabando())return; $('projectFile').click();}; $('projectFile').onchange=e=>{if(e.target.files[0])loadZip(e.target.files[0]); e.target.value='';}; $('addAudioBtn').onclick=()=>{if(estaGrabando())return; $('audioFile').click();}; $('audioFile').onchange=e=>{if(e.target.files.length)addExternalFiles([...e.target.files],blocks.length); e.target.value='';};
+function mediaDuration(file){return new Promise(res=>{const isVideo=(file.type||'').startsWith('video/'); const el=document.createElement(isVideo?'video':'audio'); el.preload='metadata'; el.onloadedmetadata=()=>{URL.revokeObjectURL(el.src); res(isFinite(el.duration)?el.duration:1);}; el.onerror=()=>{try{URL.revokeObjectURL(el.src)}catch(e){}; res(1);}; el.src=URL.createObjectURL(file);});}
+async function addExternalFiles(files,insertAt=blocks.length){if(estaGrabando())return; const usable=files.filter(f=>(f.type||'').startsWith('audio/')||(f.type||'').startsWith('video/')); if(!usable.length){status.textContent='Ese archivo no parece audio/video.'; return;} status.textContent='Agregando audio externo...'; let idx=Math.max(0,Math.min(insertAt,blocks.length)); for(const f of usable){const dur=await mediaDuration(f); const nowIso=new Date().toISOString(); if(idx>0 && blocks[idx-1]){blocks[idx-1].intervalAfter=blocks[idx-1].intervalAfter||0; blocks[idx-1].intervalLabel=blocks[idx-1].intervalLabel||'Intervalo';} const item={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),duration:dur,color:'#dde8f5',blob:f,type:f.type||'application/octet-stream',filename:f.name,external:true,text:'',createdAt:nowIso,endedAt:nowIso}; blocks.splice(idx,0,item); idx++;} startIndex=Math.max(0,idx-1); marcarSinGuardar('Cambios sin guardar: audio externo insertado.'); render();}
+function insertionIndexFromPoint(clientX){const els=[...timeline.querySelectorAll('.block')]; if(!els.length)return 0; for(let i=0;i<els.length;i++){const r=els[i].getBoundingClientRect(); if(clientX<r.left+r.width/2)return i;} return els.length;}
+$('wrap').addEventListener('dragover',e=>{if(e.dataTransfer&&e.dataTransfer.types&&[...e.dataTransfer.types].includes('Files')){e.preventDefault(); drop.classList.add('drag');}}); $('wrap').addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const media=files.filter(f=>(f.type||'').startsWith('audio/')||(f.type||'').startsWith('video/')); if(media.length){e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); addExternalFiles(media,blocks.length);}});
+async function loadZip(file){if(estaGrabando())return; try{if(typeof JSZip==='undefined')throw new Error('JSZip no disponible'); status.textContent='Abriendo bitácora...'; const zip=await JSZip.loadAsync(file); const pjFile=zip.file('bitacora.json')||zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto'); const pj=JSON.parse(await pjFile.async('string')); const nb=[]; for(const item of pj.blocks){const f=zip.file(item.filename); if(!f)continue; const blob=await f.async('blob'); nb.push({id:crypto.randomUUID(),name:item.name||'Nota',duration:item.duration||1,color:item.color||colors[nb.length%colors.length],blob:new Blob([blob],{type:item.type||blob.type}),type:item.type||blob.type,filename:item.filename,external:!!item.external,text:item.text||'',createdAt:item.createdAt||pj.created||new Date().toISOString(),endedAt:item.endedAt||item.createdAt||pj.created||new Date().toISOString(),intervalAfter:Number(item.intervalAfter||0),intervalLabel:item.intervalLabel||''});} blocks=nb; startIndex=0; marcarGuardado('✓ Crónica cargada.'); render();}catch(e){status.textContent='No pude abrir ese ZIP de Crónica.';}}
+const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/')||(x.type||'').startsWith('video/')); if(f)loadZip(f); else if(media.length)addExternalFiles(media,blocks.length); else status.textContent='Arrastrá un ZIP de Crónica o un archivo de audio/video.';});
+window.addEventListener('pagehide',()=>{ descartarGrabacionActual=true; recordingBusy=false; stopLiveRecordingBlock(); if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); else releaseMic(); });
+
+// PWA: permite instalar Crónica desde el menú del navegador, sin botón propio.
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+
+render();
+</script>
+</body>
+</html>
