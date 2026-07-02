@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Podcast por Bloques V35</title>
+<title>Podcast por Bloques V36</title>
 <style>
   :root{
     --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
@@ -57,7 +57,6 @@
   @keyframes liveStripes{from{transform:translate3d(-70px,70px,0)}to{transform:translate3d(70px,-70px,0)}}
   @media(max-width:900px){input[type=range]{width:135px}}
   @media(max-width:640px){.app{padding:10px}.panel{padding:12px}.timelineWrap{min-height:230px}.timeline{min-height:150px}.block{height:148px;border-radius:22px}.name{font-size:13px}button{padding:11px 12px}}
-  @media(max-width:640px){.timelineWrap{scroll-behavior:auto}.timeline:not(.recordingMode){width:max-content;min-width:100%}.timeline:not(.recordingMode) .block{min-width:104px}.timeline:not(.recordingMode) .silenceBlock{min-width:42px}}
 </style>
 </head>
 <body>
@@ -185,20 +184,8 @@ function render(){
       if(natural>roomForTimeline) pxPerSec=Math.max(1.4, roomForTimeline/Math.max(1,totalDur));
     }
   }
-  const isPhoneLayout=window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
-  const mobilePxPerSec=Math.max(8, Math.min(14, safeWidth/42));
-  const flexAudio=(dur,den,gaps)=> {
-    if(recordingLive) return '1 1 '+Math.max(24, dur*pxPerSec).toFixed(1)+'px';
-    // V33 celular vertical: prioriza legibilidad y activa el scroll antes.
-    // No intentamos meter todos los bloques en la máscara; dejamos 2 o 3 cómodos y el resto hacia el costado.
-    if(isPhoneLayout) return '0 0 '+Math.max(104, Math.min(150, Math.max(.2,dur)*mobilePxPerSec)).toFixed(1)+'px';
-    return '0 1 calc('+((Math.max(.2,dur)/den)*100).toFixed(4)+'% - '+gaps.toFixed(2)+'px)';
-  };
-  const flexSilence=(dur,den,gaps)=> {
-    if(recordingLive) return '1 1 '+Math.max(18, dur*pxPerSec).toFixed(1)+'px';
-    if(isPhoneLayout) return '0 0 '+Math.max(42, Math.min(56, Math.max(.05,dur)*12)).toFixed(1)+'px';
-    return '0 1 calc('+((Math.max(.05,dur)/den)*100).toFixed(4)+'% - '+gaps.toFixed(2)+'px)';
-  };
+  const flexAudio=(dur,den,gaps)=> recordingLive ? ('1 1 '+Math.max(24, dur*pxPerSec).toFixed(1)+'px') : ('0 1 calc('+((Math.max(.2,dur)/den)*100).toFixed(4)+'% - '+gaps.toFixed(2)+'px)');
+  const flexSilence=(dur,den,gaps)=> recordingLive ? ('1 1 '+Math.max(18, dur*pxPerSec).toFixed(1)+'px') : ('0 1 calc('+((Math.max(.05,dur)/den)*100).toFixed(4)+'% - '+gaps.toFixed(2)+'px)');
   const flexLive=(dur)=> {
     const minAudio=24, minSil=18;
     const minExisting=blocks.reduce((a,b,i)=>a+minAudio+(i<blocks.length-1?minSil:0),0)+(blocks.length?minSil:0);
@@ -207,22 +194,31 @@ function render(){
   };
   blocks.forEach((b,i)=>{
     const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=true; el.style.background=b.color; el.style.flex=flexAudio(Math.max(.2,b.duration||1), totalDur, gapTotal/Math.max(1,blocks.length*2-1)); el.dataset.id=b.id;
-    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="name">${i+1}. ${escapeHtml(b.name)}</div><div class="dur">${fmt(b.duration)}</div>`;
+    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="name">${i+1}</div><div class="dur">${fmt(b.duration)}</div>`;
     el.querySelector('.del').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Estás seguro de que querés borrar este bloque?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: bloque borrado.'); render();};
     function jump(){
       if(estaGrabando()) return;
       startIndex=i;
       status.textContent='Ubicado al inicio del bloque '+(i+1)+'. Doble toque sobre el bloque para escuchar desde ahí.';
-      // V35 celular/ventana angosta: no reconstruyo la línea de tiempo en el toque.
-      // El render cambiaba el ancho total y peleaba con el scroll horizontal.
-      if(esVistaAngosta()){
-        timeline.querySelectorAll('.block').forEach((node,idx)=>node.classList.toggle('selected', idx===i));
-        return;
-      }
       renderConScrollQuieto();
     }
+    let lastTap=0;
     el.onclick=(ev)=>{ev.preventDefault(); jump();};
     el.ondblclick=(ev)=>{ev.preventDefault(); jump(); setTimeout(()=>playSingle(i),40);};
+    // V36 iPad: Safari a veces no dispara dblclick sobre estos bloques.
+    // Detecto doble toque manual y reproduzco el bloque.
+    el.addEventListener('touchend',(ev)=>{
+      if(estaGrabando()) return;
+      const now=Date.now();
+      if(now-lastTap<360){
+        ev.preventDefault();
+        jump();
+        setTimeout(()=>playSingle(i),40);
+        lastTap=0;
+      }else{
+        lastTap=now;
+      }
+    },{passive:false});
     el.ondragstart=e=>{ if(estaGrabando()){e.preventDefault(); return;} e.dataTransfer.setData('text/plain',b.id); };
     el.ondragover=e=>e.preventDefault();
     el.ondrop=e=>{e.preventDefault(); if(estaGrabando()) return; const from=e.dataTransfer.getData('text/plain'), to=b.id; if(from===to)return; const a=blocks.findIndex(x=>x.id===from), c=blocks.findIndex(x=>x.id===to); const [m]=blocks.splice(a,1); blocks.splice(c,0,m); marcarSinGuardar('Cambios sin guardar: orden modificado.'); render();};
@@ -442,17 +438,8 @@ async function playSingle(i){
   }
 
   const runId=++playRunId;
-  const wrapEl=$('wrap');
-  const keepScroll=wrapEl ? wrapEl.scrollLeft : 0;
   startIndex=i;
-  // V35: al escuchar un bloque en celular no reconstruyo el carril,
-  // para que el scroll no haga ese tironeo de ida y vuelta.
-  if(esVistaAngosta()){
-    timeline.querySelectorAll('.block').forEach((node,idx)=>node.classList.toggle('selected', idx===i));
-    mantenerScrollHorizontal(keepScroll);
-  }else{
-    renderConScrollQuieto();
-  }
+  renderConScrollQuieto();
 
   try{
     playing=true; updateBtns(); head.style.display='block'; status.textContent='Escuchando solo el bloque '+(i+1)+'...';
