@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Podcast por Bloques V28</title>
+<title>Podcast por Bloques V31</title>
 <style>
   :root{
     --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
@@ -52,7 +52,7 @@
   .block.recordingLive{cursor:default;background:linear-gradient(135deg,#ff7890,#ffd1d9)!important;color:#3b1118;outline:none;box-shadow:inset 0 0 0 3px rgba(255,92,114,.30),inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);min-width:72px;transform:none!important;transform-origin:left center}
   .block.recordingLive:active{cursor:default;transform:none}.block.recordingLive:hover{box-shadow:inset 0 0 0 3px rgba(255,92,114,.38),inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14)}
   .block.recordingLive .name,.block.recordingLive .dur{position:relative;z-index:2;color:#3b1118;text-shadow:0 1px 0 rgba(255,255,255,.36)}
-  .block.recordingLive:before{content:"";position:absolute;inset:-90px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 16px,rgba(255,255,255,.58) 16px 34px,rgba(255,255,255,.10) 34px 58px);animation:liveStripes 1.05s linear infinite;z-index:1;will-change:transform}
+  .block.recordingLive:before{content:"";position:absolute;inset:-90px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 16px,rgba(255,255,255,.58) 16px 34px,rgba(255,255,255,.10) 34px 58px);animation:none;z-index:1;will-change:transform}
   .block.recordingLive:after{content:"";position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.34));z-index:1}
   @keyframes liveStripes{from{transform:translate3d(-70px,70px,0)}to{transform:translate3d(70px,-70px,0)}}
   @media(max-width:900px){input[type=range]{width:135px}}
@@ -225,10 +225,27 @@ function setupMeter(stream){
 function startMeter(){
   meter.classList.add('on');
   const data=new Uint8Array(analyser?analyser.frequencyBinCount:0);
+  let smoothLevel=.18;
   const loop=()=>{
-    let level=.15;
-    if(analyser){analyser.getByteFrequencyData(data); level=(data.reduce((a,b)=>a+b,0)/(data.length||1))/255;}
-    bars.forEach((bar,i)=>{const h=8+Math.max(0,Math.min(1,level*2.7 + Math.sin(Date.now()/110+i)*.08))*36*(.55+(i%3)*.18); bar.style.height=h+'px';});
+    let level=.18;
+    if(analyser){
+      analyser.getByteTimeDomainData(data);
+      let sum=0;
+      for(let i=0;i<data.length;i++){
+        const v=(data[i]-128)/128;
+        sum+=v*v;
+      }
+      const rms=Math.sqrt(sum/(data.length||1));
+      // Más sensible para voz: levanta aunque el micrófono venga bajo,
+      // pero con suavizado para que no se vuelva loco.
+      level=Math.min(1, rms*8.5);
+    }
+    smoothLevel=smoothLevel*.68 + level*.32;
+    bars.forEach((bar,i)=>{
+      const pulse=(Math.sin(Date.now()/95+i*.85)+1)*.5;
+      const h=7 + Math.max(0,Math.min(1, smoothLevel*.95 + pulse*.18))*42*(.72+(i%4)*.10);
+      bar.style.height=Math.max(6,Math.min(44,h))+'px';
+    });
     meterRaf=requestAnimationFrame(loop);
   };
   loop();
@@ -254,17 +271,23 @@ function releaseMic(){
 }
 function startLiveRecordingBlock(){
   recordingLive=true;
-  // Arranca visualmente casi enseguida, para que el bloque se apoye en su lugar
-  // y empiece a crecer sin esa espera larga previa.
-  recordingStart=performance.now()-120;
-  recordingLiveDuration=.12;
-  const loop=()=>{
+  // Arranque corto y constante: aparece en su lugar y en menos de medio segundo
+  // ya está creciendo, sin acumular demora cuando hay muchos audios.
+  recordingStart=performance.now()-420;
+  recordingLiveDuration=.42;
+  let lastRender=0;
+  const loop=(now)=>{
     if(!recordingLive)return;
     recordingLiveDuration=(performance.now()-recordingStart)/1000;
-    render();
+    // Limito el render a ~20 fps para que no se atrase con muchos bloques.
+    // Las rayas CSS siguen animando solas, sin tocar su comportamiento.
+    if(!lastRender || now-lastRender>50){
+      render();
+      lastRender=now;
+    }
     recordingLiveRaf=requestAnimationFrame(loop);
   };
-  loop();
+  recordingLiveRaf=requestAnimationFrame(loop);
 }
 function stopLiveRecordingBlock(){
   recordingLive=false;
@@ -280,7 +303,7 @@ recBtn.onclick=async()=>{try{
   chunks=[];
   status.textContent='Preparando micrófono... empezá a hablar cuando diga “Grabando”.';
   // Pequeña espera para no capturar el clic/toque inicial, pero corta para que el bloque vivo aparezca rápido.
-  await new Promise(r=>setTimeout(r,170));
+  await new Promise(r=>setTimeout(r,80));
   mediaRecorder=new MediaRecorder(stream);
   mediaRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
   mediaRecorder.onstop=async()=>{
