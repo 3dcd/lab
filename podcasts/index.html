@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Podcast por Bloques V48</title>
+<title>Podcast por Bloques V50</title>
 <style>
   :root{
     --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
@@ -131,6 +131,7 @@
 let mediaRecorder, chunks=[], blocks=[], playing=false, currentAudio=null, raf=0, startIndex=0, micStream=null, audioCtxLive=null, analyser=null, meterRaf=0, playCtx=null, playSources=[], playStartedAt=0, playOffset=0, playRunId=0;
 let recordingLive=false, recordingStart=0, recordingLiveDuration=0, recordingLiveRaf=0;
 let recordingBusy=false;
+let suprimirClickRecRoundHasta=0;
 let ultimoToqueBloque={id:null,t:0};
 let hayCambiosSinGuardar=false;
 const DEFAULT_SILENCE=2;
@@ -568,6 +569,7 @@ playBtn.onclick=()=>{startIndex=0; render(); status.textContent='Reproduciendo d
 pauseBtn.onclick=()=>stopPlayback(true);
 recRoundBtn.onclick=(ev)=>{
   ev.preventDefault();
+  if(Date.now()<suprimirClickRecRoundHasta) return;
   if(playing) return;
   if(estaGrabando()){
     detenerGrabacionRobusta(ev);
@@ -575,6 +577,18 @@ recRoundBtn.onclick=(ev)=>{
     recBtn.click();
   }
 };
+// V50 iPad: el click diferido a veces no llega al segundo "Detener".
+// Refuerzo solamente el STOP, no el inicio, para no generar rebotes ni nuevas grabaciones.
+function stopRecRoundSoloSiGraba(ev){
+  if(!estaGrabando()) return;
+  if(ev){ev.preventDefault(); ev.stopPropagation();}
+  suprimirClickRecRoundHasta=Date.now()+650;
+  detenerGrabacionRobusta(ev);
+}
+recRoundBtn.addEventListener('touchend', stopRecRoundSoloSiGraba, {passive:false});
+recRoundBtn.addEventListener('pointerup', (ev)=>{
+  if(ev.pointerType==='touch') stopRecRoundSoloSiGraba(ev);
+}, {passive:false});
 playStopRoundBtn.onclick=(ev)=>{
   ev.preventDefault();
   if(estaGrabando()) return;
