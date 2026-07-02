@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Podcast por Bloques V34</title>
+<title>Podcast por Bloques V35</title>
 <style>
   :root{
     --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
@@ -57,7 +57,7 @@
   @keyframes liveStripes{from{transform:translate3d(-70px,70px,0)}to{transform:translate3d(70px,-70px,0)}}
   @media(max-width:900px){input[type=range]{width:135px}}
   @media(max-width:640px){.app{padding:10px}.panel{padding:12px}.timelineWrap{min-height:230px}.timeline{min-height:150px}.block{height:148px;border-radius:22px}.name{font-size:13px}button{padding:11px 12px}}
-  @media(max-width:640px){.timeline:not(.recordingMode){width:max-content;min-width:100%}.timeline:not(.recordingMode) .block{min-width:104px}.timeline:not(.recordingMode) .silenceBlock{min-width:42px}}
+  @media(max-width:640px){.timelineWrap{scroll-behavior:auto}.timeline:not(.recordingMode){width:max-content;min-width:100%}.timeline:not(.recordingMode) .block{min-width:104px}.timeline:not(.recordingMode) .silenceBlock{min-width:42px}}
 </style>
 </head>
 <body>
@@ -129,6 +129,32 @@ function estaGrabando(){return !!(recordingBusy || recordingLive || (mediaRecord
 function pedirSilencio(i){if(estaGrabando()) return; const actual=getPauseAfter(i); const txt=prompt('¿Cuántos segundos de silencio querés entre estos dos audios?', String(actual)); if(txt===null)return; const val=Number(String(txt).replace(',', '.')); if(!isFinite(val)||val<0){alert('Poné un número válido, por ejemplo 1, 2 o 3.5'); return;} blocks[i].pauseAfter=Math.min(60, val); marcarSinGuardar('Cambios sin guardar: silencio ajustado.'); render();}
 function updateBtns(){const has=blocks.length>0; const rec=estaGrabando(); document.querySelector('.app')?.classList.toggle('isRecording', rec); playBtn.disabled=rec||!has||playing; wavBtn.disabled=rec||!has; saveBtn.disabled=rec||!has; pauseBtn.disabled=rec||!playing; recBtn.disabled=rec||playing; stopBtn.disabled=!rec; $('loadBtn').disabled=rec; $('addAudioBtn').disabled=rec; playBtn.textContent='▶ Reproducir'; pauseBtn.textContent='⏸ Pausar'; stopBtn.textContent='■ Detener';}
 function escapeHtml(s){return String(s).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
+function esVistaAngosta(){
+  return window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+}
+function mantenerScrollHorizontal(scrollValue){
+  const wrapEl=$('wrap');
+  if(!wrapEl) return;
+  const prevBehavior=wrapEl.style.scrollBehavior;
+  wrapEl.style.scrollBehavior='auto';
+  const fix=()=>{
+    wrapEl.scrollLeft=scrollValue;
+  };
+  fix();
+  requestAnimationFrame(fix);
+  setTimeout(fix,40);
+  setTimeout(fix,120);
+  setTimeout(()=>{
+    fix();
+    wrapEl.style.scrollBehavior=prevBehavior;
+  },260);
+}
+function renderConScrollQuieto(){
+  const wrapEl=$('wrap');
+  const keepScroll=wrapEl ? wrapEl.scrollLeft : 0;
+  render();
+  mantenerScrollHorizontal(keepScroll);
+}
 function render(){
   timeline.classList.toggle('recordingMode', recordingLive);
   timeline.innerHTML='';
@@ -185,16 +211,15 @@ function render(){
     el.querySelector('.del').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Estás seguro de que querés borrar este bloque?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: bloque borrado.'); render();};
     function jump(){
       if(estaGrabando()) return;
-      const wrapEl=$('wrap');
-      const keepScroll=wrapEl ? wrapEl.scrollLeft : 0;
       startIndex=i;
       status.textContent='Ubicado al inicio del bloque '+(i+1)+'. Doble toque sobre el bloque para escuchar desde ahí.';
-      render();
-      // V33 celular: al tocar/doble tocar un bloque no recentramos ni movemos la línea de tiempo.
-      if(wrapEl){
-        wrapEl.scrollLeft=keepScroll;
-        requestAnimationFrame(()=>{wrapEl.scrollLeft=keepScroll;});
+      // V35 celular/ventana angosta: no reconstruyo la línea de tiempo en el toque.
+      // El render cambiaba el ancho total y peleaba con el scroll horizontal.
+      if(esVistaAngosta()){
+        timeline.querySelectorAll('.block').forEach((node,idx)=>node.classList.toggle('selected', idx===i));
+        return;
       }
+      renderConScrollQuieto();
     }
     el.onclick=(ev)=>{ev.preventDefault(); jump();};
     el.ondblclick=(ev)=>{ev.preventDefault(); jump(); setTimeout(()=>playSingle(i),40);};
@@ -420,12 +445,13 @@ async function playSingle(i){
   const wrapEl=$('wrap');
   const keepScroll=wrapEl ? wrapEl.scrollLeft : 0;
   startIndex=i;
-  render();
-  // V34: en celular, doble toque para escuchar no debe recentrar ni esconder el bloque.
-  if(wrapEl){
-    wrapEl.scrollLeft=keepScroll;
-    requestAnimationFrame(()=>{wrapEl.scrollLeft=keepScroll;});
-    setTimeout(()=>{wrapEl.scrollLeft=keepScroll;},80);
+  // V35: al escuchar un bloque en celular no reconstruyo el carril,
+  // para que el scroll no haga ese tironeo de ida y vuelta.
+  if(esVistaAngosta()){
+    timeline.querySelectorAll('.block').forEach((node,idx)=>node.classList.toggle('selected', idx===i));
+    mantenerScrollHorizontal(keepScroll);
+  }else{
+    renderConScrollQuieto();
   }
 
   try{
