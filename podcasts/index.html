@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Podcast por Bloques V37</title>
+<title>Podcast por Bloques V38</title>
 <style>
   :root{
     --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
@@ -207,7 +207,10 @@ function render(){
   blocks.forEach((b,i)=>{
     const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=true; el.style.background=b.color; el.style.flex=flexAudio(Math.max(.2,b.duration||1), totalDur, gapTotal/Math.max(1,blocks.length*2-1)); el.dataset.id=b.id;
     el.innerHTML=`<button class="del" title="Borrar">×</button><div class="name">${i+1}</div><div class="dur">${fmt(b.duration)}</div>`;
-    el.querySelector('.del').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Estás seguro de que querés borrar este bloque?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: bloque borrado.'); render();};
+    const delBtn=el.querySelector('.del');
+    delBtn.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Estás seguro de que querés borrar este bloque?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: bloque borrado.'); render();};
+    delBtn.addEventListener('touchend',(ev)=>{ev.stopPropagation();},{passive:false});
+    delBtn.addEventListener('pointerup',(ev)=>{ev.stopPropagation();});
     function jump(){
       if(estaGrabando()) return;
       startIndex=i;
@@ -216,8 +219,8 @@ function render(){
     }
     el.onclick=(ev)=>{ev.preventDefault(); jump();};
     el.ondblclick=(ev)=>{ev.preventDefault(); jump(); setTimeout(()=>playSingle(i),40);};
-    // V37 iPad: el primer toque hace render y recrea el bloque, por eso el contador
-    // de doble toque tiene que vivir fuera del elemento. Así Safari/iPad lo detecta.
+    // V38 iPad: el primer toque hace render y recrea el bloque, por eso el contador
+    // de doble toque tiene que vivir fuera del elemento. Así Safari/iPad detecta doble toque real, sin disparar play con un solo toque.
     el.addEventListener('touchend',(ev)=>{
       if(estaGrabando()) return;
       const now=Date.now();
@@ -230,18 +233,7 @@ function render(){
         ultimoToqueBloque={id:b.id,t:now};
       }
     },{passive:false});
-    el.addEventListener('pointerup',(ev)=>{
-      if(estaGrabando() || ev.pointerType!=='touch') return;
-      const now=Date.now();
-      if(ultimoToqueBloque.id===b.id && now-ultimoToqueBloque.t<420){
-        ev.preventDefault();
-        ultimoToqueBloque={id:null,t:0};
-        jump();
-        setTimeout(()=>playSingle(i),40);
-      }else{
-        ultimoToqueBloque={id:b.id,t:now};
-      }
-    });
+
     el.ondragstart=e=>{ if(estaGrabando()){e.preventDefault(); return;} e.dataTransfer.setData('text/plain',b.id); };
     el.ondragover=e=>e.preventDefault();
     el.ondrop=e=>{e.preventDefault(); if(estaGrabando()) return; const from=e.dataTransfer.getData('text/plain'), to=b.id; if(from===to)return; const a=blocks.findIndex(x=>x.id===from), c=blocks.findIndex(x=>x.id===to); const [m]=blocks.splice(a,1); blocks.splice(c,0,m); marcarSinGuardar('Cambios sin guardar: orden modificado.'); render();};
