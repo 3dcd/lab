@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Propuesta de diseño interactiva</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <style>
+    :root{
+      --bg:#050505; --panel:rgba(0,0,0,.48); --line:rgba(255,255,255,.18);
+      --txt:rgba(255,255,255,.94); --muted:rgba(255,255,255,.62);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+    #layout{position:fixed;inset:0;display:grid;grid-template-columns:1fr;background:radial-gradient(circle at 50% 38%,#383838 0%,#121212 58%,#020202 100%)}
+    #viewer{position:relative;min-width:0;min-height:0;touch-action:none}
+    canvas{display:block;width:100%;height:100%}
+    .top{position:fixed;left:16px;right:16px;top:max(14px,env(safe-area-inset-top));z-index:10;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none}
+    .brand{color:var(--txt);font-size:14px;font-weight:800;text-shadow:0 2px 18px #000;letter-spacing:.2px}
+    .hint{color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:999px;background:rgba(0,0,0,.34);backdrop-filter:blur(10px);padding:8px 10px;white-space:nowrap}
+    .hand{display:inline-block;margin-right:5px;animation:swipe 1.7s ease-in-out infinite}
+    @keyframes swipe{0%,100%{transform:translateX(-5px);opacity:.6}50%{transform:translateX(8px);opacity:1}}
+    .controls{position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px,env(safe-area-inset-bottom));z-index:12;width:min(94vw,430px);display:flex;gap:8px;padding:8px;border:1px solid var(--line);border-radius:25px;background:var(--panel);backdrop-filter:blur(14px);box-shadow:0 15px 45px rgba(0,0,0,.5)}
+    .budget-mobile{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(18px,env(safe-area-inset-bottom)) + 68px);z-index:12;width:min(94vw,430px);display:none;padding:8px;border:1px solid var(--line);border-radius:25px;background:var(--panel);backdrop-filter:blur(14px);box-shadow:0 15px 45px rgba(0,0,0,.5)}
+    button{flex:1;border:1px solid transparent;border-radius:999px;padding:12px 8px;font-weight:800;font-size:12px;color:rgba(255,255,255,.82);background:rgba(255,255,255,.1);cursor:pointer;white-space:nowrap}
+    button.active{background:rgba(255,255,255,.94);color:#080808}button:disabled{opacity:.45;cursor:default}
+    #loader{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:#050505;color:white;transition:.35s}
+    #loader.hide{opacity:0;visibility:hidden}.box{text-align:center;width:min(320px,80vw)}.small{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.4}.bar{height:5px;margin-top:14px;border-radius:99px;background:rgba(255,255,255,.16);overflow:hidden}.bar span{display:block;width:35%;height:100%;background:#fff;border-radius:99px;animation:load 1s ease-in-out infinite alternate}@keyframes load{from{transform:translateX(-80%)}to{transform:translateX(240%)}}
+    .note{position:fixed;left:16px;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 72px);z-index:9;color:rgba(255,255,255,.55);font-size:11px;background:rgba(0,0,0,.26);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 10px;backdrop-filter:blur(10px);max-width:280px}
+    .modal{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.58);backdrop-filter:blur(10px)}
+    .modal.show{display:flex}.modal-card{width:min(92vw,420px);max-height:calc(100dvh - 44px);overflow-y:auto;color:white;border:1px solid var(--line);border-radius:24px;background:rgba(10,10,10,.86);padding:20px;box-shadow:0 25px 80px rgba(0,0,0,.55)}
+    /* Presupuesto: mismos estilos para panel lateral y ventana móvil */
+    .card h2,.modal-card h2{margin:0 0 14px;font-size:20px;line-height:1.1;letter-spacing:.2px;text-transform:uppercase}.price-list{display:grid;gap:10px}.price-item{padding:10px 11px;border:1px solid rgba(255,255,255,.11);border-radius:16px;background:rgba(255,255,255,.055)}.price-label{font-size:11px;font-weight:850;color:rgba(255,255,255,.62);letter-spacing:.5px}.price-desc{margin-top:3px;font-size:13px;color:rgba(255,255,255,.88);line-height:1.22}.price-value{margin-top:6px;font-size:23px;font-weight:950;letter-spacing:.2px;color:#fff}.benefits{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.13);display:grid;gap:7px;font-size:12px;color:rgba(255,255,255,.78);line-height:1.25}.delivery{margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.08);font-weight:850;font-size:12px;color:rgba(255,255,255,.9)}.contact-button{margin-top:12px;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid rgba(255,255,255,.2);background:rgba(37,211,102,.92);color:#06140a;box-shadow:0 12px 28px rgba(37,211,102,.18)}.contact-button:hover{background:rgba(37,211,102,1)}
+    .modal-card .price-list{gap:9px}.modal-card .price-item{padding:10px 11px}.modal-card .price-value{font-size:22px}.modal-card .benefits{margin-top:13px}.close-budget{margin-top:16px;width:100%}
+
+    /* Selección de opción comercial: conserva tarjeta gris redondeada y marca en verde oscuro suave */
+    .price-item{cursor:pointer;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease;overflow:hidden}
+    .price-item:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.075)}
+    .price-item.selected{background:rgba(38,125,78,.26)!important;border-color:rgba(85,220,145,.62)!important;box-shadow:0 0 0 1px rgba(85,220,145,.18) inset,0 12px 30px rgba(0,0,0,.18)!important}
+    .price-item.selected .price-label::after{content:'  ✓';color:rgba(120,245,170,.95);font-weight:950}
+
+    @media (min-width: 820px), (orientation: landscape) and (max-height: 520px){
+      :root{--panelW:clamp(280px,26vw,360px)}
+      #layout{grid-template-columns:var(--panelW) minmax(0,1fr)}#viewer{grid-column:2;grid-row:1;min-width:0;min-height:0}.side{grid-column:1;grid-row:1;display:block}.top{left:calc(var(--panelW) + 22px);right:22px}.controls{left:calc(var(--panelW) + (100vw - var(--panelW))/2)}.budget-mobile{display:none!important}.modal{display:none!important}
+      .side{position:relative;z-index:4;padding:28px 22px;display:flex;align-items:center;justify-content:center;overflow-y:auto;border-right:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02))}
+      .card{width:100%;max-height:calc(100dvh - 56px);overflow-y:auto;color:white;border:1px solid var(--line);border-radius:24px;background:rgba(0,0,0,.35);padding:20px;backdrop-filter:blur(14px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+      .card h2{font-size:18px}
+      .note{display:none}
+    }
+
+    @media (orientation: landscape) and (max-height: 520px){
+      .side{align-items:flex-start;padding:12px 14px}.card{padding:14px;border-radius:20px;max-height:calc(100dvh - 24px)}.card h2{font-size:15px;margin-bottom:9px}.price-list{gap:6px}.price-item{padding:7px 9px;border-radius:12px}.price-label{font-size:9.5px}.price-desc{font-size:11px}.price-value{font-size:17px;margin-top:3px}.benefits{margin-top:8px;padding-top:8px;gap:4px;font-size:10.5px}.delivery{margin-top:8px;padding:7px 9px;font-size:10.5px}.contact-button{margin-top:8px;padding:9px 8px;font-size:11px}
+    }
+    @media (max-width:819px) and (orientation: portrait){.side{display:none}.budget-mobile{display:flex}.note{display:none}}
+  
+    /* Logo presentador en cabecera */
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+    }
+    .brand-logo {
+      width:28px;
+      height:28px;
+      object-fit:contain;
+      border-radius:50%;
+      display:block;
+      flex:0 0 auto;
+      filter: drop-shadow(0 2px 10px rgba(0,0,0,.45));
+    }
+    @media (min-width: 700px) {
+      .brand-logo { width:32px; height:32px; }
+    }
+
+
+    /* Panel administrativo para generar ticket interno */
+    .budget-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px}
+    .budget-head h2{margin:0!important;flex:1;min-width:0}
+    .admin-fab{width:auto;flex:0 0 auto;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.50);font-size:10px;line-height:1;backdrop-filter:blur(12px);align-self:flex-start}
+    .admin-fab:hover{color:#fff;background:rgba(255,255,255,.18)}
+    .admin-modal{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.68);backdrop-filter:blur(12px)}
+    .admin-modal.show{display:flex}.admin-card{width:min(96vw,560px);max-height:calc(100dvh - 28px);overflow:auto;color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:24px;background:rgba(12,12,12,.94);box-shadow:0 28px 90px rgba(0,0,0,.65);padding:18px}.admin-card h2{margin:0 0 5px;text-transform:uppercase;font-size:18px}.admin-sub{font-size:12px;color:rgba(255,255,255,.62);margin-bottom:14px;line-height:1.35}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.admin-field{display:grid;gap:5px}.admin-field.full{grid-column:1/-1}.admin-field label{font-size:11px;color:rgba(255,255,255,.65);font-weight:800;text-transform:uppercase;letter-spacing:.3px}.admin-field input,.admin-field textarea,.admin-field select{width:100%;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:11px 12px;font-size:14px;outline:none}.admin-field textarea{min-height:72px;resize:vertical}.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.admin-actions button{flex:1 1 150px}.admin-primary{background:#fff!important;color:#080808!important}.admin-ghost{background:rgba(255,255,255,.1)!important;color:#fff!important;border-color:rgba(255,255,255,.16)!important}.admin-danger{background:rgba(255,80,80,.18)!important;color:#ffdada!important;border-color:rgba(255,80,80,.25)!important}.admin-total{margin-top:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);border-radius:18px;padding:12px;display:flex;justify-content:space-between;gap:10px;align-items:center}.admin-total span{color:rgba(255,255,255,.62);font-size:12px;font-weight:800;text-transform:uppercase}.admin-total strong{font-size:24px}.admin-login{display:grid;gap:10px}.admin-main{display:none}.admin-main.show{display:block}.admin-login.hide{display:none}.ticket-preview{display:none;margin-top:14px;padding:10px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}.ticket-preview img{display:block;max-width:100%;border-radius:12px;background:white}@media(max-width:560px){.admin-grid{grid-template-columns:1fr}}
+
+  </style>
+</head>
+<body>
+  <div id="layout">
+    <aside class="side">
+      <div class="card">
+        <div class="budget-head"><h2>Personalización de indumentaria</h2><button class="admin-fab admin-open" type="button">Admin</button></div>
+        <!-- PRESUPUESTO EDITABLE: cambiar solo textos y precios de esta sección -->
+        <div class="price-list">
+          <div class="price-item">
+            <div class="price-label">OPCIÓN 1</div>
+            <div class="price-desc">Logo frente (pecho)</div>
+            <div class="price-value">$ 3.000</div>
+          </div>
+          <div class="price-item">
+            <div class="price-label">OPCIÓN 2</div>
+            <div class="price-desc">Logo frente + manga</div>
+            <div class="price-value">$ 4.000</div>
+          </div>
+          <div class="price-item">
+            <div class="price-label">OPCIÓN 3</div>
+            <div class="price-desc">Logo frente + espalda</div>
+            <div class="price-value">$ 4.000</div>
+          </div>
+          <div class="price-item">
+            <div class="price-label">OPCIÓN 4</div>
+            <div class="price-desc">Logo frente + manga + espalda</div>
+            <div class="price-value">$ 5.000</div>
+          </div>
+        </div>
+        <div class="benefits">
+          <div>✓ Diseño incluido</div>
+          <div>✓ Archivos guardados para futuras reposiciones</div>
+          <div>✓ Consultar por cantidades mayores</div>
+        </div>
+        <div class="delivery">Entrega estimada: 7 días</div>
+        <button class="contact-button" type="button" data-contact>💬 Contactar</button>
+      </div>
+    </aside>
+    <main id="viewer"></main>
+  </div>
+  <div id="loader"><div class="box"><b>Cargando remera 3D</b><div class="bar"><span></span></div><div class="small">Modelo GLB + precarga completa de materiales</div></div></div>
+  <div class="top"><div class="brand"><img class="brand-logo" src="assets/logo_presentador.png" alt="Logo" /><span>Propuesta de diseño</span></div><div class="hint"><span class="hand">↔</span>Arrastrá para girar</div></div>
+  <div class="note">En pantalla grande este lugar puede convertirse en presupuesto fijo.</div>
+  <div class="budget-mobile"><button id="openBudget">Presupuesto</button></div>
+  <div class="modal" id="budgetModal">
+    <div class="modal-card">
+      <div class="budget-head"><h2>Personalización de indumentaria</h2><button class="admin-fab admin-open" type="button">Admin</button></div>
+        <!-- PRESUPUESTO EDITABLE: cambiar solo textos y precios de esta sección -->
+        <div class="price-list">
+          <div class="price-item">
+            <div class="price-label">OPCIÓN 1</div>
+            <div class="price-desc">Logo frente (pecho)</div>
+            <div class="price-value">$ 3.000</div>
+          </div>
+          <div class="price-item">
+            <div class="price-label">OPCIÓN 2</div>
+            <div class="price-desc">Logo frente + manga</div>
+            <div class="price-value">$ 4.000</div>
+          </div>
+          <div class="price-item">
+            <div class="price-label">OPCIÓN 3</div>
+            <div class="price-desc">Logo frente + espalda</div>
+            <div class="price-value">$ 4.000</div>
+          </div>
+          <div class="price-item">
+            <div class="price-label">OPCIÓN 4</div>
+            <div class="price-desc">Logo frente + manga + espalda</div>
+            <div class="price-value">$ 5.000</div>
+          </div>
+        </div>
+        <div class="benefits">
+          <div>✓ Diseño incluido</div>
+          <div>✓ Archivos guardados para futuras reposiciones</div>
+          <div>✓ Consultar por cantidades mayores</div>
+        </div>
+        <div class="delivery">Entrega estimada: 7 días</div>
+      <button class="contact-button" type="button" data-contact>💬 Contactar</button>
+      <button class="close-budget" id="closeBudget">Cerrar</button>
+    </div>
+  </div>
+
+
+  <div class="admin-modal" id="adminModal">
+    <div class="admin-card">
+      <div class="admin-login" id="adminLogin">
+        <h2>Acceso administrativo</h2>
+        <div class="admin-sub">Ingresá el código para cargar el registro del trabajo y generar el ticket en imagen.</div>
+        <div class="admin-field"><label>Código</label><input id="adminCode" type="password" inputmode="numeric" placeholder="Código" /></div>
+        <div class="admin-actions"><button class="admin-primary" id="adminEnter" type="button">Ingresar</button><button class="admin-ghost" id="adminCloseLogin" type="button">Cerrar</button></div>
+      </div>
+      <div class="admin-main" id="adminMain">
+        <h2>Ticket de estampado</h2>
+        <div class="admin-sub">Los datos quedan guardados en este dispositivo. El botón genera una imagen PNG lista para enviar por WhatsApp o imprimir.</div>
+        <div class="admin-grid">
+          <div class="admin-field full"><label>Logo para el ticket</label><input id="ticketLogo" type="file" accept="image/*" /></div>
+          <div class="admin-field"><label>Cliente</label><input id="ticketCliente" placeholder="Nombre del cliente" /></div>
+          <div class="admin-field"><label>Fecha</label><input id="ticketFecha" type="date" /></div>
+          <div class="admin-field"><label>Cantidad de prendas</label><input id="ticketCantidad" type="number" min="0" step="1" value="1" /></div>
+          <div class="admin-field"><label>Color de prendas</label><input id="ticketColor" placeholder="Ej: negras / blancas" /></div>
+          <div class="admin-field full"><label>Trabajo realizado</label><select id="ticketTrabajo"><option value="Logo frente (pecho)|3000">Logo frente (pecho) — $3.000</option><option value="Logo frente + manga|4000">Logo frente + manga — $4.000</option><option value="Logo frente + espalda|4000">Logo frente + espalda — $4.000</option><option value="Logo frente + manga + espalda|5000">Logo frente + manga + espalda — $5.000</option><option value="Personalizado|0">Personalizado</option></select></div>
+          <div class="admin-field"><label>Precio unitario</label><input id="ticketUnitario" type="number" min="0" step="100" value="3000" /></div>
+          <div class="admin-field"><label>Seña / pago parcial</label><input id="ticketSena" type="number" min="0" step="100" value="0" /></div>
+          <div class="admin-field full"><label>Observaciones</label><textarea id="ticketObs" placeholder="Ej: logo blanco sobre remera negra, archivos guardados, entrega acordada..."></textarea></div>
+          <div class="admin-field full"><label>Link demo / QR</label><input id="ticketDemoUrl" type="url" placeholder="Se completa con el link actual de esta demo" /></div>
+        </div>
+        <div class="admin-total"><span>Total estimado</span><strong id="ticketTotal">$ 0</strong></div>
+        <div class="admin-actions"><button class="admin-primary" id="ticketSave" type="button">Guardar</button><button class="admin-primary" id="ticketGenerate" type="button">Generar PNG</button><button class="admin-ghost" id="ticketShare" type="button">Compartir</button><button class="admin-danger" id="adminClose" type="button">Cerrar</button></div>
+        <div class="ticket-preview" id="ticketPreview"><img id="ticketPreviewImg" alt="Vista previa del ticket" /></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="active" data-option="op1">Claro</button>
+    <button data-option="op2">Oscuro</button>
+    <button data-option="op3">Color</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const viewer = document.getElementById('viewer');
+    const loaderEl = document.getElementById('loader');
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // Parámetros copiados de la versión que te gustó
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.78;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    viewer.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 100);
+    camera.position.set(0, 0.48, 4.6);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.enablePan = true;
+    controls.screenSpacePanning = true;
+    controls.panSpeed = 0.55;
+    controls.rotateSpeed = 0.7;
+    controls.zoomSpeed = 0.7;
+    controls.minDistance = 1.85;
+    controls.maxDistance = 7.2;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.8;
+    controls.target.set(0, 0.42, 0);
+    renderer.domElement.addEventListener('pointerdown', () => controls.autoRotate = false);
+    renderer.domElement.addEventListener('pointerup', () => setTimeout(() => controls.autoRotate = true, 1700));
+
+    // Iluminación copiada de la versión anterior que te gustó.
+    scene.add(new THREE.HemisphereLight(0xf2f2f2, 0x101010, 0.95));
+
+    const k = new THREE.DirectionalLight(0xffffff, 2.55);
+    k.position.set(2.8, 4.2, 3.6);
+    k.castShadow = true;
+    k.shadow.mapSize.set(2048, 2048);
+    k.shadow.bias = -0.00008;
+    k.shadow.normalBias = 0.018;
+    k.shadow.camera.near = 0.1;
+    k.shadow.camera.far = 12;
+    k.shadow.camera.left = -3;
+    k.shadow.camera.right = 3;
+    k.shadow.camera.top = 3;
+    k.shadow.camera.bottom = -3;
+    scene.add(k);
+
+    const fill = new THREE.DirectionalLight(0xbfd6ff, 0.38);
+    fill.position.set(-4, 1.3, -2.8);
+    scene.add(fill);
+
+    const rim = new THREE.DirectionalLight(0xffffff, 0.55);
+    rim.position.set(-2, 3, -4);
+    scene.add(rim);
+
+    const texLoader = new THREE.TextureLoader();
+    const materialTextureFiles = {
+      'Mesh_ext': 'Mesh_ext-Color.png',
+      'Mesh': 'Mesh-Color.png',
+      'Mesh1.0_ext': 'Mesh1.0_ext-Color.png',
+      'Mesh1_ext': 'Mesh1_ext-Color.png'
+    };
+    const options = {
+      op1: 'assets/op1/',
+      op2: 'assets/op2/',
+      op3: 'assets/op3/'
+    };
+    let shirt = null;
+    let activeOption = 'op1';
+
+    const textureCache = {};
+    const materialCache = {};
+    const optionButtons = [...document.querySelectorAll('button[data-option]')];
+    optionButtons.forEach(b => b.disabled = true);
+
+    function prepareTexture(t){
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.flipY = false;
+      t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      t.generateMipmaps = true;
+      t.minFilter = THREE.LinearMipmapLinearFilter;
+      t.magFilter = THREE.LinearFilter;
+      t.needsUpdate = true;
+      return t;
+    }
+
+    function loadTextureAsync(url){
+      return new Promise((resolve, reject) => {
+        texLoader.load(url, tex => resolve(prepareTexture(tex)), undefined, reject);
+      });
+    }
+
+    async function preloadAllOptions(){
+      const tasks = [];
+      for (const [optionKey, basePath] of Object.entries(options)) {
+        textureCache[optionKey] = {};
+        materialCache[optionKey] = {};
+        for (const [matName, file] of Object.entries(materialTextureFiles)) {
+          const task = loadTextureAsync(basePath + file).then(map => {
+            textureCache[optionKey][matName] = map;
+            materialCache[optionKey][matName] = new THREE.MeshStandardMaterial({
+              name: matName,
+              map,
+              metalness: 0,
+              roughness: 0.92,
+              color: 0xd8d8d8,
+              side: THREE.DoubleSide,
+              shadowSide: THREE.DoubleSide
+            });
+          });
+          tasks.push(task);
+        }
+      }
+      await Promise.all(tasks);
+      // Fuerza una primera subida de texturas a GPU para evitar el parpadeo negro al cambiar.
+      for (const optionKey of Object.keys(textureCache)) {
+        for (const map of Object.values(textureCache[optionKey])) renderer.initTexture(map);
+      }
+    }
+
+    function applyOption(optionKey){
+      activeOption = optionKey;
+      if(!shirt || !materialCache[optionKey]) return;
+      shirt.traverse(obj => {
+        if(!obj.isMesh) return;
+        const matName = obj.material?.name;
+        const mat = materialCache[optionKey][matName];
+        if(!mat) return;
+        obj.material = mat;
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+        obj.frustumCulled = false;
+        if (obj.geometry) obj.geometry.computeVertexNormals();
+      });
+    }
+
+    function applyResponsiveView(){
+      const w = viewer.clientWidth || window.innerWidth;
+      const h = viewer.clientHeight || window.innerHeight;
+      const portraitPhone = w < 820 && h > w;
+
+      if (portraitPhone) {
+        // CELULAR VERTICAL: esta vista ya quedó bien, no la alteramos.
+        controls.target.set(0, 0.08, 0);
+        camera.position.set(0, 0.22, 5.65);
+        if (shirt) shirt.scale.setScalar(shirt.userData.baseScale * 0.86);
+      } else {
+        // HORIZONTAL / TABLET / ESCRITORIO:
+        // No reutilizamos la cámara del celular. Primero dejamos el modelo con
+        // escala estable y luego calculamos la distancia según el tamaño real
+        // del visor. Así evitamos que se corte o parezca deformado al rotar.
+        controls.target.set(0, 0.02, 0);
+        if (shirt) {
+          shirt.scale.setScalar(shirt.userData.baseScale * 0.78);
+          shirt.updateMatrixWorld(true);
+          const box = new THREE.Box3().setFromObject(shirt);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const fov = THREE.MathUtils.degToRad(camera.fov);
+          const margin = 1.42;
+          const distanceByHeight = (size.y * margin) / (2 * Math.tan(fov / 2));
+          const distanceByWidth = (size.x * margin) / (2 * Math.tan(fov / 2) * Math.max(camera.aspect, 0.01));
+          const dist = Math.max(distanceByHeight, distanceByWidth, 4.25);
+          camera.position.set(0, 0.16, dist);
+        } else {
+          camera.position.set(0, 0.16, 5.8);
+        }
+      }
+      camera.lookAt(controls.target);
+      controls.update();
+    }
+
+    function fitModel(root){
+      const box = new THREE.Box3().setFromObject(root);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size); box.getCenter(center);
+      root.position.sub(center);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      root.userData.baseScale = 2.65 / maxDim;
+      root.scale.setScalar(root.userData.baseScale);
+      root.rotation.set(0.08, -0.45, 0);
+      applyResponsiveView();
+    }
+
+    new GLTFLoader().load('assets/remera.glb', async gltf => {
+      try {
+        loaderEl.querySelector('b').textContent = 'Cargando materiales';
+        loaderEl.querySelector('.small').textContent = 'Precargando todas las opciones para cambios instantáneos';
+        await preloadAllOptions();
+        shirt = gltf.scene;
+        scene.add(shirt);
+        shirt.traverse(o => { if(o.isMesh){ o.frustumCulled=false; o.castShadow=true; o.receiveShadow=true; if(o.geometry) o.geometry.computeVertexNormals(); } });
+        fitModel(shirt);
+        applyOption(activeOption);
+        optionButtons.forEach(b => b.disabled = false);
+        loaderEl.classList.add('hide');
+      } catch(err) {
+        console.error(err);
+        loaderEl.querySelector('b').textContent = 'No se pudieron cargar las texturas';
+        loaderEl.querySelector('.small').textContent = 'Revisá que estén completas las carpetas assets/op1, op2 y op3.';
+      }
+    }, undefined, err => {
+      console.error(err);
+      loaderEl.querySelector('b').textContent = 'No se pudo cargar el modelo';
+      loaderEl.querySelector('.small').textContent = 'Revisá que assets/remera.glb esté junto al HTML.';
+    });
+
+    optionButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        controls.autoRotate = false;
+        document.querySelectorAll('button[data-option]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyOption(btn.dataset.option);
+      });
+    });
+
+    const budgetModal = document.getElementById('budgetModal');
+    document.getElementById('openBudget')?.addEventListener('click', () => budgetModal.classList.add('show'));
+    document.getElementById('closeBudget')?.addEventListener('click', () => budgetModal.classList.remove('show'));
+    budgetModal?.addEventListener('click', e => { if(e.target === budgetModal) budgetModal.classList.remove('show'); });
+
+    // Selección opcional de una opción comercial del presupuesto.
+    // Se sincroniza entre panel lateral y ventana móvil.
+    let selectedBudgetIndex = null;
+    const priceItems = [...document.querySelectorAll('.price-item')];
+    priceItems.forEach((item, index) => {
+      const normalizedIndex = index % 4;
+      item.dataset.budgetIndex = normalizedIndex;
+      item.addEventListener('click', () => {
+        selectedBudgetIndex = normalizedIndex;
+        document.querySelectorAll('.price-item').forEach(el => {
+          el.classList.toggle('selected', Number(el.dataset.budgetIndex) === selectedBudgetIndex);
+        });
+      });
+    });
+
+    function getSelectedBudgetText(){
+      if (selectedBudgetIndex === null) return '';
+      const item = [...document.querySelectorAll('.side .price-item')].find(el => Number(el.dataset.budgetIndex) === selectedBudgetIndex)
+        || [...document.querySelectorAll('.price-item')].find(el => Number(el.dataset.budgetIndex) === selectedBudgetIndex);
+      if (!item) return '';
+      const desc = item.querySelector('.price-desc')?.textContent.trim() || '';
+      const value = item.querySelector('.price-value')?.textContent.trim() || '';
+      return `${desc} (${value})`;
+    }
+
+    async function contactar(){
+      const selectedText = getSelectedBudgetText();
+      let text = `Hola.
+
+Me interesa esta propuesta de personalización de indumentaria.
+
+`;
+      if (selectedText) text += `Opción seleccionada:\n${selectedText}\n\n`;
+      text += `Comentarios:\n`;
+
+      if (navigator.share) {
+        try { await navigator.share({ title: 'Personalización de indumentaria', text }); return; }
+        catch(e) { if (e && e.name === 'AbortError') return; }
+      }
+      window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+    }
+    document.querySelectorAll('[data-contact]').forEach(btn => btn.addEventListener('click', contactar));
+
+
+    // ===== MODO ADMIN / TICKET PNG =====
+    const ADMIN_CODE = '1234'; // Cambiar este código si querés otro acceso.
+    const adminModal = document.getElementById('adminModal');
+    const adminLogin = document.getElementById('adminLogin');
+    const adminMain = document.getElementById('adminMain');
+    const adminCode = document.getElementById('adminCode');
+    const ticketFields = {
+      cliente: document.getElementById('ticketCliente'),
+      fecha: document.getElementById('ticketFecha'),
+      cantidad: document.getElementById('ticketCantidad'),
+      color: document.getElementById('ticketColor'),
+      trabajo: document.getElementById('ticketTrabajo'),
+      unitario: document.getElementById('ticketUnitario'),
+      sena: document.getElementById('ticketSena'),
+      obs: document.getElementById('ticketObs'),
+      demoUrl: document.getElementById('ticketDemoUrl'),
+      logo: document.getElementById('ticketLogo')
+    };
+    const ticketTotalEl = document.getElementById('ticketTotal');
+    const ticketPreview = document.getElementById('ticketPreview');
+    const ticketPreviewImg = document.getElementById('ticketPreviewImg');
+    let ticketLogoData = localStorage.getItem('ticketLogoData') || 'assets/logo_presentador.png';
+    let lastTicketBlob = null;
+    let lastTicketFile = null;
+
+    function pesos(n){
+      return '$ ' + Math.round(Number(n || 0)).toLocaleString('es-AR');
+    }
+    function todayISO(){
+      const d = new Date();
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return d.toISOString().slice(0,10);
+    }
+    function fechaAR(iso){
+      if(!iso) return '';
+      const [y,m,d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    function parseTrabajo(){
+      const [nombre, precio] = (ticketFields.trabajo.value || 'Personalizado|0').split('|');
+      return { nombre, precio:Number(precio||0) };
+    }
+    function updateTicketTotal(){
+      const cantidad = Number(ticketFields.cantidad.value || 0);
+      const unitario = Number(ticketFields.unitario.value || 0);
+      const sena = Number(ticketFields.sena.value || 0);
+      const total = Math.max(0, cantidad * unitario - sena);
+      ticketTotalEl.textContent = pesos(total);
+      return total;
+    }
+    function saveTicketData(){
+      const data = {
+        cliente: ticketFields.cliente.value,
+        fecha: ticketFields.fecha.value,
+        cantidad: ticketFields.cantidad.value,
+        color: ticketFields.color.value,
+        trabajo: ticketFields.trabajo.value,
+        unitario: ticketFields.unitario.value,
+        sena: ticketFields.sena.value,
+        obs: ticketFields.obs.value,
+        demoUrl: ticketFields.demoUrl.value
+      };
+      localStorage.setItem('ticketData', JSON.stringify(data));
+      updateTicketTotal();
+    }
+    function loadTicketData(){
+      let data = {};
+      try { data = JSON.parse(localStorage.getItem('ticketData') || '{}'); } catch(e) {}
+      ticketFields.cliente.value = data.cliente || '';
+      ticketFields.fecha.value = data.fecha || todayISO();
+      ticketFields.cantidad.value = data.cantidad || '1';
+      ticketFields.color.value = data.color || '';
+      ticketFields.trabajo.value = data.trabajo || 'Logo frente (pecho)|3000';
+      ticketFields.unitario.value = data.unitario || parseTrabajo().precio || '3000';
+      ticketFields.sena.value = data.sena || '0';
+      ticketFields.obs.value = data.obs || '';
+      ticketFields.demoUrl.value = data.demoUrl || getDefaultDemoUrl();
+      updateTicketTotal();
+    }
+    function openAdmin(){
+      adminModal.classList.add('show');
+      if (sessionStorage.getItem('adminOK') === '1') showAdminMain();
+      else { adminLogin.classList.remove('hide'); adminMain.classList.remove('show'); setTimeout(()=>adminCode.focus(),80); }
+    }
+    function closeAdmin(){ adminModal.classList.remove('show'); }
+    function showAdminMain(){ adminLogin.classList.add('hide'); adminMain.classList.add('show'); loadTicketData(); }
+    document.querySelectorAll('.admin-open').forEach(btn => btn.addEventListener('click', openAdmin));
+    document.getElementById('adminCloseLogin')?.addEventListener('click', closeAdmin);
+    document.getElementById('adminClose')?.addEventListener('click', closeAdmin);
+    document.getElementById('adminEnter')?.addEventListener('click', () => {
+      if ((adminCode.value || '').trim() === ADMIN_CODE) { sessionStorage.setItem('adminOK','1'); showAdminMain(); }
+      else { adminCode.value=''; adminCode.placeholder='Código incorrecto'; adminCode.focus(); }
+    });
+    adminCode?.addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('adminEnter').click(); });
+    adminModal?.addEventListener('click', e => { if(e.target === adminModal) closeAdmin(); });
+    Object.values(ticketFields).forEach(el => el?.addEventListener('input', () => { updateTicketTotal(); saveTicketData(); }));
+    ticketFields.trabajo?.addEventListener('change', () => { const t = parseTrabajo(); if(t.precio>0) ticketFields.unitario.value = t.precio; updateTicketTotal(); saveTicketData(); });
+    ticketFields.logo?.addEventListener('change', () => {
+      const f = ticketFields.logo.files?.[0]; if(!f) return;
+      const r = new FileReader();
+      r.onload = () => { ticketLogoData = r.result; localStorage.setItem('ticketLogoData', ticketLogoData); };
+      r.readAsDataURL(f);
+    });
+    document.getElementById('ticketSave')?.addEventListener('click', saveTicketData);
+
+    function loadImage(src){
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    }
+    function getDefaultDemoUrl(){
+      try {
+        const u = new URL(window.location.href);
+        u.hash = '';
+        return u.href;
+      } catch(e) {
+        return window.location.href || '';
+      }
+    }
+    async function renderQRCodeCanvas(text, size=180){
+      const qrText = text || getDefaultDemoUrl();
+      const qrCanvas = document.createElement('canvas');
+      // 1) QR real con librería del navegador.
+      if(window.QRCode?.toCanvas){
+        try {
+          await window.QRCode.toCanvas(qrCanvas, qrText, {
+            width: size,
+            margin: 1,
+            errorCorrectionLevel: 'M',
+            color: { dark: '#111111', light: '#ffffff' }
+          });
+          return qrCanvas;
+        } catch(e) {}
+      }
+      // 2) Refuerzo: si la librería no cargó, intenta traer un QR como imagen.
+      //    Esto evita que quede solamente el texto "QR" cuando el navegador bloquea el script.
+      try {
+        const img = await loadImage('https://api.qrserver.com/v1/create-qr-code/?size=' + size + 'x' + size + '&margin=1&data=' + encodeURIComponent(qrText));
+        if(img){
+          qrCanvas.width = size; qrCanvas.height = size;
+          qrCanvas.getContext('2d').drawImage(img, 0, 0, size, size);
+          return qrCanvas;
+        }
+      } catch(e) {}
+      return null;
+    }
+    function roundRect(ctx,x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+    }
+    function drawWrapped(ctx, text, x, y, maxWidth, lineHeight){
+      const words = String(text || '').split(/\s+/); let line='';
+      for(const word of words){
+        const test = line ? line + ' ' + word : word;
+        if(ctx.measureText(test).width > maxWidth && line){ ctx.fillText(line,x,y); line=word; y+=lineHeight; }
+        else line=test;
+      }
+      if(line) ctx.fillText(line,x,y);
+      return y + lineHeight;
+    }
+    async function generateTicketBlob(){
+      saveTicketData();
+      const W=1080, H=1350;
+      const c=document.createElement('canvas'); c.width=W; c.height=H;
+      const ctx=c.getContext('2d');
+      ctx.fillStyle='#f4f4f0'; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#101010'; ctx.fillRect(0,0,W,245);
+      const logo = await loadImage(ticketLogoData);
+      if(logo){
+        const size=118, lx=70, ly=62;
+        ctx.save(); roundRect(ctx,lx,ly,size,size,28); ctx.clip();
+        ctx.fillStyle='#fff'; ctx.fillRect(lx,ly,size,size);
+        const ratio=Math.min(size/logo.width,size/logo.height)*0.82;
+        const iw=logo.width*ratio, ih=logo.height*ratio;
+        ctx.drawImage(logo,lx+(size-iw)/2,ly+(size-ih)/2,iw,ih);
+        ctx.restore();
+      }
+      ctx.fillStyle='#fff'; ctx.font='800 44px Arial, sans-serif'; ctx.fillText('TICKET DE ESTAMPADO',220,100);
+      ctx.font='400 25px Arial, sans-serif'; ctx.fillStyle='rgba(255,255,255,.72)'; ctx.fillText('Personalización de indumentaria',222,140);
+      ctx.font='700 24px Arial, sans-serif'; ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fillText(fechaAR(ticketFields.fecha.value),222,178);
+      const cantidad=Number(ticketFields.cantidad.value||0), unitario=Number(ticketFields.unitario.value||0), sena=Number(ticketFields.sena.value||0), subtotal=cantidad*unitario, total=Math.max(0,subtotal-sena);
+      const trabajo=parseTrabajo().nombre;
+      const rows=[['Cliente', ticketFields.cliente.value || '—'], ['Cantidad', `${cantidad} prenda${cantidad===1?'':'s'}`], ['Color', ticketFields.color.value || '—'], ['Trabajo', trabajo], ['Precio unitario', pesos(unitario)], ['Subtotal', pesos(subtotal)], ['Seña / pago parcial', pesos(sena)]];
+      let y=310;
+      ctx.fillStyle='#111'; ctx.font='800 30px Arial, sans-serif'; ctx.fillText('Detalle del trabajo',70,y); y+=46;
+      // Filas más compactas para que el total no pise la seña/pago parcial.
+      for(const [k,v] of rows){
+        const rowTop = y;
+        ctx.fillStyle='#747474'; ctx.font='700 22px Arial, sans-serif'; ctx.fillText(k.toUpperCase(),70,rowTop);
+        ctx.fillStyle='#111'; ctx.font='700 29px Arial, sans-serif';
+        const valueBottom = drawWrapped(ctx, v, 390, rowTop, 590, 34);
+        y = Math.max(rowTop + 48, valueBottom + 10);
+        ctx.strokeStyle='rgba(0,0,0,.10)'; ctx.beginPath(); ctx.moveTo(70,y); ctx.lineTo(1010,y); ctx.stroke(); y+=24;
+      }
+      if(ticketFields.obs.value.trim()){
+        ctx.fillStyle='#747474'; ctx.font='700 22px Arial, sans-serif'; ctx.fillText('OBSERVACIONES',70,y);
+        ctx.fillStyle='#222'; ctx.font='400 26px Arial, sans-serif'; y = drawWrapped(ctx, ticketFields.obs.value, 70, y+36, 930, 34) + 14;
+      }
+      const totalBoxY = Math.max(y + 34, 1048);
+      ctx.fillStyle='#111'; roundRect(ctx,70,totalBoxY,940,145,32); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.70)'; ctx.font='800 28px Arial, sans-serif'; ctx.fillText('TOTAL A COBRAR',105,totalBoxY+60);
+      ctx.fillStyle='#fff'; ctx.font='900 62px Arial, sans-serif'; ctx.textAlign='right'; ctx.fillText(pesos(total),975,totalBoxY+92); ctx.textAlign='left';
+
+      // Bloque de acceso a la demo: texto + QR para WhatsApp o impresión.
+      const demoUrl = (ticketFields.demoUrl.value || getDefaultDemoUrl()).trim();
+      const qrSize = 118, qrX = 892, qrY = 1206;
+      ctx.fillStyle='#111'; ctx.font='800 22px Arial, sans-serif'; ctx.fillText('VER DEMO INTERACTIVA',70,1230);
+      ctx.fillStyle='#555'; ctx.font='400 21px Arial, sans-serif';
+      drawWrapped(ctx, demoUrl, 70, 1262, 790, 27);
+      ctx.fillStyle='#fff'; roundRect(ctx,qrX-10,qrY-10,qrSize+20,qrSize+20,18); ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,.14)'; ctx.lineWidth=2; roundRect(ctx,qrX-10,qrY-10,qrSize+20,qrSize+20,18); ctx.stroke();
+      const qr = await renderQRCodeCanvas(demoUrl, 220);
+      if(qr) ctx.drawImage(qr, qrX, qrY, qrSize, qrSize);
+      else {
+        ctx.fillStyle='#111'; ctx.font='900 28px Arial, sans-serif'; ctx.textAlign='center'; ctx.fillText('QR', qrX+qrSize/2, qrY+54);
+        ctx.font='400 15px Arial, sans-serif'; ctx.fillText('abrir link', qrX+qrSize/2, qrY+82); ctx.textAlign='left';
+      }
+      ctx.fillStyle='#777'; ctx.font='400 20px Arial, sans-serif'; ctx.fillText('Comprobante interno generado desde la propuesta interactiva.',70,1320);
+      return await new Promise(resolve => c.toBlob(resolve,'image/png',0.95));
+    }
+    async function generateTicketDownload(){
+      const blob = await generateTicketBlob();
+      lastTicketBlob = blob; lastTicketFile = new File([blob], 'ticket-estampado.png', {type:'image/png'});
+      const url = URL.createObjectURL(blob);
+      ticketPreviewImg.src = url; ticketPreview.style.display='block';
+      const a=document.createElement('a'); a.href=url; a.download='ticket-estampado.png'; document.body.appendChild(a); a.click(); a.remove();
+    }
+    function buildTicketShareText(){
+      const demoUrl = (ticketFields.demoUrl.value || getDefaultDemoUrl()).trim();
+      const cantidad = Number(ticketFields.cantidad.value || 0);
+      const unitario = Number(ticketFields.unitario.value || 0);
+      const sena = Number(ticketFields.sena.value || 0);
+      const total = Math.max(0, cantidad * unitario - sena);
+      const cliente = (ticketFields.cliente.value || '').trim();
+      const trabajo = parseTrabajo().nombre;
+      let text = 'Ticket de estampado';
+      if(cliente) text += ` - ${cliente}`;
+      text += `\n\nDetalle: ${trabajo}`;
+      text += `\nCantidad: ${cantidad} prenda${cantidad===1?'':'s'}`;
+      if((ticketFields.color.value || '').trim()) text += `\nColor: ${ticketFields.color.value.trim()}`;
+      text += `\nTotal a cobrar: ${pesos(total)}`;
+      text += `\n\nDemo interactiva:\n${demoUrl}`;
+      text += '\n\nAdjunto imagen del ticket.';
+      return text;
+    }
+    async function shareTicket(){
+      if(!lastTicketBlob) { lastTicketBlob = await generateTicketBlob(); lastTicketFile = new File([lastTicketBlob], 'ticket-estampado.png', {type:'image/png'}); }
+      const shareText = buildTicketShareText();
+      if(navigator.canShare?.({files:[lastTicketFile]}) && navigator.share){
+        try { await navigator.share({title:'Ticket de estampado', text:shareText, files:[lastTicketFile]}); return; } catch(e) { if(e?.name==='AbortError') return; }
+      }
+      if(navigator.share){
+        try { await navigator.share({title:'Ticket de estampado', text:shareText}); return; } catch(e) { if(e?.name==='AbortError') return; }
+      }
+      window.open('https://wa.me/?text=' + encodeURIComponent(shareText), '_blank');
+    }
+    document.getElementById('ticketGenerate')?.addEventListener('click', generateTicketDownload);
+    document.getElementById('ticketShare')?.addEventListener('click', shareTicket);
+    loadTicketData();
+
+    function resize(){
+      const w = viewer.clientWidth || window.innerWidth;
+      const h = viewer.clientHeight || window.innerHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      applyResponsiveView();
+    }
+    window.addEventListener('resize', resize, {passive:true});
+
+    // En iPad/celular, al cambiar orientación algunos navegadores recalculan mal
+    // el tamaño del canvas/WebGL. Para evitar deformaciones, reiniciamos la página
+    // como si el usuario tocara recargar: vuelve a entrar con la orientación correcta.
+    let reloadingForOrientation = false;
+    function reloadOnOrientationChange(){
+      if (reloadingForOrientation) return;
+      reloadingForOrientation = true;
+      loaderEl.classList.remove('hide');
+      const boxTitle = loaderEl.querySelector('b');
+      const boxText = loaderEl.querySelector('.small');
+      if (boxTitle) boxTitle.textContent = 'Reubicando vista';
+      if (boxText) boxText.textContent = 'Cargando nuevamente para adaptar la orientación';
+      setTimeout(() => window.location.reload(), 180);
+    }
+    window.addEventListener('orientationchange', reloadOnOrientationChange, {passive:true});
+    screen.orientation?.addEventListener?.('change', reloadOnOrientationChange);
+    resize();
+
+    function animate(){
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
