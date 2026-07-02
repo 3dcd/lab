@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Podcast por Bloques V33</title>
+<title>Podcast por Bloques V34</title>
 <style>
   :root{
     --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
@@ -16,7 +16,7 @@
   h1{font-size:25px;margin:0;letter-spacing:-.02em}.hint{color:var(--mut);font-size:14px;margin-top:4px}
   .panel{background:var(--card);border:1px solid #e3edf8;border-radius:26px;padding:18px;box-shadow:0 18px 55px rgba(45,79,120,.13)}
   .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;overflow:visible}
-  button{border:0;border-radius:16px;padding:11px 12px;font-weight:800;color:#162033;background:#edf4ff;cursor:pointer;box-shadow:0 7px 18px rgba(65,95,130,.14);white-space:nowrap}
+  button{border:0;border-radius:16px;padding:11px 12px;font-weight:800;color:#162033;background:#edf4ff;cursor:pointer;box-shadow:0 7px 18px rgba(65,95,130,.14);white-space:nowrap;touch-action:manipulation}
   button:hover{filter:brightness(1.02);transform:translateY(-1px)} button:disabled{opacity:.45;cursor:not-allowed;transform:none}
   .app.isRecording .controls button:not(#stopBtn), .app.isRecording .controls label{opacity:.38;filter:grayscale(.18);pointer-events:none}
   .app.isRecording #stopBtn{opacity:1;pointer-events:auto;filter:none}
@@ -36,7 +36,7 @@
   .timeline.recordingMode .block:not(.recordingLive) .name{padding-right:20px}
   .timeline.recordingMode .silenceBlock{min-width:18px;padding-left:5px;padding-right:5px}
   .timeline.recordingMode .recordingLive{min-width:72px;flex-shrink:0}
-  .block{position:relative;height:170px;border-radius:24px;padding:30px 12px 18px;display:flex;flex-direction:column;justify-content:center;gap:12px;cursor:grab;user-select:none;border:1px solid rgba(0,0,0,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);overflow:hidden;min-width:42px;max-width:100%;transition:flex-basis .08s linear,width .12s ease, transform .12s ease;transform-origin:left center}
+  .block{position:relative;height:170px;border-radius:24px;padding:30px 12px 18px;display:flex;flex-direction:column;justify-content:center;gap:12px;cursor:grab;user-select:none;touch-action:manipulation;border:1px solid rgba(0,0,0,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);overflow:hidden;min-width:42px;max-width:100%;transition:flex-basis .08s linear,width .12s ease, transform .12s ease;transform-origin:left center}
   .block.external{height:128px;margin-top:22px;border-style:dashed;background:#dde8f5!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 8px 20px rgba(45,79,120,.10);gap:9px;padding-top:30px}.block.external .name{font-size:12px;padding-right:24px}.block.external .name:before{content:"Ext. · ";font-weight:900;color:#53667d}.block:active{cursor:grabbing;transform:scale(.99)}.block:hover{box-shadow:inset 0 0 0 3px rgba(79,140,255,.18),inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14)}.block.selected{outline:none;box-shadow:inset 0 0 0 4px rgba(79,140,255,.55),inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);transform:translateY(-2px)}
   .silenceBlock{position:relative;align-self:center;height:74px;border-radius:16px;padding:8px 9px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;cursor:pointer;user-select:none;border:2px dashed #b8c8da;background:#eef4fb;color:#53667d;box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 7px 18px rgba(45,79,120,.08);overflow:hidden;min-width:30px;transition:width .2s ease,transform .12s ease}
   .silenceBlock:hover{outline:3px solid rgba(79,140,255,.18);transform:translateY(-1px)}
@@ -344,7 +344,7 @@ recBtn.onclick=async()=>{try{
     marcarSinGuardar('Cambios sin guardar: audio agregado. Tocá Guardar proyecto ZIP.');
     render();
   };
-  mediaRecorder.start();
+  mediaRecorder.start(250);
   startLiveRecordingBlock();
   startMeter();
   updateBtns();
@@ -356,16 +356,38 @@ recBtn.onclick=async()=>{try{
   updateBtns();
   status.textContent='No se pudo acceder al micrófono. Revisá permisos y usá HTTPS o localhost.';
 }};
-stopBtn.onclick=()=>{
-  if(mediaRecorder&&mediaRecorder.state==='recording'){
-    mediaRecorder.stop();
+function detenerGrabacionRobusta(ev){
+  if(ev){
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+  if(mediaRecorder && mediaRecorder.state==='recording'){
+    try{ mediaRecorder.requestData && mediaRecorder.requestData(); }catch(e){}
+    try{ mediaRecorder.stop(); }catch(e){
+      recordingBusy=false;
+      stopLiveRecordingBlock();
+      stopMeter();
+      releaseMic();
+      updateBtns();
+      status.textContent='Grabación detenida.';
+    }
   }else{
     recordingBusy=false;
     stopLiveRecordingBlock();
+    stopMeter();
     releaseMic();
     updateBtns();
   }
-};
+}
+// V34 iPad: además del click normal, escucho pointer/touch directo.
+// En algunos iPad el segundo toque sobre Detener puede quedar tomado raro por el click diferido.
+stopBtn.onclick=detenerGrabacionRobusta;
+stopBtn.addEventListener('pointerdown', (ev)=>{
+  if(estaGrabando()) detenerGrabacionRobusta(ev);
+}, {passive:false});
+stopBtn.addEventListener('touchstart', (ev)=>{
+  if(estaGrabando()) detenerGrabacionRobusta(ev);
+}, {passive:false});
 
 async function trimBlobEnd(blob, seconds=0.32){
   // Recorta una pequeña cola para que no quede capturado el clic de “Detener”.
@@ -395,7 +417,16 @@ async function playSingle(i){
   }
 
   const runId=++playRunId;
-  startIndex=i; render();
+  const wrapEl=$('wrap');
+  const keepScroll=wrapEl ? wrapEl.scrollLeft : 0;
+  startIndex=i;
+  render();
+  // V34: en celular, doble toque para escuchar no debe recentrar ni esconder el bloque.
+  if(wrapEl){
+    wrapEl.scrollLeft=keepScroll;
+    requestAnimationFrame(()=>{wrapEl.scrollLeft=keepScroll;});
+    setTimeout(()=>{wrapEl.scrollLeft=keepScroll;},80);
+  }
 
   try{
     playing=true; updateBtns(); head.style.display='block'; status.textContent='Escuchando solo el bloque '+(i+1)+'...';
