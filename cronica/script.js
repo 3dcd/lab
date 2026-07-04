@@ -1,157 +1,4 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Crónica V28 · bloques visuales</title>
-<meta name="theme-color" content="#eef4ff" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Crónica" />
-<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<link rel="manifest" href="manifest.json" />
-<link rel="apple-touch-icon" href="icons/icon-192.png" />
-<style>
-  :root{
-    --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
-    --line:#d7e2f0;--accent:#4f8cff;--danger:#ff6b7a;--ok:#3ccf91;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--txt)}
-  .app{max-width:1440px;margin:0 auto;padding:18px}
-  header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
-  h1{font-size:26px;margin:0;letter-spacing:-.02em}.hint{color:var(--mut);font-size:14px;margin-top:4px}.mini{font-size:12px;color:var(--mut);font-weight:800}
-  .panel{background:var(--card);border:1px solid #e3edf8;border-radius:26px;padding:18px;box-shadow:0 18px 55px rgba(45,79,120,.13)}
-  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;overflow:visible}
-  #recBtn,#stopBtn,#playBtn,#pauseBtn{display:none!important}
-  button{border:0;border-radius:16px;padding:11px 12px;font-weight:800;color:#162033;background:#edf4ff;cursor:pointer;box-shadow:0 7px 18px rgba(65,95,130,.14);white-space:nowrap}
-  button:hover{filter:brightness(1.02);transform:translateY(-1px)} button:disabled{opacity:.45;cursor:not-allowed;transform:none}
-  .rec{background:#ff5c72;color:white}.stop{background:#ffd166;color:#3b2600}.play{background:#8ef1bf}.pause{background:#ffe7a3}.export{background:#9ad7ff}.save{background:#cfc2ff}.open{background:#ffc4e8}
-  .save.unsaved{background:#ffb13d;color:#402600;animation:softSavePulse .85s ease-in-out infinite}.save.unsaved:hover{filter:none;transform:none}
-  @keyframes softSavePulse{0%,100%{background-color:#ffd18a}50%{background-color:#ff9f1f}}
-  input[type=range]{width:110px;accent-color:var(--accent)} label{font-weight:700;color:#344255;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:6px}
-  .drop{border:2px dashed #b9cbe0;border-radius:22px;padding:14px;text-align:center;color:var(--mut);margin-bottom:14px;background:#f8fbff;font-weight:700}.drop.drag{border-color:var(--accent);background:#eaf3ff;color:#0f4fb5}
-  .timelineWrap{position:relative;padding:18px 14px 36px;background:#f9fcff;border-radius:24px;min-height:330px;border:1px solid #e3edf8;overflow:hidden}
-  .timeline{display:flex;gap:12px;align-items:stretch;min-height:250px;position:relative;width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;padding:4px 2px 18px;-webkit-overflow-scrolling:touch}
-  .block{position:relative;min-height:238px;border-radius:24px;padding:38px 14px 14px;display:flex;flex-direction:column;gap:10px;cursor:default;user-select:none;border:1px solid rgba(0,0,0,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);overflow:hidden;min-width:320px;flex:0 0 calc((100% - 24px)/3);scroll-snap-align:start;transition:transform .12s ease}
-  .block.external{border-style:dashed;background:#dde8f5!important}.block:active{transform:none}.block:hover{outline:3px solid rgba(79,140,255,.18)}.block.selected{outline:4px solid rgba(79,140,255,.45);transform:translateY(-2px)}
-  .topline{display:flex;align-items:center;gap:8px;justify-content:space-between}.name{font-weight:950;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(10,20,35,.9);padding-right:28px}.dur{font-size:12px;font-weight:850;opacity:.78;color:rgba(10,20,35,.78)}
-  .created{font-size:12px;color:rgba(10,20,35,.62);font-weight:800}.noteEditor{display:flex;flex-direction:column;gap:8px}.noteText{width:100%;min-height:128px;resize:vertical;border:1px solid rgba(0,0,0,.09);border-radius:18px;padding:12px;background:rgba(255,255,255,.86);font:700 14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#172033;outline:none;user-select:text}.noteText:focus{border-color:#4f8cff;box-shadow:0 0 0 4px rgba(79,140,255,.16);background:#fff}
-  .notePreview{display:block;background:rgba(255,255,255,.64);border:1px solid rgba(0,0,0,.06);border-radius:18px;padding:13px 13px;color:#172033;user-select:text;white-space:pre-wrap;min-height:128px;max-height:min(52vh,520px);overflow-y:auto;scroll-behavior:smooth}.notePreview.emptyText{display:flex;align-items:center;justify-content:center;color:rgba(23,32,51,.46);font-size:13px;font-weight:850;text-align:center}.notePreviewTitle{font-size:22px;font-weight:950;line-height:1.16;margin-bottom:8px;letter-spacing:-.01em}.notePreviewSubTitle{font-size:15.5px;font-weight:950;line-height:1.18;margin:10px 0 6px;color:#263348}.notePreviewBody{font-size:13px;font-weight:650;line-height:1.38;color:#344255}.notePreviewBox{font-size:13px;font-weight:720;line-height:1.34;color:#263348;background:rgba(255,255,255,.72);border:1.5px solid rgba(38,51,72,.20);border-radius:14px;padding:10px 11px;margin:10px 0;box-shadow:0 5px 18px rgba(65,95,130,.08)}.notePreviewColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0;align-items:start}.notePreviewCol{background:rgba(255,255,255,.48);border:1px solid rgba(38,51,72,.12);border-radius:13px;padding:9px 10px;font-size:12.9px;font-weight:650;line-height:1.38;color:#344255;min-height:34px;box-shadow:inset 0 1px 0 rgba(255,255,255,.72)}.notePreviewCol.left,.notePreviewCol.right{border-left:1px solid rgba(38,51,72,.12)}.notePreviewDivider{border:0;border-top:2px dotted rgba(38,51,72,.28);height:0;margin:13px 4px}.notePreviewSpacer{height:10px}.notePreviewCol .notePreviewImageSlot{margin:0;min-height:92px}.notePreviewImageSlot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:110px;border:1.5px dashed rgba(38,51,72,.28);border-radius:15px;background:rgba(255,255,255,.56);font-size:12px;font-weight:900;color:rgba(38,51,72,.58);margin:10px 0;cursor:pointer;overflow:hidden}.notePreviewImageSlot img{display:block;width:100%;height:auto;border-radius:12px;object-fit:contain}.notePreviewImageSlot:hover{background:rgba(255,255,255,.82)}.dictateHelp{font-size:11px;font-weight:850;color:rgba(23,32,51,.58);line-height:1.2;margin-top:-4px;padding:0 3px}
-  .dictateTools{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;align-items:center;background:rgba(255,255,255,.66);border:1px solid rgba(0,0,0,.06);border-radius:18px;padding:7px;margin-top:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.65);touch-action:none;margin-bottom:8px}.dictModeBtn{height:36px;min-width:0;border-radius:13px;padding:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:950;box-shadow:0 4px 12px rgba(65,95,130,.10);user-select:none;-webkit-user-select:none;touch-action:none;margin:0}.dictModeBtn.titleMode{background:#172033;color:white;font-size:15px}.dictModeBtn.subMode{background:#465a78;color:white;font-size:11px}.dictModeBtn.bodyMode{background:#e9f4ff;color:#172033}.dictModeBtn.boxMode{background:#fff5d7;color:#65420b;font-size:17px}.dictModeBtn.bulletMode{background:#ecfff0;color:#19592a;font-size:18px}.dictModeBtn.numberMode{background:#eef0ff;color:#22307e;font-size:14px}.dictModeBtn.leftMode{background:#edf7ff;color:#15476f;font-size:15px}.dictModeBtn.rightMode{background:#edf7ff;color:#15476f;font-size:15px}.dictModeBtn.imageMode{background:#f4f0ff;color:#45327a;font-size:16px}.dictModeBtn.blackMode{background:#172033;color:#fff;font-size:13px}.dictModeBtn.captionMode{background:#fff8e8;color:#715018;font-size:11px}.dictModeBtn.labelMode{background:#29364d;color:#fff;font-size:14px}.dictModeBtn.enterMode{background:#e8fff9;color:#0b6656;font-size:17px}.dictModeBtn.dividerMode{background:#f4f7fb;color:#526174;font-size:18px}.dictModeBtn.undoMode{background:#ffd3dc;color:#741323;font-size:17px}.dictModeBtn.active{outline:none;transform:none;filter:none}.dictModeBtn.flash{outline:4px solid rgba(79,140,255,.22);transform:translateY(1px);filter:brightness(1.04)}.dictTouchHint{display:none}
-  .notePreviewBullet{font-size:13px;font-weight:670;line-height:1.36;color:#344255;margin:4px 0 4px 12px;position:relative;padding-left:12px}.notePreviewBullet:before{content:'•';position:absolute;left:0;font-weight:950}.notePreviewNumber{font-size:13px;font-weight:670;line-height:1.36;color:#344255;margin:4px 0 4px 6px}.notePreviewIndent{font-size:13px;font-weight:650;line-height:1.36;color:#344255;margin:4px 0 4px 22px;border-left:2px solid rgba(52,66,85,.18);padding-left:10px}.notePreviewQuote{font-size:13px;font-weight:760;line-height:1.36;color:#263348;margin:8px 0;padding:8px 10px;border-left:4px solid rgba(38,51,72,.25);background:rgba(255,255,255,.52);border-radius:10px}
-  .notePreviewBlack{font-size:13px;font-weight:850;line-height:1.34;color:#fff;background:#172033;border-radius:15px;padding:11px 12px;margin:10px 0;box-shadow:0 10px 24px rgba(23,32,51,.18)}
-  .notePreviewCaption{font-size:11.5px;font-weight:800;line-height:1.3;color:#64748b;text-align:center;margin:-4px 0 10px;font-style:italic}
-  .notePreviewImageWrap{position:relative;margin:10px 0}.notePreviewImageWrap .notePreviewImageSlot{margin:0}.notePreviewImageLabel{position:absolute;left:10px;top:10px;max-width:72%;background:rgba(23,32,51,.86);color:#fff;border-radius:12px;padding:6px 8px;font-size:11.5px;font-weight:900;line-height:1.18;box-shadow:0 8px 20px rgba(0,0,0,.18);pointer-events:none}.notePreviewImageWrap .notePreviewCaption{margin:6px 4px 0}
-  .notePreview [data-edit-line]{cursor:text}.notePreview [data-edit-line]:hover{outline:2px solid rgba(79,140,255,.22);outline-offset:2px;border-radius:8px}
 
-  .cardBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}.cardBtns button{padding:9px 10px;border-radius:14px;font-size:13px;box-shadow:0 5px 14px rgba(65,95,130,.11)}
-  .dictateBtn{background:#fff0b8}.dictateBtn.on{background:#ff7b95;color:#fff;animation:softDictatePulse .85s ease-in-out infinite}.editTextBtn{background:#d9efff}.pngBtn{background:#f4f0ff;color:#45327a}.shareBtn{background:#e8fff9;color:#0b6656}.downloadPngBtn{background:#f4f0ff;color:#45327a}.recordAudioBtn{background:#ffcfda;color:#5a1220}.recordAudioBtn.recording{background:#ff5c72;color:white;animation:softDictatePulse .85s ease-in-out infinite}.cardBtns button[disabled]{opacity:.42;cursor:not-allowed;transform:none}
-  @keyframes softDictatePulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.08)}}
-
-  .inlineRec{border:1px solid rgba(255,92,114,.24);background:rgba(255,255,255,.58);border-radius:16px;padding:7px 8px;display:flex;align-items:center;gap:7px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.42);max-width:100%;overflow:hidden}
-  .inlineRecText{font-size:11px;font-weight:950;color:#61101c;min-width:58px}.inlineRecDur{font-size:14px;font-weight:950;color:#3b1118;letter-spacing:-.03em;min-width:38px}
-  .inlineRecWave{height:28px;min-width:0;flex:1;border-radius:12px;background:rgba(255,255,255,.42);display:flex;gap:3px;align-items:center;justify-content:center;padding:5px;overflow:hidden}
-  .inlineRecWave i{width:4px;min-height:4px;border-radius:8px;background:#ff315d;display:block;transition:height .05s linear}
-  .inlineRecCancel{width:24px;height:24px;min-width:24px;border-radius:999px;padding:0;background:rgba(255,255,255,.86);color:#61101c;font-size:15px;box-shadow:none;display:flex;align-items:center;justify-content:center}
-  .del{position:absolute;right:9px;top:8px;width:28px;height:28px;border-radius:50%;padding:0;background:rgba(255,255,255,.78);color:#243142;box-shadow:none;line-height:24px;font-size:16px}
-  .playhead{position:absolute;top:10px;bottom:18px;width:4px;background:rgba(20,35,55,.72);border-radius:8px;left:12px;display:none;pointer-events:none;z-index:20;box-shadow:0 0 13px rgba(20,35,55,.28)}
-  .empty{color:var(--mut);padding:26px;text-align:center;width:100%;border-radius:18px;background:white;border:1px dashed #d5e3f2;font-weight:800;display:flex;align-items:center;justify-content:center;min-height:220px}.status{margin-top:12px;color:var(--mut);font-size:14px;font-weight:650}.status.unsaved{color:#d87a00}.status.saved{color:#2a9d66}
-  .projectInput{display:none}.meter{position:absolute;right:18px;bottom:12px;display:none!important;align-items:center;gap:10px;padding:9px 14px;border-radius:17px;background:#fff3f5;border:1px solid #ffd4dc;color:#d83b53;font-weight:900;min-height:48px;z-index:30;box-shadow:0 8px 22px rgba(216,59,83,.12)}.meter.on{display:inline-flex}.bars{display:flex;gap:4px;align-items:center;height:44px}.bar{width:6px;height:8px;border-radius:6px;background:#ff5c72;transition:height .05s linear}
-
-  .timeline.recordingMode{overflow:hidden}
-  .newNoteCard{position:relative;min-height:238px;border-radius:24px;padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;user-select:none;border:2px dashed #b9cbe0;background:linear-gradient(135deg,#ffffff,#f1f7ff);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 12px 28px rgba(45,79,120,.10);min-width:220px;flex:0 0 320px;scroll-snap-align:start;text-align:center;color:#344255;transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease}
-  .newNoteCard:hover{border-color:var(--accent);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 14px 32px rgba(45,79,120,.16);transform:translateY(-2px)}
-  .newNoteIcon{width:62px;height:62px;border-radius:20px;background:#ff5c72;color:white;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 10px 24px rgba(255,92,114,.28)}
-  .newNoteTitle{font-size:18px;font-weight:950;letter-spacing:-.02em}.newNoteSub{font-size:13px;font-weight:800;color:var(--mut);max-width:190px;line-height:1.25}
-  .liveNote{position:relative;min-height:238px;border-radius:24px;padding:30px 16px 16px;display:flex;flex-direction:column;gap:12px;cursor:pointer;user-select:none;border:1px solid rgba(255,92,114,.24);background:linear-gradient(135deg,#ff7890,#ffd1d9)!important;box-shadow:inset 0 0 0 3px rgba(255,255,255,.28),0 14px 34px rgba(255,92,114,.20);overflow:hidden;min-width:210px;flex:0 0 320px;scroll-snap-align:start;animation:liveCardIn .24s ease-out both}
-  .liveNote:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 16px,rgba(255,255,255,.28) 16px 32px,rgba(255,255,255,.08) 32px 54px);z-index:1;pointer-events:none}
-  .liveNote:after{display:none}
-  .liveCancel{position:absolute;right:9px;top:8px;width:34px;height:34px;border-radius:999px;border:0;background:rgba(255,255,255,.86);color:#61101c;font-size:20px;font-weight:950;z-index:8;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(80,20,30,.16);padding:0}
-  .liveCancel:hover{filter:brightness(1.03);transform:scale(1.02)}
-  .liveNote > *{position:relative;z-index:2}.liveNote .liveCancel{position:absolute;right:9px;top:8px;z-index:8}.liveTitle{font-size:17px;font-weight:950;color:#3b1118;text-shadow:0 1px 0 rgba(255,255,255,.35)}.liveDur{font-size:34px;font-weight:950;color:#3b1118;letter-spacing:-.04em}.liveHint{font-size:13px;font-weight:850;color:rgba(59,17,24,.72)}
-  .liveWave{height:76px;border-radius:20px;background:rgba(255,255,255,.34);display:flex;gap:5px;align-items:center;justify-content:center;padding:10px;margin-top:auto;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
-  .liveWave i{width:7px;min-height:8px;border-radius:9px;background:#ff315d;display:block;box-shadow:0 1px 0 rgba(255,255,255,.32);transition:height .05s linear}
-  @keyframes liveCardIn{from{opacity:.35;transform:scale(.72) translateY(22px)}to{opacity:1;transform:scale(1) translateY(0)}}
-  @keyframes recPulseDot{0%,100%{transform:scale(.9);box-shadow:0 0 0 0 rgba(255,23,68,.44)}50%{transform:scale(1.15);box-shadow:0 0 0 12px rgba(255,23,68,0)}}
-
-  .intervalCard{align-self:center;min-height:118px;border-radius:20px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer;user-select:none;border:2px dashed #b8c8da;background:#eef4fb;color:#53667d;box-shadow:inset 0 1px 0 rgba(255,255,255,.78),0 8px 20px rgba(45,79,120,.08);min-width:132px;flex:0 0 132px;scroll-snap-align:center;text-align:center;transition:transform .12s ease,outline .12s ease}
-  .intervalCard:hover{outline:3px solid rgba(79,140,255,.18);transform:translateY(-1px)}
-  .intervalIcon{width:36px;height:36px;border-radius:13px;background:#fff;color:#53667d;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 5px 12px rgba(45,79,120,.08)}
-  .intervalTitle{font-size:11.5px;font-weight:950;line-height:1.15}.intervalTime{font-size:15px;font-weight:950;color:#172033}.intervalLabel{font-size:11px;font-weight:800;color:#65758b;line-height:1.15;max-width:112px;max-height:34px;overflow:hidden}
-  .app.isRecording .controls button:not(#stopBtn), .app.isRecording .controls label{opacity:.38;pointer-events:none;filter:grayscale(.15)}
-  .app.isRecording #stopBtn{opacity:1;pointer-events:auto;filter:none}
-  @media(max-width:1100px){.block{flex-basis:calc((100% - 24px)/3)}}
-  @media(max-width:760px){.app{padding:10px}.panel{padding:12px}.timelineWrap{min-height:315px}.timeline{min-height:240px}.block{flex-basis:76vw;min-width:245px;min-height:230px}.newNoteCard,.liveNote{flex-basis:76vw;min-width:245px;min-height:230px}.noteText{min-height:98px}button{padding:11px 12px}input[type=range]{width:135px}}
-
-  /* Limpieza de interfaz para ganar espacio */
-  label[for], .status{display:none!important}
-  .controls label, #wavBtn{display:none!important}
-  .drop{display:none!important}
-  html,body{min-height:100%}
-  .app{min-height:100vh;display:flex;flex-direction:column}
-  .panel{flex:1;display:flex;flex-direction:column}
-  .timelineWrap{flex:1;min-height:calc(100vh - 150px);padding-bottom:18px}
-  .timeline{min-height:calc(100vh - 195px)}
-  .block{min-height:calc(100vh - 220px)}
-  @media(max-width:760px){.app{padding:10px}.panel{padding:10px;border-radius:18px}.timelineWrap{min-height:calc(100vh - 130px)}.timeline{min-height:calc(100vh - 170px)}.block{min-height:calc(100vh - 190px);min-width:86vw;flex-basis:86vw}}
-
-  /* V22: espacio limpio y globito adaptable */
-  label[for], .controls label, #wavBtn, #vol, .drop, .status{display:none!important}
-  .app{max-width:1500px;padding:12px 14px}
-  header{margin-bottom:8px}
-  h1{font-size:23px}.hint{font-size:13px}.panel{padding:12px;border-radius:22px}
-  .controls{margin-bottom:8px;gap:7px}
-  .timelineWrap{min-height:320px;max-height:calc(100vh - 116px);padding:12px 10px 16px;overflow:hidden;display:flex;flex-direction:column}
-  .timeline{min-height:280px;max-height:calc(100vh - 145px);align-items:flex-start;overflow-x:auto;overflow-y:hidden;padding-bottom:12px}
-  .block{min-height:250px;height:auto;max-height:calc(100vh - 165px);overflow:hidden;flex:0 0 calc((100% - 18px)/3);padding:34px 13px 13px}
-  .notePreview{min-height:116px;max-height:calc(100vh - 390px);overflow-y:auto;transition:max-height .18s ease;scrollbar-width:thin}
-  .block:has(.dictateTools) .notePreview{max-height:calc(100vh - 455px)}
-  .cardBtns{margin-top:8px}
-  .dictateTools{grid-template-columns:repeat(6,minmax(36px,1fr));gap:5px;padding:6px;margin-top:4px;margin-bottom:7px}
-  .dictModeBtn{height:34px;border-radius:12px}
-  @media(max-width:760px){
-    .app{padding:8px}.panel{padding:8px;border-radius:18px}header{margin-bottom:6px}.hint{display:none}
-    .timelineWrap{min-height:300px;max-height:calc(100vh - 96px);padding:9px 7px 12px}
-    .timeline{min-height:260px;max-height:calc(100vh - 124px)}
-    .block{min-height:238px;max-height:calc(100vh - 142px);min-width:88vw;flex-basis:88vw;padding:32px 11px 11px}
-    .notePreview{max-height:calc(100vh - 360px)}
-    .block:has(.dictateTools) .notePreview{max-height:calc(100vh - 420px)}
-    .dictateTools{grid-template-columns:repeat(6,minmax(34px,1fr))}
-  }
-
-
-  .notePreviewBullet{display:flex;gap:7px;align-items:flex-start}
-  .notePreviewBullet .bulletGlyph{font-weight:950;line-height:1.42}
-</style>
-</head>
-<body>
-<div class="app">
-  <header>
-    <div><h1>Crónica</h1><div class="hint">Creá una nota. Después podés grabar audio, dictar texto con botones táctiles o escribirla a mano.</div></div>
-    <div class="mini">Dictado táctil · versión reparada.</div>
-  </header>
-  <div class="panel">
-    <div class="controls">
-      <button id="recBtn" class="rec">● Nueva nota</button>
-      <button id="stopBtn" class="stop" disabled>■ Detener</button>
-      <button id="playBtn" class="play" disabled>▶ Reproducir todo</button>
-      <button id="pauseBtn" class="pause" disabled>⏸ Pausar</button>
-      <label>Volumen <input id="vol" type="range" min="0" max="1" step="0.01" value="1"></label>
-      <button id="wavBtn" class="export" disabled>Exportar audio WAV</button>
-      <button id="saveBtn" class="save" disabled>Guardar crónica ZIP</button>
-      <button id="loadBtn" class="open">Abrir ZIP</button>
-      <button id="addAudioBtn" class="open">Agregar audio</button>
-      <input id="projectFile" class="projectInput" type="file" accept=".zip,application/zip">
-      <input id="audioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
-    </div>
-    <div id="drop" class="drop">Arrastrar ZIP o audio/video</div>
-    <div class="timelineWrap" id="wrap"><div class="playhead" id="head"></div><div class="timeline" id="timeline"><div class="empty">Todavía no hay notas. Tocá “Nueva nota” para crear una tarjeta.</div></div><div id="meter" class="meter"><span>Grabando</span><div class="bars" id="bars"><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i></div></div></div>
-    <div class="status" id="status">Listo.</div>
-  </div>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
-<script>
 let mediaRecorder, chunks=[], blocks=[], playing=false, currentAudio=null, raf=0, startIndex=0, micStream=null, audioCtxLive=null, analyser=null, meterRaf=0, playCtx=null, playSources=[], playStartedAt=0, playOffset=0, playRunId=0;
 let hayCambiosSinGuardar=false;
 let recordingBusy=false, recordingLive=false, recordingStart=0, recordingLiveDuration=0, recordingLiveRaf=0, liveLevel=.15, descartarGrabacionActual=false, playingNoteIndex=-1, recordingTargetIndex=null;
@@ -189,14 +36,14 @@ function render(){
   blocks.forEach((b,i)=>{
     const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=false; el.style.background=b.color; el.dataset.id=b.id;
     const editing=!!b.editingText;
-    const preview=previewEditorialHtml(b.text||'', b);
-    const toolsZona=(dictatingIndex===i && !editing) ? `<div class="dictateTools" data-dict-tools="${i}"><button class="dictModeBtn titleMode ${dictationTouchMode==='title'?'active':''}" data-mode="title" title="Título">T</button><button class="dictModeBtn subMode ${dictationTouchMode==='subtitle'?'active':''}" data-mode="subtitle" title="Subtítulo">Sub</button><button class="dictModeBtn bodyMode ${dictationTouchMode==='body'?'active':''}" data-mode="body" title="Texto normal">N</button><button class="dictModeBtn boxMode ${dictationTouchMode==='box'?'active':''}" data-mode="box" title="Recuadro">□</button><button class="dictModeBtn enterMode" data-action="enter" title="Cerrar tramo">↵</button><button class="dictModeBtn undoMode" data-action="undo" title="Borrar último bloque">↶</button><button class="dictModeBtn bulletMode ${dictationTouchMode==='bullet'?'active':''}" data-mode="bullet" title="Viñeta">•</button><button class="dictModeBtn numberMode ${dictationTouchMode==='number'?'active':''}" data-mode="number" title="Lista numerada">1</button><button class="dictModeBtn leftMode ${dictationTouchMode==='leftcol'?'active':''}" data-mode="leftcol" title="Columna izquierda">◧</button><button class="dictModeBtn rightMode ${dictationTouchMode==='rightcol'?'active':''}" data-mode="rightcol" title="Columna derecha">◨</button><button class="dictModeBtn imageMode" data-action="image" title="Espacio para imagen">🖼</button><button class="dictModeBtn blackMode" data-mode="black" title="Placa negra">Neg</button><button class="dictModeBtn captionMode" data-mode="caption" title="Pie de foto">Pie</button><button class="dictModeBtn labelMode" data-mode="label" title="Etiqueta sobre imagen">🏷</button><button class="dictModeBtn dividerMode" data-action="divider" title="Línea punteada">⋯</button></div>` : '';
+    const preview=previewEditorialHtml(b.text||'');
+    const toolsZona=(dictatingIndex===i && !editing) ? `<div class="dictateTools" data-dict-tools="${i}"><button class="dictModeBtn titleMode ${dictationTouchMode==='title'?'active':''}" data-mode="title" title="Título">T</button><button class="dictModeBtn subMode ${dictationTouchMode==='subtitle'?'active':''}" data-mode="subtitle" title="Subtítulo">Sub</button><button class="dictModeBtn bodyMode ${dictationTouchMode==='body'?'active':''}" data-mode="body" title="Texto normal">N</button><button class="dictModeBtn boxMode ${dictationTouchMode==='box'?'active':''}" data-mode="box" title="Recuadro">□</button><button class="dictModeBtn enterMode" data-action="enter" title="Cerrar tramo">↵</button><button class="dictModeBtn undoMode" data-action="undo" title="Borrar último bloque">↶</button><button class="dictModeBtn bulletMode ${dictationTouchMode==='bullet'?'active':''}" data-mode="bullet" title="Viñeta">•</button><button class="dictModeBtn numberMode ${dictationTouchMode==='number'?'active':''}" data-mode="number" title="Lista numerada">1</button><button class="dictModeBtn leftMode ${dictationTouchMode==='leftcol'?'active':''}" data-mode="leftcol" title="Columna izquierda">◧</button><button class="dictModeBtn rightMode ${dictationTouchMode==='rightcol'?'active':''}" data-mode="rightcol" title="Columna derecha">◨</button><button class="dictModeBtn imageMode" data-action="image" title="Espacio para imagen">🖼</button><button class="dictModeBtn dividerMode" data-action="divider" title="Línea punteada">⋯</button></div>` : '';
     const textoZona=editing
       ? `<div class="noteEditor"><textarea class="noteText" placeholder="Escribir observación de esta nota...">${escapeHtml(b.text||'')}</textarea><div class="dictateHelp">Modo edición: corregí el texto y tocá “Ver resultado”.</div></div>`
       : `${toolsZona}<div class="notePreview ${preview?'':'emptyText'}">${preview||'Sin texto todavía. Podés dictar o editar a mano.'}</div><div class="dictTouchHint">${dictatingIndex===i?'Dictado táctil activo.':'Dictado táctil: tocá Dictar texto y marcá el formato con los botones.'}</div>`;
     const isRecThis=recordingLive && recordingTargetIndex===i;
     const inlineRec=isRecThis ? `<div class="inlineRec" title="Tocar para detener y guardar"><div class="inlineRecText">● Grabando</div><div class="inlineRecDur" id="inlineRecDur">${fmt(recordingLiveDuration)}</div><div class="inlineRecWave" id="inlineRecWave">${Array.from({length:12},()=>`<i style="height:8px"></i>`).join('')}</div><button class="inlineRecCancel" title="Cancelar audio">×</button></div>` : '';
-    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="topline"><div class="name">${i+1}. ${escapeHtml(b.name||'Nota')}</div><div class="dur">${b.blob?fmt(b.duration):'sin audio'}</div></div><div class="created">${fmtDate(b.createdAt)}</div>${textoZona}${inlineRec}<div class="cardBtns"><button class="recordAudioBtn ${isRecThis?'recording':''}">${isRecThis?'■ Detener audio':(b.blob?'🎙 Regrabar audio':'🎙 Grabar audio')}</button><button class="play one" ${b.blob?'':'disabled'}>${playing&&playingNoteIndex===i?'❚❚ Audio':'▶ Audio'}</button><button class="dictateBtn ${dictatingIndex===i?'on':''}">${dictatingIndex===i?'■ Detener dictado':'🎙 Dictar texto'}</button><button class="editTextBtn">${editing?'✓ Ver resultado':'✏️ Editar texto'}</button><button class="shareBtn">↗ Compartir PNG</button><button class="downloadPngBtn">⬇ Guardar PNG</button></div>`;
+    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="topline"><div class="name">${i+1}. ${escapeHtml(b.name||'Nota')}</div><div class="dur">${b.blob?fmt(b.duration):'sin audio'}</div></div><div class="created">${fmtDate(b.createdAt)}</div>${textoZona}${inlineRec}<div class="cardBtns"><button class="recordAudioBtn ${isRecThis?'recording':''}">${isRecThis?'■ Detener audio':(b.blob?'🎙 Regrabar audio':'🎙 Grabar audio')}</button><button class="play one" ${b.blob?'':'disabled'}>${playing&&playingNoteIndex===i?'❚❚ Audio':'▶ Audio'}</button><button class="dictateBtn ${dictatingIndex===i?'on':''}">${dictatingIndex===i?'■ Detener dictado':'🎙 Dictar texto'}</button><button class="editTextBtn">${editing?'✓ Ver resultado':'✏️ Editar texto'}</button><button class="shareBtn">↗ Compartir PNG</button></div>`;
     el.querySelector('.del').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Estás seguro de que querés borrar esta nota?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: nota borrada.'); render();};
     const txt=el.querySelector('.noteText');
     if(txt){
@@ -223,17 +70,6 @@ function render(){
     el.querySelector('.dictateBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; toggleDictadoNota(i);};
     el.querySelector('.editTextBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; alternarEdicionTexto(i);};
     el.querySelector('.shareBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; compartirNota(i);};
-    el.querySelector('.downloadPngBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; exportarPNGNota(i,false);};
-    el.querySelectorAll('[data-edit-line]').forEach(node=>{
-      node.ondblclick=(ev)=>{ev.preventDefault(); ev.stopPropagation(); editarLineaVisual(i,node.dataset.editLine);};
-      let tapTimer=0;
-      node.addEventListener('touchend',(ev)=>{
-        if(estaGrabando()||estaDictando()) return;
-        const now=Date.now();
-        if(now-tapTimer<360){ev.preventDefault(); ev.stopPropagation(); editarLineaVisual(i,node.dataset.editLine);} 
-        tapTimer=now;
-      },{passive:false});
-    });
     el.querySelectorAll('.notePreviewImageSlot').forEach(slot=>{slot.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; const idx=parseInt(slot.dataset.imageIndex||'0',10)||0; const imgId=slot.dataset.imageId||''; elegirImagenParaNota(i,idx,imgId);};});
     el.onclick=(ev)=>{ if(ev.target.closest('textarea,button'))return; jump(); };
     timeline.appendChild(el);
@@ -340,99 +176,73 @@ function aplicarPuntuacionHablada(texto){
   return capitalizarFrases(limpiarEspaciosEditorial(t));
 }
 function esLineaImagen(line){return /^🖼\s+/.test(line) || /^\[imagen\]/i.test(line);}
-function extraerSrcImagen(line, blockCtx=null){
-  const raw=String(line||'');
-  const id=extraerIdImagen(raw);
-  if(id && blockCtx && blockCtx.images && blockCtx.images[id]) return blockCtx.images[id];
-  let v=raw.replace(/^🖼\s+/,'').replace(/^\[imagen(?::[^\]]+)?\]\s*/i,'').trim();
+function extraerSrcImagen(line){
+  let v=String(line||'').replace(/^🖼\s+/,'').replace(/^\[imagen(?::[^\]]+)?\]\s*/i,'').trim();
   return /^data:image\//.test(v) ? v : '';
 }
-function previewEditorialHtml(texto, blockCtx=null){
+function previewEditorialHtml(texto){
   const t=String(texto||'').trim();
   if(!t)return '';
   const lines=t.split(/\n+/).map(x=>x.trim()).filter(Boolean);
-  let imageSlotCounter=0; // contador local: evita romper render al insertar imágenes
   let html='';
   let body=[];
   let pendingLeft=null;
   let pendingRight=null;
-  let pendingLeftLine='';
-  let pendingRightLine='';
   function flushBody(){
-    if(body.length){
-      const inner=body.map(p=>`<div data-edit-line="${p.idx}">${escapeHtml(p.text)}</div>`).join('<div style="height:8px"></div>');
-      html+=`<div class="notePreviewBody">${inner}</div>`;
-      body=[];
-    }
+    if(body.length){html+=`<div class="notePreviewBody">${escapeHtml(body.join('\n\n'))}</div>`; body=[];}
   }
-  function renderImageSlot(line, label='', caption=''){
-    const src=extraerSrcImagen(line, blockCtx);
+  function renderImageSlot(line){
+    const src=extraerSrcImagen(line);
     const idx=imageSlotCounter++;
     const imgId=extraerIdImagen(line);
-    const slot=`<div class="notePreviewImageSlot" data-image-slot="1" data-image-index="${idx}" data-image-id="${escapeHtml(imgId)}">${src?`<img src="${src}" alt="Imagen de la nota">`:'Tocar para agregar imagen'}</div>`;
-    const lab=label?`<div class="notePreviewImageLabel">${escapeHtml(label)}</div>`:'';
-    const cap=caption?`<div class="notePreviewCaption">${escapeHtml(caption)}</div>`:'';
-    return `<div class="notePreviewImageWrap">${slot}${lab}${cap}</div>`;
+    return `<div class="notePreviewImageSlot" data-image-slot="1" data-image-index="${idx}" data-image-id="${escapeHtml(imgId)}">${src?`<img src="${src}" alt="Imagen de la nota">`:'Tocar para agregar imagen'}</div>`;
   }
-  function addColumns(left,right,leftIsHtml=false,rightIsHtml=false,leftLine='',rightLine=''){
+  function addColumns(left,right,leftIsHtml=false,rightIsHtml=false){
     flushBody();
-    const le=leftIsHtml?left:`<div data-edit-line="${leftLine}">${escapeHtml(left||'')}</div>`;
-    const ri=rightIsHtml?right:`<div data-edit-line="${rightLine}">${escapeHtml(right||'')}</div>`;
-    html+=`<div class="notePreviewColumns"><div class="notePreviewCol left">${le}</div><div class="notePreviewCol right">${ri}</div></div>`;
+    html+=`<div class="notePreviewColumns"><div class="notePreviewCol left">${leftIsHtml?left:escapeHtml(left||'')}</div><div class="notePreviewCol right">${rightIsHtml?right:escapeHtml(right||'')}</div></div>`;
   }
   function flushPendingColumns(){
     if(pendingLeft!==null || pendingRight!==null){
-      addColumns(pendingLeft||'',pendingRight||'',false,false,pendingLeftLine,pendingRightLine);
+      addColumns(pendingLeft||'',pendingRight||'');
       pendingLeft=null;
       pendingRight=null;
-      pendingLeftLine='';
-      pendingRightLine='';
     }
   }
-  for(let idx=0; idx<lines.length; idx++){
-    let line=lines[idx];
-    const next=lines[idx+1]||'';
-    const next2=lines[idx+2]||'';
-    if(/^◧\s+/.test(line)){flushPendingColumns(); pendingLeft=line.replace(/^◧\s+/,''); pendingLeftLine=idx; continue;}
+  lines.forEach((line,idx)=>{
+    if(/^◧\s+/.test(line)){flushPendingColumns(); pendingLeft=line.replace(/^◧\s+/,''); return;}
     if(/^◨\s+/.test(line)){
       const right=line.replace(/^◨\s+/,'');
-      if(pendingLeft!==null){addColumns(pendingLeft,right,false,false,pendingLeftLine,idx); pendingLeft=null; pendingLeftLine='';}
-      else{flushPendingColumns(); pendingRight=right; pendingRightLine=idx;}
-      continue;
+      if(pendingLeft!==null){addColumns(pendingLeft,right); pendingLeft=null;}
+      else{flushPendingColumns(); pendingRight=right;}
+      return;
     }
     if(esLineaImagen(line)){
-      let label='',caption='';
-      if(/^🏷\s+/.test(next)){label=next.replace(/^🏷\s+/,''); idx++;}
-      if(/^Pie:\s*/i.test(lines[idx+1]||'')){caption=(lines[idx+1]||'').replace(/^Pie:\s*/i,''); idx++;}
-      const imgHtml=renderImageSlot(line,label,caption);
-      if(pendingLeft!==null){addColumns(pendingLeft,imgHtml,false,true,pendingLeftLine,''); pendingLeft=null; pendingLeftLine=''; continue;}
-      if(pendingRight!==null){addColumns(imgHtml,pendingRight,true,false,'',pendingRightLine); pendingRight=null; pendingRightLine=''; continue;}
+      const imgHtml=renderImageSlot(line);
+      if(pendingLeft!==null){addColumns(pendingLeft,imgHtml,false,true); pendingLeft=null; return;}
+      if(pendingRight!==null){addColumns(imgHtml,pendingRight,true,false); pendingRight=null; return;}
       flushPendingColumns();
       flushBody();
       html+=imgHtml;
-      continue;
+      return;
     }
     flushPendingColumns();
-    if(/^🏷\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBlack" data-edit-line="${idx}">${escapeHtml(line.replace(/^🏷\s+/,''))}</div>`; continue;}
-    if(/^Pie:\s*/i.test(line)){flushBody(); html+=`<div class="notePreviewCaption" data-edit-line="${idx}">${escapeHtml(line.replace(/^Pie:\s*/i,''))}</div>`; continue;}
-    if(/^↵$/.test(line)){flushPendingColumns(); flushBody(); html+=`<div class="notePreviewSpacer" data-edit-line="${idx}"></div>`; continue;}
-    if(/^···$|^⋯$|^-{3,}$/.test(line)){flushPendingColumns(); flushBody(); html+=`<div class="notePreviewDivider" data-edit-line="${idx}"></div>`; continue;}
-    if(/^##\s+/.test(line)){flushBody(); html+=`<div class="notePreviewSubTitle" data-edit-line="${idx}">${escapeHtml(line.replace(/^##\s+/,''))}</div>`; continue;}
-    if(/^#\s+/.test(line)){flushBody(); html+=`<div class="notePreviewTitle" data-edit-line="${idx}">${escapeHtml(line.replace(/^#\s+/,''))}</div>`; continue;}
-    if(/^□\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBox" data-edit-line="${idx}">${escapeHtml(line.replace(/^□\s+/,''))}</div>`; continue;}
-    if(/^■\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBlack" data-edit-line="${idx}">${escapeHtml(line.replace(/^■\s+/,''))}</div>`; continue;}
-    if(/^•\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBullet" data-edit-line="${idx}"><span class="bulletGlyph">•</span><span>${escapeHtml(line.replace(/^•\s+/,''))}</span></div>`; continue;}
-    if(/^\d+\.\s+/.test(line)){flushBody(); html+=`<div class="notePreviewNumber" data-edit-line="${idx}">${escapeHtml(line)}</div>`; continue;}
-    body.push({text:line,idx});
-  }
+    if(/^↵$/.test(line)){flushPendingColumns(); flushBody(); html+=`<div class="notePreviewSpacer"></div>`; return;}
+    if(/^···$|^⋯$|^-{3,}$/.test(line)){flushPendingColumns(); flushBody(); html+=`<div class="notePreviewDivider"></div>`; return;}
+    if(/^##\s+/.test(line)){flushBody(); html+=`<div class="notePreviewSubTitle">${escapeHtml(line.replace(/^##\s+/,''))}</div>`; return;}
+    if(/^#\s+/.test(line)){flushBody(); html+=`<div class="notePreviewTitle">${escapeHtml(line.replace(/^#\s+/,''))}</div>`; return;}
+    if(/^□\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBox">${escapeHtml(line.replace(/^□\s+/,''))}</div>`; return;}
+    if(/^•\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBullet">${escapeHtml(line.replace(/^•\s+/,''))}</div>`; return;}
+    if(/^\d+\.\s+/.test(line)){flushBody(); html+=`<div class="notePreviewNumber">${escapeHtml(line)}</div>`; return;}
+    body.push(line);
+  });
   flushPendingColumns();
   flushBody();
   return html;
 }
-function actualizarPreviewNota(card,texto,blockCtx=null){
+function actualizarPreviewNota(card,texto){
   const prev=card && card.querySelector('.notePreview');
   if(!prev)return;
-  const html=previewEditorialHtml(texto, blockCtx);
+  const html=previewEditorialHtml(texto);
   prev.innerHTML=html || 'Sin texto todavía. Podés dictar o editar a mano.';
   prev.classList.toggle('emptyText',!html);
   try{prev.scrollTop=prev.scrollHeight;}catch(e){}
@@ -443,20 +253,6 @@ function alternarEdicionTexto(i){
   b.editingText=!b.editingText;
   startIndex=i;
   status.textContent=b.editingText?'Editando texto de la nota '+(i+1)+'.':'Vista editorial actualizada.';
-  render();
-}
-
-function editarLineaVisual(i,lineIndex){
-  const b=blocks[i]; if(!b || estaGrabando() || estaDictando()) return;
-  const lineas=String(b.text||'').split('\n');
-  const idx=parseInt(lineIndex,10);
-  if(!Number.isFinite(idx) || idx<0 || idx>=lineas.length) return;
-  const actual=lineas[idx]||'';
-  const nuevo=prompt('Editar este bloque:', actual);
-  if(nuevo===null) return;
-  if(nuevo.trim()==='') lineas.splice(idx,1); else lineas[idx]=nuevo;
-  b.text=lineas.join('\n').replace(/\n{3,}/g,'\n\n').trim();
-  marcarSinGuardar('Cambios sin guardar: bloque editado.');
   render();
 }
 function quitarComandoBorrar(texto){
@@ -504,9 +300,6 @@ function textoDesdePartesDictado(base, partes, parteTemporal=null){
     else if(modo==='number') salida.push(proximoNumeroLista(salida)+'. '+txt);
     else if(modo==='leftcol') salida.push('◧ '+txt);
     else if(modo==='rightcol') salida.push('◨ '+txt);
-    else if(modo==='black') salida.push('■ '+txt);
-    else if(modo==='caption') salida.push('Pie: '+txt);
-    else if(modo==='label') salida.push('🏷 '+txt);
     else salida.push(txt);
   });
   return salida.join('\n\n');
@@ -515,10 +308,10 @@ function aplicarTextoTemporalDictado(i, texto){
   const tx=textareaDeNota(i);
   const card=blocks[i] ? document.querySelector('.block[data-id="'+CSS.escape(blocks[i].id)+'"]') : null;
   if(tx){tx.value=texto; tx.scrollTop=tx.scrollHeight;}
-  if(card) actualizarPreviewNota(card,texto,blocks[i]);
+  if(card) actualizarPreviewNota(card,texto);
 }
 
-function esModoEspecial(modo){return ['title','subtitle','box','bullet','number','leftcol','rightcol','black','caption','label'].includes(modo);}
+function esModoEspecial(modo){return ['title','subtitle','box','bullet','number','leftcol','rightcol'].includes(modo);}
 function proximoNumeroLista(lineas){
   let max=0;
   (lineas||[]).forEach(l=>{
@@ -535,9 +328,6 @@ function modoLabel(modo){
   if(modo==='number')return 'Lista';
   if(modo==='leftcol')return 'Columna izquierda';
   if(modo==='rightcol')return 'Columna derecha';
-  if(modo==='black')return 'Placa negra';
-  if(modo==='caption')return 'Pie de foto';
-  if(modo==='label')return 'Etiqueta';
   return 'Normal';
 }
 function limpiarTextoDictadoLibre(texto){
@@ -562,9 +352,6 @@ function modoConPrefijo(modo,texto){
   if(modo==='number') return '1. '+texto;
   if(modo==='leftcol') return '◧ '+texto;
   if(modo==='rightcol') return '◨ '+texto;
-  if(modo==='black') return '■ '+texto;
-  if(modo==='caption') return 'Pie: '+texto;
-  if(modo==='label') return '🏷 '+texto;
   return texto;
 }
 function formatearBloqueTactil(texto, modo){
@@ -685,11 +472,9 @@ function insertarSeparadorNota(i){
   marcarSinGuardar('Agregué una línea divisoria.');
 }
 function idImagenNuevo(){return 'img_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);}
-function asegurarMapaImagenes(i){ if(!blocks[i]) return {}; if(!blocks[i].images || typeof blocks[i].images!=='object') blocks[i].images={}; return blocks[i].images; }
 function extraerIdImagen(line){const m=String(line||'').match(/^🖼\s+\[imagen:([^\]]+)\]/i); return m?m[1]:'';}
 function insertarPlaceholderImagen(i){
   if(!blocks[i])return;
-  asegurarMapaImagenes(i);
   if(dictatingIndex===i && (dictationDraftText||dictationInterimText)) commitDraftDictado(i);
   const actual=textoDictadoConDraft(i).trim();
   const linea='🖼 [imagen:'+idImagenNuevo()+']';
@@ -704,31 +489,29 @@ function insertarPlaceholderImagen(i){
   setTimeout(()=>{try{const card=document.querySelector('.block[data-id="'+CSS.escape(blocks[i].id)+'"] .notePreview'); if(card) card.scrollTop=card.scrollHeight;}catch(e){}},40);
   marcarSinGuardar('Agregué un espacio para imagen.');
 }
-function reemplazarPlaceholderImagen(texto,dataUrl,indice=0,imgId='',i=-1){
+function reemplazarPlaceholderImagen(texto,dataUrl,indice=0,imgId=''){
   const lineas=String(texto||'').split('\n');
-  let targetId=imgId||'';
-  if(i>=0) asegurarMapaImagenes(i);
-  if(!targetId){
-    let count=0;
+  if(imgId){
     for(let k=0;k<lineas.length;k++){
       const l=lineas[k].trim();
-      if(/^🖼\s+\[imagen(?::[^\]]+)?\]/i.test(l) || /^🖼\s*$/i.test(l) || /^\[imagen\]/i.test(l) || /^🖼\s+data:image\//i.test(l)){
-        if(count===indice){ targetId=extraerIdImagen(l)||idImagenNuevo(); lineas[k]='🖼 [imagen:'+targetId+']'; break; }
-        count++;
-      }
-    }
-  } else {
-    const safe=targetId.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    for(let k=0;k<lineas.length;k++){
-      const l=lineas[k].trim();
-      if(new RegExp('^🖼\\s+\\[imagen:'+safe+'\\]','i').test(l)){
-        lineas[k]='🖼 [imagen:'+targetId+']'; break;
+      if(new RegExp('^🖼\\s+\\[imagen:'+imgId.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\]','i').test(l)){
+        lineas[k]='🖼 '+dataUrl;
+        return lineas.join('\n');
       }
     }
   }
-  if(!targetId){ targetId=idImagenNuevo(); lineas.push('🖼 [imagen:'+targetId+']'); }
-  if(i>=0 && blocks[i]) asegurarMapaImagenes(i)[targetId]=dataUrl;
-  return lineas.join('\n');
+  let count=0;
+  for(let k=0;k<lineas.length;k++){
+    const l=lineas[k].trim();
+    if(/^🖼\s+\[imagen(?::[^\]]+)?\]/i.test(l) || /^\[imagen\]/i.test(l) || /^🖼\s*$/.test(l) || /^🖼\s+data:image\//i.test(l)){
+      if(count===indice){
+        lineas[k]='🖼 '+dataUrl;
+        return lineas.join('\n');
+      }
+      count++;
+    }
+  }
+  return [String(texto||'').trim(),'🖼 '+dataUrl].filter(Boolean).join('\n\n');
 }
 function elegirImagenParaNota(i,indice=0,imgId=''){
   if(!blocks[i])return;
@@ -740,14 +523,11 @@ function elegirImagenParaNota(i,indice=0,imgId=''){
     if(!file)return;
     const reader=new FileReader();
     reader.onload=()=>{
-      try{
-        blocks[i].text=reemplazarPlaceholderImagen(blocks[i].text||'',String(reader.result||''),indice,imgId,i);
-        if(dictatingIndex===i){dictationBaseText=(blocks[i].text||'').trim(); dictationParts=[]; dictationDraftText=''; dictationInterimText='';}
-        marcarSinGuardar('Imagen agregada a la nota.');
-        render();
-      }catch(err){ console.error(err); status.textContent='No pude insertar la imagen. Probá con una imagen más liviana.'; }
+      blocks[i].text=reemplazarPlaceholderImagen(blocks[i].text||'',String(reader.result||''),indice,imgId);
+      if(dictatingIndex===i){dictationBaseText=(blocks[i].text||'').trim(); dictationParts=[]; dictationDraftText=''; dictationInterimText='';}
+      marcarSinGuardar('Imagen agregada a la nota.');
+      render();
     };
-    reader.onerror=()=>{status.textContent='No pude leer la imagen seleccionada.';};
     reader.readAsDataURL(file);
   };
   input.click();
@@ -1104,8 +884,6 @@ function previewEditorialHtmlInline(texto){
   let body=[];
   let pendingLeft=null;
   let pendingRight=null;
-  let pendingLeftLine='';
-  let pendingRightLine='';
   function flushBody(){
     if(body.length){
       html+=`<div style="font-size:16px;line-height:1.48;color:#344255;font-weight:500;margin:10px 0;white-space:pre-wrap;">${escapeHtml(body.join('\n\n'))}</div>`;
@@ -1124,11 +902,9 @@ function previewEditorialHtmlInline(texto){
   }
   function flushPendingColumns(){
     if(pendingLeft!==null || pendingRight!==null){
-      addColumns(pendingLeft||'',pendingRight||'',false,false,pendingLeftLine,pendingRightLine);
+      addColumns(pendingLeft||'',pendingRight||'');
       pendingLeft=null;
       pendingRight=null;
-      pendingLeftLine='';
-      pendingRightLine='';
     }
   }
   lines.forEach(line=>{
@@ -1153,7 +929,7 @@ function previewEditorialHtmlInline(texto){
     if(/^□\s+/.test(line)){flushBody(); html+=`<div style="font-size:15px;line-height:1.45;font-weight:700;color:#263348;background:#f8fafc;border:1.5px solid #d7dee8;border-radius:16px;padding:14px 16px;margin:16px 0;">${escapeHtml(line.replace(/^□\s+/,''))}</div>`; return;}
     if(/^•\s+/.test(line)){flushBody(); html+=`<div style="font-size:15.5px;line-height:1.42;color:#344255;margin:7px 0 7px 18px;font-weight:500;">• ${escapeHtml(line.replace(/^•\s+/,''))}</div>`; return;}
     if(/^\d+\.\s+/.test(line)){flushBody(); html+=`<div style="font-size:15.5px;line-height:1.42;color:#344255;margin:7px 0 7px 6px;font-weight:500;">${escapeHtml(line)}</div>`; return;}
-    body.push({text:line,idx});
+    body.push(line);
   });
   flushPendingColumns();
   flushBody();
@@ -1328,7 +1104,7 @@ async function medirYdibujarNotaCanvas(i,soloMedir=false,canvas=null){
 async function crearPNGNotaBlob(i){
   try{
     const h=Math.ceil(await medirYdibujarNotaCanvas(i,true));
-    const scale=Math.min(3,Math.max(2,(window.devicePixelRatio||1)*1.5));
+    const scale=Math.min(2,Math.max(1,window.devicePixelRatio||1));
     const canvas=document.createElement('canvas');
     canvas.width=Math.round(1080*scale);
     canvas.height=Math.round(h*scale);
@@ -1345,108 +1121,70 @@ async function crearPNGNotaBlob(i){
 }
 
 
-
 async function crearPNGNotaBlobDOM(i){
   const b=blocks[i];
   if(!b) throw new Error('Nota inexistente');
-  const card=document.querySelector('.block[data-id="'+CSS.escape(b.id)+'"]');
-  if(!card) throw new Error('No encontré la nota visible');
-
-  // Esta función NO reconstruye la nota. Clona el mismo globito visual,
-  // lo expande para que no tenga scroll interno y captura ese DOM completo.
-  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-  if(!window.htmlToImage || typeof htmlToImage.toBlob!=='function'){
-    throw new Error('html-to-image no cargó');
-  }
-
-  const wrap=document.createElement('div');
-  wrap.className='pngExactStage';
-  wrap.style.cssText=[
-    'position:fixed','left:-20000px','top:0','z-index:-1',
-    'width:'+Math.max(360,Math.round(card.getBoundingClientRect().width||520))+'px',
-    'background:transparent','padding:0','pointer-events:none','overflow:visible'
-  ].join(';');
-
-  const clone=card.cloneNode(true);
-  clone.classList.add('pngExactClone');
-  // Sacamos controles, pero dejamos la tarjeta/globito con su color y formato real.
-  clone.querySelectorAll('.cardBtns,.del,.inlineRec,.inlineRecorder,.noteEditBox,.dictateTools,textarea,button,input,.dictateHelp').forEach(x=>x.remove());
-  // Expandimos todo lo que en pantalla tiene scroll para exportar la tira completa.
-  clone.style.height='auto';
-  clone.style.minHeight='0';
-  clone.style.overflow='visible';
-  clone.style.maxHeight='none';
-  clone.style.transform='none';
-  clone.style.width='100%';
-  clone.style.flex='none';
-  clone.style.cursor='default';
-  clone.querySelectorAll('*').forEach(el=>{
-    const st=el.style;
-    if(el.classList.contains('notePreview') || el.classList.contains('textAreaShell')){
-      st.maxHeight='none';
-      st.height='auto';
-      st.overflow='visible';
-      st.scrollBehavior='auto';
-    }
-    if(el.classList.contains('block')){
-      st.overflow='visible';
-    }
-  });
-  // Evita estados raros de selección/hover y anima nada durante captura.
-  const style=document.createElement('style');
-  style.textContent=`
-    .pngExactStage, .pngExactStage *{animation:none!important;transition:none!important;caret-color:transparent!important;}
-    .pngExactClone{box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14)!important;}
-    .pngExactClone .notePreview{max-height:none!important;height:auto!important;overflow:visible!important;}
-    .pngExactClone .textAreaShell{max-height:none!important;height:auto!important;overflow:visible!important;}
+  const previewHtml=previewEditorialHtml(b.text||'') || '<div class="notePreview emptyText">Sin texto.</div>';
+  const noteColor=colorNotaParaPNG(i);
+  const width=920;
+  const html=`
+  <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;background:#eef4ff;padding:28px;font-family:Arial,Helvetica,sans-serif;color:#172033;box-sizing:border-box;">
+    <div style="background:${noteColor};border:2px solid rgba(80,140,210,.45);border-radius:34px;padding:28px;box-sizing:border-box;">
+      <div style="background:rgba(255,255,255,.64);border:1px solid rgba(20,40,70,.07);border-radius:24px;padding:26px;box-sizing:border-box;">
+        <div style="font-size:14px;font-weight:850;color:rgba(23,32,51,.52);margin-bottom:10px;">Crónica · Nota ${i+1} · ${escapeHtml(fmtDate(b.createdAt||new Date().toISOString()))}</div>
+        <div class="notePreview pngClone">${previewHtml}</div>
+      </div>
+    </div>
+  </div>`;
+  const css=`
+  .pngClone{background:transparent!important;border:0!important;padding:0!important;margin:0!important;min-height:0!important;max-height:none!important;overflow:visible!important;white-space:pre-wrap!important;color:#172033!important;}
+  .notePreviewTitle{font-size:34px!important;font-weight:950!important;line-height:1.12!important;margin:0 0 14px!important;letter-spacing:-.02em!important;color:#172033!important;}
+  .notePreviewSubTitle{font-size:22px!important;font-weight:950!important;line-height:1.18!important;margin:22px 0 10px!important;color:#263348!important;}
+  .notePreviewBody{font-size:18px!important;font-weight:600!important;line-height:1.5!important;color:#344255!important;margin:11px 0!important;}
+  .notePreviewBox{font-size:18px!important;font-weight:760!important;line-height:1.42!important;color:#263348!important;background:rgba(255,255,255,.72)!important;border:1.8px solid rgba(38,51,72,.20)!important;border-radius:16px!important;padding:15px 17px!important;margin:18px 0!important;box-shadow:0 5px 18px rgba(65,95,130,.08)!important;}
+  .notePreviewColumns{display:grid!important;grid-template-columns:1fr 1fr!important;gap:18px!important;margin:18px 0!important;align-items:stretch!important;}
+  .notePreviewCol{background:rgba(255,255,255,.52)!important;border:1.5px solid rgba(38,51,72,.16)!important;border-radius:16px!important;padding:14px 16px!important;font-size:17px!important;font-weight:650!important;line-height:1.42!important;color:#344255!important;min-height:72px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.72)!important;}
+  .notePreviewDivider{border:0!important;border-top:3px dotted rgba(38,51,72,.28)!important;height:0!important;margin:24px 4px!important;}
+  .notePreviewSpacer{height:30px!important;}
+  .notePreviewBullet{font-size:18px!important;font-weight:650!important;line-height:1.42!important;margin:7px 0 7px 20px!important;position:relative!important;padding-left:16px!important;color:#344255!important;}
+  .notePreviewBullet:before{content:'•';position:absolute;left:0;font-weight:950;}
+  .notePreviewNumber{font-size:18px!important;font-weight:650!important;line-height:1.42!important;margin:7px 0 7px 8px!important;color:#344255!important;}
+  .notePreviewImageSlot{display:flex!important;align-items:center!important;justify-content:center!important;min-height:190px!important;border:1.8px dashed rgba(38,51,72,.28)!important;border-radius:18px!important;background:rgba(255,255,255,.56)!important;margin:18px 0!important;overflow:hidden!important;color:rgba(38,51,72,.58)!important;font-size:15px!important;font-weight:900!important;}
+  .notePreviewCol .notePreviewImageSlot{min-height:150px!important;margin:0!important;}
+  .notePreviewImageSlot img{display:block!important;max-width:100%!important;width:100%!important;height:auto!important;border-radius:14px!important;object-fit:contain!important;}
   `;
-  wrap.appendChild(style);
-  wrap.appendChild(clone);
-  document.body.appendChild(wrap);
-
-  try{
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-    const imgs=[...wrap.querySelectorAll('img')];
-    await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=img.onerror=res;})));
-    await new Promise(r=>requestAnimationFrame(r));
-    const rect=clone.getBoundingClientRect();
-    const width=Math.ceil(rect.width);
-    const height=Math.ceil(clone.scrollHeight || rect.height);
-    if(width<10 || height<10) throw new Error('Captura vacía');
-    const blob=await htmlToImage.toBlob(clone,{
-      cacheBust:true,
-      pixelRatio:Math.min(3,Math.max(2,(window.devicePixelRatio||1)*1.5)),
-      width,
-      height,
-      backgroundColor:null,
-      style:{
-        width:width+'px',
-        height:height+'px',
-        maxHeight:'none',
-        overflow:'visible',
-        transform:'none'
-      },
-      filter:(node)=>{
-        if(!(node instanceof Element)) return true;
-        return !node.closest('.cardBtns,.del,.inlineRec,.inlineRecorder,.noteEditBox,.dictateTools,textarea,button,input,.dictateHelp');
-      }
-    });
-    if(!blob || blob.size<1000) throw new Error('PNG vacío');
-    return blob;
-  }finally{
-    wrap.remove();
-  }
+  const holder=document.createElement('div');
+  holder.style.cssText='position:fixed;left:-20000px;top:0;width:'+width+'px;z-index:-1;opacity:1;pointer-events:none;';
+  holder.innerHTML='<style>'+css+'</style>'+html;
+  document.body.appendChild(holder);
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  const node=holder.firstElementChild.nextElementSibling || holder.querySelector('div[xmlns]') || holder.lastElementChild;
+  const rect=node.getBoundingClientRect();
+  const height=Math.max(300, Math.ceil(rect.height));
+  const serialized=new XMLSerializer().serializeToString(node);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${serialized}</foreignObject></svg>`;
+  const url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  const img=new Image();
+  await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url;});
+  const scale=Math.min(2,Math.max(1,window.devicePixelRatio||1));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.round(width*scale); canvas.height=Math.round(height*scale);
+  const ctx=canvas.getContext('2d'); ctx.scale(scale,scale); ctx.drawImage(img,0,0,width,height);
+  holder.remove();
+  const blob=await blobDesdeCanvas(canvas,'image/png');
+  if(!blob) throw new Error('PNG DOM falló');
+  return blob;
 }
 
 async function exportarPNGNota(i, compartir=false){
   try{
     status.textContent='Preparando imagen PNG de la nota...';
     let blob;
-    // Primero intentamos capturar la nota visual real con HTML/SVG. Si falla, usamos el canvas manual como respaldo.
-    try{ blob=await crearPNGNotaBlobDOM(i); }catch(domErr){ console.warn('PNG DOM falló, uso canvas manual', domErr); blob=await crearPNGNotaBlob(i); }
+    // Usamos el canvas manual: es más estable para WhatsApp/Mail y evita que el navegador copie un HTML raro.
+    blob=await crearPNGNotaBlob(i);
     const file=new File([blob],`cronica-nota-${i+1}.png`,{type:'image/png'});
     if(compartir && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file]});
+      await navigator.share({files:[file],title:'Crónica · Nota '+(i+1),text:'Crónica · Nota '+(i+1)});
       status.textContent='Compartí la nota como imagen PNG.';
       return true;
     }
@@ -1456,7 +1194,7 @@ async function exportarPNGNota(i, compartir=false){
     document.body.appendChild(a);
     a.click();
     setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1200);
-    status.textContent='PNG guardado. Podés enviarlo por WhatsApp, Mail o donde quieras.';
+    status.textContent='No apareció el panel de compartir; descargué el PNG para enviarlo manualmente.';
     return true;
   }catch(e){
     status.textContent='No pude generar el PNG en este navegador. Probá desde Chrome o descargá el ZIP y abrilo nuevamente.';
@@ -1474,7 +1212,7 @@ async function guardarCronicaZip(){
     status.textContent='Preparando crónica ZIP...';
     const zip=new JSZip();
     const created=new Date().toISOString();
-    const project={version:'cronica-v28-bloques-visuales',created,blocks:[]};
+    const project={version:'cronica-v22',created,blocks:[]};
     for(let idx=0; idx<blocks.length; idx++){
       const b=blocks[idx];
       let filename=b.filename||'';
@@ -1487,8 +1225,7 @@ async function guardarCronicaZip(){
         name:b.name||('Nota '+(idx+1)),duration:b.duration||0,color:b.color||colors[idx%colors.length],
         type:b.type||(b.blob&&b.blob.type)||'',filename,external:!!b.external,text:b.text||'',
         createdAt:b.createdAt||created,endedAt:b.endedAt||b.createdAt||created,
-        intervalAfter:Number(b.intervalAfter||0),intervalLabel:b.intervalLabel||'',
-        images:b.images||{}
+        intervalAfter:Number(b.intervalAfter||0),intervalLabel:b.intervalLabel||''
       });
     }
     zip.file('bitacora.json',JSON.stringify(project,null,2));
@@ -1509,7 +1246,7 @@ function mediaDuration(file){return new Promise(res=>{const isVideo=(file.type||
 async function addExternalFiles(files,insertAt=blocks.length){if(estaGrabando())return; const usable=files.filter(f=>(f.type||'').startsWith('audio/')||(f.type||'').startsWith('video/')); if(!usable.length){status.textContent='Ese archivo no parece audio/video.'; return;} status.textContent='Agregando audio externo...'; let idx=Math.max(0,Math.min(insertAt,blocks.length)); for(const f of usable){const dur=await mediaDuration(f); const nowIso=new Date().toISOString(); if(idx>0 && blocks[idx-1]){blocks[idx-1].intervalAfter=blocks[idx-1].intervalAfter||0; blocks[idx-1].intervalLabel=blocks[idx-1].intervalLabel||'Intervalo';} const item={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),duration:dur,color:'#dde8f5',blob:f,type:f.type||'application/octet-stream',filename:f.name,external:true,text:'',createdAt:nowIso,endedAt:nowIso}; blocks.splice(idx,0,item); idx++;} startIndex=Math.max(0,idx-1); marcarSinGuardar('Cambios sin guardar: audio externo insertado.'); render();}
 function insertionIndexFromPoint(clientX){const els=[...timeline.querySelectorAll('.block')]; if(!els.length)return 0; for(let i=0;i<els.length;i++){const r=els[i].getBoundingClientRect(); if(clientX<r.left+r.width/2)return i;} return els.length;}
 $('wrap').addEventListener('dragover',e=>{if(e.dataTransfer&&e.dataTransfer.types&&[...e.dataTransfer.types].includes('Files')){e.preventDefault(); drop.classList.add('drag');}}); $('wrap').addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const media=files.filter(f=>(f.type||'').startsWith('audio/')||(f.type||'').startsWith('video/')); if(media.length){e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); addExternalFiles(media,blocks.length);}});
-async function loadZip(file){if(estaGrabando())return; try{if(typeof JSZip==='undefined')throw new Error('JSZip no disponible'); status.textContent='Abriendo crónica...'; const zip=await JSZip.loadAsync(file); const pjFile=zip.file('bitacora.json')||zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto'); const pj=JSON.parse(await pjFile.async('string')); const nb=[]; for(const item of pj.blocks){let blob=null; if(item.filename){const f=zip.file(item.filename); if(f){const raw=await f.async('blob'); blob=new Blob([raw],{type:item.type||raw.type});}} nb.push({id:crypto.randomUUID(),name:item.name||'Nota',duration:item.duration||0,color:item.color||colors[nb.length%colors.length],blob:blob,type:item.type||blob?.type||'',filename:item.filename||'',external:!!item.external,text:item.text||'',createdAt:item.createdAt||pj.created||new Date().toISOString(),endedAt:item.endedAt||item.createdAt||pj.created||new Date().toISOString(),intervalAfter:Number(item.intervalAfter||0),intervalLabel:item.intervalLabel||'',images:item.images||{}});} blocks=nb; startIndex=0; marcarGuardado('✓ Crónica cargada.'); render();}catch(e){status.textContent='No pude abrir ese ZIP de Crónica.';}}
+async function loadZip(file){if(estaGrabando())return; try{if(typeof JSZip==='undefined')throw new Error('JSZip no disponible'); status.textContent='Abriendo crónica...'; const zip=await JSZip.loadAsync(file); const pjFile=zip.file('bitacora.json')||zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto'); const pj=JSON.parse(await pjFile.async('string')); const nb=[]; for(const item of pj.blocks){let blob=null; if(item.filename){const f=zip.file(item.filename); if(f){const raw=await f.async('blob'); blob=new Blob([raw],{type:item.type||raw.type});}} nb.push({id:crypto.randomUUID(),name:item.name||'Nota',duration:item.duration||0,color:item.color||colors[nb.length%colors.length],blob:blob,type:item.type||blob?.type||'',filename:item.filename||'',external:!!item.external,text:item.text||'',createdAt:item.createdAt||pj.created||new Date().toISOString(),endedAt:item.endedAt||item.createdAt||pj.created||new Date().toISOString(),intervalAfter:Number(item.intervalAfter||0),intervalLabel:item.intervalLabel||''});} blocks=nb; startIndex=0; marcarGuardado('✓ Crónica cargada.'); render();}catch(e){status.textContent='No pude abrir ese ZIP de Crónica.';}}
 const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/')||(x.type||'').startsWith('video/')); if(f)loadZip(f); else if(media.length)addExternalFiles(media,blocks.length); else status.textContent='Soltá un ZIP de Crónica o un audio/video.';});
 window.addEventListener('pagehide',()=>{ try{if(dictationRecognition)dictationRecognition.stop();}catch(e){} descartarGrabacionActual=true; recordingBusy=false; stopLiveRecordingBlock(); if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); else releaseMic(); });
 
@@ -1521,6 +1258,3 @@ if('serviceWorker' in navigator){
 }
 
 render();
-</script>
-</body>
-</html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cronica-v29-imagen-etiqueta';
+const CACHE_NAME = 'cronica-v28-bloques-visuales';
 const APP_FILES = [
   './',
   './index.html',
