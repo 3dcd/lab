@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Crónica V28 · bloques visuales</title>
+<title>Crónica V30 · dictado móvil reparado</title>
 <meta name="theme-color" content="#eef4ff" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Crónica" />
@@ -37,11 +37,11 @@
   .topline{display:flex;align-items:center;gap:8px;justify-content:space-between}.name{font-weight:950;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(10,20,35,.9);padding-right:28px}.dur{font-size:12px;font-weight:850;opacity:.78;color:rgba(10,20,35,.78)}
   .created{font-size:12px;color:rgba(10,20,35,.62);font-weight:800}.noteEditor{display:flex;flex-direction:column;gap:8px}.noteText{width:100%;min-height:128px;resize:vertical;border:1px solid rgba(0,0,0,.09);border-radius:18px;padding:12px;background:rgba(255,255,255,.86);font:700 14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#172033;outline:none;user-select:text}.noteText:focus{border-color:#4f8cff;box-shadow:0 0 0 4px rgba(79,140,255,.16);background:#fff}
   .notePreview{display:block;background:rgba(255,255,255,.64);border:1px solid rgba(0,0,0,.06);border-radius:18px;padding:13px 13px;color:#172033;user-select:text;white-space:pre-wrap;min-height:128px;max-height:min(52vh,520px);overflow-y:auto;scroll-behavior:smooth}.notePreview.emptyText{display:flex;align-items:center;justify-content:center;color:rgba(23,32,51,.46);font-size:13px;font-weight:850;text-align:center}.notePreviewTitle{font-size:22px;font-weight:950;line-height:1.16;margin-bottom:8px;letter-spacing:-.01em}.notePreviewSubTitle{font-size:15.5px;font-weight:950;line-height:1.18;margin:10px 0 6px;color:#263348}.notePreviewBody{font-size:13px;font-weight:650;line-height:1.38;color:#344255}.notePreviewBox{font-size:13px;font-weight:720;line-height:1.34;color:#263348;background:rgba(255,255,255,.72);border:1.5px solid rgba(38,51,72,.20);border-radius:14px;padding:10px 11px;margin:10px 0;box-shadow:0 5px 18px rgba(65,95,130,.08)}.notePreviewColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0;align-items:start}.notePreviewCol{background:rgba(255,255,255,.48);border:1px solid rgba(38,51,72,.12);border-radius:13px;padding:9px 10px;font-size:12.9px;font-weight:650;line-height:1.38;color:#344255;min-height:34px;box-shadow:inset 0 1px 0 rgba(255,255,255,.72)}.notePreviewCol.left,.notePreviewCol.right{border-left:1px solid rgba(38,51,72,.12)}.notePreviewDivider{border:0;border-top:2px dotted rgba(38,51,72,.28);height:0;margin:13px 4px}.notePreviewSpacer{height:10px}.notePreviewCol .notePreviewImageSlot{margin:0;min-height:92px}.notePreviewImageSlot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:110px;border:1.5px dashed rgba(38,51,72,.28);border-radius:15px;background:rgba(255,255,255,.56);font-size:12px;font-weight:900;color:rgba(38,51,72,.58);margin:10px 0;cursor:pointer;overflow:hidden}.notePreviewImageSlot img{display:block;width:100%;height:auto;border-radius:12px;object-fit:contain}.notePreviewImageSlot:hover{background:rgba(255,255,255,.82)}.dictateHelp{font-size:11px;font-weight:850;color:rgba(23,32,51,.58);line-height:1.2;margin-top:-4px;padding:0 3px}
-  .dictateTools{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;align-items:center;background:rgba(255,255,255,.66);border:1px solid rgba(0,0,0,.06);border-radius:18px;padding:7px;margin-top:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.65);touch-action:none;margin-bottom:8px}.dictModeBtn{height:36px;min-width:0;border-radius:13px;padding:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:950;box-shadow:0 4px 12px rgba(65,95,130,.10);user-select:none;-webkit-user-select:none;touch-action:none;margin:0}.dictModeBtn.titleMode{background:#172033;color:white;font-size:15px}.dictModeBtn.subMode{background:#465a78;color:white;font-size:11px}.dictModeBtn.bodyMode{background:#e9f4ff;color:#172033}.dictModeBtn.boxMode{background:#fff5d7;color:#65420b;font-size:17px}.dictModeBtn.bulletMode{background:#ecfff0;color:#19592a;font-size:18px}.dictModeBtn.numberMode{background:#eef0ff;color:#22307e;font-size:14px}.dictModeBtn.leftMode{background:#edf7ff;color:#15476f;font-size:15px}.dictModeBtn.rightMode{background:#edf7ff;color:#15476f;font-size:15px}.dictModeBtn.imageMode{background:#f4f0ff;color:#45327a;font-size:16px}.dictModeBtn.blackMode{background:#172033;color:#fff;font-size:13px}.dictModeBtn.captionMode{background:#fff8e8;color:#715018;font-size:11px}.dictModeBtn.labelMode{background:#29364d;color:#fff;font-size:14px}.dictModeBtn.enterMode{background:#e8fff9;color:#0b6656;font-size:17px}.dictModeBtn.dividerMode{background:#f4f7fb;color:#526174;font-size:18px}.dictModeBtn.undoMode{background:#ffd3dc;color:#741323;font-size:17px}.dictModeBtn.active{outline:none;transform:none;filter:none}.dictModeBtn.flash{outline:4px solid rgba(79,140,255,.22);transform:translateY(1px);filter:brightness(1.04)}.dictTouchHint{display:none}
+  .dictateTools{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;align-items:center;background:rgba(255,255,255,.66);border:1px solid rgba(0,0,0,.06);border-radius:18px;padding:7px;margin-top:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.65);touch-action:none;margin-bottom:8px}.dictModeBtn{height:36px;min-width:0;border-radius:13px;padding:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:950;box-shadow:0 4px 12px rgba(65,95,130,.10);user-select:none;-webkit-user-select:none;touch-action:none;margin:0}.dictModeBtn.titleMode{background:#172033;color:white;font-size:15px}.dictModeBtn.subMode{background:#465a78;color:white;font-size:11px}.dictModeBtn.bodyMode{background:#e9f4ff;color:#172033}.dictModeBtn.boxMode{background:#fff5d7;color:#65420b;font-size:17px}.dictModeBtn.bulletMode{background:#ecfff0;color:#19592a;font-size:18px}.dictModeBtn.numberMode{background:#eef0ff;color:#22307e;font-size:14px}.dictModeBtn.leftMode{background:#edf7ff;color:#15476f;font-size:15px}.dictModeBtn.rightMode{background:#edf7ff;color:#15476f;font-size:15px}.dictModeBtn.imageMode{background:#f4f0ff;color:#45327a;font-size:16px}.dictModeBtn.imageLabelMode{background:#f4f0ff;color:#45327a;font-size:13px}.dictModeBtn.blackMode{background:#172033;color:#fff;font-size:13px}.dictModeBtn.captionMode{background:#fff8e8;color:#715018;font-size:11px}.dictModeBtn.labelMode{background:#29364d;color:#fff;font-size:14px}.dictModeBtn.enterMode{background:#e8fff9;color:#0b6656;font-size:17px}.dictModeBtn.dividerMode{background:#f4f7fb;color:#526174;font-size:18px}.dictModeBtn.undoMode{background:#ffd3dc;color:#741323;font-size:17px}.dictModeBtn.active{outline:none;transform:none;filter:none}.dictModeBtn.flash{outline:4px solid rgba(79,140,255,.22);transform:translateY(1px);filter:brightness(1.04)}.dictTouchHint{display:none}
   .notePreviewBullet{font-size:13px;font-weight:670;line-height:1.36;color:#344255;margin:4px 0 4px 12px;position:relative;padding-left:12px}.notePreviewBullet:before{content:'•';position:absolute;left:0;font-weight:950}.notePreviewNumber{font-size:13px;font-weight:670;line-height:1.36;color:#344255;margin:4px 0 4px 6px}.notePreviewIndent{font-size:13px;font-weight:650;line-height:1.36;color:#344255;margin:4px 0 4px 22px;border-left:2px solid rgba(52,66,85,.18);padding-left:10px}.notePreviewQuote{font-size:13px;font-weight:760;line-height:1.36;color:#263348;margin:8px 0;padding:8px 10px;border-left:4px solid rgba(38,51,72,.25);background:rgba(255,255,255,.52);border-radius:10px}
   .notePreviewBlack{font-size:13px;font-weight:850;line-height:1.34;color:#fff;background:#172033;border-radius:15px;padding:11px 12px;margin:10px 0;box-shadow:0 10px 24px rgba(23,32,51,.18)}
   .notePreviewCaption{font-size:11.5px;font-weight:800;line-height:1.3;color:#64748b;text-align:center;margin:-4px 0 10px;font-style:italic}
-  .notePreviewImageWrap{position:relative;margin:10px 0}.notePreviewImageWrap .notePreviewImageSlot{margin:0}.notePreviewImageLabel{position:absolute;left:10px;top:10px;max-width:72%;background:rgba(23,32,51,.86);color:#fff;border-radius:12px;padding:6px 8px;font-size:11.5px;font-weight:900;line-height:1.18;box-shadow:0 8px 20px rgba(0,0,0,.18);pointer-events:none}.notePreviewImageWrap .notePreviewCaption{margin:6px 4px 0}
+  .notePreviewImageWrap{position:relative;margin:10px 0}.notePreviewImageWrap .notePreviewImageSlot{margin:0}.notePreviewImageLabel{position:absolute;left:10px;top:10px;max-width:72%;background:rgba(15,23,42,.78);color:#fff;border-radius:12px;padding:6px 8px;font-size:11.5px;font-weight:900;line-height:1.18;box-shadow:0 8px 20px rgba(0,0,0,.18);pointer-events:none}.notePreviewImageWrap .notePreviewCaption{margin:6px 4px 0}
   .notePreview [data-edit-line]{cursor:text}.notePreview [data-edit-line]:hover{outline:2px solid rgba(79,140,255,.22);outline-offset:2px;border-radius:8px}
 
   .cardBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}.cardBtns button{padding:9px 10px;border-radius:14px;font-size:13px;box-shadow:0 5px 14px rgba(65,95,130,.11)}
@@ -190,7 +190,7 @@ function render(){
     const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=false; el.style.background=b.color; el.dataset.id=b.id;
     const editing=!!b.editingText;
     const preview=previewEditorialHtml(b.text||'', b);
-    const toolsZona=(dictatingIndex===i && !editing) ? `<div class="dictateTools" data-dict-tools="${i}"><button class="dictModeBtn titleMode ${dictationTouchMode==='title'?'active':''}" data-mode="title" title="Título">T</button><button class="dictModeBtn subMode ${dictationTouchMode==='subtitle'?'active':''}" data-mode="subtitle" title="Subtítulo">Sub</button><button class="dictModeBtn bodyMode ${dictationTouchMode==='body'?'active':''}" data-mode="body" title="Texto normal">N</button><button class="dictModeBtn boxMode ${dictationTouchMode==='box'?'active':''}" data-mode="box" title="Recuadro">□</button><button class="dictModeBtn enterMode" data-action="enter" title="Cerrar tramo">↵</button><button class="dictModeBtn undoMode" data-action="undo" title="Borrar último bloque">↶</button><button class="dictModeBtn bulletMode ${dictationTouchMode==='bullet'?'active':''}" data-mode="bullet" title="Viñeta">•</button><button class="dictModeBtn numberMode ${dictationTouchMode==='number'?'active':''}" data-mode="number" title="Lista numerada">1</button><button class="dictModeBtn leftMode ${dictationTouchMode==='leftcol'?'active':''}" data-mode="leftcol" title="Columna izquierda">◧</button><button class="dictModeBtn rightMode ${dictationTouchMode==='rightcol'?'active':''}" data-mode="rightcol" title="Columna derecha">◨</button><button class="dictModeBtn imageMode" data-action="image" title="Espacio para imagen">🖼</button><button class="dictModeBtn blackMode" data-mode="black" title="Placa negra">Neg</button><button class="dictModeBtn captionMode" data-mode="caption" title="Pie de foto">Pie</button><button class="dictModeBtn labelMode" data-mode="label" title="Etiqueta sobre imagen">🏷</button><button class="dictModeBtn dividerMode" data-action="divider" title="Línea punteada">⋯</button></div>` : '';
+    const toolsZona=(dictatingIndex===i && !editing) ? `<div class="dictateTools" data-dict-tools="${i}"><button class="dictModeBtn titleMode ${dictationTouchMode==='title'?'active':''}" data-mode="title" title="Título">T</button><button class="dictModeBtn subMode ${dictationTouchMode==='subtitle'?'active':''}" data-mode="subtitle" title="Subtítulo">Sub</button><button class="dictModeBtn bodyMode ${dictationTouchMode==='body'?'active':''}" data-mode="body" title="Texto normal">N</button><button class="dictModeBtn boxMode ${dictationTouchMode==='box'?'active':''}" data-mode="box" title="Recuadro">□</button><button class="dictModeBtn enterMode" data-action="enter" title="Cerrar tramo">↵</button><button class="dictModeBtn undoMode" data-action="undo" title="Borrar último bloque">↶</button><button class="dictModeBtn bulletMode ${dictationTouchMode==='bullet'?'active':''}" data-mode="bullet" title="Viñeta">•</button><button class="dictModeBtn numberMode ${dictationTouchMode==='number'?'active':''}" data-mode="number" title="Lista numerada">1</button><button class="dictModeBtn imageLabelMode ${dictationTouchMode==='imagelabel'?'active':''}" data-mode="imagelabel" title="Imagen con etiqueta">🖼▣</button><button class="dictModeBtn blackMode" data-mode="black" title="Placa negra">Neg</button><button class="dictModeBtn captionMode" data-mode="caption" title="Pie de foto">Pie</button><button class="dictModeBtn dividerMode" data-action="divider" title="Línea punteada">⋯</button></div>` : '';
     const textoZona=editing
       ? `<div class="noteEditor"><textarea class="noteText" placeholder="Escribir observación de esta nota...">${escapeHtml(b.text||'')}</textarea><div class="dictateHelp">Modo edición: corregí el texto y tocá “Ver resultado”.</div></div>`
       : `${toolsZona}<div class="notePreview ${preview?'':'emptyText'}">${preview||'Sin texto todavía. Podés dictar o editar a mano.'}</div><div class="dictTouchHint">${dictatingIndex===i?'Dictado táctil activo.':'Dictado táctil: tocá Dictar texto y marcá el formato con los botones.'}</div>`;
@@ -220,7 +220,17 @@ function render(){
     if(tools) configurarHerramientasDictado(tools,i);
     el.querySelector('.recordAudioBtn').onclick=(ev)=>{ev.stopPropagation(); if(recordingLive && recordingTargetIndex===i){detenerGrabacionRobusta(ev); return;} if(estaGrabando()||estaDictando()) return; iniciarGrabacionNota(i);};
     el.querySelector('.play.one').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()||!blocks[i]?.blob) return; if(playing&&playingNoteIndex===i){stopPlayback(false); return;} startIndex=i; setTimeout(()=>playSingle(i),20);};
-    el.querySelector('.dictateBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; toggleDictadoNota(i);};
+    const dictBtn=el.querySelector('.dictateBtn');
+    const dictHandler=(ev)=>{
+      try{ev.preventDefault(); ev.stopPropagation();}catch(e){}
+      if(dictBtn._lastTap && Date.now()-dictBtn._lastTap<250) return;
+      dictBtn._lastTap=Date.now();
+      if(estaGrabando()) return;
+      toggleDictadoNota(i);
+    };
+    dictBtn.onclick=dictHandler;
+    if(window.PointerEvent){ dictBtn.addEventListener('pointerdown',dictHandler,{passive:false}); }
+    else { dictBtn.addEventListener('touchstart',dictHandler,{passive:false}); }
     el.querySelector('.editTextBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; alternarEdicionTexto(i);};
     el.querySelector('.shareBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; compartirNota(i);};
     el.querySelector('.downloadPngBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; exportarPNGNota(i,false);};
@@ -339,12 +349,12 @@ function aplicarPuntuacionHablada(texto){
      .replace(/\n{3,}/g,'\n\n');
   return capitalizarFrases(limpiarEspaciosEditorial(t));
 }
-function esLineaImagen(line){return /^🖼\s+/.test(line) || /^\[imagen\]/i.test(line);}
+function esLineaImagen(line){return /^🖼(?:🏷)?\s+/.test(line) || /^\[imagen\]/i.test(line);}
 function extraerSrcImagen(line, blockCtx=null){
   const raw=String(line||'');
   const id=extraerIdImagen(raw);
   if(id && blockCtx && blockCtx.images && blockCtx.images[id]) return blockCtx.images[id];
-  let v=raw.replace(/^🖼\s+/,'').replace(/^\[imagen(?::[^\]]+)?\]\s*/i,'').trim();
+  let v=raw.replace(/^🖼(?:🏷)?\s+/,'').replace(/^\[imagen(?::[^\]]+)?\]\s*/i,'').trim();
   return /^data:image\//.test(v) ? v : '';
 }
 function previewEditorialHtml(texto, blockCtx=null){
@@ -402,6 +412,8 @@ function previewEditorialHtml(texto, blockCtx=null){
     }
     if(esLineaImagen(line)){
       let label='',caption='';
+      const inlineLabel=line.match(/^🖼🏷\s+\[imagen(?::[^\]]+)?\]\s*(.*)$/i);
+      if(inlineLabel && inlineLabel[1]) label=inlineLabel[1].trim();
       if(/^🏷\s+/.test(next)){label=next.replace(/^🏷\s+/,''); idx++;}
       if(/^Pie:\s*/i.test(lines[idx+1]||'')){caption=(lines[idx+1]||'').replace(/^Pie:\s*/i,''); idx++;}
       const imgHtml=renderImageSlot(line,label,caption);
@@ -502,11 +514,9 @@ function textoDesdePartesDictado(base, partes, parteTemporal=null){
     else if(modo==='box') salida.push('□ '+txt);
     else if(modo==='bullet') salida.push('• '+txt);
     else if(modo==='number') salida.push(proximoNumeroLista(salida)+'. '+txt);
-    else if(modo==='leftcol') salida.push('◧ '+txt);
-    else if(modo==='rightcol') salida.push('◨ '+txt);
+    else if(modo==='imagelabel') salida.push('🖼🏷 [imagen:'+(p.imageId||idImagenNuevo())+'] '+txt);
     else if(modo==='black') salida.push('■ '+txt);
     else if(modo==='caption') salida.push('Pie: '+txt);
-    else if(modo==='label') salida.push('🏷 '+txt);
     else salida.push(txt);
   });
   return salida.join('\n\n');
@@ -518,7 +528,7 @@ function aplicarTextoTemporalDictado(i, texto){
   if(card) actualizarPreviewNota(card,texto,blocks[i]);
 }
 
-function esModoEspecial(modo){return ['title','subtitle','box','bullet','number','leftcol','rightcol','black','caption','label'].includes(modo);}
+function esModoEspecial(modo){return ['title','subtitle','box','bullet','number','imagelabel','black','caption'].includes(modo);}
 function proximoNumeroLista(lineas){
   let max=0;
   (lineas||[]).forEach(l=>{
@@ -533,11 +543,9 @@ function modoLabel(modo){
   if(modo==='box')return 'Recuadro';
   if(modo==='bullet')return 'Viñeta';
   if(modo==='number')return 'Lista';
-  if(modo==='leftcol')return 'Columna izquierda';
-  if(modo==='rightcol')return 'Columna derecha';
+  if(modo==='imagelabel')return 'Imagen con etiqueta';
   if(modo==='black')return 'Placa negra';
   if(modo==='caption')return 'Pie de foto';
-  if(modo==='label')return 'Etiqueta';
   return 'Normal';
 }
 function limpiarTextoDictadoLibre(texto){
@@ -552,7 +560,10 @@ function normalizarTextoDictadoLibre(texto){
 function crearParteTactil(texto, modo, final=true){
   const t=final ? normalizarTextoDictadoLibre(texto) : limpiarTextoDictadoLibre(texto);
   if(!t)return null;
-  return {mode:esModoEspecial(modo)?modo:'body', text:t};
+  const m=esModoEspecial(modo)?modo:'body';
+  const parte={mode:m, text:t};
+  if(final && m==='imagelabel') parte.imageId=idImagenNuevo();
+  return parte;
 }
 function modoConPrefijo(modo,texto){
   if(modo==='title') return '# '+texto;
@@ -560,11 +571,9 @@ function modoConPrefijo(modo,texto){
   if(modo==='box') return '□ '+texto;
   if(modo==='bullet') return '• '+texto;
   if(modo==='number') return '1. '+texto;
-  if(modo==='leftcol') return '◧ '+texto;
-  if(modo==='rightcol') return '◨ '+texto;
+  if(modo==='imagelabel') return '🖼🏷 [imagen:'+idImagenNuevo()+'] '+texto;
   if(modo==='black') return '■ '+texto;
   if(modo==='caption') return 'Pie: '+texto;
-  if(modo==='label') return '🏷 '+texto;
   return texto;
 }
 function formatearBloqueTactil(texto, modo){
@@ -686,7 +695,7 @@ function insertarSeparadorNota(i){
 }
 function idImagenNuevo(){return 'img_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);}
 function asegurarMapaImagenes(i){ if(!blocks[i]) return {}; if(!blocks[i].images || typeof blocks[i].images!=='object') blocks[i].images={}; return blocks[i].images; }
-function extraerIdImagen(line){const m=String(line||'').match(/^🖼\s+\[imagen:([^\]]+)\]/i); return m?m[1]:'';}
+function extraerIdImagen(line){const m=String(line||'').match(/^🖼(?:🏷)?\s+\[imagen:([^\]]+)\]/i); return m?m[1]:'';}
 function insertarPlaceholderImagen(i){
   if(!blocks[i])return;
   asegurarMapaImagenes(i);
@@ -712,8 +721,8 @@ function reemplazarPlaceholderImagen(texto,dataUrl,indice=0,imgId='',i=-1){
     let count=0;
     for(let k=0;k<lineas.length;k++){
       const l=lineas[k].trim();
-      if(/^🖼\s+\[imagen(?::[^\]]+)?\]/i.test(l) || /^🖼\s*$/i.test(l) || /^\[imagen\]/i.test(l) || /^🖼\s+data:image\//i.test(l)){
-        if(count===indice){ targetId=extraerIdImagen(l)||idImagenNuevo(); lineas[k]='🖼 [imagen:'+targetId+']'; break; }
+      if(/^🖼(?:🏷)?\s+\[imagen(?::[^\]]+)?\]/i.test(l) || /^🖼\s*$/i.test(l) || /^\[imagen\]/i.test(l) || /^🖼\s+data:image\//i.test(l)){
+        if(count===indice){ targetId=extraerIdImagen(l)||idImagenNuevo(); lineas[k]=lineas[k].trim().startsWith('🖼🏷') ? lineas[k].replace(/^🖼🏷\s+\[imagen(?::[^\]]+)?\]/i,'🖼🏷 [imagen:'+targetId+']') : '🖼 [imagen:'+targetId+']'; break; }
         count++;
       }
     }
@@ -721,8 +730,8 @@ function reemplazarPlaceholderImagen(texto,dataUrl,indice=0,imgId='',i=-1){
     const safe=targetId.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
     for(let k=0;k<lineas.length;k++){
       const l=lineas[k].trim();
-      if(new RegExp('^🖼\\s+\\[imagen:'+safe+'\\]','i').test(l)){
-        lineas[k]='🖼 [imagen:'+targetId+']'; break;
+      if(new RegExp('^🖼(?:🏷)?\\s+\\[imagen:'+safe+'\\]','i').test(l)){
+        lineas[k]=lineas[k].trim().startsWith('🖼🏷') ? lineas[k].replace(/^🖼🏷\s+\[imagen(?::[^\]]+)?\]/i,'🖼🏷 [imagen:'+targetId+']') : '🖼 [imagen:'+targetId+']'; break;
       }
     }
   }
@@ -845,7 +854,6 @@ function iniciarDictadoNota(i){
   dictationParts=[];
   dictationSkipFinals=[];
   undoTouchLockUntil=0;
-  render();
   try{
     const rec=new SR();
     dictationRecognition=rec;
@@ -854,7 +862,10 @@ function iniciarDictadoNota(i){
     rec.interimResults=true;
     rec.maxAlternatives=1;
     rec.onstart=()=>{status.textContent='Dictando texto en nota '+(i+1)+'. Tocá un botón para cerrar/abrir tramos. ↵ agrega aire si lo necesitás.';};
-    rec.onerror=(ev)=>{status.textContent='No pude dictar texto. Revisá permisos de micrófono o probá en Chrome.';};
+    rec.onerror=(ev)=>{
+      const code=ev && ev.error ? ev.error : '';
+      status.textContent='No pude iniciar el dictado en este navegador. Revisá permiso de micrófono y usá Chrome Android si estás en celular.'+(code?' ('+code+')':'');
+    };
     rec.onresult=(ev)=>{
       if(dictatingIndex!==i || !blocks[i])return;
       dictationInterimText='';
@@ -893,6 +904,7 @@ function iniciarDictadoNota(i){
       }
     };
     rec.start();
+    render();
   }catch(e){
     dictatingIndex=-1;
     dictationRecognition=null;

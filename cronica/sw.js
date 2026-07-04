@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cronica-v28-bloques-visuales';
+const CACHE_NAME = 'cronica-v30-dictado-movil';
 const APP_FILES = [
   './',
   './index.html',
