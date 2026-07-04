@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bitacora-v4-no-install-button';
+const CACHE_NAME = 'cronica-v29-imagen-etiqueta';
 const APP_FILES = [
   './',
   './index.html',
