@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Podcast por Bloques V57</title>
+<style>
+  :root{
+    --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
+    --line:#d7e2f0;--accent:#4f8cff;--accent2:#9ad7ff;--danger:#ff6b7a;--ok:#3ccf91;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--txt)}
+  .app{max-width:1280px;margin:0 auto;padding:18px}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:25px;margin:0;letter-spacing:-.02em}.hint{color:var(--mut);font-size:14px;margin-top:4px}
+  .panel{position:relative;background:var(--card);border:1px solid #e3edf8;border-radius:26px;padding:18px;box-shadow:0 18px 55px rgba(45,79,120,.13)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;overflow:visible}
+  button{border:0;border-radius:16px;padding:11px 12px;font-weight:800;color:#162033;background:#edf4ff;cursor:pointer;box-shadow:0 7px 18px rgba(65,95,130,.14);white-space:nowrap;touch-action:manipulation}
+  button:hover{filter:brightness(1.02);transform:translateY(-1px)} button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .app.isRecording .controls button:not(#stopBtn), .app.isRecording .controls label{opacity:.38;filter:grayscale(.18);pointer-events:none}
+  .app.isRecording #stopBtn{opacity:1;pointer-events:auto;filter:none}
+  .app.isRecording .drop{opacity:.55;pointer-events:none}
+  .app.isRecording .block:not(.recordingLive), .app.isRecording .silenceBlock{cursor:not-allowed;pointer-events:none}
+  .rec{background:#ff5c72;color:white}.stop{background:#ffd166;color:#3b2600}.play{background:#8ef1bf}.pause{background:#ffe7a3}.export{background:#9ad7ff}.save{background:#cfc2ff}.open{background:#ffc4e8}
+  .controls #recBtn,.controls #stopBtn,.controls #playBtn,.controls #pauseBtn{display:none}
+  .save.unsaved{background:#ffb13d;color:#402600;animation:softSavePulse .85s ease-in-out infinite}
+  @keyframes softSavePulse{0%,100%{background-color:#ffd18a}50%{background-color:#ff9f1f}}
+  .save.unsaved:hover{filter:none;transform:none}
+  input[type=range]{width:110px;accent-color:var(--accent)} label{font-weight:700;color:#344255;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .drop{border:2px dashed #b9cbe0;border-radius:22px;padding:16px;text-align:center;color:var(--mut);margin-bottom:14px;background:#f8fbff;font-weight:700}
+  .drop.drag{border-color:var(--accent);background:#eaf3ff;color:#0f4fb5}
+  .timelineWrap{position:relative;padding:22px 14px 42px;background:#f9fcff;border-radius:24px;min-height:380px;border:1px solid #e3edf8;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;clip-path:inset(0 round 24px);overscroll-behavior-x:contain}
+  .timelineWrap::-webkit-scrollbar{height:8px}.timelineWrap::-webkit-scrollbar-thumb{background:#c9d8e8;border-radius:20px}.timelineWrap::-webkit-scrollbar-track{background:transparent}
+  .timeline{display:flex;gap:10px;align-items:stretch;min-height:175px;position:relative;width:100%;min-width:100%;padding-right:2px}.timeline.recordingMode{width:100%;min-width:100%;overflow:hidden}
+  .timeline.recordingMode .block{min-width:24px;padding-left:10px;padding-right:10px}
+  .timeline.recordingMode .block:not(.recordingLive) .name{padding-right:20px}
+  .timeline.recordingMode .silenceBlock{min-width:18px;padding-left:5px;padding-right:5px}
+  .timeline.recordingMode .recordingLive{min-width:72px;flex-shrink:0}
+  .block{position:relative;height:170px;border-radius:24px;padding:30px 12px 18px;display:flex;flex-direction:column;justify-content:center;gap:12px;cursor:grab;user-select:none;touch-action:manipulation;border:1px solid rgba(0,0,0,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);overflow:hidden;min-width:42px;max-width:100%;transition:flex-basis .08s linear,width .12s ease, transform .12s ease;transform-origin:left center}
+  .block.external{height:128px;margin-top:22px;border-style:dashed;background:#dde8f5!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 8px 20px rgba(45,79,120,.10);gap:9px;padding-top:30px}.block.external .name{font-size:12px;padding-right:24px}.block.external .name:before{content:"Ext. · ";font-weight:900;color:#53667d}.block:active{cursor:grabbing;transform:scale(.99)}.block:hover{box-shadow:inset 0 0 0 3px rgba(79,140,255,.18),inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14)}.block.selected{outline:none;box-shadow:inset 0 0 0 4px rgba(79,140,255,.55),inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);transform:translateY(-2px)}
+  .silenceBlock{position:relative;align-self:center;height:74px;border-radius:16px;padding:8px 9px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;cursor:pointer;user-select:none;border:2px dashed #b8c8da;background:#eef4fb;color:#53667d;box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 7px 18px rgba(45,79,120,.08);overflow:hidden;min-width:30px;transition:width .2s ease,transform .12s ease}
+  .silenceBlock:hover{outline:3px solid rgba(79,140,255,.18);transform:translateY(-1px)}
+  .silenceTitle{font-size:11px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .silenceDur{font-size:12px;font-weight:900;opacity:.8}
+  .name{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(10,20,35,.86);padding-right:30px}.dur{font-size:12px;font-weight:800;opacity:.75;color:rgba(10,20,35,.78)}
+  .del{position:absolute;right:9px;top:8px;width:28px;height:28px;border-radius:50%;padding:0;background:rgba(255,255,255,.78);color:#243142;box-shadow:none;line-height:24px;font-size:16px}
+  .playhead{position:absolute;top:10px;bottom:31px;width:4px;background:rgba(20,35,55,.72);border-radius:8px;left:12px;display:none;pointer-events:none;z-index:20;box-shadow:0 0 0 9999px rgba(80,120,160,.035),0 0 13px rgba(20,35,55,.28)}
+  .empty{color:var(--mut);padding:26px;text-align:center;width:100%;border-radius:18px;background:white;border:1px dashed #d5e3f2;font-weight:700}
+  .status{margin-top:12px;color:var(--mut);font-size:14px;font-weight:650}.status.unsaved{color:#d87a00}.status.saved{color:#2a9d66}.mini{font-size:12px;color:var(--mut);font-weight:700}
+  .projectInput{display:none}.toolsLine{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.meter{position:absolute;right:24px;bottom:24px;display:none;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:#fff3f5;border:1px solid #ffd4dc;color:#d83b53;font-weight:900;min-height:38px;box-shadow:0 7px 18px rgba(216,59,83,.10);z-index:40}.meter.on{display:inline-flex}.bars{display:flex;gap:4px;align-items:center;height:30px}.bar{width:5px;height:7px;border-radius:6px;background:#ff5c72;transition:height .05s linear}
+
+  .block.recordingLive{cursor:default;background:linear-gradient(135deg,#ff7890,#ffd1d9)!important;color:#3b1118;outline:none;box-shadow:inset 0 0 0 3px rgba(255,92,114,.30),inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14);min-width:72px;transform:none!important;transform-origin:left center}
+  .block.recordingLive:active{cursor:default;transform:none}.block.recordingLive:hover{box-shadow:inset 0 0 0 3px rgba(255,92,114,.38),inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14)}
+  .block.recordingLive .name,.block.recordingLive .dur{position:relative;z-index:2;color:#3b1118;text-shadow:0 1px 0 rgba(255,255,255,.36)}
+  .block.recordingLive:before{content:"";position:absolute;inset:-90px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 16px,rgba(255,255,255,.58) 16px 34px,rgba(255,255,255,.10) 34px 58px);animation:none;z-index:1;will-change:transform}
+  .block.recordingLive:after{content:"";position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.34));z-index:1}
+  @keyframes liveStripes{from{transform:translate3d(-70px,70px,0)}to{transform:translate3d(70px,-70px,0)}}
+
+  .transport{
+    position:relative;display:flex;align-items:center;gap:8px;margin-top:12px;padding:6px 0 0 6px;
+    max-width:none;
+  }
+  .roundRec,.roundPlay{
+    min-width:86px;height:36px;border-radius:12px;padding:0 14px;display:flex;align-items:center;justify-content:center;
+    line-height:1;font-size:14px;font-weight:900;box-shadow:0 6px 14px rgba(45,79,120,.12);
+    flex:0 0 auto;touch-action:manipulation;border:none;
+  }
+  .roundRec{background:#ff5c72;color:white}
+  .roundRec.recording{animation:recPulse .9s ease-in-out infinite}
+  @keyframes recPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+  .roundPlay{background:#8ef1bf;color:#162033}
+  .innerPlayerLine{
+    position:absolute;left:12px;right:12px;bottom:31px;height:3px;border-radius:999px;
+    background:rgba(20,35,55,.62);z-index:18;pointer-events:none;
+  }
+  
+  .innerPlayerHead{display:none!important;}
+
+  .trackLabel{font-size:12px;font-weight:950;color:#53667d;margin:0 0 8px 4px;text-transform:uppercase;letter-spacing:.04em}
+  .fxLabel{margin-top:18px}
+  .fxTimeline{position:relative;display:block;min-height:124px;height:124px;align-items:initial;padding:0 0 8px;border-top:1px dashed #d9d1ea;border-radius:18px;background:linear-gradient(180deg,#fbf9ff,#f6f0ff);overflow:hidden}
+  .fxTimeline:before{content:"";position:absolute;left:0;right:0;top:50%;height:3px;border-radius:999px;background:rgba(105,79,155,.18);pointer-events:none}
+  .fxToolbar{display:flex;align-items:center;gap:10px;margin:0 0 8px 4px;flex-wrap:wrap}
+  .fxToolbar .fxLabel{margin:0}
+  .fxVolLabel{font-size:12px;font-weight:900;color:#53667d;background:rgba(255,255,255,.65);border:1px solid #e2d9f0;border-radius:14px;padding:6px 9px;display:flex;align-items:center;gap:7px}
+  .fxVolLabel input[type=range]{width:120px}
+  .fxVolValue{min-width:18px;text-align:center;color:#513f76}
+  .fxTimeline .block{
+    position:absolute;top:4px;height:82px;border-radius:20px;padding:0;gap:0;
+    background:linear-gradient(135deg,#e8ddff,#d9caff)!important;
+    cursor:grab;min-width:54px;max-width:none;touch-action:none;z-index:2;overflow:hidden;
+  }
+  .fxTimeline .block:active{cursor:grabbing}
+  .fxStripeSurface{position:absolute;inset:0;border-radius:20px;pointer-events:none;z-index:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.50) 0 10px,rgba(255,255,255,.12) 10px 20px);background-size:28px 28px;}
+  .fxTimeline .block:after{content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(105,79,155,.16),inset 0 1px 0 rgba(255,255,255,.55);z-index:2}
+  .fxHandle{position:absolute;top:0;bottom:0;width:28px;z-index:4;background:rgba(255,255,255,.18);border:1px solid rgba(105,79,155,.15);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24);cursor:ew-resize;touch-action:none}
+  .fxHandle.left{left:0;border-radius:20px 7px 7px 20px}
+  .fxHandle.right{right:0;border-radius:7px 20px 20px 7px}
+  .fxHandle:after{content:"";position:absolute;top:50%;left:50%;width:3px;height:30px;border-radius:9px;background:rgba(104,79,155,.42);transform:translate(-50%,-50%)}
+  .fxTimeline .empty{position:absolute;left:0;right:0;top:20px;padding:18px;z-index:1}
+  .fxTimeline .del{position:absolute;top:7px;left:50%;width:28px;height:28px;border-radius:50%;padding:0;background:rgba(255,255,255,.88);color:#243142;box-shadow:0 4px 10px rgba(45,79,120,.10);line-height:24px;font-size:16px;z-index:6;transform:translateX(-50%)}
+  .fxBlockSilence{background:linear-gradient(135deg,#f4f1f9,#e9e3f2)!important;border-style:dashed!important;color:#685d75}
+  .fxBlockSilence .fxStripeSurface{background:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 10px,rgba(210,205,220,.22) 10px 20px)}
+  .fxVisualHint{display:none}
+  .fxTrimRead{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;font-weight:950;color:rgba(62,45,92,.68);background:rgba(255,255,255,.58);border:1px solid rgba(105,79,155,.12);border-radius:999px;padding:2px 6px;line-height:1;z-index:5;pointer-events:none;max-width:46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fxTrimRead.left{left:32px}.fxTrimRead.right{right:32px}
+  .fxTimeline .name,.fxTimeline .dur,.fxTimeline .fxStart{display:none!important}
+  @media(max-width:640px){
+    .roundRec,.roundPlay{min-width:74px;height:34px;border-radius:11px;padding:0 11px;font-size:13px}
+    .transport{gap:6px;padding-left:4px}
+    .meter{right:16px;bottom:18px}
+    .innerPlayerLine{left:12px;right:12px;bottom:29px}
+  }
+  @media(max-width:900px){input[type=range]{width:135px}}
+  @media(max-width:640px){.app{padding:10px}.panel{padding:12px}.timelineWrap{min-height:340px}.timeline{min-height:150px}.block{height:148px;border-radius:22px}.name{font-size:13px}button{padding:11px 12px}}
+  /* V37 celular: no frenar artificialmente el ancho. Que se achiquen en proporción,
+     así el cursor/playhead coincide mejor con la duración real. */
+  @media(max-width:640px){
+    .timeline:not(.recordingMode) .block{min-width:16px;padding-left:4px;padding-right:4px}
+    .timeline:not(.recordingMode) .silenceBlock{min-width:12px;padding-left:2px;padding-right:2px}
+    .timeline:not(.recordingMode) .del{width:20px;height:20px;right:4px;top:5px;font-size:13px;line-height:18px}
+    .timeline:not(.recordingMode) .name{font-size:12px;padding-right:0}
+    .timeline:not(.recordingMode) .dur{font-size:11px}
+    .timeline:not(.recordingMode) .silenceTitle{font-size:9px}
+    .timeline:not(.recordingMode) .silenceDur{font-size:10px}
+    .fxVolLabel input[type=range]{width:95px}
+    .fxToolbar{gap:6px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div><h1>Podcast por Bloques</h1><div class="hint">Grabá voces, sumá sonidos o videos como ambientes, ubicá cada clip en el tiempo y exportá el podcast final.</div></div>
+    <div class="mini">Funciona local en el navegador.</div>
+  </header>
+  <div class="panel">
+    <div class="controls">
+      <button id="recBtn" class="rec">● Grabar</button>
+      <button id="stopBtn" class="stop" disabled>■ Detener</button>
+      <button id="playBtn" class="play" disabled>▶ Reproducir</button>
+      <button id="pauseBtn" class="pause" disabled>⏸ Pausar</button>
+      <label>Volumen <input id="vol" type="range" min="0" max="1" step="0.01" value="1"></label>
+      <button id="wavBtn" class="export" disabled>Exportar WAV</button>
+      <button id="saveBtn" class="save" disabled>Exportar proyecto ZIP</button>
+      <button id="loadBtn" class="open">Abrir ZIP</button>
+      <button id="addAudioBtn" class="open">Agregar voz/audio</button>
+      <button id="addFxBtn" class="open">Agregar sonido</button>
+      <button id="addFxSilenceBtn" class="open">Silencio sonido</button>
+      <input id="projectFile" class="projectInput" type="file" accept=".zip,application/zip">
+      <input id="audioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
+      <input id="fxAudioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
+    </div>
+    <div id="drop" class="drop">Arrastrá acá un ZIP de proyecto. Los audios normales van arriba; los MP3/WAV/MP4 de sonidos van abajo y se usan solo como audio.</div>
+    <div class="timelineWrap" id="wrap"><div class="playhead" id="head"></div><div class="trackLabel">Voces / entrevista</div><div class="timeline" id="timeline"><div class="empty">Todavía no hay audios. Tocá “Grabar”.</div></div><div class="fxToolbar"><div class="trackLabel fxLabel">Sonidos / ambientes</div><label class="fxVolLabel">Ambiente <input id="fxVol" type="range" min="0" max="10" step="1" value="5"><span id="fxVolValue" class="fxVolValue">5</span></label></div><div class="timeline fxTimeline" id="fxTimeline"><div class="empty">Agregá pájaros, música, ambiente o un MP4: se escucha el audio y podés arrastrarlo al momento exacto.</div></div><div class="innerPlayerLine" id="transportLine"></div><div class="innerPlayerHead" id="transportHead"></div></div>
+    <div class="transport">
+      <button id="recRoundBtn" class="roundRec" title="Grabar / detener grabación">Grabar</button>
+      <button id="playStopRoundBtn" class="roundPlay" title="Reproducir / detener">Play</button>
+    </div>
+    <div class="status" id="status">Listo.</div><div id="meter" class="meter"><span>Grabando</span><div class="bars" id="bars"><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i></div></div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+let mediaRecorder, chunks=[], blocks=[], fxBlocks=[], playing=false, currentAudio=null, raf=0, startIndex=0, micStream=null, audioCtxLive=null, analyser=null, meterRaf=0, playCtx=null, playSources=[], playStartedAt=0, playOffset=0, playRunId=0;
+let recordingLive=false, recordingStart=0, recordingLiveDuration=0, recordingLiveRaf=0;
+let recordingBusy=false;
+let suprimirClickRecRoundHasta=0;
+let ultimoToqueBloque={id:null,t:0};
+let hayCambiosSinGuardar=false;
+const DEFAULT_SILENCE=2;
+const colors=['#9ad7ff','#9ff0c8','#ffe38f','#ffc2df','#d6c8ff','#ffb0b8','#b7f1ff','#ffd2a6','#c7ed9f','#e0e7ff'];
+const $=id=>document.getElementById(id);
+const recBtn=$('recBtn'), stopBtn=$('stopBtn'), playBtn=$('playBtn'), pauseBtn=$('pauseBtn'), wavBtn=$('wavBtn'), saveBtn=$('saveBtn'), timeline=$('timeline'), fxTimeline=$('fxTimeline'), status=$('status'), head=$('head'), transportHead=$('transportHead'), vol=$('vol'), fxVol=$('fxVol'), fxVolValue=$('fxVolValue'), meter=$('meter'), bars=[...$('bars').querySelectorAll('.bar')], recRoundBtn=$('recRoundBtn'), playStopRoundBtn=$('playStopRoundBtn');
+function actualizarBotonGuardar(){
+  if(!saveBtn) return;
+  const activo=hayCambiosSinGuardar && (blocks.length>0 || fxBlocks.length>0);
+  saveBtn.classList.toggle('unsaved', activo);
+  saveBtn.textContent='Exportar proyecto ZIP';
+}
+function marcarSinGuardar(msg){
+  hayCambiosSinGuardar=true;
+  status.classList.remove('saved');
+  status.classList.add('unsaved');
+  actualizarBotonGuardar();
+  if(msg) status.textContent=msg;
+}
+function marcarGuardado(msg){
+  hayCambiosSinGuardar=false;
+  status.classList.remove('unsaved');
+  status.classList.add('saved');
+  actualizarBotonGuardar();
+  if(msg) status.textContent=msg;
+}
+window.addEventListener('beforeunload',function(e){
+  if(hayCambiosSinGuardar){
+    e.preventDefault();
+    e.returnValue='';
+  }
+});
+function fmt(s){s=Math.max(0,Math.round(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function getPauseAfter(i){return Math.max(0, Number(blocks[i]?.pauseAfter ?? DEFAULT_SILENCE) || 0)}
+function totalDurationWithPauses(list=blocks){return list.reduce((a,b,i)=>a+Math.max(.2,b.duration||1)+(i<list.length-1?Math.max(0,Number(b.pauseAfter ?? DEFAULT_SILENCE)||0):0),0)}
+function getFxPauseAfter(i){return Math.max(0, Number(fxBlocks[i]?.pauseAfter ?? 0) || 0)}
+function getFxStart(b){return Math.max(0, Number(b?.start ?? 0) || 0)}
+function fxRawDuration(b){return Math.max(.05,Number(b?.duration||0))}
+function getFxTrimStart(b){return Math.max(0,Math.min(fxRawDuration(b)-.05,Number(b?.trimStart ?? 0)||0))}
+function getFxTrimEnd(b){return Math.max(getFxTrimStart(b)+.05,Math.min(fxRawDuration(b),Number(b?.trimEnd ?? b?.duration ?? 0)||fxRawDuration(b)))}
+function fxClipDuration(b){return Math.max(.05,getFxTrimEnd(b)-getFxTrimStart(b))}
+function fxEnd(b){return getFxStart(b)+fxClipDuration(b)}
+function totalFxDuration(list=fxBlocks){return list.reduce((a,b)=>Math.max(a,fxEnd(b)),0)}
+function applyFxFade(gain, startTime, dur, value){
+  const fade=Math.min(1, Math.max(.03,dur/2));
+  try{
+    gain.gain.cancelScheduledValues(startTime);
+    gain.gain.setValueAtTime(0,startTime);
+    gain.gain.linearRampToValueAtTime(value,startTime+fade);
+    gain.gain.setValueAtTime(value,Math.max(startTime+fade,startTime+dur-fade));
+    gain.gain.linearRampToValueAtTime(0,startTime+dur);
+  }catch(e){gain.gain.value=value;}
+}
+function getFxVolume(){return Math.max(0,Math.min(10,Number(fxVol?.value ?? 5)||0))/10}
+function fxGain(base=1){return Number(vol?.value ?? 1)*getFxVolume()*base}
+function updateFxVolLabel(){if(fxVolValue) fxVolValue.textContent=String(Math.round(Number(fxVol?.value ?? 5)||0));}
+function stripeOffsetFor(b,total){const w=fxTimeline?.clientWidth||900; return -getFxTrimStart(b)*(w/Math.max(1,total));}
+function fxTrimmedFromEnd(b){return Math.max(0, fxRawDuration(b)-getFxTrimEnd(b));}
+function fxShortTime(s){
+  s=Math.max(0, Number(s)||0);
+  if(s<10) return s.toFixed(s%1?1:0)+'s';
+  return fmt(s);
+}
+function updateFxClipVisual(el,b){
+  const surface=el.querySelector('.fxStripeSurface');
+  if(surface){
+    // Las diagonales quedan ancladas al audio original, pero no se dibuja
+    // nada por fuera del clip visible. Al recortar el inicio, el patrón
+    // avanza y da la sensación de que realmente se está comiendo material.
+    surface.style.backgroundPosition=(-getFxTrimStart(b)*18).toFixed(1)+'px 0px';
+  }
+  const l=el.querySelector('.fxTrimRead.left');
+  const r=el.querySelector('.fxTrimRead.right');
+  if(l) l.textContent='−'+fxShortTime(getFxTrimStart(b));
+  if(r) r.textContent='−'+fxShortTime(fxTrimmedFromEnd(b));
+}
+function fxNeighborsFor(b){
+  const others=fxBlocks.filter(x=>x!==b).sort((a,c)=>getFxStart(a)-getFxStart(c));
+  const start=getFxStart(b), end=fxEnd(b);
+  let prevEnd=0, nextStart=60*60;
+  for(const x of others){
+    const xs=getFxStart(x), xe=fxEnd(x);
+    if(xe<=start+0.001) prevEnd=Math.max(prevEnd,xe);
+    if(xs>=end-0.001){ nextStart=Math.min(nextStart,xs); break; }
+  }
+  return {prevEnd,nextStart};
+}
+function clampFxToNeighbors(b){
+  const n=fxNeighborsFor(b);
+  const dur=fxClipDuration(b);
+  b.start=Math.max(n.prevEnd,Math.min(n.nextStart-dur,getFxStart(b)));
+  return n;
+}
+function findFreeFxStart(desired,dur){
+  let st=Math.max(0,Number(desired)||0);
+  const others=[...fxBlocks].sort((a,b)=>getFxStart(a)-getFxStart(b));
+  let changed=true, guard=0;
+  while(changed && guard++<200){
+    changed=false;
+    for(const x of others){
+      const xs=getFxStart(x), xe=fxEnd(x);
+      if(st+dur>xs+0.001 && st<xe-0.001){
+        st=xe;
+        changed=true;
+      }
+    }
+  }
+  return st;
+}
+function mainDuration(){return totalDurationWithPauses()+((recordingLive&&blocks.length)?DEFAULT_SILENCE:0)+(recordingLive?Math.max(.2,recordingLiveDuration||.2):0)}
+function projectDuration(){return Math.max(mainDuration(), totalFxDuration(), 1)}
+function offsetWithPauses(untilIndex){let t=0; for(let i=0;i<untilIndex;i++){t+=Math.max(.2,blocks[i].duration||1); if(i<blocks.length-1)t+=getPauseAfter(i);} return t;}
+function estaGrabando(){return !!(recordingBusy || recordingLive || (mediaRecorder && mediaRecorder.state==='recording'));}
+function pedirSilencio(i){if(estaGrabando()) return; const actual=getPauseAfter(i); const txt=prompt('¿Cuántos segundos de silencio querés entre estos dos audios?', String(actual)); if(txt===null)return; const val=Number(String(txt).replace(',', '.')); if(!isFinite(val)||val<0){alert('Poné un número válido, por ejemplo 1, 2 o 3.5'); return;} blocks[i].pauseAfter=Math.min(60, val); marcarSinGuardar('Cambios sin guardar: silencio ajustado.'); render();}
+function updateBtns(){const has=(blocks.length>0 || fxBlocks.length>0); const rec=estaGrabando(); document.querySelector('.app')?.classList.toggle('isRecording', rec); playBtn.disabled=rec||!has||playing; wavBtn.disabled=rec||!has; saveBtn.disabled=rec||!has; pauseBtn.disabled=rec||!playing; recBtn.disabled=rec||playing; stopBtn.disabled=!rec; $('loadBtn').disabled=rec; $('addAudioBtn').disabled=rec; $('addFxBtn').disabled=rec; $('addFxSilenceBtn').disabled=rec; playBtn.textContent='▶ Reproducir'; pauseBtn.textContent='⏸ Pausar'; stopBtn.textContent='■ Detener';
+  if(recRoundBtn){recRoundBtn.disabled=playing; recRoundBtn.classList.toggle('recording',rec); recRoundBtn.textContent=rec?'Detener':'Grabar'; recRoundBtn.title=rec?'Detener grabación':'Grabar';}
+  if(playStopRoundBtn){playStopRoundBtn.disabled=rec||(!has&&!playing); playStopRoundBtn.textContent=playing?'Stop':'Play'; playStopRoundBtn.title=playing?'Detener reproducción':'Reproducir';}
+}
+function escapeHtml(s){return String(s).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
+function esVistaAngosta(){
+  return window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+}
+function mantenerScrollHorizontal(scrollValue){
+  const wrapEl=$('wrap');
+  if(!wrapEl) return;
+  const prevBehavior=wrapEl.style.scrollBehavior;
+  wrapEl.style.scrollBehavior='auto';
+  const fix=()=>{
+    wrapEl.scrollLeft=scrollValue;
+  };
+  fix();
+  requestAnimationFrame(fix);
+  setTimeout(fix,40);
+  setTimeout(fix,120);
+  setTimeout(()=>{
+    fix();
+    wrapEl.style.scrollBehavior=prevBehavior;
+  },260);
+}
+function renderConScrollQuieto(){
+  const wrapEl=$('wrap');
+  const keepScroll=wrapEl ? wrapEl.scrollLeft : 0;
+  render();
+  mantenerScrollHorizontal(keepScroll);
+}
+function render(){
+  timeline.classList.toggle('recordingMode', recordingLive);
+  timeline.innerHTML='';
+  if(!blocks.length && !recordingLive){startIndex=0; timeline.innerHTML='<div class="empty">Todavía no hay audios. Tocá “Grabar”.</div>'; head.style.display='none'; if(transportHead)transportHead.style.display='none'; renderFxTimeline(0); updateBtns(); actualizarBotonGuardar(); return;}
+  const liveDur=recordingLive ? Math.max(.2, recordingLiveDuration||.2) : 0;
+  const totalDur=totalDurationWithPauses()+liveDur+(recordingLive&&blocks.length?DEFAULT_SILENCE:0);
+  const itemCount=blocks.length+(recordingLive?1:0);
+  const gapTotal=(Math.max(0,itemCount*2-2))*10;
+  const wrapWidth=($('wrap')?.clientWidth||900)-28;
+  // Durante la grabación, el ancho se calcula contra TODO lo visible, incluido el bloque vivo.
+  // Así, cuando llega al margen derecho, no forcejea con el scroll: se reacomodan
+  // los anchos internos y el bloque sigue creciendo desde su lugar real.
+  const recBaseDur=Math.max(4,totalDur);
+  const safeWidth=Math.max(220, wrapWidth-18);
+  let pxPerSec=recordingLive?Math.max(3,Math.min(46,(safeWidth-gapTotal)/recBaseDur)):0;
+  if(recordingLive){
+    // V25: mientras se graba, el bloque vivo no entra desde afuera ni pelea
+    // contra el borde derecho. El borde derecho queda anclado dentro de la máscara
+    // y, al crecer, comprime suavemente los bloques anteriores hacia la izquierda.
+    const minAudio=24, minSil=18, minLive=72;
+    const minExisting=blocks.reduce((a,b,i)=>a+minAudio+(i<blocks.length-1?minSil:0),0);
+    const fixedMins=minExisting+(blocks.length?minSil:0)+minLive;
+    const roomForTimeline=Math.max(1, safeWidth-gapTotal);
+    if(fixedMins>roomForTimeline){
+      pxPerSec=Math.max(1.4, roomForTimeline/Math.max(1,totalDur));
+    }else{
+      const natural=totalDur*pxPerSec;
+      if(natural>roomForTimeline) pxPerSec=Math.max(1.4, roomForTimeline/Math.max(1,totalDur));
+    }
+  }
+  const flexAudio=(dur,den,gaps)=> recordingLive ? ('1 1 '+Math.max(24, dur*pxPerSec).toFixed(1)+'px') : ('0 1 calc('+((Math.max(.2,dur)/den)*100).toFixed(4)+'% - '+gaps.toFixed(2)+'px)');
+  const flexSilence=(dur,den,gaps)=> recordingLive ? ('1 1 '+Math.max(18, dur*pxPerSec).toFixed(1)+'px') : ('0 1 calc('+((Math.max(.05,dur)/den)*100).toFixed(4)+'% - '+gaps.toFixed(2)+'px)');
+  const flexLive=(dur)=> {
+    const minAudio=24, minSil=18;
+    const minExisting=blocks.reduce((a,b,i)=>a+minAudio+(i<blocks.length-1?minSil:0),0)+(blocks.length?minSil:0);
+    const maxLive=Math.max(72, safeWidth-gapTotal-minExisting);
+    return '0 0 '+Math.min(maxLive, Math.max(72, dur*pxPerSec)).toFixed(1)+'px';
+  };
+  blocks.forEach((b,i)=>{
+    const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=true; el.style.background=b.color; el.style.flex=flexAudio(Math.max(.2,b.duration||1), totalDur, gapTotal/Math.max(1,blocks.length*2-1)); el.dataset.id=b.id;
+    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="name">${i+1}</div><div class="dur">${fmt(b.duration)}</div>`;
+    const delBtn=el.querySelector('.del');
+    delBtn.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Estás seguro de que querés borrar este bloque?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: bloque borrado.'); render();};
+    delBtn.addEventListener('touchend',(ev)=>{ev.stopPropagation();},{passive:false});
+    delBtn.addEventListener('pointerup',(ev)=>{ev.stopPropagation();});
+    function jump(){
+      if(estaGrabando()) return;
+      startIndex=i;
+      status.textContent='Ubicado al inicio del bloque '+(i+1)+'. Doble toque sobre el bloque para escuchar desde ahí.';
+      renderConScrollQuieto();
+    }
+    el.onclick=(ev)=>{ev.preventDefault(); jump();};
+    el.ondblclick=(ev)=>{ev.preventDefault(); jump(); setTimeout(()=>playSingle(i),40);};
+    // V38 iPad: el primer toque hace render y recrea el bloque, por eso el contador
+    // de doble toque tiene que vivir fuera del elemento. Así Safari/iPad detecta doble toque real, sin disparar play con un solo toque.
+    el.addEventListener('touchend',(ev)=>{
+      if(estaGrabando()) return;
+      const now=Date.now();
+      if(ultimoToqueBloque.id===b.id && now-ultimoToqueBloque.t<420){
+        ev.preventDefault();
+        ultimoToqueBloque={id:null,t:0};
+        jump();
+        setTimeout(()=>playSingle(i),40);
+      }else{
+        ultimoToqueBloque={id:b.id,t:now};
+      }
+    },{passive:false});
+
+    el.ondragstart=e=>{ if(estaGrabando()){e.preventDefault(); return;} e.dataTransfer.setData('text/plain',b.id); };
+    el.ondragover=e=>e.preventDefault();
+    el.ondrop=e=>{e.preventDefault(); if(estaGrabando()) return; const from=e.dataTransfer.getData('text/plain'), to=b.id; if(from===to)return; const a=blocks.findIndex(x=>x.id===from), c=blocks.findIndex(x=>x.id===to); const [m]=blocks.splice(a,1); blocks.splice(c,0,m); marcarSinGuardar('Cambios sin guardar: orden modificado.'); render();};
+    timeline.appendChild(el);
+    if(i<blocks.length-1){
+      const p=getPauseAfter(i);
+      const sl=document.createElement('div');
+      sl.className='silenceBlock';
+      sl.style.flex=flexSilence(Math.max(.05,p), totalDur, gapTotal/Math.max(1,blocks.length*2-1));
+      sl.innerHTML=`<div class="silenceTitle">Silencio</div><div class="silenceDur">${p.toFixed(p%1?1:0)}s</div>`;
+      sl.title='Tocar para cambiar segundos de silencio';
+      sl.onclick=(ev)=>{ev.preventDefault(); ev.stopPropagation(); pedirSilencio(i);};
+      timeline.appendChild(sl);
+    }
+  });
+  if(recordingLive){
+    if(blocks.length){
+      const sl=document.createElement('div');
+      sl.className='silenceBlock';
+      sl.style.flex=flexSilence(Math.max(.05,DEFAULT_SILENCE), totalDur, gapTotal/Math.max(1,itemCount*2-1));
+      sl.innerHTML=`<div class="silenceTitle">Silencio</div><div class="silenceDur">${DEFAULT_SILENCE}s</div>`;
+      timeline.appendChild(sl);
+    }
+    const el=document.createElement('div');
+    el.className='block recordingLive selected';
+    el.draggable=false;
+    el.style.flex=flexLive(Math.max(.2,liveDur));
+    el.innerHTML=`<div class="name">● Grabando...</div><div class="dur">${fmt(liveDur)}</div>`;
+    timeline.appendChild(el);
+    // El bloque vivo queda contenido por cálculo de anchos: no forzamos scroll,
+    // así evitamos el titileo contra la máscara derecha.
+  }
+  renderFxTimeline(totalDur);
+  updateBtns();
+  actualizarBotonGuardar();
+}
+
+function setFxStartPrompt(i){
+  if(estaGrabando()) return;
+  const b=fxBlocks[i]; if(!b) return;
+  const actual=getFxStart(b);
+  const txt=prompt('¿En qué segundo/minuto querés que empiece este sonido? Podés poner 12, 1:20 o 0:05.', fmt(actual));
+  if(txt===null)return;
+  const val=parseTimeValue(txt);
+  if(!isFinite(val)||val<0){alert('Poné un tiempo válido, por ejemplo 8, 0:08 o 1:20'); return;}
+  b.start=Math.min(60*60, val);
+  marcarSinGuardar('Cambios sin guardar: inicio de sonido ajustado.');
+  render();
+}
+function parseTimeValue(txt){
+  const raw=String(txt).trim().replace(',', '.');
+  if(raw.includes(':')){
+    const parts=raw.split(':').map(x=>Number(x));
+    if(parts.some(x=>!isFinite(x)||x<0)) return NaN;
+    if(parts.length===2) return parts[0]*60+parts[1];
+    if(parts.length===3) return parts[0]*3600+parts[1]*60+parts[2];
+    return NaN;
+  }
+  return Number(raw);
+}
+function addFxSilence(){
+  if(estaGrabando()) return;
+  const txt=prompt('¿Cuántos segundos de silencio querés dejar antes del próximo sonido?', '5');
+  if(txt===null)return;
+  const val=parseTimeValue(txt);
+  if(!isFinite(val)||val<=0){alert('Poné un tiempo válido mayor que cero.'); return;}
+  const currentEnd=totalFxDuration();
+  fxBlocks.push({id:crypto.randomUUID(),name:'Silencio',start:currentEnd,duration:Math.min(3600,val),color:'#f2f0f7',blob:null,type:'silence',filename:'',external:false,isSilence:true,pauseAfter:0});
+  marcarSinGuardar('Cambios sin guardar: silencio visual agregado a sonidos.');
+  render();
+}
+function fxTimeFromPoint(clientX){
+  const r=fxTimeline.getBoundingClientRect();
+  const total=projectDuration();
+  const x=Math.max(0, Math.min(r.width, clientX-r.left));
+  return Math.max(0, (x/Math.max(1,r.width))*total);
+}
+function renderFxTimeline(referenceDuration=0){
+  if(!fxTimeline) return;
+  fxTimeline.innerHTML='';
+  const total=Math.max(referenceDuration||0,totalFxDuration(),totalDurationWithPauses(),1);
+  if(!fxBlocks.length){
+    fxTimeline.innerHTML='<div class="empty">Agregá pájaros, música, ambiente o un MP4: se escucha el audio y podés arrastrarlo al momento exacto.</div>';
+    return;
+  }
+  fxBlocks.forEach((b,i)=>{
+    const el=document.createElement('div');
+    const isVideo=(b.type||'').startsWith('video/') || /\.mp4|\.mov|\.m4v|\.webm$/i.test(b.filename||'');
+    const raw=fxRawDuration(b);
+    if(b.trimStart==null) b.trimStart=0;
+    if(b.trimEnd==null) b.trimEnd=raw;
+    el.className='block external'+(b.isSilence?' fxBlockSilence':'')+(isVideo&&!b.isSilence?' fxBlockVideo':'');
+    el.draggable=false;
+    el.style.background=b.color||'#e8ddff';
+    const left=(getFxStart(b)/total)*100;
+    const width=(fxClipDuration(b)/total)*100;
+    el.style.left=Math.max(0,Math.min(99,left)).toFixed(4)+'%';
+    el.style.width='calc('+Math.max(.8,width).toFixed(4)+'% - 4px)';
+    el.dataset.id=b.id;
+    el.title=(b.isSilence?'Silencio visual':(b.name||('Sonido '+(i+1))))+' · centro: mover · bordes: recortar';
+    el.innerHTML=`<span class="fxStripeSurface"></span><span class="fxHandle left" title="Recortar comienzo"></span><span class="fxHandle right" title="Recortar final"></span><span class="fxTrimRead left">−0s</span><span class="fxTrimRead right">−0s</span><button class="del" title="Borrar">×</button><div class="name"></div><div class="dur"></div><div class="fxStart"></div>`;
+    updateFxClipVisual(el,b);
+    const delBtn=el.querySelector('.del');
+    delBtn.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Borrar este bloque de sonidos?')) return; fxBlocks=fxBlocks.filter(x=>x.id!==b.id); marcarSinGuardar('Cambios sin guardar: sonido borrado.'); render();};
+    el.onclick=(ev)=>{ev.preventDefault(); status.textContent=(b.isSilence?'Silencio visual':'Sonido')+' desde '+fmt(getFxStart(b))+'. Centro: mover. Bordes: recortar inicio o final. Doble toque: escuchar.';};
+    el.ondblclick=(ev)=>{ev.preventDefault(); if(!b.isSilence) playFxSingle(i);};
+    let drag=null;
+    el.addEventListener('pointerdown',(ev)=>{
+      if(estaGrabando() || ev.target.closest('button')) return;
+      ev.preventDefault();
+      el.setPointerCapture(ev.pointerId);
+      const mode=ev.target.classList.contains('left')?'trimLeft':(ev.target.classList.contains('right')?'trimRight':'move');
+      const nb=fxNeighborsFor(b);
+      drag={x:ev.clientX,start:getFxStart(b),end:fxEnd(b),trimStart:getFxTrimStart(b),trimEnd:getFxTrimEnd(b),mode,moved:false,prevEnd:nb.prevEnd,nextStart:nb.nextStart,total:Math.max(projectDuration(),fxEnd(b),1)};
+    },{passive:false});
+    el.addEventListener('pointermove',(ev)=>{
+      if(!drag) return;
+      const r=fxTimeline.getBoundingClientRect();
+      const totalNow=drag.total;
+      const delta=((ev.clientX-drag.x)/Math.max(1,r.width))*totalNow;
+      if(drag.mode==='move'){
+        const dur=drag.trimEnd-drag.trimStart;
+        b.start=Math.max(drag.prevEnd,Math.min(drag.nextStart-dur,drag.start+delta));
+      }else if(drag.mode==='trimLeft'){
+        const wantedTrim=Math.max(0,Math.min(drag.trimEnd-.05,drag.trimStart+delta));
+        const minTrimByPrev=Math.max(0,drag.trimStart+(drag.prevEnd-drag.start));
+        const newTrim=Math.max(minTrimByPrev,Math.min(drag.trimEnd-.05,wantedTrim));
+        const trimDelta=newTrim-drag.trimStart;
+        b.trimStart=newTrim;
+        b.start=Math.max(drag.prevEnd,drag.start+trimDelta);
+      }else if(drag.mode==='trimRight'){
+        const wantedEnd=Math.max(drag.trimStart+.05,Math.min(raw,drag.trimEnd+delta));
+        const maxTrimEndByNext=drag.trimStart+Math.max(.05,drag.nextStart-drag.start);
+        b.trimEnd=Math.max(drag.trimStart+.05,Math.min(wantedEnd,maxTrimEndByNext,raw));
+      }
+      drag.moved=true;
+      const denom=drag.total;
+      el.style.left=((getFxStart(b)/denom)*100).toFixed(4)+'%';
+      el.style.width='calc('+Math.max(.8,(fxClipDuration(b)/denom)*100).toFixed(4)+'% - 4px)';
+      updateFxClipVisual(el,b);
+      el.title=(b.isSilence?'Silencio visual':(b.name||'Sonido'))+' · empieza '+fmt(getFxStart(b))+' · recortado inicio '+fxShortTime(getFxTrimStart(b))+' · final '+fxShortTime(fxTrimmedFromEnd(b));
+    },{passive:false});
+    el.addEventListener('pointerup',(ev)=>{
+      if(!drag) return;
+      try{el.releasePointerCapture(ev.pointerId)}catch(e){}
+      const moved=drag.moved; const mode=drag.mode; drag=null;
+      if(moved){ marcarSinGuardar(mode==='move'?'Cambios sin guardar: sonido reubicado en '+fmt(getFxStart(b))+'.':'Cambios sin guardar: sonido recortado.'); render(); }
+    },{passive:false});
+    fxTimeline.appendChild(el);
+  });
+}
+async function playFxSingle(i){
+  if(estaGrabando() || !fxBlocks[i] || fxBlocks[i].isSilence) return;
+  if(playing){ stopPlayback(false); await new Promise(r=>setTimeout(r,20)); }
+  const runId=++playRunId;
+  try{
+    playing=true; updateBtns(); status.textContent='Escuchando sonido...';
+    playCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const buf=await decode(fxBlocks[i].blob, playCtx);
+    if(runId!==playRunId){ try{playCtx.close()}catch(e){} return; }
+    playOffset=0; playStartedAt=playCtx.currentTime; playSources=[];
+    const dur=fxClipDuration(fxBlocks[i]);
+    const offset=getFxTrimStart(fxBlocks[i]);
+    const src=playCtx.createBufferSource(); src.buffer=buf;
+    const gain=playCtx.createGain();
+    src.connect(gain).connect(playCtx.destination);
+    applyFxFade(gain,playStartedAt,dur,fxGain(1));
+    src.start(playStartedAt,offset,dur);
+    playSources.push({src,gain});
+    setTimeout(()=>{ if(playing && runId===playRunId) stopPlayback(false); }, Math.max(50,dur*1000+80));
+  }catch(e){ if(runId===playRunId){ stopPlayback(false); status.textContent='No pude reproducir ese sonido/video como audio. Probá con MP4 H.264/AAC, MP3 o WAV.'; } }
+}
+async function addFxFiles(files, startTime=null){
+  if(estaGrabando()) return;
+  const usable=files.filter(f=>(f.type||'').startsWith('audio/') || (f.type||'').startsWith('video/') || /\.(mp3|wav|m4a|aac|ogg|webm|mp4|mov|m4v)$/i.test(f.name||''));
+  if(!usable.length){status.textContent='Ese archivo no parece audio/video. Probá con MP3, WAV, M4A, WEBM o un MP4/MOV con audio.'; return;}
+  status.textContent='Agregando sonido/ambiente desde audio o video...';
+  let start=(startTime==null)?totalFxDuration():Math.max(0,startTime);
+  for(const f of usable){
+    const dur=await mediaDuration(f);
+    const safeStart=findFreeFxStart(start,dur);
+    fxBlocks.push({id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),start:safeStart,duration:dur,trimStart:0,trimEnd:dur,color:'#e8ddff',blob:f,type:f.type||guessMimeFromName(f.name),filename:f.name,external:true,isSilence:false,pauseAfter:0});
+    start=safeStart+dur;
+  }
+  marcarSinGuardar('Cambios sin guardar: sonido/video agregado como audio. Arrastralo para ubicarlo.'); render();
+}
+function guessMimeFromName(name){
+  const n=String(name||'').toLowerCase();
+  if(n.endsWith('.mp4')) return 'video/mp4';
+  if(n.endsWith('.mov')) return 'video/quicktime';
+  if(n.endsWith('.m4v')) return 'video/x-m4v';
+  if(n.endsWith('.mp3')) return 'audio/mpeg';
+  if(n.endsWith('.wav')) return 'audio/wav';
+  if(n.endsWith('.m4a')) return 'audio/mp4';
+  return 'application/octet-stream';
+}
+function scheduleTrack(list, ctx, gainValue, startAt=0){
+  return Promise.all(list.map(async (b)=> b.isSilence ? null : decode(b.blob, ctx))).then(buffers=>{
+    let maxT=0;
+    buffers.forEach((buf,i)=>{
+      const b=list[i];
+      const st=getFxStart(b);
+      if(buf){
+        const dur=fxClipDuration(b);
+        const offset=getFxTrimStart(b);
+        const src=ctx.createBufferSource(); src.buffer=buf;
+        const gain=ctx.createGain();
+        src.connect(gain).connect(ctx.destination);
+        applyFxFade(gain,startAt+st,dur,gainValue);
+        src.start(startAt+st,offset,dur);
+        playSources.push({src,gain});
+        maxT=Math.max(maxT,st+dur);
+      }else{
+        maxT=Math.max(maxT,st+Math.max(.05,b.duration||0));
+      }
+    });
+    return maxT;
+  });
+}
+async function createProjectZipBlob(){
+  if(typeof JSZip==='undefined') throw new Error('JSZip no disponible');
+  const zip=new JSZip();
+  const aud=zip.folder('audios');
+  const fx=zip.folder('sonidos');
+  const project={version:5,created:new Date().toISOString(),defaultSilence:DEFAULT_SILENCE,fxVolume:Number(fxVol?.value ?? 5)||5,blocks:[],fxBlocks:[]};
+  for(let i=0;i<blocks.length;i++){
+    const b=blocks[i]; const ext=(b.type.includes('wav')?'wav':b.type.includes('mpeg')?'mp3':b.type.includes('mp4')?'mp4':'webm'); const filename=`audio-${i+1}.${ext}`;
+    aud.file(filename,b.blob); project.blocks.push({name:b.name,duration:b.duration,color:b.color,filename:'audios/'+filename,type:b.type,external:!!b.external,pauseAfter:getPauseAfter(i)});
+  }
+  for(let i=0;i<fxBlocks.length;i++){
+    const b=fxBlocks[i];
+    if(b.isSilence){ project.fxBlocks.push({name:'Silencio',start:getFxStart(b),duration:b.duration,color:b.color,type:'silence',isSilence:true,pauseAfter:0}); continue; }
+    const ext=(b.type.includes('wav')?'wav':b.type.includes('mpeg')?'mp3':b.type.includes('mp4')?'mp4':(b.type||'').startsWith('video/')?'mp4':'webm'); const filename=`sonido-${i+1}.${ext}`;
+    fx.file(filename,b.blob); project.fxBlocks.push({name:b.name,start:getFxStart(b),duration:b.duration,trimStart:getFxTrimStart(b),trimEnd:getFxTrimEnd(b),color:b.color,filename:'sonidos/'+filename,type:b.type,external:!!b.external,isSilence:false,pauseAfter:0});
+  }
+  zip.file('proyecto.json',JSON.stringify(project,null,2));
+  return await zip.generateAsync({type:'blob'});
+}
+async function shareOrDownload(blob,name){
+  const file=new File([blob],name,{type:'application/zip'});
+  if(navigator.canShare && navigator.share && navigator.canShare({files:[file]})){
+    await navigator.share({title:'Proyecto de podcast',text:'Proyecto ZIP de podcast por bloques',files:[file]});
+    return 'compartido';
+  }
+  download(blob,name);
+  return 'descargado';
+}
+
+async function blobDuration(blob){return new Promise(res=>{const a=document.createElement('audio'); a.preload='metadata'; a.onloadedmetadata=()=>{URL.revokeObjectURL(a.src); res(isFinite(a.duration)?a.duration:1)}; a.onerror=()=>res(1); a.src=URL.createObjectURL(blob);});}
+async function getMic(){
+  if(micStream && micStream.active) return micStream;
+  micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+  setupMeter(micStream);
+  return micStream;
+}
+function setupMeter(stream){
+  try{
+    audioCtxLive=audioCtxLive||new (window.AudioContext||window.webkitAudioContext)();
+    analyser=audioCtxLive.createAnalyser(); analyser.fftSize=256;
+    const source=audioCtxLive.createMediaStreamSource(stream); source.connect(analyser);
+  }catch(e){}
+}
+function startMeter(){
+  meter.classList.add('on');
+  const data=new Uint8Array(analyser?analyser.frequencyBinCount:0);
+  let smoothLevel=.18;
+  const loop=()=>{
+    let level=.18;
+    if(analyser){
+      analyser.getByteTimeDomainData(data);
+      let sum=0;
+      for(let i=0;i<data.length;i++){
+        const v=(data[i]-128)/128;
+        sum+=v*v;
+      }
+      const rms=Math.sqrt(sum/(data.length||1));
+      // Más sensible para voz: levanta aunque el micrófono venga bajo,
+      // pero con suavizado para que no se vuelva loco.
+      level=Math.min(1, rms*8.5);
+    }
+    smoothLevel=smoothLevel*.68 + level*.32;
+    bars.forEach((bar,i)=>{
+      const pulse=(Math.sin(Date.now()/95+i*.85)+1)*.5;
+      const h=7 + Math.max(0,Math.min(1, smoothLevel*.95 + pulse*.18))*42*(.72+(i%4)*.10);
+      bar.style.height=Math.max(6,Math.min(44,h))+'px';
+    });
+    meterRaf=requestAnimationFrame(loop);
+  };
+  loop();
+}
+function stopMeter(){cancelAnimationFrame(meterRaf); meter.classList.remove('on'); bars.forEach(b=>b.style.height='5px');}
+
+function releaseMic(){
+  // Importante en celulares: liberar el micrófono al terminar,
+  // para que WhatsApp, llamadas u otras apps no lo vean como ocupado.
+  try{
+    if(micStream){
+      micStream.getTracks().forEach(track=>track.stop());
+      micStream=null;
+    }
+  }catch(e){}
+  try{
+    if(audioCtxLive){
+      audioCtxLive.close().catch(()=>{});
+      audioCtxLive=null;
+    }
+  }catch(e){}
+  analyser=null;
+}
+function startLiveRecordingBlock(){
+  recordingLive=true;
+  // Arranque corto y constante: aparece en su lugar y en menos de medio segundo
+  // ya está creciendo, sin acumular demora cuando hay muchos audios.
+  recordingStart=performance.now()-420;
+  recordingLiveDuration=.42;
+  let lastRender=0;
+  const loop=(now)=>{
+    if(!recordingLive)return;
+    recordingLiveDuration=(performance.now()-recordingStart)/1000;
+    // Limito el render a ~20 fps para que no se atrase con muchos bloques.
+    // Las rayas CSS siguen animando solas, sin tocar su comportamiento.
+    if(!lastRender || now-lastRender>50){
+      render();
+      lastRender=now;
+    }
+    recordingLiveRaf=requestAnimationFrame(loop);
+  };
+  recordingLiveRaf=requestAnimationFrame(loop);
+}
+function stopLiveRecordingBlock(){
+  recordingLive=false;
+  cancelAnimationFrame(recordingLiveRaf);
+  recordingLiveDuration=0;
+}
+
+recBtn.onclick=async()=>{try{
+  if(estaGrabando()) return;
+  recordingBusy=true;
+  updateBtns();
+  const stream=await getMic();
+  chunks=[];
+  status.textContent='Preparando micrófono... empezá a hablar cuando diga “Grabando”.';
+  // Pequeña espera para no capturar el clic/toque inicial, pero corta para que el bloque vivo aparezca rápido.
+  await new Promise(r=>setTimeout(r,80));
+  mediaRecorder=new MediaRecorder(stream);
+  mediaRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  mediaRecorder.onstop=async()=>{
+    stopMeter();
+    stopLiveRecordingBlock();
+    releaseMic();
+    let rawBlob=new Blob(chunks,{type:mediaRecorder.mimeType||'audio/webm'});
+    let blob=await trimBlobEnd(rawBlob,0.32);
+    const dur=await blobDuration(blob);
+    blocks.push({id:crypto.randomUUID(),name:'Audio '+(blocks.length+1),duration:dur,color:colors[blocks.length%colors.length],blob,type:blob.type,filename:'audio-'+(blocks.length+1)+'.webm',external:false,pauseAfter:DEFAULT_SILENCE});
+    startIndex=blocks.length-1;
+    recordingBusy=false;
+    marcarSinGuardar('Cambios sin guardar: audio agregado. Tocá Guardar proyecto ZIP.');
+    render();
+  };
+  mediaRecorder.start(250);
+  startLiveRecordingBlock();
+  startMeter();
+  updateBtns();
+  status.textContent='Grabando... hablá ahora.';
+}catch(e){
+  recordingBusy=false;
+  stopLiveRecordingBlock();
+  releaseMic();
+  updateBtns();
+  status.textContent='No se pudo acceder al micrófono. Revisá permisos y usá HTTPS o localhost.';
+}};
+function detenerGrabacionRobusta(ev){
+  if(ev){
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+  if(mediaRecorder && mediaRecorder.state==='recording'){
+    try{ mediaRecorder.requestData && mediaRecorder.requestData(); }catch(e){}
+    try{ mediaRecorder.stop(); }catch(e){
+      recordingBusy=false;
+      stopLiveRecordingBlock();
+      stopMeter();
+      releaseMic();
+      updateBtns();
+      status.textContent='Grabación detenida.';
+    }
+  }else{
+    recordingBusy=false;
+    stopLiveRecordingBlock();
+    stopMeter();
+    releaseMic();
+    updateBtns();
+  }
+}
+// V34 iPad: además del click normal, escucho pointer/touch directo.
+// En algunos iPad el segundo toque sobre Detener puede quedar tomado raro por el click diferido.
+stopBtn.onclick=detenerGrabacionRobusta;
+stopBtn.addEventListener('pointerdown', (ev)=>{
+  if(estaGrabando()) detenerGrabacionRobusta(ev);
+}, {passive:false});
+stopBtn.addEventListener('touchstart', (ev)=>{
+  if(estaGrabando()) detenerGrabacionRobusta(ev);
+}, {passive:false});
+
+async function trimBlobEnd(blob, seconds=0.32){
+  // Recorta una pequeña cola para que no quede capturado el clic de “Detener”.
+  // Si el navegador no puede decodificar el formato, devuelve el original.
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const arr=await blob.arrayBuffer();
+    const buf=await ctx.decodeAudioData(arr.slice(0));
+    const keep=Math.max(0.12, buf.duration-seconds);
+    const frames=Math.max(1, Math.floor(keep*buf.sampleRate));
+    const off=new OfflineAudioContext(buf.numberOfChannels, frames, buf.sampleRate);
+    const src=off.createBufferSource(); src.buffer=buf; src.connect(off.destination); src.start(0);
+    const rendered=await off.startRendering();
+    try{ctx.close()}catch(e){}
+    return new Blob([bufferToWav(rendered)],{type:'audio/wav'});
+  }catch(e){ return blob; }
+}
+async function playSingle(i){
+  if(estaGrabando()) return;
+  if(!blocks.length) return;
+
+  // Si ya hay algo sonando, lo corto y arranco el nuevo bloque.
+  // El playRunId evita que timers viejos corten el bloque nuevo cuando hacés doble clic rápido.
+  if(playing){
+    stopPlayback(false);
+    await new Promise(r=>setTimeout(r,20));
+  }
+
+  const runId=++playRunId;
+  startIndex=i;
+  renderConScrollQuieto();
+
+  try{
+    playing=true; updateBtns(); head.style.display='block'; if(transportHead)transportHead.style.display='none'; status.textContent='Escuchando solo el bloque '+(i+1)+'...';
+    playCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const buf=await decode(blocks[i].blob, playCtx);
+
+    // Si durante la decodificación el usuario ya eligió otro bloque, este intento queda cancelado.
+    if(runId!==playRunId){ try{playCtx.close()}catch(e){} return; }
+
+    playOffset=offsetWithPauses(i);
+    playStartedAt=playCtx.currentTime;
+    playSources=[];
+    const src=playCtx.createBufferSource(); src.buffer=buf;
+    const gain=playCtx.createGain(); gain.gain.value=Number(vol.value);
+    src.connect(gain).connect(playCtx.destination); src.start(playStartedAt);
+    playSources.push({src,gain});
+    animateSmooth(totalDurationWithPauses(), buf.duration);
+    setTimeout(()=>{ if(playing && runId===playRunId) stopPlayback(false); }, Math.max(50,buf.duration*1000+80));
+  }catch(e){
+    if(runId===playRunId){ stopPlayback(false); status.textContent='No pude reproducir ese bloque.'; }
+  }
+}
+
+async function playSequence(){
+  if(estaGrabando()) return;
+  if((!blocks.length && !fxBlocks.length) || playing) return;
+  const runId=++playRunId;
+  try{
+    playing=true; updateBtns(); head.style.display='block'; if(transportHead)transportHead.style.display='none'; status.textContent='Preparando reproducción...';
+    playCtx=new (window.AudioContext||window.webkitAudioContext)();
+    playSources=[];
+    playOffset=0;
+    playStartedAt=playCtx.currentTime;
+    let mainT=0;
+    if(blocks.length){
+      const chosen=blocks.slice(startIndex);
+      const buffers=[];
+      for(const b of chosen){ buffers.push(await decode(b.blob, playCtx)); }
+      if(!playing || runId!==playRunId) return;
+      playOffset=offsetWithPauses(startIndex);
+      let t=0;
+      buffers.forEach((buf,j)=>{ const src=playCtx.createBufferSource(); src.buffer=buf; const gain=playCtx.createGain(); gain.gain.value=Number(vol.value); src.connect(gain).connect(playCtx.destination); src.start(playStartedAt+t); playSources.push({src,gain}); t+=buf.duration; const absoluteIndex=startIndex+j; if(absoluteIndex<blocks.length-1)t+=getPauseAfter(absoluteIndex); });
+      mainT=t;
+    }
+    const fxT=await scheduleTrack(fxBlocks, playCtx, fxGain(1), playStartedAt);
+    if(!playing || runId!==playRunId) return;
+    const total=projectDuration();
+    const remaining=Math.max(mainT+offsetWithPauses(startIndex), fxT, total);
+    animateSmooth(total, remaining);
+    status.textContent='Reproduciendo podcast con sonidos...';
+    setTimeout(()=>{ if(playing && runId===playRunId) stopPlayback(false); }, Math.max(50,remaining*1000+120));
+  }catch(e){ if(runId===playRunId){ stopPlayback(true); status.textContent='No pude reproducir la secuencia en este navegador.'; } }
+}
+function animateSmooth(total, remaining){
+  cancelAnimationFrame(raf);
+  const loop=()=>{
+    if(!playing||!playCtx)return;
+    const elapsed=Math.min(remaining, Math.max(0, playCtx.currentTime-playStartedAt));
+    const now=playOffset+elapsed;
+    const pct=Math.max(0,Math.min(1,now/total));
+    const line=$('transportLine');
+    const wrap=$('wrap');
+    if(line&&wrap){
+      const lr=line.getBoundingClientRect();
+      const wr=wrap.getBoundingClientRect();
+      const x=(pct*lr.width)+(lr.left-wr.left);
+      head.style.left=x+'px';
+      if(transportHead) transportHead.style.left=(x-2)+'px';
+    }else{
+      const available=timeline.clientWidth-4;
+      head.style.left=(12+pct*available)+'px';
+    }
+    raf=requestAnimationFrame(loop);
+  };
+  loop();
+}
+function stopPlayback(paused=true){
+  playRunId++;
+  playing=false;
+  if(currentAudio){currentAudio.pause(); URL.revokeObjectURL(currentAudio.src); currentAudio=null;}
+  playSources.forEach(o=>{try{o.src.stop()}catch(e){}}); playSources=[];
+  if(playCtx){try{playCtx.close()}catch(e){} playCtx=null;}
+  cancelAnimationFrame(raf); head.style.display='none'; if(transportHead)transportHead.style.display='none'; updateBtns(); status.textContent=paused?'Pausado.':'Listo.';
+}
+playBtn.onclick=()=>{startIndex=0; render(); status.textContent='Reproduciendo desde el comienzo...'; playSequence();};
+pauseBtn.onclick=()=>stopPlayback(true);
+recRoundBtn.onclick=(ev)=>{
+  ev.preventDefault();
+  if(Date.now()<suprimirClickRecRoundHasta) return;
+  if(playing) return;
+  if(estaGrabando()){
+    detenerGrabacionRobusta(ev);
+  }else{
+    recBtn.click();
+  }
+};
+// V50 iPad: el click diferido a veces no llega al segundo "Detener".
+// Refuerzo solamente el STOP, no el inicio, para no generar rebotes ni nuevas grabaciones.
+function stopRecRoundSoloSiGraba(ev){
+  if(!estaGrabando()) return;
+  if(ev){ev.preventDefault(); ev.stopPropagation();}
+  suprimirClickRecRoundHasta=Date.now()+650;
+  detenerGrabacionRobusta(ev);
+}
+recRoundBtn.addEventListener('touchend', stopRecRoundSoloSiGraba, {passive:false});
+recRoundBtn.addEventListener('pointerup', (ev)=>{
+  if(ev.pointerType==='touch') stopRecRoundSoloSiGraba(ev);
+}, {passive:false});
+playStopRoundBtn.onclick=(ev)=>{
+  ev.preventDefault();
+  if(estaGrabando()) return;
+  if(playing){
+    stopPlayback(false);
+  }else{
+    startIndex=0;
+    render();
+    status.textContent='Reproduciendo desde el comienzo...';
+    playSequence();
+  }
+};
+vol.oninput=()=>{if(currentAudio)currentAudio.volume=Number(vol.value);};
+if(fxVol){fxVol.oninput=()=>{updateFxVolLabel(); status.textContent='Volumen de ambiente: '+(fxVol.value||0)+'/10';}; updateFxVolLabel();}
+async function decode(blob,ctx){const arr=await blob.arrayBuffer(); return await ctx.decodeAudioData(arr.slice(0));}
+async function exportWav(){
+  if(estaGrabando()) return;
+  status.textContent='Preparando WAV con voces y sonidos...';
+  try{
+    const total=projectDuration()+1;
+    const ctx=new OfflineAudioContext(1, 44100*Math.ceil(total), 44100);
+    let t=0;
+    for(let i=0;i<blocks.length;i++){
+      const b=blocks[i]; const buf=await decode(b.blob,ctx); const src=ctx.createBufferSource(); src.buffer=buf;
+      const gain=ctx.createGain(); gain.gain.value=1;
+      src.connect(gain).connect(ctx.destination); src.start(t); t+=buf.duration; if(i<blocks.length-1)t+=getPauseAfter(i);
+    }
+    for(let i=0;i<fxBlocks.length;i++){
+      const b=fxBlocks[i];
+      if(b.isSilence) continue;
+      const buf=await decode(b.blob,ctx); const dur=fxClipDuration(b); const offset=getFxTrimStart(b); const src=ctx.createBufferSource(); src.buffer=buf; const gain=ctx.createGain(); src.connect(gain).connect(ctx.destination); applyFxFade(gain,getFxStart(b),dur,getFxVolume()); src.start(getFxStart(b),offset,dur);
+    }
+    const rendered=await ctx.startRendering(); const wav=bufferToWav(rendered); download(new Blob([wav],{type:'audio/wav'}),'podcast-final.wav'); status.textContent='WAV exportado con sonidos.';
+  }catch(e){status.textContent='No pude exportar WAV en este navegador.';}
+}
+function bufferToWav(buffer){const len=buffer.length, data=buffer.getChannelData(0), ab=new ArrayBuffer(44+len*2), v=new DataView(ab); function w(o,s){for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));} w(0,'RIFF'); v.setUint32(4,36+len*2,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,buffer.sampleRate,true); v.setUint32(28,buffer.sampleRate*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,len*2,true); let off=44; for(let i=0;i<len;i++,off+=2){let s=Math.max(-1,Math.min(1,data[i])); v.setInt16(off,s<0?s*0x8000:s*0x7fff,true);} return ab;}
+function download(blob,name){const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+wavBtn.onclick=exportWav;
+saveBtn.onclick=async()=>{ if(estaGrabando()) return; try{status.textContent='Armando ZIP para exportar/compartir...'; const blob=await createProjectZipBlob(); const modo=await shareOrDownload(blob,'proyecto-podcast.zip'); marcarGuardado(modo==='compartido'?'✓ Proyecto compartido.':'✓ Proyecto ZIP descargado.');}catch(e){status.textContent='No pude exportar el ZIP. Si estás en PC, probá descargar; si estás en celular, revisá permisos del navegador.';}};
+$('loadBtn').onclick=()=>{ if(estaGrabando()) return; $('projectFile').click(); }; $('projectFile').onchange=e=>{if(e.target.files[0])loadZip(e.target.files[0]); e.target.value='';};
+
+$('addAudioBtn').onclick=()=>{ if(estaGrabando()) return; $('audioFile').click(); };
+$('audioFile').onchange=e=>{ if(e.target.files.length) addExternalFiles([...e.target.files], blocks.length); e.target.value=''; };
+$('addFxBtn').onclick=()=>{ if(estaGrabando()) return; $('fxAudioFile').click(); };
+$('fxAudioFile').onchange=e=>{ if(e.target.files.length) addFxFiles([...e.target.files], totalFxDuration()); e.target.value=''; };
+$('addFxSilenceBtn').onclick=addFxSilence;
+function mediaDuration(file){
+  return new Promise(res=>{
+    const isVideo=(file.type||'').startsWith('video/');
+    const el=document.createElement(isVideo?'video':'audio');
+    el.preload='metadata';
+    el.onloadedmetadata=()=>{ URL.revokeObjectURL(el.src); res(isFinite(el.duration)?el.duration:1); };
+    el.onerror=()=>{ try{URL.revokeObjectURL(el.src)}catch(e){}; res(1); };
+    el.src=URL.createObjectURL(file);
+  });
+}
+async function addExternalFiles(files, insertAt=blocks.length){
+  if(estaGrabando()) return;
+  const usable=files.filter(f=>(f.type||'').startsWith('audio/') || (f.type||'').startsWith('video/'));
+  if(!usable.length){status.textContent='Ese archivo no parece audio/video. Probá con MP3, WAV, M4A, WEBM o un video con audio.'; return;}
+  status.textContent='Agregando audio externo...';
+  let idx=Math.max(0,Math.min(insertAt,blocks.length));
+  for(const f of usable){
+    const dur=await mediaDuration(f);
+    const extColor='#dde8f5';
+    const item={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),duration:dur,color:extColor,blob:f,type:f.type||'application/octet-stream',filename:f.name,external:true,pauseAfter:DEFAULT_SILENCE};
+    blocks.splice(idx,0,item); idx++;
+  }
+  startIndex=Math.max(0,idx-1); marcarSinGuardar('Cambios sin guardar: audio externo insertado.'); render();
+}
+function insertionIndexFromPoint(clientX){
+  const els=[...timeline.querySelectorAll('.block')];
+  if(!els.length)return 0;
+  for(let i=0;i<els.length;i++){
+    const r=els[i].getBoundingClientRect();
+    if(clientX < r.left + r.width/2) return i;
+  }
+  return els.length;
+}
+$('wrap').addEventListener('dragover',e=>{ if(e.dataTransfer && e.dataTransfer.types && [...e.dataTransfer.types].includes('Files')){e.preventDefault(); drop.classList.add('drag');} });
+$('wrap').addEventListener('drop',e=>{
+  if(estaGrabando()) return;
+  const files=[...e.dataTransfer.files];
+  const media=files.filter(f=>(f.type||'').startsWith('audio/') || (f.type||'').startsWith('video/'));
+  if(media.length){ e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag');
+    const fxr=fxTimeline?.getBoundingClientRect();
+    if(fxr && e.clientY>=fxr.top && e.clientY<=fxr.bottom) addFxFiles(media, fxTimeFromPoint(e.clientX));
+    else addExternalFiles(media, insertionIndexFromPoint(e.clientX));
+  }
+});
+
+async function loadZip(file){
+  if(estaGrabando()) return;
+  try{
+    if(typeof JSZip==='undefined')throw new Error('JSZip no disponible');
+    status.textContent='Abriendo proyecto...';
+    const zip=await JSZip.loadAsync(file); const pjFile=zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto.json'); const pj=JSON.parse(await pjFile.async('string'));
+    const nb=[];
+    for(const item of (pj.blocks||[])){
+      const f=zip.file(item.filename); if(!f)continue; const blob=await f.async('blob');
+      nb.push({id:crypto.randomUUID(),name:item.name,duration:item.duration,color:item.color,blob:new Blob([blob],{type:item.type||blob.type}),type:item.type||blob.type,filename:item.filename,external:!!item.external,pauseAfter:Number(item.pauseAfter ?? DEFAULT_SILENCE)});
+    }
+    const nf=[]; let oldFxCursor=0;
+    for(const item of (pj.fxBlocks||[])){
+      const startVal=(item.start!=null)?Number(item.start||0):oldFxCursor;
+      if(item.isSilence || item.type==='silence'){ const dur=Number(item.duration||1); nf.push({id:crypto.randomUUID(),name:'Silencio',start:startVal,duration:dur,trimStart:0,trimEnd:dur,color:item.color||'#f2f0f7',blob:null,type:'silence',filename:'',external:false,isSilence:true,pauseAfter:0}); oldFxCursor=startVal+dur+Number(item.pauseAfter||0); continue; }
+      const f=zip.file(item.filename); if(!f)continue; const blob=await f.async('blob'); const dur=Number(item.duration||1);
+      nf.push({id:crypto.randomUUID(),name:item.name,start:startVal,duration:dur,trimStart:Number(item.trimStart ?? 0),trimEnd:Number(item.trimEnd ?? dur),color:item.color||'#e8ddff',blob:new Blob([blob],{type:item.type||blob.type}),type:item.type||blob.type,filename:item.filename,external:!!item.external,isSilence:false,pauseAfter:0});
+      oldFxCursor=startVal+dur+Number(item.pauseAfter||0);
+    }
+    blocks=nb; fxBlocks=nf; if(fxVol && pj.fxVolume!=null){fxVol.value=String(Math.max(0,Math.min(10,Number(pj.fxVolume)||5))); updateFxVolLabel();} startIndex=0; marcarGuardado('✓ Proyecto cargado con voces y sonidos.'); render();
+  }catch(e){status.textContent='No pude abrir ese ZIP de proyecto.';}
+}
+const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{if(estaGrabando()) return; const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/') || (x.type||'').startsWith('video/') || /\.(mp3|wav|m4a|aac|ogg|webm|mp4|mov|m4v)$/i.test(x.name||'')); if(f)loadZip(f); else if(media.length){ const fxr=fxTimeline?.getBoundingClientRect(); if(fxr && e.clientY>=fxr.top && e.clientY<=fxr.bottom) addFxFiles(media, fxTimeFromPoint(e.clientX)); else addExternalFiles(media, insertionIndexFromPoint(e.clientX)); } else status.textContent='Arrastrá un ZIP de proyecto o un archivo de audio/video.';});
+window.addEventListener('pagehide',()=>{ recordingBusy=false; stopLiveRecordingBlock(); if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); else releaseMic(); });
+render();
+</script>
+</body>
+</html>
