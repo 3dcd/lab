@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cronica-v33-img-sola-etiqueta-compacta';
+const CACHE_NAME = 'cronica-v34-mobile-sin-edicion-render-dedupe';
 const APP_FILES = [
   './',
   './index.html',

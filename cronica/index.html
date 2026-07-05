@@ -42,7 +42,6 @@
   .notePreviewBlack{font-size:13px;font-weight:850;line-height:1.34;color:#fff;background:#172033;border-radius:15px;padding:11px 12px;margin:10px 0;box-shadow:0 10px 24px rgba(23,32,51,.18)}
   .notePreviewCaption{font-size:11.5px;font-weight:800;line-height:1.3;color:#64748b;text-align:center;margin:-4px 0 10px;font-style:italic}
   .notePreviewImageWrap{position:relative;margin:10px 0}.notePreviewImageWrap .notePreviewImageSlot{margin:0}.notePreviewImageLabel{position:absolute;left:10px;top:10px;max-width:48%;background:rgba(15,23,42,.78);color:#fff;border-radius:12px;padding:6px 8px;font-size:11.3px;font-weight:900;line-height:1.18;box-shadow:0 8px 20px rgba(0,0,0,.18);pointer-events:none}.notePreviewImageWrap .notePreviewCaption{margin:6px 4px 0}
-  .notePreview [data-edit-line]{cursor:text}.notePreview [data-edit-line]:hover{outline:2px solid rgba(79,140,255,.22);outline-offset:2px;border-radius:8px}
 
   .cardBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}.cardBtns button{padding:9px 10px;border-radius:14px;font-size:13px;box-shadow:0 5px 14px rgba(65,95,130,.11)}
   .dictateBtn{background:#fff0b8}.dictateBtn.on{background:#ff7b95;color:#fff;animation:softDictatePulse .85s ease-in-out infinite}.editTextBtn{background:#d9efff}.pngBtn{background:#f4f0ff;color:#45327a}.shareBtn{background:#e8fff9;color:#0b6656}.downloadPngBtn{background:#f4f0ff;color:#45327a}.recordAudioBtn{background:#ffcfda;color:#5a1220}.recordAudioBtn.recording{background:#ff5c72;color:white;animation:softDictatePulse .85s ease-in-out infinite}.cardBtns button[disabled]{opacity:.42;cursor:not-allowed;transform:none}
@@ -159,6 +158,7 @@ let dictationRecognition=null, dictatingIndex=-1, dictationBaseText='', dictatio
 let dictationTouchMode='body', dictationDraftMode='body', dictationDraftText='', dictationInterimText='';
 let dictationParts=[];
 let dictationSkipFinals=[];
+let dictationRecentFinals=[];
 let dictationKeepAlive=false;
 let dictationRestartTimer=null;
 let undoTouchLockUntil=0;
@@ -236,16 +236,6 @@ function render(){
     el.querySelector('.editTextBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; alternarEdicionTexto(i);};
     el.querySelector('.shareBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; compartirNota(i);};
     el.querySelector('.downloadPngBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; exportarPNGNota(i,false);};
-    el.querySelectorAll('[data-edit-line]').forEach(node=>{
-      node.ondblclick=(ev)=>{ev.preventDefault(); ev.stopPropagation(); editarLineaVisual(i,node.dataset.editLine);};
-      let tapTimer=0;
-      node.addEventListener('touchend',(ev)=>{
-        if(estaGrabando()||estaDictando()) return;
-        const now=Date.now();
-        if(now-tapTimer<360){ev.preventDefault(); ev.stopPropagation(); editarLineaVisual(i,node.dataset.editLine);} 
-        tapTimer=now;
-      },{passive:false});
-    });
     el.querySelectorAll('.notePreviewImageSlot').forEach(slot=>{
       slot.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; const idx=parseInt(slot.dataset.imageIndex||'0',10)||0; const imgId=slot.dataset.imageId||''; elegirImagenParaNota(i,idx,imgId);};
       slot.addEventListener('dragover',(ev)=>{ if(estaGrabando()) return; ev.preventDefault(); ev.stopPropagation(); slot.classList.add('dragImg'); });
@@ -572,6 +562,43 @@ function limpiarTextoDictadoLibre(texto){
 function normalizarTextoDictadoLibre(texto){
   return asegurarPuntoFinal(limpiarTextoDictadoLibre(texto));
 }
+function normalizarParaDedupeDictado(texto){
+  return String(texto||'')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9ñ\s]/gi,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function textoFinalNoRepetidoDictado(txt){
+  let original=String(txt||'').trim();
+  if(!original) return '';
+  const norm=normalizarParaDedupeDictado(original);
+  if(!norm) return '';
+  const now=Date.now();
+  dictationRecentFinals=dictationRecentFinals.filter(x=>now-x.t<14000).slice(-12);
+  for(const item of dictationRecentFinals){
+    const r=item.n||'';
+    if(!r) continue;
+    if(r===norm) return '';
+    const minLen=Math.min(r.length,norm.length);
+    const maxLen=Math.max(r.length,norm.length);
+    if(minLen>10 && maxLen/minLen<1.28 && (r.includes(norm)||norm.includes(r))) return '';
+  }
+  const draftNorm=normalizarParaDedupeDictado(dictationDraftText);
+  if(draftNorm){
+    if(draftNorm===norm || draftNorm.includes(norm)) return '';
+    if(norm.startsWith(draftNorm+' ')){
+      const draftWords=draftNorm.split(' ').filter(Boolean).length;
+      const words=original.split(/\s+/).filter(Boolean);
+      original=words.slice(draftWords).join(' ').trim();
+      if(!original) return '';
+    }
+  }
+  dictationRecentFinals.push({n:norm,t:now});
+  dictationRecentFinals=dictationRecentFinals.slice(-12);
+  return original;
+}
 function crearParteTactil(texto, modo, final=true){
   const t=final ? normalizarTextoDictadoLibre(texto) : limpiarTextoDictadoLibre(texto);
   if(!t)return null;
@@ -869,7 +896,7 @@ function configurarHerramientasDictado(tools,i){
       dictationSkipFinals=dictationSkipFinals.slice(-5);
       actualizarHerramientasDictado(i);
       aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));
-      marcarSinGuardar('Modo: '+modoLabel(mode)+'. Decí punto o tocá ● para cerrar el tramo.');
+      marcarSinGuardar('Modo: '+modoLabel(mode)+'. Tocá ● para cerrar el tramo.');
       setTimeout(()=>{try{aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));}catch(e){}},60);
     }else{
       setModoDictado(mode,i);
@@ -909,6 +936,7 @@ function detenerDictadoNota(mensaje){
   dictationInterimText='';
   dictationParts=[];
   dictationSkipFinals=[];
+  dictationRecentFinals=[];
   undoTouchLockUntil=0;
   if(idx>=0 && blocks[idx]) marcarSinGuardar(mensaje||'Cambios sin guardar: texto dictado.');
   else if(mensaje) status.textContent=mensaje;
@@ -931,7 +959,7 @@ function iniciarReconocimientoDictado(i){
     rec.continuous=true;
     rec.interimResults=true;
     rec.maxAlternatives=1;
-    rec.onstart=()=>{status.textContent='Dictado activo. Podés pausar al hablar; decí punto para cerrar el tramo.';};
+    rec.onstart=()=>{status.textContent='Dictado activo. Podés pausar al hablar; tocá ● para cerrar el tramo.';};
     rec.onerror=(ev)=>{
       const code=ev && ev.error ? ev.error : '';
       if(code==='not-allowed' || code==='service-not-allowed'){
@@ -951,8 +979,10 @@ function iniciarReconocimientoDictado(i){
           const normFinal=limpiarTextoDictadoLibre(txt).toLowerCase();
           const dupIdx=dictationSkipFinals.findIndex(x=>x && (x===normFinal || normFinal.includes(x) || x.includes(normFinal)));
           if(dupIdx>=0){dictationSkipFinals.splice(dupIdx,1); continue;}
-          procesarFinalDictadoPorPunto(i, txt);
-          status.textContent='Dictando en modo '+modoLabel(dictationDraftMode)+'. Decí punto o tocá ● para cerrar.';
+          const limpioFinal=textoFinalNoRepetidoDictado(txt);
+          if(!limpioFinal) continue;
+          procesarFinalDictadoPorPunto(i, limpioFinal);
+          status.textContent='Dictando en modo '+modoLabel(dictationDraftMode)+'. Tocá ● para cerrar.';
         }else{
           const limpio=limpiarInterimDictado(txt);
           if(limpio) dictationInterimText+=(dictationInterimText?' ':'')+limpio;
@@ -992,6 +1022,7 @@ function iniciarDictadoNota(i){
   dictationInterimText='';
   dictationParts=[];
   dictationSkipFinals=[];
+  dictationRecentFinals=[];
   undoTouchLockUntil=0;
   dictationKeepAlive=true;
   clearTimeout(dictationRestartTimer);
@@ -1002,7 +1033,7 @@ function iniciarDictadoNota(i){
     rec.continuous=true;
     rec.interimResults=true;
     rec.maxAlternatives=1;
-    rec.onstart=()=>{status.textContent='Dictado activo en nota '+(i+1)+'. Tocá un modo, hablá y decí punto o tocá ● para cerrar. Usá Detener dictado para terminar.';};
+    rec.onstart=()=>{status.textContent='Dictado activo en nota '+(i+1)+'. Tocá un modo, hablá y tocá ● para cerrar. Usá Detener dictado para terminar.';};
     rec.onerror=(ev)=>{
       const code=ev && ev.error ? ev.error : '';
       if(code==='not-allowed' || code==='service-not-allowed'){
@@ -1022,8 +1053,10 @@ function iniciarDictadoNota(i){
           const normFinal=limpiarTextoDictadoLibre(txt).toLowerCase();
           const dupIdx=dictationSkipFinals.findIndex(x=>x && (x===normFinal || normFinal.includes(x) || x.includes(normFinal)));
           if(dupIdx>=0){dictationSkipFinals.splice(dupIdx,1); continue;}
-          procesarFinalDictadoPorPunto(i, txt);
-          status.textContent='Dictando en modo '+modoLabel(dictationDraftMode)+'. Decí punto o tocá ● para cerrar.';
+          const limpioFinal=textoFinalNoRepetidoDictado(txt);
+          if(!limpioFinal) continue;
+          procesarFinalDictadoPorPunto(i, limpioFinal);
+          status.textContent='Dictando en modo '+modoLabel(dictationDraftMode)+'. Tocá ● para cerrar.';
         }else{
           const limpio=limpiarInterimDictado(txt);
           if(limpio) dictationInterimText+=(dictationInterimText?' ':'')+limpio;
@@ -1051,6 +1084,7 @@ function iniciarDictadoNota(i){
           dictationInterimText='';
           dictationParts=[];
           dictationSkipFinals=[];
+          dictationRecentFinals=[];
           undoTouchLockUntil=0;
           if(blocks[i]) blocks[i].text=limpiarEspaciosEditorial(blocks[i].text||'');
           marcarSinGuardar('Dictado finalizado. Revisá el texto de la nota.');
