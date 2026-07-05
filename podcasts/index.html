@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Podcast por Bloques V57</title>
+<title>Podcast por Bloques V61</title>
 <style>
   :root{
     --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
     --line:#d7e2f0;--accent:#4f8cff;--accent2:#9ad7ff;--danger:#ff6b7a;--ok:#3ccf91;
   }
   *{box-sizing:border-box}
+  html,body{min-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--txt)}
   .app{max-width:1280px;margin:0 auto;padding:18px}
   header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
@@ -20,7 +21,6 @@
   button:hover{filter:brightness(1.02);transform:translateY(-1px)} button:disabled{opacity:.45;cursor:not-allowed;transform:none}
   .app.isRecording .controls button:not(#stopBtn), .app.isRecording .controls label{opacity:.38;filter:grayscale(.18);pointer-events:none}
   .app.isRecording #stopBtn{opacity:1;pointer-events:auto;filter:none}
-  .app.isRecording .drop{opacity:.55;pointer-events:none}
   .app.isRecording .block:not(.recordingLive), .app.isRecording .silenceBlock{cursor:not-allowed;pointer-events:none}
   .rec{background:#ff5c72;color:white}.stop{background:#ffd166;color:#3b2600}.play{background:#8ef1bf}.pause{background:#ffe7a3}.export{background:#9ad7ff}.save{background:#cfc2ff}.open{background:#ffc4e8}
   .controls #recBtn,.controls #stopBtn,.controls #playBtn,.controls #pauseBtn{display:none}
@@ -28,9 +28,10 @@
   @keyframes softSavePulse{0%,100%{background-color:#ffd18a}50%{background-color:#ff9f1f}}
   .save.unsaved:hover{filter:none;transform:none}
   input[type=range]{width:110px;accent-color:var(--accent)} label{font-weight:700;color:#344255;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:6px}
-  .drop{border:2px dashed #b9cbe0;border-radius:22px;padding:16px;text-align:center;color:var(--mut);margin-bottom:14px;background:#f8fbff;font-weight:700}
-  .drop.drag{border-color:var(--accent);background:#eaf3ff;color:#0f4fb5}
-  .timelineWrap{position:relative;padding:22px 14px 42px;background:#f9fcff;border-radius:24px;min-height:380px;border:1px solid #e3edf8;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;clip-path:inset(0 round 24px);overscroll-behavior-x:contain}
+  .timelineWrap{position:relative;padding:22px 14px 42px;background:#f9fcff;border-radius:24px;min-height:360px;border:1px solid #e3edf8;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;clip-path:inset(0 round 24px);overscroll-behavior-x:contain;touch-action:pan-x pan-y;cursor:grab}
+  .timelineWrap.panning{cursor:grabbing;scroll-behavior:auto}
+  .timelineWrap.drag{outline:3px solid rgba(79,140,255,.20);background:#f3f9ff}
+  .fxTimeline.drag{outline:3px solid rgba(105,79,155,.18);background:linear-gradient(180deg,#f8f3ff,#efe7ff)}
   .timelineWrap::-webkit-scrollbar{height:8px}.timelineWrap::-webkit-scrollbar-thumb{background:#c9d8e8;border-radius:20px}.timelineWrap::-webkit-scrollbar-track{background:transparent}
   .timeline{display:flex;gap:10px;align-items:stretch;min-height:175px;position:relative;width:100%;min-width:100%;padding-right:2px}.timeline.recordingMode{width:100%;min-width:100%;overflow:hidden}
   .timeline.recordingMode .block{min-width:24px;padding-left:10px;padding-right:10px}
@@ -113,7 +114,7 @@
     .innerPlayerLine{left:12px;right:12px;bottom:29px}
   }
   @media(max-width:900px){input[type=range]{width:135px}}
-  @media(max-width:640px){.app{padding:10px}.panel{padding:12px}.timelineWrap{min-height:340px}.timeline{min-height:150px}.block{height:148px;border-radius:22px}.name{font-size:13px}button{padding:11px 12px}}
+  @media(max-width:640px){.app{padding:8px}.panel{padding:10px}.controls{margin-bottom:10px}.timelineWrap{min-height:320px}.timeline{min-height:150px}.block{height:148px;border-radius:22px}.name{font-size:13px}button{padding:11px 12px}}
   /* V37 celular: no frenar artificialmente el ancho. Que se achiquen en proporción,
      así el cursor/playhead coincide mejor con la duración real. */
   @media(max-width:640px){
@@ -127,6 +128,16 @@
     .fxVolLabel input[type=range]{width:95px}
     .fxToolbar{gap:6px}
   }
+
+  @media(max-width:900px) and (orientation:landscape){
+    html,body{overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .app{padding:8px 10px 18px}
+    header{margin-bottom:8px}
+    .panel{padding:10px}
+    .timelineWrap{max-height:none;overflow-y:visible;touch-action:pan-x pan-y}
+    .transport{margin-bottom:12px}
+  }
+
 </style>
 </head>
 <body>
@@ -152,8 +163,7 @@
       <input id="audioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
       <input id="fxAudioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
     </div>
-    <div id="drop" class="drop">Arrastrá acá un ZIP de proyecto. Los audios normales van arriba; los MP3/WAV/MP4 de sonidos van abajo y se usan solo como audio.</div>
-    <div class="timelineWrap" id="wrap"><div class="playhead" id="head"></div><div class="trackLabel">Voces / entrevista</div><div class="timeline" id="timeline"><div class="empty">Todavía no hay audios. Tocá “Grabar”.</div></div><div class="fxToolbar"><div class="trackLabel fxLabel">Sonidos / ambientes</div><label class="fxVolLabel">Ambiente <input id="fxVol" type="range" min="0" max="10" step="1" value="5"><span id="fxVolValue" class="fxVolValue">5</span></label></div><div class="timeline fxTimeline" id="fxTimeline"><div class="empty">Agregá pájaros, música, ambiente o un MP4: se escucha el audio y podés arrastrarlo al momento exacto.</div></div><div class="innerPlayerLine" id="transportLine"></div><div class="innerPlayerHead" id="transportHead"></div></div>
+    <div class="timelineWrap" id="wrap"><div class="playhead" id="head"></div><div class="trackLabel">Voces / entrevista</div><div class="timeline" id="timeline"><div class="empty">Todavía no hay voces. Tocá “Grabar” o arrastrá audio acá.</div></div><div class="fxToolbar"><div class="trackLabel fxLabel">Sonidos / ambientes</div><label class="fxVolLabel">Ambiente <input id="fxVol" type="range" min="0" max="10" step="1" value="5"><span id="fxVolValue" class="fxVolValue">5</span></label></div><div class="timeline fxTimeline" id="fxTimeline"><div class="empty">Arrastrá acá pájaros, música, ambiente o un MP4: se usa solo el audio y podés ubicarlo exacto.</div></div><div class="innerPlayerLine" id="transportLine"></div><div class="innerPlayerHead" id="transportHead"></div></div>
     <div class="transport">
       <button id="recRoundBtn" class="roundRec" title="Grabar / detener grabación">Grabar</button>
       <button id="playStopRoundBtn" class="roundPlay" title="Reproducir / detener">Play</button>
@@ -278,6 +288,27 @@ function findFreeFxStart(desired,dur){
 }
 function mainDuration(){return totalDurationWithPauses()+((recordingLive&&blocks.length)?DEFAULT_SILENCE:0)+(recordingLive?Math.max(.2,recordingLiveDuration||.2):0)}
 function projectDuration(){return Math.max(mainDuration(), totalFxDuration(), 1)}
+function timelinePxPerSecond(){
+  // En pantallas chicas el scroll lateral tiene que aparecer antes,
+  // para que con 2 o 3 globitos todavía haya buen espacio para editar.
+  if(esVistaAngosta()) return 22;
+  if(window.matchMedia && window.matchMedia('(max-width: 900px) and (orientation: landscape)').matches) return 18;
+  return 8;
+}
+function syncTimelineWidth(referenceDuration=0, keepScroll=true){
+  const wrapEl=$('wrap');
+  if(!wrapEl) return wrapEl?.clientWidth||900;
+  const visible=Math.max(260, wrapEl.clientWidth-28);
+  const dur=Math.max(1, referenceDuration||0, projectDuration());
+  const minByTime=Math.ceil(dur*timelinePxPerSecond());
+  const width=Math.max(visible, minByTime);
+  const oldScroll=wrapEl.scrollLeft;
+  [timeline, fxTimeline].forEach(el=>{ if(el){ el.style.width=width+'px'; el.style.minWidth=width+'px'; }});
+  const line=$('transportLine');
+  if(line){ line.style.left='12px'; line.style.right='auto'; line.style.width=Math.max(80,width-24)+'px'; }
+  if(keepScroll) wrapEl.scrollLeft=oldScroll;
+  return width;
+}
 function offsetWithPauses(untilIndex){let t=0; for(let i=0;i<untilIndex;i++){t+=Math.max(.2,blocks[i].duration||1); if(i<blocks.length-1)t+=getPauseAfter(i);} return t;}
 function estaGrabando(){return !!(recordingBusy || recordingLive || (mediaRecorder && mediaRecorder.state==='recording'));}
 function pedirSilencio(i){if(estaGrabando()) return; const actual=getPauseAfter(i); const txt=prompt('¿Cuántos segundos de silencio querés entre estos dos audios?', String(actual)); if(txt===null)return; const val=Number(String(txt).replace(',', '.')); if(!isFinite(val)||val<0){alert('Poné un número válido, por ejemplo 1, 2 o 3.5'); return;} blocks[i].pauseAfter=Math.min(60, val); marcarSinGuardar('Cambios sin guardar: silencio ajustado.'); render();}
@@ -313,11 +344,14 @@ function renderConScrollQuieto(){
   mantenerScrollHorizontal(keepScroll);
 }
 function render(){
+  const widthBeforeRender=syncTimelineWidth(projectDuration());
   timeline.classList.toggle('recordingMode', recordingLive);
   timeline.innerHTML='';
-  if(!blocks.length && !recordingLive){startIndex=0; timeline.innerHTML='<div class="empty">Todavía no hay audios. Tocá “Grabar”.</div>'; head.style.display='none'; if(transportHead)transportHead.style.display='none'; renderFxTimeline(0); updateBtns(); actualizarBotonGuardar(); return;}
+  if(!blocks.length && !recordingLive){startIndex=0; timeline.innerHTML='<div class="empty">Todavía no hay audios. Tocá “Grabar”.</div>'; head.style.display='none'; if(transportHead)transportHead.style.display='none'; renderFxTimeline(projectDuration()); updateBtns(); actualizarBotonGuardar(); return;}
   const liveDur=recordingLive ? Math.max(.2, recordingLiveDuration||.2) : 0;
   const totalDur=totalDurationWithPauses()+liveDur+(recordingLive&&blocks.length?DEFAULT_SILENCE:0);
+  const totalProjectForWidth=Math.max(totalDur,totalFxDuration(),1);
+  syncTimelineWidth(totalProjectForWidth);
   const itemCount=blocks.length+(recordingLive?1:0);
   const gapTotal=(Math.max(0,itemCount*2-2))*10;
   const wrapWidth=($('wrap')?.clientWidth||900)-28;
@@ -364,7 +398,7 @@ function render(){
       renderConScrollQuieto();
     }
     el.onclick=(ev)=>{ev.preventDefault(); jump();};
-    el.ondblclick=(ev)=>{ev.preventDefault(); jump(); setTimeout(()=>playSingle(i),40);};
+    el.ondblclick=(ev)=>{ev.preventDefault(); jump(); setTimeout(()=>playFromTime(offsetWithPauses(i),'Reproduciendo desde la voz '+(i+1)+' hasta el final...'),40);};
     // V38 iPad: el primer toque hace render y recrea el bloque, por eso el contador
     // de doble toque tiene que vivir fuera del elemento. Así Safari/iPad detecta doble toque real, sin disparar play con un solo toque.
     el.addEventListener('touchend',(ev)=>{
@@ -374,7 +408,7 @@ function render(){
         ev.preventDefault();
         ultimoToqueBloque={id:null,t:0};
         jump();
-        setTimeout(()=>playSingle(i),40);
+        setTimeout(()=>playFromTime(offsetWithPauses(i),'Reproduciendo desde la voz '+(i+1)+' hasta el final...'),40);
       }else{
         ultimoToqueBloque={id:b.id,t:now};
       }
@@ -459,10 +493,11 @@ function fxTimeFromPoint(clientX){
 }
 function renderFxTimeline(referenceDuration=0){
   if(!fxTimeline) return;
-  fxTimeline.innerHTML='';
   const total=Math.max(referenceDuration||0,totalFxDuration(),totalDurationWithPauses(),1);
+  syncTimelineWidth(total);
+  fxTimeline.innerHTML='';
   if(!fxBlocks.length){
-    fxTimeline.innerHTML='<div class="empty">Agregá pájaros, música, ambiente o un MP4: se escucha el audio y podés arrastrarlo al momento exacto.</div>';
+    fxTimeline.innerHTML='<div class="empty">Arrastrá acá pájaros, música, ambiente o un MP4: se usa solo el audio y podés ubicarlo exacto.</div>';
     return;
   }
   fxBlocks.forEach((b,i)=>{
@@ -485,7 +520,7 @@ function renderFxTimeline(referenceDuration=0){
     const delBtn=el.querySelector('.del');
     delBtn.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Borrar este bloque de sonidos?')) return; fxBlocks=fxBlocks.filter(x=>x.id!==b.id); marcarSinGuardar('Cambios sin guardar: sonido borrado.'); render();};
     el.onclick=(ev)=>{ev.preventDefault(); status.textContent=(b.isSilence?'Silencio visual':'Sonido')+' desde '+fmt(getFxStart(b))+'. Centro: mover. Bordes: recortar inicio o final. Doble toque: escuchar.';};
-    el.ondblclick=(ev)=>{ev.preventDefault(); if(!b.isSilence) playFxSingle(i);};
+    el.ondblclick=(ev)=>{ev.preventDefault(); if(!b.isSilence) playFromTime(getFxStart(b),'Reproduciendo desde este sonido hasta el final...');};
     let drag=null;
     el.addEventListener('pointerdown',(ev)=>{
       if(estaGrabando() || ev.target.closest('button')) return;
@@ -533,24 +568,7 @@ function renderFxTimeline(referenceDuration=0){
 }
 async function playFxSingle(i){
   if(estaGrabando() || !fxBlocks[i] || fxBlocks[i].isSilence) return;
-  if(playing){ stopPlayback(false); await new Promise(r=>setTimeout(r,20)); }
-  const runId=++playRunId;
-  try{
-    playing=true; updateBtns(); status.textContent='Escuchando sonido...';
-    playCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const buf=await decode(fxBlocks[i].blob, playCtx);
-    if(runId!==playRunId){ try{playCtx.close()}catch(e){} return; }
-    playOffset=0; playStartedAt=playCtx.currentTime; playSources=[];
-    const dur=fxClipDuration(fxBlocks[i]);
-    const offset=getFxTrimStart(fxBlocks[i]);
-    const src=playCtx.createBufferSource(); src.buffer=buf;
-    const gain=playCtx.createGain();
-    src.connect(gain).connect(playCtx.destination);
-    applyFxFade(gain,playStartedAt,dur,fxGain(1));
-    src.start(playStartedAt,offset,dur);
-    playSources.push({src,gain});
-    setTimeout(()=>{ if(playing && runId===playRunId) stopPlayback(false); }, Math.max(50,dur*1000+80));
-  }catch(e){ if(runId===playRunId){ stopPlayback(false); status.textContent='No pude reproducir ese sonido/video como audio. Probá con MP4 H.264/AAC, MP3 o WAV.'; } }
+  return playFromTime(getFxStart(fxBlocks[i]),'Reproduciendo desde este sonido hasta el final...');
 }
 async function addFxFiles(files, startTime=null){
   if(estaGrabando()) return;
@@ -800,72 +818,117 @@ async function trimBlobEnd(blob, seconds=0.32){
     return new Blob([bufferToWav(rendered)],{type:'audio/wav'});
   }catch(e){ return blob; }
 }
-async function playSingle(i){
-  if(estaGrabando()) return;
-  if(!blocks.length) return;
-
-  // Si ya hay algo sonando, lo corto y arranco el nuevo bloque.
-  // El playRunId evita que timers viejos corten el bloque nuevo cuando hacés doble clic rápido.
-  if(playing){
-    stopPlayback(false);
-    await new Promise(r=>setTimeout(r,20));
-  }
-
-  const runId=++playRunId;
-  startIndex=i;
-  renderConScrollQuieto();
-
+function voiceAbsoluteStart(i){return offsetWithPauses(i)}
+function voiceAbsoluteEnd(i){return voiceAbsoluteStart(i)+Math.max(.2,blocks[i]?.duration||1)}
+function fxEnvelopeAt(absTime, clipStart, clipDur, value){
+  const fade=Math.min(1, Math.max(.03,clipDur/2));
+  const local=absTime-clipStart;
+  if(local<=0) return 0;
+  if(local>=clipDur) return 0;
+  if(local<fade) return value*(local/fade);
+  if(local>clipDur-fade) return value*((clipDur-local)/fade);
+  return value;
+}
+function scheduleFxFadeFrom(gain, contextStart, clipAbsStart, clipDur, fromTime, value){
+  const fade=Math.min(1, Math.max(.03,clipDur/2));
+  const clipAbsEnd=clipAbsStart+clipDur;
+  const nowAbs=Math.max(fromTime, clipAbsStart);
+  const startCtx=contextStart+Math.max(0,clipAbsStart-fromTime);
   try{
-    playing=true; updateBtns(); head.style.display='block'; if(transportHead)transportHead.style.display='none'; status.textContent='Escuchando solo el bloque '+(i+1)+'...';
-    playCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const buf=await decode(blocks[i].blob, playCtx);
-
-    // Si durante la decodificación el usuario ya eligió otro bloque, este intento queda cancelado.
-    if(runId!==playRunId){ try{playCtx.close()}catch(e){} return; }
-
-    playOffset=offsetWithPauses(i);
-    playStartedAt=playCtx.currentTime;
-    playSources=[];
-    const src=playCtx.createBufferSource(); src.buffer=buf;
-    const gain=playCtx.createGain(); gain.gain.value=Number(vol.value);
-    src.connect(gain).connect(playCtx.destination); src.start(playStartedAt);
+    gain.gain.cancelScheduledValues(startCtx);
+    if(fromTime<=clipAbsStart){
+      gain.gain.setValueAtTime(0,startCtx);
+      gain.gain.linearRampToValueAtTime(value,startCtx+fade);
+      gain.gain.setValueAtTime(value,Math.max(startCtx+fade,startCtx+clipDur-fade));
+      gain.gain.linearRampToValueAtTime(0,startCtx+clipDur);
+      return;
+    }
+    gain.gain.setValueAtTime(fxEnvelopeAt(nowAbs,clipAbsStart,clipDur,value), contextStart);
+    const fadeInEnd=clipAbsStart+fade;
+    const fadeOutStart=clipAbsEnd-fade;
+    if(fromTime<fadeInEnd){
+      gain.gain.linearRampToValueAtTime(value, contextStart+(fadeInEnd-fromTime));
+    }
+    if(fromTime<fadeOutStart){
+      gain.gain.setValueAtTime(value, contextStart+(fadeOutStart-fromTime));
+    }
+    gain.gain.linearRampToValueAtTime(0, contextStart+(clipAbsEnd-fromTime));
+  }catch(e){gain.gain.value=value;}
+}
+async function scheduleMainFrom(ctx, fromTime, startAt){
+  let maxAbs=mainDuration();
+  const buffers=[];
+  for(const b of blocks){ buffers.push(await decode(b.blob, ctx)); }
+  buffers.forEach((buf,i)=>{
+    const absStart=voiceAbsoluteStart(i);
+    const absEnd=absStart+buf.duration;
+    if(absEnd<=fromTime+.001) return;
+    const offset=Math.max(0,fromTime-absStart);
+    const delay=Math.max(0,absStart-fromTime);
+    const dur=Math.max(.03,buf.duration-offset);
+    const src=ctx.createBufferSource(); src.buffer=buf;
+    const gain=ctx.createGain(); gain.gain.value=Number(vol.value);
+    src.connect(gain).connect(ctx.destination);
+    src.start(startAt+delay,offset,dur);
     playSources.push({src,gain});
-    animateSmooth(totalDurationWithPauses(), buf.duration);
-    setTimeout(()=>{ if(playing && runId===playRunId) stopPlayback(false); }, Math.max(50,buf.duration*1000+80));
+  });
+  return maxAbs;
+}
+async function scheduleFxFrom(ctx, fromTime, startAt){
+  let maxAbs=totalFxDuration();
+  const decoded=await Promise.all(fxBlocks.map(async b=>b.isSilence?null:decode(b.blob,ctx)));
+  decoded.forEach((buf,i)=>{
+    const b=fxBlocks[i];
+    if(!buf || b.isSilence) return;
+    const absStart=getFxStart(b);
+    const clipDur=fxClipDuration(b);
+    const absEnd=absStart+clipDur;
+    if(absEnd<=fromTime+.001) return;
+    const inside=Math.max(0,fromTime-absStart);
+    const delay=Math.max(0,absStart-fromTime);
+    const offset=getFxTrimStart(b)+inside;
+    const dur=Math.max(.03,clipDur-inside);
+    const src=ctx.createBufferSource(); src.buffer=buf;
+    const gain=ctx.createGain();
+    src.connect(gain).connect(ctx.destination);
+    scheduleFxFadeFrom(gain,startAt,absStart,clipDur,fromTime,fxGain(1));
+    src.start(startAt+delay,offset,dur);
+    playSources.push({src,gain});
+  });
+  return maxAbs;
+}
+async function playFromTime(fromTime=0,msg='Reproduciendo desde este punto hasta el final...'){
+  if(estaGrabando()) return;
+  if(!blocks.length && !fxBlocks.length) return;
+  if(playing){ stopPlayback(false); await new Promise(r=>setTimeout(r,20)); }
+  const runId=++playRunId;
+  try{
+    const total=projectDuration();
+    const startAtTime=Math.max(0,Math.min(fromTime,total-.01));
+    playing=true; updateBtns(); head.style.display='block'; if(transportHead)transportHead.style.display='none'; status.textContent='Preparando reproducción desde '+fmt(startAtTime)+'...';
+    playCtx=new (window.AudioContext||window.webkitAudioContext)();
+    playSources=[];
+    playOffset=startAtTime;
+    playStartedAt=playCtx.currentTime;
+    const mainEnd=blocks.length ? await scheduleMainFrom(playCtx,startAtTime,playStartedAt) : 0;
+    if(!playing || runId!==playRunId) return;
+    const fxEndTime=fxBlocks.length ? await scheduleFxFrom(playCtx,startAtTime,playStartedAt) : 0;
+    if(!playing || runId!==playRunId) return;
+    const absoluteEnd=Math.max(mainEnd,fxEndTime,total);
+    const remaining=Math.max(.05,absoluteEnd-startAtTime);
+    animateSmooth(total, remaining);
+    status.textContent=msg;
+    setTimeout(()=>{ if(playing && runId===playRunId) stopPlayback(false); }, Math.max(80,remaining*1000+140));
   }catch(e){
-    if(runId===playRunId){ stopPlayback(false); status.textContent='No pude reproducir ese bloque.'; }
+    if(runId===playRunId){ stopPlayback(true); status.textContent='No pude reproducir desde ese punto en este navegador.'; }
   }
 }
-
+async function playSingle(i){
+  // Compatibilidad con versiones anteriores: ahora un doble toque reproduce todo desde ese bloque.
+  return playFromTime(offsetWithPauses(i),'Reproduciendo desde la voz '+(i+1)+' hasta el final...');
+}
 async function playSequence(){
-  if(estaGrabando()) return;
-  if((!blocks.length && !fxBlocks.length) || playing) return;
-  const runId=++playRunId;
-  try{
-    playing=true; updateBtns(); head.style.display='block'; if(transportHead)transportHead.style.display='none'; status.textContent='Preparando reproducción...';
-    playCtx=new (window.AudioContext||window.webkitAudioContext)();
-    playSources=[];
-    playOffset=0;
-    playStartedAt=playCtx.currentTime;
-    let mainT=0;
-    if(blocks.length){
-      const chosen=blocks.slice(startIndex);
-      const buffers=[];
-      for(const b of chosen){ buffers.push(await decode(b.blob, playCtx)); }
-      if(!playing || runId!==playRunId) return;
-      playOffset=offsetWithPauses(startIndex);
-      let t=0;
-      buffers.forEach((buf,j)=>{ const src=playCtx.createBufferSource(); src.buffer=buf; const gain=playCtx.createGain(); gain.gain.value=Number(vol.value); src.connect(gain).connect(playCtx.destination); src.start(playStartedAt+t); playSources.push({src,gain}); t+=buf.duration; const absoluteIndex=startIndex+j; if(absoluteIndex<blocks.length-1)t+=getPauseAfter(absoluteIndex); });
-      mainT=t;
-    }
-    const fxT=await scheduleTrack(fxBlocks, playCtx, fxGain(1), playStartedAt);
-    if(!playing || runId!==playRunId) return;
-    const total=projectDuration();
-    const remaining=Math.max(mainT+offsetWithPauses(startIndex), fxT, total);
-    animateSmooth(total, remaining);
-    status.textContent='Reproduciendo podcast con sonidos...';
-    setTimeout(()=>{ if(playing && runId===playRunId) stopPlayback(false); }, Math.max(50,remaining*1000+120));
-  }catch(e){ if(runId===playRunId){ stopPlayback(true); status.textContent='No pude reproducir la secuencia en este navegador.'; } }
+  return playFromTime(0,'Reproduciendo podcast completo con sonidos...');
 }
 function animateSmooth(total, remaining){
   cancelAnimationFrame(raf);
@@ -877,9 +940,9 @@ function animateSmooth(total, remaining){
     const line=$('transportLine');
     const wrap=$('wrap');
     if(line&&wrap){
-      const lr=line.getBoundingClientRect();
-      const wr=wrap.getBoundingClientRect();
-      const x=(pct*lr.width)+(lr.left-wr.left);
+      // Coordenada absoluta dentro del contenido scrolleable, no dentro del viewport.
+      // Así la rayita queda sincronizada aunque el usuario se desplace lateralmente.
+      const x=(line.offsetLeft||12)+(pct*(line.offsetWidth||line.clientWidth||timeline.clientWidth));
       head.style.left=x+'px';
       if(transportHead) transportHead.style.left=(x-2)+'px';
     }else{
@@ -1001,12 +1064,64 @@ function insertionIndexFromPoint(clientX){
   }
   return els.length;
 }
-$('wrap').addEventListener('dragover',e=>{ if(e.dataTransfer && e.dataTransfer.types && [...e.dataTransfer.types].includes('Files')){e.preventDefault(); drop.classList.add('drag');} });
+function initTimelinePan(){
+  const wrapEl=$('wrap');
+  if(!wrapEl || wrapEl.dataset.panReady) return;
+  wrapEl.dataset.panReady='1';
+  let pan=null;
+  const interactiveSelector='.block,.silenceBlock,button,input,label,.fxHandle,.del,.controls,.transport';
+
+  wrapEl.addEventListener('pointerdown',(ev)=>{
+    if(estaGrabando()) return;
+    if(ev.button!=null && ev.button!==0) return;
+    if(ev.target.closest(interactiveSelector)) return;
+    // Primero queda en espera: si el gesto va horizontal, mueve la línea;
+    // si va vertical, dejamos que el navegador haga scroll hacia abajo.
+    pan={id:ev.pointerId,x:ev.clientX,y:ev.clientY,scroll:wrapEl.scrollLeft,active:false,moved:false};
+  },{passive:true});
+
+  wrapEl.addEventListener('pointermove',(ev)=>{
+    if(!pan || pan.id!==ev.pointerId) return;
+    const dx=ev.clientX-pan.x;
+    const dy=ev.clientY-pan.y;
+
+    if(!pan.active){
+      if(Math.abs(dy)>7 && Math.abs(dy)>Math.abs(dx)*1.1){
+        pan=null;
+        wrapEl.classList.remove('panning');
+        return;
+      }
+      if(Math.abs(dx)>7 && Math.abs(dx)>Math.abs(dy)*1.15){
+        pan.active=true;
+        wrapEl.classList.add('panning');
+        try{wrapEl.setPointerCapture(ev.pointerId)}catch(e){}
+      }else{
+        return;
+      }
+    }
+
+    ev.preventDefault();
+    if(Math.abs(dx)>2) pan.moved=true;
+    wrapEl.scrollLeft=pan.scroll-dx;
+  },{passive:false});
+
+  function endPan(ev){
+    if(!pan || (ev && pan.id!==ev.pointerId)) return;
+    try{wrapEl.releasePointerCapture(pan.id)}catch(e){}
+    pan=null;
+    wrapEl.classList.remove('panning');
+  }
+  wrapEl.addEventListener('pointerup',endPan,{passive:true});
+  wrapEl.addEventListener('pointercancel',endPan,{passive:true});
+}
+initTimelinePan();
+window.addEventListener('resize',()=>syncTimelineWidth(projectDuration()));
+$('wrap').addEventListener('dragover',e=>{ if(e.dataTransfer && e.dataTransfer.types && [...e.dataTransfer.types].includes('Files')){e.preventDefault(); $('wrap').classList.add('drag');} });
 $('wrap').addEventListener('drop',e=>{
   if(estaGrabando()) return;
   const files=[...e.dataTransfer.files];
   const media=files.filter(f=>(f.type||'').startsWith('audio/') || (f.type||'').startsWith('video/'));
-  if(media.length){ e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag');
+  if(media.length){ e.preventDefault(); e.stopPropagation(); $('wrap').classList.remove('drag');
     const fxr=fxTimeline?.getBoundingClientRect();
     if(fxr && e.clientY>=fxr.top && e.clientY<=fxr.bottom) addFxFiles(media, fxTimeFromPoint(e.clientX));
     else addExternalFiles(media, insertionIndexFromPoint(e.clientX));
@@ -1035,7 +1150,7 @@ async function loadZip(file){
     blocks=nb; fxBlocks=nf; if(fxVol && pj.fxVolume!=null){fxVol.value=String(Math.max(0,Math.min(10,Number(pj.fxVolume)||5))); updateFxVolLabel();} startIndex=0; marcarGuardado('✓ Proyecto cargado con voces y sonidos.'); render();
   }catch(e){status.textContent='No pude abrir ese ZIP de proyecto.';}
 }
-const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{if(estaGrabando()) return; const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/') || (x.type||'').startsWith('video/') || /\.(mp3|wav|m4a|aac|ogg|webm|mp4|mov|m4v)$/i.test(x.name||'')); if(f)loadZip(f); else if(media.length){ const fxr=fxTimeline?.getBoundingClientRect(); if(fxr && e.clientY>=fxr.top && e.clientY<=fxr.bottom) addFxFiles(media, fxTimeFromPoint(e.clientX)); else addExternalFiles(media, insertionIndexFromPoint(e.clientX)); } else status.textContent='Arrastrá un ZIP de proyecto o un archivo de audio/video.';});
+['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); $('wrap')?.classList.add('drag'); const fxr=fxTimeline?.getBoundingClientRect(); if(fxr && e.clientY>=fxr.top && e.clientY<=fxr.bottom) fxTimeline.classList.add('drag'); else fxTimeline?.classList.remove('drag');});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop'){ $('wrap')?.classList.remove('drag'); fxTimeline?.classList.remove('drag'); }});}); document.addEventListener('drop',e=>{if(estaGrabando()) return; const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/') || (x.type||'').startsWith('video/') || /\.(mp3|wav|m4a|aac|ogg|webm|mp4|mov|m4v)$/i.test(x.name||'')); if(f)loadZip(f); else if(media.length){ const fxr=fxTimeline?.getBoundingClientRect(); if(fxr && e.clientY>=fxr.top && e.clientY<=fxr.bottom) addFxFiles(media, fxTimeFromPoint(e.clientX)); else addExternalFiles(media, insertionIndexFromPoint(e.clientX)); } else status.textContent='Soltá el ZIP para abrir proyecto, o soltá audio/video en voces o sonidos.';});
 window.addEventListener('pagehide',()=>{ recordingBusy=false; stopLiveRecordingBlock(); if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); else releaseMic(); });
 render();
 </script>
