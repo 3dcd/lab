@@ -6,6 +6,8 @@ let dictationRecognition=null, dictatingIndex=-1, dictationBaseText='', dictatio
 let dictationTouchMode='body', dictationDraftMode='body', dictationDraftText='', dictationInterimText='';
 let dictationParts=[];
 let dictationSkipFinals=[];
+let dictationKeepAlive=false;
+let dictationRestartTimer=null;
 let undoTouchLockUntil=0;
 const colors=['#9ad7ff','#9ff0c8','#ffe38f','#ffc2df','#d6c8ff','#ffb0b8','#b7f1ff','#ffd2a6','#c7ed9f','#e0e7ff'];
 const $=id=>document.getElementById(id);
@@ -36,14 +38,14 @@ function render(){
   blocks.forEach((b,i)=>{
     const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=false; el.style.background=b.color; el.dataset.id=b.id;
     const editing=!!b.editingText;
-    const preview=previewEditorialHtml(b.text||'');
-    const toolsZona=(dictatingIndex===i && !editing) ? `<div class="dictateTools" data-dict-tools="${i}"><button class="dictModeBtn titleMode ${dictationTouchMode==='title'?'active':''}" data-mode="title" title="Título">T</button><button class="dictModeBtn subMode ${dictationTouchMode==='subtitle'?'active':''}" data-mode="subtitle" title="Subtítulo">Sub</button><button class="dictModeBtn bodyMode ${dictationTouchMode==='body'?'active':''}" data-mode="body" title="Texto normal">N</button><button class="dictModeBtn boxMode ${dictationTouchMode==='box'?'active':''}" data-mode="box" title="Recuadro">□</button><button class="dictModeBtn enterMode" data-action="enter" title="Cerrar tramo">↵</button><button class="dictModeBtn undoMode" data-action="undo" title="Borrar último bloque">↶</button><button class="dictModeBtn bulletMode ${dictationTouchMode==='bullet'?'active':''}" data-mode="bullet" title="Viñeta">•</button><button class="dictModeBtn numberMode ${dictationTouchMode==='number'?'active':''}" data-mode="number" title="Lista numerada">1</button><button class="dictModeBtn leftMode ${dictationTouchMode==='leftcol'?'active':''}" data-mode="leftcol" title="Columna izquierda">◧</button><button class="dictModeBtn rightMode ${dictationTouchMode==='rightcol'?'active':''}" data-mode="rightcol" title="Columna derecha">◨</button><button class="dictModeBtn imageMode" data-action="image" title="Espacio para imagen">🖼</button><button class="dictModeBtn dividerMode" data-action="divider" title="Línea punteada">⋯</button></div>` : '';
+    const preview=previewEditorialHtml(b.text||'', b);
+    const toolsZona=(dictatingIndex===i && !editing) ? `<div class="dictateTools" data-dict-tools="${i}"><button class="dictModeBtn titleMode ${dictationTouchMode==='title'?'active':''}" data-mode="title" title="Título">T</button><button class="dictModeBtn subMode ${dictationTouchMode==='subtitle'?'active':''}" data-mode="subtitle" title="Subtítulo">Sub</button><button class="dictModeBtn bodyMode ${dictationTouchMode==='body'?'active':''}" data-mode="body" title="Texto normal">N</button><button class="dictModeBtn boxMode ${dictationTouchMode==='box'?'active':''}" data-mode="box" title="Recuadro">□</button><button class="dictModeBtn enterMode" data-action="enter" title="Cerrar tramo">↵</button><button class="dictModeBtn undoMode" data-action="undo" title="Borrar último bloque">↶</button><button class="dictModeBtn bulletMode ${dictationTouchMode==='bullet'?'active':''}" data-mode="bullet" title="Viñeta">•</button><button class="dictModeBtn numberMode ${dictationTouchMode==='number'?'active':''}" data-mode="number" title="Lista numerada">1</button><button class="dictModeBtn imageLabelMode ${dictationTouchMode==='imagelabel'?'active':''}" data-mode="imagelabel" title="Imagen con etiqueta">🖼▣</button><button class="dictModeBtn blackMode" data-mode="black" title="Placa negra">Neg</button><button class="dictModeBtn captionMode" data-mode="caption" title="Pie de foto">Pie</button><button class="dictModeBtn dividerMode" data-action="divider" title="Línea punteada">⋯</button></div>` : '';
     const textoZona=editing
       ? `<div class="noteEditor"><textarea class="noteText" placeholder="Escribir observación de esta nota...">${escapeHtml(b.text||'')}</textarea><div class="dictateHelp">Modo edición: corregí el texto y tocá “Ver resultado”.</div></div>`
       : `${toolsZona}<div class="notePreview ${preview?'':'emptyText'}">${preview||'Sin texto todavía. Podés dictar o editar a mano.'}</div><div class="dictTouchHint">${dictatingIndex===i?'Dictado táctil activo.':'Dictado táctil: tocá Dictar texto y marcá el formato con los botones.'}</div>`;
     const isRecThis=recordingLive && recordingTargetIndex===i;
     const inlineRec=isRecThis ? `<div class="inlineRec" title="Tocar para detener y guardar"><div class="inlineRecText">● Grabando</div><div class="inlineRecDur" id="inlineRecDur">${fmt(recordingLiveDuration)}</div><div class="inlineRecWave" id="inlineRecWave">${Array.from({length:12},()=>`<i style="height:8px"></i>`).join('')}</div><button class="inlineRecCancel" title="Cancelar audio">×</button></div>` : '';
-    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="topline"><div class="name">${i+1}. ${escapeHtml(b.name||'Nota')}</div><div class="dur">${b.blob?fmt(b.duration):'sin audio'}</div></div><div class="created">${fmtDate(b.createdAt)}</div>${textoZona}${inlineRec}<div class="cardBtns"><button class="recordAudioBtn ${isRecThis?'recording':''}">${isRecThis?'■ Detener audio':(b.blob?'🎙 Regrabar audio':'🎙 Grabar audio')}</button><button class="play one" ${b.blob?'':'disabled'}>${playing&&playingNoteIndex===i?'❚❚ Audio':'▶ Audio'}</button><button class="dictateBtn ${dictatingIndex===i?'on':''}">${dictatingIndex===i?'■ Detener dictado':'🎙 Dictar texto'}</button><button class="editTextBtn">${editing?'✓ Ver resultado':'✏️ Editar texto'}</button><button class="shareBtn">↗ Compartir PNG</button></div>`;
+    el.innerHTML=`<button class="del" title="Borrar">×</button><div class="topline"><div class="name">${i+1}. ${escapeHtml(b.name||'Nota')}</div><div class="dur">${b.blob?fmt(b.duration):'sin audio'}</div></div><div class="created">${fmtDate(b.createdAt)}</div>${textoZona}${inlineRec}<div class="cardBtns"><button class="recordAudioBtn ${isRecThis?'recording':''}">${isRecThis?'■ Detener audio':(b.blob?'🎙 Regrabar audio':'🎙 Grabar audio')}</button><button class="play one" ${b.blob?'':'disabled'}>${playing&&playingNoteIndex===i?'❚❚ Audio':'▶ Audio'}</button><button class="dictateBtn ${dictatingIndex===i?'on':''}">${dictatingIndex===i?'■ Detener dictado':'🎙 Dictar texto'}</button><button class="editTextBtn">${editing?'✓ Ver resultado':'✏️ Editar texto'}</button><button class="shareBtn">↗ Compartir PNG</button><button class="downloadPngBtn">⬇ Guardar PNG</button></div>`;
     el.querySelector('.del').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Estás seguro de que querés borrar esta nota?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: nota borrada.'); render();};
     const txt=el.querySelector('.noteText');
     if(txt){
@@ -67,9 +69,30 @@ function render(){
     if(tools) configurarHerramientasDictado(tools,i);
     el.querySelector('.recordAudioBtn').onclick=(ev)=>{ev.stopPropagation(); if(recordingLive && recordingTargetIndex===i){detenerGrabacionRobusta(ev); return;} if(estaGrabando()||estaDictando()) return; iniciarGrabacionNota(i);};
     el.querySelector('.play.one').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()||!blocks[i]?.blob) return; if(playing&&playingNoteIndex===i){stopPlayback(false); return;} startIndex=i; setTimeout(()=>playSingle(i),20);};
-    el.querySelector('.dictateBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; toggleDictadoNota(i);};
+    const dictBtn=el.querySelector('.dictateBtn');
+    const dictHandler=(ev)=>{
+      try{ev.preventDefault(); ev.stopPropagation();}catch(e){}
+      if(dictBtn._lastTap && Date.now()-dictBtn._lastTap<250) return;
+      dictBtn._lastTap=Date.now();
+      if(estaGrabando()) return;
+      toggleDictadoNota(i);
+    };
+    dictBtn.onclick=dictHandler;
+    if(window.PointerEvent){ dictBtn.addEventListener('pointerdown',dictHandler,{passive:false}); }
+    else { dictBtn.addEventListener('touchstart',dictHandler,{passive:false}); }
     el.querySelector('.editTextBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; alternarEdicionTexto(i);};
     el.querySelector('.shareBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; compartirNota(i);};
+    el.querySelector('.downloadPngBtn').onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()||estaDictando()) return; exportarPNGNota(i,false);};
+    el.querySelectorAll('[data-edit-line]').forEach(node=>{
+      node.ondblclick=(ev)=>{ev.preventDefault(); ev.stopPropagation(); editarLineaVisual(i,node.dataset.editLine);};
+      let tapTimer=0;
+      node.addEventListener('touchend',(ev)=>{
+        if(estaGrabando()||estaDictando()) return;
+        const now=Date.now();
+        if(now-tapTimer<360){ev.preventDefault(); ev.stopPropagation(); editarLineaVisual(i,node.dataset.editLine);} 
+        tapTimer=now;
+      },{passive:false});
+    });
     el.querySelectorAll('.notePreviewImageSlot').forEach(slot=>{slot.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; const idx=parseInt(slot.dataset.imageIndex||'0',10)||0; const imgId=slot.dataset.imageId||''; elegirImagenParaNota(i,idx,imgId);};});
     el.onclick=(ev)=>{ if(ev.target.closest('textarea,button'))return; jump(); };
     timeline.appendChild(el);
@@ -175,74 +198,102 @@ function aplicarPuntuacionHablada(texto){
      .replace(/\n{3,}/g,'\n\n');
   return capitalizarFrases(limpiarEspaciosEditorial(t));
 }
-function esLineaImagen(line){return /^🖼\s+/.test(line) || /^\[imagen\]/i.test(line);}
-function extraerSrcImagen(line){
-  let v=String(line||'').replace(/^🖼\s+/,'').replace(/^\[imagen(?::[^\]]+)?\]\s*/i,'').trim();
+function esLineaImagen(line){return /^🖼(?:🏷)?\s+/.test(line) || /^\[imagen\]/i.test(line);}
+function extraerSrcImagen(line, blockCtx=null){
+  const raw=String(line||'');
+  const id=extraerIdImagen(raw);
+  if(id && blockCtx && blockCtx.images && blockCtx.images[id]) return blockCtx.images[id];
+  let v=raw.replace(/^🖼(?:🏷)?\s+/,'').replace(/^\[imagen(?::[^\]]+)?\]\s*/i,'').trim();
   return /^data:image\//.test(v) ? v : '';
 }
-function previewEditorialHtml(texto){
+function previewEditorialHtml(texto, blockCtx=null){
   const t=String(texto||'').trim();
   if(!t)return '';
   const lines=t.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  let imageSlotCounter=0; // contador local: evita romper render al insertar imágenes
   let html='';
   let body=[];
   let pendingLeft=null;
   let pendingRight=null;
+  let pendingLeftLine='';
+  let pendingRightLine='';
   function flushBody(){
-    if(body.length){html+=`<div class="notePreviewBody">${escapeHtml(body.join('\n\n'))}</div>`; body=[];}
+    if(body.length){
+      const inner=body.map(p=>`<div data-edit-line="${p.idx}">${escapeHtml(p.text)}</div>`).join('<div style="height:8px"></div>');
+      html+=`<div class="notePreviewBody">${inner}</div>`;
+      body=[];
+    }
   }
-  function renderImageSlot(line){
-    const src=extraerSrcImagen(line);
+  function renderImageSlot(line, label='', caption=''){
+    const src=extraerSrcImagen(line, blockCtx);
     const idx=imageSlotCounter++;
     const imgId=extraerIdImagen(line);
-    return `<div class="notePreviewImageSlot" data-image-slot="1" data-image-index="${idx}" data-image-id="${escapeHtml(imgId)}">${src?`<img src="${src}" alt="Imagen de la nota">`:'Tocar para agregar imagen'}</div>`;
+    const slot=`<div class="notePreviewImageSlot" data-image-slot="1" data-image-index="${idx}" data-image-id="${escapeHtml(imgId)}">${src?`<img src="${src}" alt="Imagen de la nota">`:'Tocar para agregar imagen'}</div>`;
+    const lab=label?`<div class="notePreviewImageLabel">${escapeHtml(label)}</div>`:'';
+    const cap=caption?`<div class="notePreviewCaption">${escapeHtml(caption)}</div>`:'';
+    return `<div class="notePreviewImageWrap">${slot}${lab}${cap}</div>`;
   }
-  function addColumns(left,right,leftIsHtml=false,rightIsHtml=false){
+  function addColumns(left,right,leftIsHtml=false,rightIsHtml=false,leftLine='',rightLine=''){
     flushBody();
-    html+=`<div class="notePreviewColumns"><div class="notePreviewCol left">${leftIsHtml?left:escapeHtml(left||'')}</div><div class="notePreviewCol right">${rightIsHtml?right:escapeHtml(right||'')}</div></div>`;
+    const le=leftIsHtml?left:`<div data-edit-line="${leftLine}">${escapeHtml(left||'')}</div>`;
+    const ri=rightIsHtml?right:`<div data-edit-line="${rightLine}">${escapeHtml(right||'')}</div>`;
+    html+=`<div class="notePreviewColumns"><div class="notePreviewCol left">${le}</div><div class="notePreviewCol right">${ri}</div></div>`;
   }
   function flushPendingColumns(){
     if(pendingLeft!==null || pendingRight!==null){
-      addColumns(pendingLeft||'',pendingRight||'');
+      addColumns(pendingLeft||'',pendingRight||'',false,false,pendingLeftLine,pendingRightLine);
       pendingLeft=null;
       pendingRight=null;
+      pendingLeftLine='';
+      pendingRightLine='';
     }
   }
-  lines.forEach((line,idx)=>{
-    if(/^◧\s+/.test(line)){flushPendingColumns(); pendingLeft=line.replace(/^◧\s+/,''); return;}
+  for(let idx=0; idx<lines.length; idx++){
+    let line=lines[idx];
+    const next=lines[idx+1]||'';
+    const next2=lines[idx+2]||'';
+    if(/^◧\s+/.test(line)){flushPendingColumns(); pendingLeft=line.replace(/^◧\s+/,''); pendingLeftLine=idx; continue;}
     if(/^◨\s+/.test(line)){
       const right=line.replace(/^◨\s+/,'');
-      if(pendingLeft!==null){addColumns(pendingLeft,right); pendingLeft=null;}
-      else{flushPendingColumns(); pendingRight=right;}
-      return;
+      if(pendingLeft!==null){addColumns(pendingLeft,right,false,false,pendingLeftLine,idx); pendingLeft=null; pendingLeftLine='';}
+      else{flushPendingColumns(); pendingRight=right; pendingRightLine=idx;}
+      continue;
     }
     if(esLineaImagen(line)){
-      const imgHtml=renderImageSlot(line);
-      if(pendingLeft!==null){addColumns(pendingLeft,imgHtml,false,true); pendingLeft=null; return;}
-      if(pendingRight!==null){addColumns(imgHtml,pendingRight,true,false); pendingRight=null; return;}
+      let label='',caption='';
+      const inlineLabel=line.match(/^🖼🏷\s+\[imagen(?::[^\]]+)?\]\s*(.*)$/i);
+      if(inlineLabel && inlineLabel[1]) label=inlineLabel[1].trim();
+      if(/^🏷\s+/.test(next)){label=next.replace(/^🏷\s+/,''); idx++;}
+      if(/^Pie:\s*/i.test(lines[idx+1]||'')){caption=(lines[idx+1]||'').replace(/^Pie:\s*/i,''); idx++;}
+      const imgHtml=renderImageSlot(line,label,caption);
+      if(pendingLeft!==null){addColumns(pendingLeft,imgHtml,false,true,pendingLeftLine,''); pendingLeft=null; pendingLeftLine=''; continue;}
+      if(pendingRight!==null){addColumns(imgHtml,pendingRight,true,false,'',pendingRightLine); pendingRight=null; pendingRightLine=''; continue;}
       flushPendingColumns();
       flushBody();
       html+=imgHtml;
-      return;
+      continue;
     }
     flushPendingColumns();
-    if(/^↵$/.test(line)){flushPendingColumns(); flushBody(); html+=`<div class="notePreviewSpacer"></div>`; return;}
-    if(/^···$|^⋯$|^-{3,}$/.test(line)){flushPendingColumns(); flushBody(); html+=`<div class="notePreviewDivider"></div>`; return;}
-    if(/^##\s+/.test(line)){flushBody(); html+=`<div class="notePreviewSubTitle">${escapeHtml(line.replace(/^##\s+/,''))}</div>`; return;}
-    if(/^#\s+/.test(line)){flushBody(); html+=`<div class="notePreviewTitle">${escapeHtml(line.replace(/^#\s+/,''))}</div>`; return;}
-    if(/^□\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBox">${escapeHtml(line.replace(/^□\s+/,''))}</div>`; return;}
-    if(/^•\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBullet">${escapeHtml(line.replace(/^•\s+/,''))}</div>`; return;}
-    if(/^\d+\.\s+/.test(line)){flushBody(); html+=`<div class="notePreviewNumber">${escapeHtml(line)}</div>`; return;}
-    body.push(line);
-  });
+    if(/^🏷\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBlack" data-edit-line="${idx}">${escapeHtml(line.replace(/^🏷\s+/,''))}</div>`; continue;}
+    if(/^Pie:\s*/i.test(line)){flushBody(); html+=`<div class="notePreviewCaption" data-edit-line="${idx}">${escapeHtml(line.replace(/^Pie:\s*/i,''))}</div>`; continue;}
+    if(/^↵$/.test(line)){flushPendingColumns(); flushBody(); html+=`<div class="notePreviewSpacer" data-edit-line="${idx}"></div>`; continue;}
+    if(/^···$|^⋯$|^-{3,}$/.test(line)){flushPendingColumns(); flushBody(); html+=`<div class="notePreviewDivider" data-edit-line="${idx}"></div>`; continue;}
+    if(/^##\s+/.test(line)){flushBody(); html+=`<div class="notePreviewSubTitle" data-edit-line="${idx}">${escapeHtml(line.replace(/^##\s+/,''))}</div>`; continue;}
+    if(/^#\s+/.test(line)){flushBody(); html+=`<div class="notePreviewTitle" data-edit-line="${idx}">${escapeHtml(line.replace(/^#\s+/,''))}</div>`; continue;}
+    if(/^□\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBox" data-edit-line="${idx}">${escapeHtml(line.replace(/^□\s+/,''))}</div>`; continue;}
+    if(/^■\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBlack" data-edit-line="${idx}">${escapeHtml(line.replace(/^■\s+/,''))}</div>`; continue;}
+    if(/^•\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBullet" data-edit-line="${idx}"><span class="bulletGlyph">•</span><span>${escapeHtml(line.replace(/^•\s+/,''))}</span></div>`; continue;}
+    if(/^\d+\.\s+/.test(line)){flushBody(); html+=`<div class="notePreviewNumber" data-edit-line="${idx}">${escapeHtml(line)}</div>`; continue;}
+    body.push({text:line,idx});
+  }
   flushPendingColumns();
   flushBody();
   return html;
 }
-function actualizarPreviewNota(card,texto){
+function actualizarPreviewNota(card,texto,blockCtx=null){
   const prev=card && card.querySelector('.notePreview');
   if(!prev)return;
-  const html=previewEditorialHtml(texto);
+  const html=previewEditorialHtml(texto, blockCtx);
   prev.innerHTML=html || 'Sin texto todavía. Podés dictar o editar a mano.';
   prev.classList.toggle('emptyText',!html);
   try{prev.scrollTop=prev.scrollHeight;}catch(e){}
@@ -253,6 +304,20 @@ function alternarEdicionTexto(i){
   b.editingText=!b.editingText;
   startIndex=i;
   status.textContent=b.editingText?'Editando texto de la nota '+(i+1)+'.':'Vista editorial actualizada.';
+  render();
+}
+
+function editarLineaVisual(i,lineIndex){
+  const b=blocks[i]; if(!b || estaGrabando() || estaDictando()) return;
+  const lineas=String(b.text||'').split('\n');
+  const idx=parseInt(lineIndex,10);
+  if(!Number.isFinite(idx) || idx<0 || idx>=lineas.length) return;
+  const actual=lineas[idx]||'';
+  const nuevo=prompt('Editar este bloque:', actual);
+  if(nuevo===null) return;
+  if(nuevo.trim()==='') lineas.splice(idx,1); else lineas[idx]=nuevo;
+  b.text=lineas.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  marcarSinGuardar('Cambios sin guardar: bloque editado.');
   render();
 }
 function quitarComandoBorrar(texto){
@@ -298,8 +363,9 @@ function textoDesdePartesDictado(base, partes, parteTemporal=null){
     else if(modo==='box') salida.push('□ '+txt);
     else if(modo==='bullet') salida.push('• '+txt);
     else if(modo==='number') salida.push(proximoNumeroLista(salida)+'. '+txt);
-    else if(modo==='leftcol') salida.push('◧ '+txt);
-    else if(modo==='rightcol') salida.push('◨ '+txt);
+    else if(modo==='imagelabel') salida.push('🖼🏷 [imagen:'+(p.imageId||idImagenNuevo())+'] '+txt);
+    else if(modo==='black') salida.push('■ '+txt);
+    else if(modo==='caption') salida.push('Pie: '+txt);
     else salida.push(txt);
   });
   return salida.join('\n\n');
@@ -308,10 +374,10 @@ function aplicarTextoTemporalDictado(i, texto){
   const tx=textareaDeNota(i);
   const card=blocks[i] ? document.querySelector('.block[data-id="'+CSS.escape(blocks[i].id)+'"]') : null;
   if(tx){tx.value=texto; tx.scrollTop=tx.scrollHeight;}
-  if(card) actualizarPreviewNota(card,texto);
+  if(card) actualizarPreviewNota(card,texto,blocks[i]);
 }
 
-function esModoEspecial(modo){return ['title','subtitle','box','bullet','number','leftcol','rightcol'].includes(modo);}
+function esModoEspecial(modo){return ['title','subtitle','box','bullet','number','imagelabel','black','caption'].includes(modo);}
 function proximoNumeroLista(lineas){
   let max=0;
   (lineas||[]).forEach(l=>{
@@ -326,8 +392,9 @@ function modoLabel(modo){
   if(modo==='box')return 'Recuadro';
   if(modo==='bullet')return 'Viñeta';
   if(modo==='number')return 'Lista';
-  if(modo==='leftcol')return 'Columna izquierda';
-  if(modo==='rightcol')return 'Columna derecha';
+  if(modo==='imagelabel')return 'Imagen con etiqueta';
+  if(modo==='black')return 'Placa negra';
+  if(modo==='caption')return 'Pie de foto';
   return 'Normal';
 }
 function limpiarTextoDictadoLibre(texto){
@@ -342,7 +409,10 @@ function normalizarTextoDictadoLibre(texto){
 function crearParteTactil(texto, modo, final=true){
   const t=final ? normalizarTextoDictadoLibre(texto) : limpiarTextoDictadoLibre(texto);
   if(!t)return null;
-  return {mode:esModoEspecial(modo)?modo:'body', text:t};
+  const m=esModoEspecial(modo)?modo:'body';
+  const parte={mode:m, text:t};
+  if(final && m==='imagelabel') parte.imageId=idImagenNuevo();
+  return parte;
 }
 function modoConPrefijo(modo,texto){
   if(modo==='title') return '# '+texto;
@@ -350,8 +420,9 @@ function modoConPrefijo(modo,texto){
   if(modo==='box') return '□ '+texto;
   if(modo==='bullet') return '• '+texto;
   if(modo==='number') return '1. '+texto;
-  if(modo==='leftcol') return '◧ '+texto;
-  if(modo==='rightcol') return '◨ '+texto;
+  if(modo==='imagelabel') return '🖼🏷 [imagen:'+idImagenNuevo()+'] '+texto;
+  if(modo==='black') return '■ '+texto;
+  if(modo==='caption') return 'Pie: '+texto;
   return texto;
 }
 function formatearBloqueTactil(texto, modo){
@@ -389,6 +460,47 @@ function appendDraftDictado(texto){
   const t=String(texto||'').trim();
   if(!t)return;
   dictationDraftText=[dictationDraftText,t].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+}
+
+function tokenizarDictadoPorPunto(texto){
+  let t=String(texto||'').trim();
+  if(!t) return [];
+  t=t.replace(/\s+/g,' ');
+  t=t.replace(/coma/gi, ',');
+  t=t.replace(/dos\s+puntos/gi, ':');
+  t=t.replace(/punto\s+y\s+coma/gi, ';');
+  t=t.replace(/nuevo\s+rengl[oó]n/gi, ' __DICT_END__ ');
+  t=t.replace(/nueva\s+l[ií]nea/gi, ' __DICT_END__ ');
+  t=t.replace(/punto\s+y\s+aparte/gi, ' __DICT_END__ ');
+  t=t.replace(/punto\s+aparte/gi, ' __DICT_END__ ');
+  t=t.replace(/punto/gi, ' __DICT_END__ ');
+  // Algunos celulares devuelven el comando como signo. Lo tratamos como cierre si viene al final o separado.
+  t=t.replace(/\s*\.\s*/g, ' __DICT_END__ ');
+  return t.split('__DICT_END__').map((seg,idx,arr)=>({texto:seg.trim(), cerrar:idx < arr.length-1})).filter(x=>x.texto || x.cerrar);
+}
+function procesarFinalDictadoPorPunto(i, texto){
+  if(!blocks[i]) return;
+  const tokens=tokenizarDictadoPorPunto(texto);
+  if(!tokens.length) return;
+  tokens.forEach(tok=>{
+    if(tok.texto) appendDraftDictado(tok.texto);
+    if(tok.cerrar){
+      commitDraftDictado(i);
+      // Después de decir “punto”, el próximo tramo vuelve a texto normal salvo que toques otro botón.
+      dictationTouchMode='body';
+      dictationDraftMode='body';
+      dictationInterimText='';
+    }
+  });
+}
+function limpiarInterimDictado(texto){
+  let t=String(texto||'').trim();
+  if(!t)return '';
+  t=t.replace(/coma/gi, ',');
+  t=t.replace(/dos\s+puntos/gi, ':');
+  t=t.replace(/punto\s+y\s+coma/gi, ';');
+  t=t.replace(/(punto\s+y\s+aparte|punto\s+aparte|punto|nuevo\s+rengl[oó]n|nueva\s+l[ií]nea)/gi, '');
+  return t.replace(/\s+/g,' ').trim();
 }
 function setModoDictado(modo, i=null){
   const nuevo=esModoEspecial(modo)?modo:'body';
@@ -472,9 +584,11 @@ function insertarSeparadorNota(i){
   marcarSinGuardar('Agregué una línea divisoria.');
 }
 function idImagenNuevo(){return 'img_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);}
-function extraerIdImagen(line){const m=String(line||'').match(/^🖼\s+\[imagen:([^\]]+)\]/i); return m?m[1]:'';}
+function asegurarMapaImagenes(i){ if(!blocks[i]) return {}; if(!blocks[i].images || typeof blocks[i].images!=='object') blocks[i].images={}; return blocks[i].images; }
+function extraerIdImagen(line){const m=String(line||'').match(/^🖼(?:🏷)?\s+\[imagen:([^\]]+)\]/i); return m?m[1]:'';}
 function insertarPlaceholderImagen(i){
   if(!blocks[i])return;
+  asegurarMapaImagenes(i);
   if(dictatingIndex===i && (dictationDraftText||dictationInterimText)) commitDraftDictado(i);
   const actual=textoDictadoConDraft(i).trim();
   const linea='🖼 [imagen:'+idImagenNuevo()+']';
@@ -489,29 +603,31 @@ function insertarPlaceholderImagen(i){
   setTimeout(()=>{try{const card=document.querySelector('.block[data-id="'+CSS.escape(blocks[i].id)+'"] .notePreview'); if(card) card.scrollTop=card.scrollHeight;}catch(e){}},40);
   marcarSinGuardar('Agregué un espacio para imagen.');
 }
-function reemplazarPlaceholderImagen(texto,dataUrl,indice=0,imgId=''){
+function reemplazarPlaceholderImagen(texto,dataUrl,indice=0,imgId='',i=-1){
   const lineas=String(texto||'').split('\n');
-  if(imgId){
+  let targetId=imgId||'';
+  if(i>=0) asegurarMapaImagenes(i);
+  if(!targetId){
+    let count=0;
     for(let k=0;k<lineas.length;k++){
       const l=lineas[k].trim();
-      if(new RegExp('^🖼\\s+\\[imagen:'+imgId.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\]','i').test(l)){
-        lineas[k]='🖼 '+dataUrl;
-        return lineas.join('\n');
+      if(/^🖼(?:🏷)?\s+\[imagen(?::[^\]]+)?\]/i.test(l) || /^🖼\s*$/i.test(l) || /^\[imagen\]/i.test(l) || /^🖼\s+data:image\//i.test(l)){
+        if(count===indice){ targetId=extraerIdImagen(l)||idImagenNuevo(); lineas[k]=lineas[k].trim().startsWith('🖼🏷') ? lineas[k].replace(/^🖼🏷\s+\[imagen(?::[^\]]+)?\]/i,'🖼🏷 [imagen:'+targetId+']') : '🖼 [imagen:'+targetId+']'; break; }
+        count++;
+      }
+    }
+  } else {
+    const safe=targetId.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    for(let k=0;k<lineas.length;k++){
+      const l=lineas[k].trim();
+      if(new RegExp('^🖼(?:🏷)?\\s+\\[imagen:'+safe+'\\]','i').test(l)){
+        lineas[k]=lineas[k].trim().startsWith('🖼🏷') ? lineas[k].replace(/^🖼🏷\s+\[imagen(?::[^\]]+)?\]/i,'🖼🏷 [imagen:'+targetId+']') : '🖼 [imagen:'+targetId+']'; break;
       }
     }
   }
-  let count=0;
-  for(let k=0;k<lineas.length;k++){
-    const l=lineas[k].trim();
-    if(/^🖼\s+\[imagen(?::[^\]]+)?\]/i.test(l) || /^\[imagen\]/i.test(l) || /^🖼\s*$/.test(l) || /^🖼\s+data:image\//i.test(l)){
-      if(count===indice){
-        lineas[k]='🖼 '+dataUrl;
-        return lineas.join('\n');
-      }
-      count++;
-    }
-  }
-  return [String(texto||'').trim(),'🖼 '+dataUrl].filter(Boolean).join('\n\n');
+  if(!targetId){ targetId=idImagenNuevo(); lineas.push('🖼 [imagen:'+targetId+']'); }
+  if(i>=0 && blocks[i]) asegurarMapaImagenes(i)[targetId]=dataUrl;
+  return lineas.join('\n');
 }
 function elegirImagenParaNota(i,indice=0,imgId=''){
   if(!blocks[i])return;
@@ -523,11 +639,14 @@ function elegirImagenParaNota(i,indice=0,imgId=''){
     if(!file)return;
     const reader=new FileReader();
     reader.onload=()=>{
-      blocks[i].text=reemplazarPlaceholderImagen(blocks[i].text||'',String(reader.result||''),indice,imgId);
-      if(dictatingIndex===i){dictationBaseText=(blocks[i].text||'').trim(); dictationParts=[]; dictationDraftText=''; dictationInterimText='';}
-      marcarSinGuardar('Imagen agregada a la nota.');
-      render();
+      try{
+        blocks[i].text=reemplazarPlaceholderImagen(blocks[i].text||'',String(reader.result||''),indice,imgId,i);
+        if(dictatingIndex===i){dictationBaseText=(blocks[i].text||'').trim(); dictationParts=[]; dictationDraftText=''; dictationInterimText='';}
+        marcarSinGuardar('Imagen agregada a la nota.');
+        render();
+      }catch(err){ console.error(err); status.textContent='No pude insertar la imagen. Probá con una imagen más liviana.'; }
     };
+    reader.onerror=()=>{status.textContent='No pude leer la imagen seleccionada.';};
     reader.readAsDataURL(file);
   };
   input.click();
@@ -560,7 +679,7 @@ function configurarHerramientasDictado(tools,i){
       dictationSkipFinals=dictationSkipFinals.slice(-5);
       actualizarHerramientasDictado(i);
       aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));
-      marcarSinGuardar('Modo: '+modoLabel(mode)+'.');
+      marcarSinGuardar('Modo: '+modoLabel(mode)+'. Decí punto para cerrar el tramo.');
       setTimeout(()=>{try{aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));}catch(e){}},60);
     }else{
       setModoDictado(mode,i);
@@ -586,6 +705,8 @@ function configurarHerramientasDictado(tools,i){
 }
 
 function detenerDictadoNota(mensaje){
+  dictationKeepAlive=false;
+  clearTimeout(dictationRestartTimer);
   const idx=dictatingIndex;
   if(idx>=0 && blocks[idx]) commitDraftDictado(idx);
   if(dictationRecognition){try{dictationRecognition.onend=null; dictationRecognition.stop();}catch(e){} dictationRecognition=null;}
@@ -608,6 +729,63 @@ function toggleDictadoNota(i){
   if(dictatingIndex>=0){detenerDictadoNota('Dictado anterior detenido.');}
   iniciarDictadoNota(i);
 }
+
+function iniciarReconocimientoDictado(i){
+  if(dictatingIndex!==i || !blocks[i] || !dictationKeepAlive) return;
+  const SR=speechRecognitionClass();
+  if(!SR){status.textContent='Este navegador no tiene dictado por voz. Probalo en Chrome Android.'; return;}
+  try{
+    const rec=new SR();
+    dictationRecognition=rec;
+    rec.lang='es-AR';
+    rec.continuous=true;
+    rec.interimResults=true;
+    rec.maxAlternatives=1;
+    rec.onstart=()=>{status.textContent='Dictado activo. Podés pausar al hablar; decí punto para cerrar el tramo.';};
+    rec.onerror=(ev)=>{
+      const code=ev && ev.error ? ev.error : '';
+      if(code==='not-allowed' || code==='service-not-allowed'){
+        dictationKeepAlive=false;
+        status.textContent='El navegador bloqueó el dictado. Revisá permiso de micrófono.';
+      }else{
+        status.textContent='El dictado hizo una pausa. Lo mantengo preparado...'+(code?' ('+code+')':'');
+      }
+    };
+    rec.onresult=(ev)=>{
+      if(dictatingIndex!==i || !blocks[i])return;
+      dictationInterimText='';
+      for(let n=ev.resultIndex;n<ev.results.length;n++){
+        const txt=(ev.results[n][0]?.transcript||'').trim();
+        if(!txt)continue;
+        if(ev.results[n].isFinal){
+          const normFinal=limpiarTextoDictadoLibre(txt).toLowerCase();
+          const dupIdx=dictationSkipFinals.findIndex(x=>x && (x===normFinal || normFinal.includes(x) || x.includes(normFinal)));
+          if(dupIdx>=0){dictationSkipFinals.splice(dupIdx,1); continue;}
+          procesarFinalDictadoPorPunto(i, txt);
+          status.textContent='Dictando en modo '+modoLabel(dictationDraftMode)+'. Decí punto para cerrar.';
+        }else{
+          const limpio=limpiarInterimDictado(txt);
+          if(limpio) dictationInterimText+=(dictationInterimText?' ':'')+limpio;
+        }
+      }
+      aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));
+    };
+    rec.onend=()=>{
+      if(dictatingIndex===i){
+        dictationRecognition=null;
+        if(dictationKeepAlive){
+          clearTimeout(dictationRestartTimer);
+          dictationRestartTimer=setTimeout(()=>{
+            if(dictatingIndex===i && dictationKeepAlive) iniciarReconocimientoDictado(i);
+          },360);
+        }
+      }
+    };
+    rec.start();
+  }catch(e){
+    status.textContent='El dictado se pausó. Tocá Detener dictado o probá de nuevo si no retoma.';
+  }
+}
 function iniciarDictadoNota(i){
   if(!blocks[i])return;
   if(playing){status.textContent='Pausá la reproducción antes de dictar texto.'; return;}
@@ -625,7 +803,8 @@ function iniciarDictadoNota(i){
   dictationParts=[];
   dictationSkipFinals=[];
   undoTouchLockUntil=0;
-  render();
+  dictationKeepAlive=true;
+  clearTimeout(dictationRestartTimer);
   try{
     const rec=new SR();
     dictationRecognition=rec;
@@ -633,8 +812,16 @@ function iniciarDictadoNota(i){
     rec.continuous=true;
     rec.interimResults=true;
     rec.maxAlternatives=1;
-    rec.onstart=()=>{status.textContent='Dictando texto en nota '+(i+1)+'. Tocá un botón para cerrar/abrir tramos. ↵ agrega aire si lo necesitás.';};
-    rec.onerror=(ev)=>{status.textContent='No pude dictar texto. Revisá permisos de micrófono o probá en Chrome.';};
+    rec.onstart=()=>{status.textContent='Dictado activo en nota '+(i+1)+'. Tocá un modo, hablá y decí punto para cerrar. Usá Detener dictado para terminar.';};
+    rec.onerror=(ev)=>{
+      const code=ev && ev.error ? ev.error : '';
+      if(code==='not-allowed' || code==='service-not-allowed'){
+        status.textContent='El navegador bloqueó el dictado. Revisá permiso de micrófono y usá Chrome Android si estás en celular.';
+        dictationKeepAlive=false;
+      }else{
+        status.textContent='El dictado hizo una pausa. Lo intento mantener activo...'+(code?' ('+code+')':'');
+      }
+    };
     rec.onresult=(ev)=>{
       if(dictatingIndex!==i || !blocks[i])return;
       dictationInterimText='';
@@ -645,34 +832,44 @@ function iniciarDictadoNota(i){
           const normFinal=limpiarTextoDictadoLibre(txt).toLowerCase();
           const dupIdx=dictationSkipFinals.findIndex(x=>x && (x===normFinal || normFinal.includes(x) || x.includes(normFinal)));
           if(dupIdx>=0){dictationSkipFinals.splice(dupIdx,1); continue;}
-          appendDraftDictado(txt);
-          status.textContent='Sumando texto en modo '+modoLabel(dictationDraftMode)+'.';
+          procesarFinalDictadoPorPunto(i, txt);
+          status.textContent='Dictando en modo '+modoLabel(dictationDraftMode)+'. Decí punto para cerrar.';
         }else{
-          dictationInterimText+=(dictationInterimText?' ':'')+txt;
+          const limpio=limpiarInterimDictado(txt);
+          if(limpio) dictationInterimText+=(dictationInterimText?' ':'')+limpio;
         }
       }
       aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));
     };
     rec.onend=()=>{
       if(dictatingIndex===i){
-        commitDraftDictado(i);
         dictationRecognition=null;
-        dictatingIndex=-1;
-        dictationBaseText='';
-        dictationFinalText='';
-        dictationTouchMode='body';
-        dictationDraftMode='body';
-        dictationDraftText='';
-        dictationInterimText='';
-        dictationParts=[];
-        dictationSkipFinals=[];
-        undoTouchLockUntil=0;
-        if(blocks[i]) blocks[i].text=limpiarEspaciosEditorial(blocks[i].text||'');
-        marcarSinGuardar('Dictado finalizado. Revisá el texto de la nota.');
-        render();
+        if(dictationKeepAlive){
+          status.textContent='El dictado hizo una pausa. Reanudando...';
+          clearTimeout(dictationRestartTimer);
+          dictationRestartTimer=setTimeout(()=>{
+            if(dictatingIndex===i && dictationKeepAlive) iniciarReconocimientoDictado(i);
+          },360);
+        }else{
+          commitDraftDictado(i);
+          dictatingIndex=-1;
+          dictationBaseText='';
+          dictationFinalText='';
+          dictationTouchMode='body';
+          dictationDraftMode='body';
+          dictationDraftText='';
+          dictationInterimText='';
+          dictationParts=[];
+          dictationSkipFinals=[];
+          undoTouchLockUntil=0;
+          if(blocks[i]) blocks[i].text=limpiarEspaciosEditorial(blocks[i].text||'');
+          marcarSinGuardar('Dictado finalizado. Revisá el texto de la nota.');
+          render();
+        }
       }
     };
     rec.start();
+    render();
   }catch(e){
     dictatingIndex=-1;
     dictationRecognition=null;
@@ -884,6 +1081,8 @@ function previewEditorialHtmlInline(texto){
   let body=[];
   let pendingLeft=null;
   let pendingRight=null;
+  let pendingLeftLine='';
+  let pendingRightLine='';
   function flushBody(){
     if(body.length){
       html+=`<div style="font-size:16px;line-height:1.48;color:#344255;font-weight:500;margin:10px 0;white-space:pre-wrap;">${escapeHtml(body.join('\n\n'))}</div>`;
@@ -902,9 +1101,11 @@ function previewEditorialHtmlInline(texto){
   }
   function flushPendingColumns(){
     if(pendingLeft!==null || pendingRight!==null){
-      addColumns(pendingLeft||'',pendingRight||'');
+      addColumns(pendingLeft||'',pendingRight||'',false,false,pendingLeftLine,pendingRightLine);
       pendingLeft=null;
       pendingRight=null;
+      pendingLeftLine='';
+      pendingRightLine='';
     }
   }
   lines.forEach(line=>{
@@ -929,7 +1130,7 @@ function previewEditorialHtmlInline(texto){
     if(/^□\s+/.test(line)){flushBody(); html+=`<div style="font-size:15px;line-height:1.45;font-weight:700;color:#263348;background:#f8fafc;border:1.5px solid #d7dee8;border-radius:16px;padding:14px 16px;margin:16px 0;">${escapeHtml(line.replace(/^□\s+/,''))}</div>`; return;}
     if(/^•\s+/.test(line)){flushBody(); html+=`<div style="font-size:15.5px;line-height:1.42;color:#344255;margin:7px 0 7px 18px;font-weight:500;">• ${escapeHtml(line.replace(/^•\s+/,''))}</div>`; return;}
     if(/^\d+\.\s+/.test(line)){flushBody(); html+=`<div style="font-size:15.5px;line-height:1.42;color:#344255;margin:7px 0 7px 6px;font-weight:500;">${escapeHtml(line)}</div>`; return;}
-    body.push(line);
+    body.push({text:line,idx});
   });
   flushPendingColumns();
   flushBody();
@@ -1104,7 +1305,7 @@ async function medirYdibujarNotaCanvas(i,soloMedir=false,canvas=null){
 async function crearPNGNotaBlob(i){
   try{
     const h=Math.ceil(await medirYdibujarNotaCanvas(i,true));
-    const scale=Math.min(2,Math.max(1,window.devicePixelRatio||1));
+    const scale=Math.min(3,Math.max(2,(window.devicePixelRatio||1)*1.5));
     const canvas=document.createElement('canvas');
     canvas.width=Math.round(1080*scale);
     canvas.height=Math.round(h*scale);
@@ -1121,70 +1322,108 @@ async function crearPNGNotaBlob(i){
 }
 
 
+
 async function crearPNGNotaBlobDOM(i){
   const b=blocks[i];
   if(!b) throw new Error('Nota inexistente');
-  const previewHtml=previewEditorialHtml(b.text||'') || '<div class="notePreview emptyText">Sin texto.</div>';
-  const noteColor=colorNotaParaPNG(i);
-  const width=920;
-  const html=`
-  <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;background:#eef4ff;padding:28px;font-family:Arial,Helvetica,sans-serif;color:#172033;box-sizing:border-box;">
-    <div style="background:${noteColor};border:2px solid rgba(80,140,210,.45);border-radius:34px;padding:28px;box-sizing:border-box;">
-      <div style="background:rgba(255,255,255,.64);border:1px solid rgba(20,40,70,.07);border-radius:24px;padding:26px;box-sizing:border-box;">
-        <div style="font-size:14px;font-weight:850;color:rgba(23,32,51,.52);margin-bottom:10px;">Crónica · Nota ${i+1} · ${escapeHtml(fmtDate(b.createdAt||new Date().toISOString()))}</div>
-        <div class="notePreview pngClone">${previewHtml}</div>
-      </div>
-    </div>
-  </div>`;
-  const css=`
-  .pngClone{background:transparent!important;border:0!important;padding:0!important;margin:0!important;min-height:0!important;max-height:none!important;overflow:visible!important;white-space:pre-wrap!important;color:#172033!important;}
-  .notePreviewTitle{font-size:34px!important;font-weight:950!important;line-height:1.12!important;margin:0 0 14px!important;letter-spacing:-.02em!important;color:#172033!important;}
-  .notePreviewSubTitle{font-size:22px!important;font-weight:950!important;line-height:1.18!important;margin:22px 0 10px!important;color:#263348!important;}
-  .notePreviewBody{font-size:18px!important;font-weight:600!important;line-height:1.5!important;color:#344255!important;margin:11px 0!important;}
-  .notePreviewBox{font-size:18px!important;font-weight:760!important;line-height:1.42!important;color:#263348!important;background:rgba(255,255,255,.72)!important;border:1.8px solid rgba(38,51,72,.20)!important;border-radius:16px!important;padding:15px 17px!important;margin:18px 0!important;box-shadow:0 5px 18px rgba(65,95,130,.08)!important;}
-  .notePreviewColumns{display:grid!important;grid-template-columns:1fr 1fr!important;gap:18px!important;margin:18px 0!important;align-items:stretch!important;}
-  .notePreviewCol{background:rgba(255,255,255,.52)!important;border:1.5px solid rgba(38,51,72,.16)!important;border-radius:16px!important;padding:14px 16px!important;font-size:17px!important;font-weight:650!important;line-height:1.42!important;color:#344255!important;min-height:72px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.72)!important;}
-  .notePreviewDivider{border:0!important;border-top:3px dotted rgba(38,51,72,.28)!important;height:0!important;margin:24px 4px!important;}
-  .notePreviewSpacer{height:30px!important;}
-  .notePreviewBullet{font-size:18px!important;font-weight:650!important;line-height:1.42!important;margin:7px 0 7px 20px!important;position:relative!important;padding-left:16px!important;color:#344255!important;}
-  .notePreviewBullet:before{content:'•';position:absolute;left:0;font-weight:950;}
-  .notePreviewNumber{font-size:18px!important;font-weight:650!important;line-height:1.42!important;margin:7px 0 7px 8px!important;color:#344255!important;}
-  .notePreviewImageSlot{display:flex!important;align-items:center!important;justify-content:center!important;min-height:190px!important;border:1.8px dashed rgba(38,51,72,.28)!important;border-radius:18px!important;background:rgba(255,255,255,.56)!important;margin:18px 0!important;overflow:hidden!important;color:rgba(38,51,72,.58)!important;font-size:15px!important;font-weight:900!important;}
-  .notePreviewCol .notePreviewImageSlot{min-height:150px!important;margin:0!important;}
-  .notePreviewImageSlot img{display:block!important;max-width:100%!important;width:100%!important;height:auto!important;border-radius:14px!important;object-fit:contain!important;}
-  `;
-  const holder=document.createElement('div');
-  holder.style.cssText='position:fixed;left:-20000px;top:0;width:'+width+'px;z-index:-1;opacity:1;pointer-events:none;';
-  holder.innerHTML='<style>'+css+'</style>'+html;
-  document.body.appendChild(holder);
+  const card=document.querySelector('.block[data-id="'+CSS.escape(b.id)+'"]');
+  if(!card) throw new Error('No encontré la nota visible');
+
+  // Esta función NO reconstruye la nota. Clona el mismo globito visual,
+  // lo expande para que no tenga scroll interno y captura ese DOM completo.
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-  const node=holder.firstElementChild.nextElementSibling || holder.querySelector('div[xmlns]') || holder.lastElementChild;
-  const rect=node.getBoundingClientRect();
-  const height=Math.max(300, Math.ceil(rect.height));
-  const serialized=new XMLSerializer().serializeToString(node);
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${serialized}</foreignObject></svg>`;
-  const url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
-  const img=new Image();
-  await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url;});
-  const scale=Math.min(2,Math.max(1,window.devicePixelRatio||1));
-  const canvas=document.createElement('canvas');
-  canvas.width=Math.round(width*scale); canvas.height=Math.round(height*scale);
-  const ctx=canvas.getContext('2d'); ctx.scale(scale,scale); ctx.drawImage(img,0,0,width,height);
-  holder.remove();
-  const blob=await blobDesdeCanvas(canvas,'image/png');
-  if(!blob) throw new Error('PNG DOM falló');
-  return blob;
+  if(!window.htmlToImage || typeof htmlToImage.toBlob!=='function'){
+    throw new Error('html-to-image no cargó');
+  }
+
+  const wrap=document.createElement('div');
+  wrap.className='pngExactStage';
+  wrap.style.cssText=[
+    'position:fixed','left:-20000px','top:0','z-index:-1',
+    'width:'+Math.max(360,Math.round(card.getBoundingClientRect().width||520))+'px',
+    'background:transparent','padding:0','pointer-events:none','overflow:visible'
+  ].join(';');
+
+  const clone=card.cloneNode(true);
+  clone.classList.add('pngExactClone');
+  // Sacamos controles, pero dejamos la tarjeta/globito con su color y formato real.
+  clone.querySelectorAll('.cardBtns,.del,.inlineRec,.inlineRecorder,.noteEditBox,.dictateTools,textarea,button,input,.dictateHelp').forEach(x=>x.remove());
+  // Expandimos todo lo que en pantalla tiene scroll para exportar la tira completa.
+  clone.style.height='auto';
+  clone.style.minHeight='0';
+  clone.style.overflow='visible';
+  clone.style.maxHeight='none';
+  clone.style.transform='none';
+  clone.style.width='100%';
+  clone.style.flex='none';
+  clone.style.cursor='default';
+  clone.querySelectorAll('*').forEach(el=>{
+    const st=el.style;
+    if(el.classList.contains('notePreview') || el.classList.contains('textAreaShell')){
+      st.maxHeight='none';
+      st.height='auto';
+      st.overflow='visible';
+      st.scrollBehavior='auto';
+    }
+    if(el.classList.contains('block')){
+      st.overflow='visible';
+    }
+  });
+  // Evita estados raros de selección/hover y anima nada durante captura.
+  const style=document.createElement('style');
+  style.textContent=`
+    .pngExactStage, .pngExactStage *{animation:none!important;transition:none!important;caret-color:transparent!important;}
+    .pngExactClone{box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 12px 28px rgba(45,79,120,.14)!important;}
+    .pngExactClone .notePreview{max-height:none!important;height:auto!important;overflow:visible!important;}
+    .pngExactClone .textAreaShell{max-height:none!important;height:auto!important;overflow:visible!important;}
+  `;
+  wrap.appendChild(style);
+  wrap.appendChild(clone);
+  document.body.appendChild(wrap);
+
+  try{
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const imgs=[...wrap.querySelectorAll('img')];
+    await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=img.onerror=res;})));
+    await new Promise(r=>requestAnimationFrame(r));
+    const rect=clone.getBoundingClientRect();
+    const width=Math.ceil(rect.width);
+    const height=Math.ceil(clone.scrollHeight || rect.height);
+    if(width<10 || height<10) throw new Error('Captura vacía');
+    const blob=await htmlToImage.toBlob(clone,{
+      cacheBust:true,
+      pixelRatio:Math.min(3,Math.max(2,(window.devicePixelRatio||1)*1.5)),
+      width,
+      height,
+      backgroundColor:null,
+      style:{
+        width:width+'px',
+        height:height+'px',
+        maxHeight:'none',
+        overflow:'visible',
+        transform:'none'
+      },
+      filter:(node)=>{
+        if(!(node instanceof Element)) return true;
+        return !node.closest('.cardBtns,.del,.inlineRec,.inlineRecorder,.noteEditBox,.dictateTools,textarea,button,input,.dictateHelp');
+      }
+    });
+    if(!blob || blob.size<1000) throw new Error('PNG vacío');
+    return blob;
+  }finally{
+    wrap.remove();
+  }
 }
 
 async function exportarPNGNota(i, compartir=false){
   try{
     status.textContent='Preparando imagen PNG de la nota...';
     let blob;
-    // Usamos el canvas manual: es más estable para WhatsApp/Mail y evita que el navegador copie un HTML raro.
-    blob=await crearPNGNotaBlob(i);
+    // Primero intentamos capturar la nota visual real con HTML/SVG. Si falla, usamos el canvas manual como respaldo.
+    try{ blob=await crearPNGNotaBlobDOM(i); }catch(domErr){ console.warn('PNG DOM falló, uso canvas manual', domErr); blob=await crearPNGNotaBlob(i); }
     const file=new File([blob],`cronica-nota-${i+1}.png`,{type:'image/png'});
     if(compartir && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:'Crónica · Nota '+(i+1),text:'Crónica · Nota '+(i+1)});
+      await navigator.share({files:[file]});
       status.textContent='Compartí la nota como imagen PNG.';
       return true;
     }
@@ -1194,7 +1433,7 @@ async function exportarPNGNota(i, compartir=false){
     document.body.appendChild(a);
     a.click();
     setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1200);
-    status.textContent='No apareció el panel de compartir; descargué el PNG para enviarlo manualmente.';
+    status.textContent='PNG guardado. Podés enviarlo por WhatsApp, Mail o donde quieras.';
     return true;
   }catch(e){
     status.textContent='No pude generar el PNG en este navegador. Probá desde Chrome o descargá el ZIP y abrilo nuevamente.';
@@ -1212,7 +1451,7 @@ async function guardarCronicaZip(){
     status.textContent='Preparando crónica ZIP...';
     const zip=new JSZip();
     const created=new Date().toISOString();
-    const project={version:'cronica-v22',created,blocks:[]};
+    const project={version:'cronica-v28-bloques-visuales',created,blocks:[]};
     for(let idx=0; idx<blocks.length; idx++){
       const b=blocks[idx];
       let filename=b.filename||'';
@@ -1225,7 +1464,8 @@ async function guardarCronicaZip(){
         name:b.name||('Nota '+(idx+1)),duration:b.duration||0,color:b.color||colors[idx%colors.length],
         type:b.type||(b.blob&&b.blob.type)||'',filename,external:!!b.external,text:b.text||'',
         createdAt:b.createdAt||created,endedAt:b.endedAt||b.createdAt||created,
-        intervalAfter:Number(b.intervalAfter||0),intervalLabel:b.intervalLabel||''
+        intervalAfter:Number(b.intervalAfter||0),intervalLabel:b.intervalLabel||'',
+        images:b.images||{}
       });
     }
     zip.file('bitacora.json',JSON.stringify(project,null,2));
@@ -1246,7 +1486,7 @@ function mediaDuration(file){return new Promise(res=>{const isVideo=(file.type||
 async function addExternalFiles(files,insertAt=blocks.length){if(estaGrabando())return; const usable=files.filter(f=>(f.type||'').startsWith('audio/')||(f.type||'').startsWith('video/')); if(!usable.length){status.textContent='Ese archivo no parece audio/video.'; return;} status.textContent='Agregando audio externo...'; let idx=Math.max(0,Math.min(insertAt,blocks.length)); for(const f of usable){const dur=await mediaDuration(f); const nowIso=new Date().toISOString(); if(idx>0 && blocks[idx-1]){blocks[idx-1].intervalAfter=blocks[idx-1].intervalAfter||0; blocks[idx-1].intervalLabel=blocks[idx-1].intervalLabel||'Intervalo';} const item={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),duration:dur,color:'#dde8f5',blob:f,type:f.type||'application/octet-stream',filename:f.name,external:true,text:'',createdAt:nowIso,endedAt:nowIso}; blocks.splice(idx,0,item); idx++;} startIndex=Math.max(0,idx-1); marcarSinGuardar('Cambios sin guardar: audio externo insertado.'); render();}
 function insertionIndexFromPoint(clientX){const els=[...timeline.querySelectorAll('.block')]; if(!els.length)return 0; for(let i=0;i<els.length;i++){const r=els[i].getBoundingClientRect(); if(clientX<r.left+r.width/2)return i;} return els.length;}
 $('wrap').addEventListener('dragover',e=>{if(e.dataTransfer&&e.dataTransfer.types&&[...e.dataTransfer.types].includes('Files')){e.preventDefault(); drop.classList.add('drag');}}); $('wrap').addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const media=files.filter(f=>(f.type||'').startsWith('audio/')||(f.type||'').startsWith('video/')); if(media.length){e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); addExternalFiles(media,blocks.length);}});
-async function loadZip(file){if(estaGrabando())return; try{if(typeof JSZip==='undefined')throw new Error('JSZip no disponible'); status.textContent='Abriendo crónica...'; const zip=await JSZip.loadAsync(file); const pjFile=zip.file('bitacora.json')||zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto'); const pj=JSON.parse(await pjFile.async('string')); const nb=[]; for(const item of pj.blocks){let blob=null; if(item.filename){const f=zip.file(item.filename); if(f){const raw=await f.async('blob'); blob=new Blob([raw],{type:item.type||raw.type});}} nb.push({id:crypto.randomUUID(),name:item.name||'Nota',duration:item.duration||0,color:item.color||colors[nb.length%colors.length],blob:blob,type:item.type||blob?.type||'',filename:item.filename||'',external:!!item.external,text:item.text||'',createdAt:item.createdAt||pj.created||new Date().toISOString(),endedAt:item.endedAt||item.createdAt||pj.created||new Date().toISOString(),intervalAfter:Number(item.intervalAfter||0),intervalLabel:item.intervalLabel||''});} blocks=nb; startIndex=0; marcarGuardado('✓ Crónica cargada.'); render();}catch(e){status.textContent='No pude abrir ese ZIP de Crónica.';}}
+async function loadZip(file){if(estaGrabando())return; try{if(typeof JSZip==='undefined')throw new Error('JSZip no disponible'); status.textContent='Abriendo crónica...'; const zip=await JSZip.loadAsync(file); const pjFile=zip.file('bitacora.json')||zip.file('proyecto.json'); if(!pjFile)throw new Error('Sin proyecto'); const pj=JSON.parse(await pjFile.async('string')); const nb=[]; for(const item of pj.blocks){let blob=null; if(item.filename){const f=zip.file(item.filename); if(f){const raw=await f.async('blob'); blob=new Blob([raw],{type:item.type||raw.type});}} nb.push({id:crypto.randomUUID(),name:item.name||'Nota',duration:item.duration||0,color:item.color||colors[nb.length%colors.length],blob:blob,type:item.type||blob?.type||'',filename:item.filename||'',external:!!item.external,text:item.text||'',createdAt:item.createdAt||pj.created||new Date().toISOString(),endedAt:item.endedAt||item.createdAt||pj.created||new Date().toISOString(),intervalAfter:Number(item.intervalAfter||0),intervalLabel:item.intervalLabel||'',images:item.images||{}});} blocks=nb; startIndex=0; marcarGuardado('✓ Crónica cargada.'); render();}catch(e){status.textContent='No pude abrir ese ZIP de Crónica.';}}
 const drop=$('drop'); ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop')drop.classList.remove('drag')});}); document.addEventListener('drop',e=>{const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/')||(x.type||'').startsWith('video/')); if(f)loadZip(f); else if(media.length)addExternalFiles(media,blocks.length); else status.textContent='Soltá un ZIP de Crónica o un audio/video.';});
 window.addEventListener('pagehide',()=>{ try{if(dictationRecognition)dictationRecognition.stop();}catch(e){} descartarGrabacionActual=true; recordingBusy=false; stopLiveRecordingBlock(); if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop(); else releaseMic(); });
 

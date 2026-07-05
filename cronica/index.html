@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Crónica V30 · dictado móvil reparado</title>
+<title>Crónica V34 · viñeta simple + arrastrar imagen</title>
 <meta name="theme-color" content="#eef4ff" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Crónica" />
@@ -36,12 +36,12 @@
   .block.external{border-style:dashed;background:#dde8f5!important}.block:active{transform:none}.block:hover{outline:3px solid rgba(79,140,255,.18)}.block.selected{outline:4px solid rgba(79,140,255,.45);transform:translateY(-2px)}
   .topline{display:flex;align-items:center;gap:8px;justify-content:space-between}.name{font-weight:950;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(10,20,35,.9);padding-right:28px}.dur{font-size:12px;font-weight:850;opacity:.78;color:rgba(10,20,35,.78)}
   .created{font-size:12px;color:rgba(10,20,35,.62);font-weight:800}.noteEditor{display:flex;flex-direction:column;gap:8px}.noteText{width:100%;min-height:128px;resize:vertical;border:1px solid rgba(0,0,0,.09);border-radius:18px;padding:12px;background:rgba(255,255,255,.86);font:700 14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#172033;outline:none;user-select:text}.noteText:focus{border-color:#4f8cff;box-shadow:0 0 0 4px rgba(79,140,255,.16);background:#fff}
-  .notePreview{display:block;background:rgba(255,255,255,.64);border:1px solid rgba(0,0,0,.06);border-radius:18px;padding:13px 13px;color:#172033;user-select:text;white-space:pre-wrap;min-height:128px;max-height:min(52vh,520px);overflow-y:auto;scroll-behavior:smooth}.notePreview.emptyText{display:flex;align-items:center;justify-content:center;color:rgba(23,32,51,.46);font-size:13px;font-weight:850;text-align:center}.notePreviewTitle{font-size:22px;font-weight:950;line-height:1.16;margin-bottom:8px;letter-spacing:-.01em}.notePreviewSubTitle{font-size:15.5px;font-weight:950;line-height:1.18;margin:10px 0 6px;color:#263348}.notePreviewBody{font-size:13px;font-weight:650;line-height:1.38;color:#344255}.notePreviewBox{font-size:13px;font-weight:720;line-height:1.34;color:#263348;background:rgba(255,255,255,.72);border:1.5px solid rgba(38,51,72,.20);border-radius:14px;padding:10px 11px;margin:10px 0;box-shadow:0 5px 18px rgba(65,95,130,.08)}.notePreviewColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0;align-items:start}.notePreviewCol{background:rgba(255,255,255,.48);border:1px solid rgba(38,51,72,.12);border-radius:13px;padding:9px 10px;font-size:12.9px;font-weight:650;line-height:1.38;color:#344255;min-height:34px;box-shadow:inset 0 1px 0 rgba(255,255,255,.72)}.notePreviewCol.left,.notePreviewCol.right{border-left:1px solid rgba(38,51,72,.12)}.notePreviewDivider{border:0;border-top:2px dotted rgba(38,51,72,.28);height:0;margin:13px 4px}.notePreviewSpacer{height:10px}.notePreviewCol .notePreviewImageSlot{margin:0;min-height:92px}.notePreviewImageSlot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:110px;border:1.5px dashed rgba(38,51,72,.28);border-radius:15px;background:rgba(255,255,255,.56);font-size:12px;font-weight:900;color:rgba(38,51,72,.58);margin:10px 0;cursor:pointer;overflow:hidden}.notePreviewImageSlot img{display:block;width:100%;height:auto;border-radius:12px;object-fit:contain}.notePreviewImageSlot:hover{background:rgba(255,255,255,.82)}.dictateHelp{font-size:11px;font-weight:850;color:rgba(23,32,51,.58);line-height:1.2;margin-top:-4px;padding:0 3px}
+  .notePreview{display:block;background:rgba(255,255,255,.64);border:1px solid rgba(0,0,0,.06);border-radius:18px;padding:13px 13px;color:#172033;user-select:text;white-space:pre-wrap;min-height:128px;max-height:min(52vh,520px);overflow-y:auto;scroll-behavior:smooth}.notePreview.emptyText{display:flex;align-items:center;justify-content:center;color:rgba(23,32,51,.46);font-size:13px;font-weight:850;text-align:center}.notePreviewTitle{font-size:22px;font-weight:950;line-height:1.16;margin-bottom:8px;letter-spacing:-.01em}.notePreviewSubTitle{font-size:15.5px;font-weight:950;line-height:1.18;margin:10px 0 6px;color:#263348}.notePreviewBody{font-size:13px;font-weight:650;line-height:1.38;color:#344255}.notePreviewBox{font-size:13px;font-weight:720;line-height:1.34;color:#263348;background:rgba(255,255,255,.72);border:1.5px solid rgba(38,51,72,.20);border-radius:14px;padding:10px 11px;margin:10px 0;box-shadow:0 5px 18px rgba(65,95,130,.08)}.notePreviewColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0;align-items:start}.notePreviewCol{background:rgba(255,255,255,.48);border:1px solid rgba(38,51,72,.12);border-radius:13px;padding:9px 10px;font-size:12.9px;font-weight:650;line-height:1.38;color:#344255;min-height:34px;box-shadow:inset 0 1px 0 rgba(255,255,255,.72)}.notePreviewCol.left,.notePreviewCol.right{border-left:1px solid rgba(38,51,72,.12)}.notePreviewDivider{border:0;border-top:2px dotted rgba(38,51,72,.28);height:0;margin:13px 4px}.notePreviewSpacer{height:10px}.notePreviewCol .notePreviewImageSlot{margin:0;min-height:92px}.notePreviewImageSlot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:110px;border:1.5px dashed rgba(38,51,72,.28);border-radius:15px;background:rgba(255,255,255,.56);font-size:12px;font-weight:900;color:rgba(38,51,72,.58);margin:10px 0;cursor:pointer;overflow:hidden}.notePreviewImageSlot img{display:block;width:100%;height:auto;border-radius:12px;object-fit:contain}.notePreviewImageSlot:hover{background:rgba(255,255,255,.82)}.notePreviewImageSlot.dragImg{border-color:#4f8cff;background:rgba(234,243,255,.92);color:#0f4fb5;box-shadow:0 0 0 4px rgba(79,140,255,.14)}.dictateHelp{font-size:11px;font-weight:850;color:rgba(23,32,51,.58);line-height:1.2;margin-top:-4px;padding:0 3px}
   .dictateTools{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;align-items:center;background:rgba(255,255,255,.66);border:1px solid rgba(0,0,0,.06);border-radius:18px;padding:7px;margin-top:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.65);touch-action:none;margin-bottom:8px}.dictModeBtn{height:36px;min-width:0;border-radius:13px;padding:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:950;box-shadow:0 4px 12px rgba(65,95,130,.10);user-select:none;-webkit-user-select:none;touch-action:none;margin:0}.dictModeBtn.titleMode{background:#172033;color:white;font-size:15px}.dictModeBtn.subMode{background:#465a78;color:white;font-size:11px}.dictModeBtn.bodyMode{background:#e9f4ff;color:#172033}.dictModeBtn.boxMode{background:#fff5d7;color:#65420b;font-size:17px}.dictModeBtn.bulletMode{background:#ecfff0;color:#19592a;font-size:18px}.dictModeBtn.numberMode{background:#eef0ff;color:#22307e;font-size:14px}.dictModeBtn.leftMode{background:#edf7ff;color:#15476f;font-size:15px}.dictModeBtn.rightMode{background:#edf7ff;color:#15476f;font-size:15px}.dictModeBtn.imageMode{background:#f4f0ff;color:#45327a;font-size:16px}.dictModeBtn.imageLabelMode{background:#f4f0ff;color:#45327a;font-size:13px}.dictModeBtn.blackMode{background:#172033;color:#fff;font-size:13px}.dictModeBtn.captionMode{background:#fff8e8;color:#715018;font-size:11px}.dictModeBtn.labelMode{background:#29364d;color:#fff;font-size:14px}.dictModeBtn.enterMode{background:#e8fff9;color:#0b6656;font-size:17px}.dictModeBtn.dividerMode{background:#f4f7fb;color:#526174;font-size:18px}.dictModeBtn.undoMode{background:#ffd3dc;color:#741323;font-size:17px}.dictModeBtn.active{outline:none;transform:none;filter:none}.dictModeBtn.flash{outline:4px solid rgba(79,140,255,.22);transform:translateY(1px);filter:brightness(1.04)}.dictTouchHint{display:none}
   .notePreviewBullet{font-size:13px;font-weight:670;line-height:1.36;color:#344255;margin:4px 0 4px 12px;position:relative;padding-left:12px}.notePreviewBullet:before{content:'•';position:absolute;left:0;font-weight:950}.notePreviewNumber{font-size:13px;font-weight:670;line-height:1.36;color:#344255;margin:4px 0 4px 6px}.notePreviewIndent{font-size:13px;font-weight:650;line-height:1.36;color:#344255;margin:4px 0 4px 22px;border-left:2px solid rgba(52,66,85,.18);padding-left:10px}.notePreviewQuote{font-size:13px;font-weight:760;line-height:1.36;color:#263348;margin:8px 0;padding:8px 10px;border-left:4px solid rgba(38,51,72,.25);background:rgba(255,255,255,.52);border-radius:10px}
   .notePreviewBlack{font-size:13px;font-weight:850;line-height:1.34;color:#fff;background:#172033;border-radius:15px;padding:11px 12px;margin:10px 0;box-shadow:0 10px 24px rgba(23,32,51,.18)}
   .notePreviewCaption{font-size:11.5px;font-weight:800;line-height:1.3;color:#64748b;text-align:center;margin:-4px 0 10px;font-style:italic}
-  .notePreviewImageWrap{position:relative;margin:10px 0}.notePreviewImageWrap .notePreviewImageSlot{margin:0}.notePreviewImageLabel{position:absolute;left:10px;top:10px;max-width:72%;background:rgba(15,23,42,.78);color:#fff;border-radius:12px;padding:6px 8px;font-size:11.5px;font-weight:900;line-height:1.18;box-shadow:0 8px 20px rgba(0,0,0,.18);pointer-events:none}.notePreviewImageWrap .notePreviewCaption{margin:6px 4px 0}
+  .notePreviewImageWrap{position:relative;margin:10px 0}.notePreviewImageWrap .notePreviewImageSlot{margin:0}.notePreviewImageLabel{position:absolute;left:10px;top:10px;max-width:48%;background:rgba(15,23,42,.78);color:#fff;border-radius:12px;padding:6px 8px;font-size:11.3px;font-weight:900;line-height:1.18;box-shadow:0 8px 20px rgba(0,0,0,.18);pointer-events:none}.notePreviewImageWrap .notePreviewCaption{margin:6px 4px 0}
   .notePreview [data-edit-line]{cursor:text}.notePreview [data-edit-line]:hover{outline:2px solid rgba(79,140,255,.22);outline-offset:2px;border-radius:8px}
 
   .cardBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}.cardBtns button{padding:9px 10px;border-radius:14px;font-size:13px;box-shadow:0 5px 14px rgba(65,95,130,.11)}
@@ -159,6 +159,8 @@ let dictationRecognition=null, dictatingIndex=-1, dictationBaseText='', dictatio
 let dictationTouchMode='body', dictationDraftMode='body', dictationDraftText='', dictationInterimText='';
 let dictationParts=[];
 let dictationSkipFinals=[];
+let dictationKeepAlive=false;
+let dictationRestartTimer=null;
 let undoTouchLockUntil=0;
 const colors=['#9ad7ff','#9ff0c8','#ffe38f','#ffc2df','#d6c8ff','#ffb0b8','#b7f1ff','#ffd2a6','#c7ed9f','#e0e7ff'];
 const $=id=>document.getElementById(id);
@@ -190,7 +192,7 @@ function render(){
     const el=document.createElement('div'); el.className='block'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=false; el.style.background=b.color; el.dataset.id=b.id;
     const editing=!!b.editingText;
     const preview=previewEditorialHtml(b.text||'', b);
-    const toolsZona=(dictatingIndex===i && !editing) ? `<div class="dictateTools" data-dict-tools="${i}"><button class="dictModeBtn titleMode ${dictationTouchMode==='title'?'active':''}" data-mode="title" title="Título">T</button><button class="dictModeBtn subMode ${dictationTouchMode==='subtitle'?'active':''}" data-mode="subtitle" title="Subtítulo">Sub</button><button class="dictModeBtn bodyMode ${dictationTouchMode==='body'?'active':''}" data-mode="body" title="Texto normal">N</button><button class="dictModeBtn boxMode ${dictationTouchMode==='box'?'active':''}" data-mode="box" title="Recuadro">□</button><button class="dictModeBtn enterMode" data-action="enter" title="Cerrar tramo">↵</button><button class="dictModeBtn undoMode" data-action="undo" title="Borrar último bloque">↶</button><button class="dictModeBtn bulletMode ${dictationTouchMode==='bullet'?'active':''}" data-mode="bullet" title="Viñeta">•</button><button class="dictModeBtn numberMode ${dictationTouchMode==='number'?'active':''}" data-mode="number" title="Lista numerada">1</button><button class="dictModeBtn imageLabelMode ${dictationTouchMode==='imagelabel'?'active':''}" data-mode="imagelabel" title="Imagen con etiqueta">🖼▣</button><button class="dictModeBtn blackMode" data-mode="black" title="Placa negra">Neg</button><button class="dictModeBtn captionMode" data-mode="caption" title="Pie de foto">Pie</button><button class="dictModeBtn dividerMode" data-action="divider" title="Línea punteada">⋯</button></div>` : '';
+    const toolsZona=(dictatingIndex===i && !editing) ? `<div class="dictateTools" data-dict-tools="${i}"><button class="dictModeBtn titleMode ${dictationTouchMode==='title'?'active':''}" data-mode="title" title="Título">T</button><button class="dictModeBtn subMode ${dictationTouchMode==='subtitle'?'active':''}" data-mode="subtitle" title="Subtítulo">Sub</button><button class="dictModeBtn bodyMode ${dictationTouchMode==='body'?'active':''}" data-mode="body" title="Texto normal">N</button><button class="dictModeBtn boxMode ${dictationTouchMode==='box'?'active':''}" data-mode="box" title="Recuadro">□</button><button class="dictModeBtn pointMode" data-action="point" title="Punto / cerrar bloque">●</button><button class="dictModeBtn enterMode" data-action="enter" title="Bajar renglón / aire">↵</button><button class="dictModeBtn undoMode" data-action="undo" title="Borrar último bloque">↶</button><button class="dictModeBtn bulletMode ${dictationTouchMode==='bullet'?'active':''}" data-mode="bullet" title="Viñeta / punto con texto">•</button><button class="dictModeBtn numberMode ${dictationTouchMode==='number'?'active':''}" data-mode="number" title="Lista numerada">1</button><button class="dictModeBtn imageMode" data-action="image" title="Imagen sola">🖼</button><button class="dictModeBtn imageLabelMode ${dictationTouchMode==='imagelabel'?'active':''}" data-mode="imagelabel" title="Imagen con etiqueta">🖼▣</button><button class="dictModeBtn blackMode" data-mode="black" title="Placa negra">Neg</button><button class="dictModeBtn captionMode" data-mode="caption" title="Pie de foto">Pie</button><button class="dictModeBtn dividerMode" data-action="divider" title="Línea punteada">⋯</button></div>` : '';
     const textoZona=editing
       ? `<div class="noteEditor"><textarea class="noteText" placeholder="Escribir observación de esta nota...">${escapeHtml(b.text||'')}</textarea><div class="dictateHelp">Modo edición: corregí el texto y tocá “Ver resultado”.</div></div>`
       : `${toolsZona}<div class="notePreview ${preview?'':'emptyText'}">${preview||'Sin texto todavía. Podés dictar o editar a mano.'}</div><div class="dictTouchHint">${dictatingIndex===i?'Dictado táctil activo.':'Dictado táctil: tocá Dictar texto y marcá el formato con los botones.'}</div>`;
@@ -244,7 +246,20 @@ function render(){
         tapTimer=now;
       },{passive:false});
     });
-    el.querySelectorAll('.notePreviewImageSlot').forEach(slot=>{slot.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; const idx=parseInt(slot.dataset.imageIndex||'0',10)||0; const imgId=slot.dataset.imageId||''; elegirImagenParaNota(i,idx,imgId);};});
+    el.querySelectorAll('.notePreviewImageSlot').forEach(slot=>{
+      slot.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; const idx=parseInt(slot.dataset.imageIndex||'0',10)||0; const imgId=slot.dataset.imageId||''; elegirImagenParaNota(i,idx,imgId);};
+      slot.addEventListener('dragover',(ev)=>{ if(estaGrabando()) return; ev.preventDefault(); ev.stopPropagation(); slot.classList.add('dragImg'); });
+      slot.addEventListener('dragenter',(ev)=>{ if(estaGrabando()) return; ev.preventDefault(); ev.stopPropagation(); slot.classList.add('dragImg'); });
+      slot.addEventListener('dragleave',(ev)=>{ ev.preventDefault(); ev.stopPropagation(); slot.classList.remove('dragImg'); });
+      slot.addEventListener('drop',(ev)=>{
+        ev.preventDefault(); ev.stopPropagation(); slot.classList.remove('dragImg');
+        if(estaGrabando()) return;
+        const file=[...(ev.dataTransfer?.files||[])].find(f=>(f.type||'').startsWith('image/'));
+        if(!file){ status.textContent='Soltá una imagen en este espacio.'; return; }
+        const idx=parseInt(slot.dataset.imageIndex||'0',10)||0; const imgId=slot.dataset.imageId||'';
+        procesarImagenParaNota(i,idx,imgId,file);
+      });
+    });
     el.onclick=(ev)=>{ if(ev.target.closest('textarea,button'))return; jump(); };
     timeline.appendChild(el);
     if(i<blocks.length-1){
@@ -433,7 +448,7 @@ function previewEditorialHtml(texto, blockCtx=null){
     if(/^#\s+/.test(line)){flushBody(); html+=`<div class="notePreviewTitle" data-edit-line="${idx}">${escapeHtml(line.replace(/^#\s+/,''))}</div>`; continue;}
     if(/^□\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBox" data-edit-line="${idx}">${escapeHtml(line.replace(/^□\s+/,''))}</div>`; continue;}
     if(/^■\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBlack" data-edit-line="${idx}">${escapeHtml(line.replace(/^■\s+/,''))}</div>`; continue;}
-    if(/^•\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBullet" data-edit-line="${idx}"><span class="bulletGlyph">•</span><span>${escapeHtml(line.replace(/^•\s+/,''))}</span></div>`; continue;}
+    if(/^•\s+/.test(line)){flushBody(); html+=`<div class="notePreviewBullet" data-edit-line="${idx}">${escapeHtml(line.replace(/^•\s+/,''))}</div>`; continue;}
     if(/^\d+\.\s+/.test(line)){flushBody(); html+=`<div class="notePreviewNumber" data-edit-line="${idx}">${escapeHtml(line)}</div>`; continue;}
     body.push({text:line,idx});
   }
@@ -612,6 +627,47 @@ function appendDraftDictado(texto){
   if(!t)return;
   dictationDraftText=[dictationDraftText,t].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
 }
+
+function tokenizarDictadoPorPunto(texto){
+  let t=String(texto||'').trim();
+  if(!t) return [];
+  t=t.replace(/\s+/g,' ');
+  t=t.replace(/coma/gi, ',');
+  t=t.replace(/dos\s+puntos/gi, ':');
+  t=t.replace(/punto\s+y\s+coma/gi, ';');
+  t=t.replace(/nuevo\s+rengl[oó]n/gi, ' __DICT_END__ ');
+  t=t.replace(/nueva\s+l[ií]nea/gi, ' __DICT_END__ ');
+  t=t.replace(/punto\s+y\s+aparte/gi, ' __DICT_END__ ');
+  t=t.replace(/punto\s+aparte/gi, ' __DICT_END__ ');
+  t=t.replace(/punto/gi, ' __DICT_END__ ');
+  // Algunos celulares devuelven el comando como signo. Lo tratamos como cierre si viene al final o separado.
+  t=t.replace(/\s*\.\s*/g, ' __DICT_END__ ');
+  return t.split('__DICT_END__').map((seg,idx,arr)=>({texto:seg.trim(), cerrar:idx < arr.length-1})).filter(x=>x.texto || x.cerrar);
+}
+function procesarFinalDictadoPorPunto(i, texto){
+  if(!blocks[i]) return;
+  const tokens=tokenizarDictadoPorPunto(texto);
+  if(!tokens.length) return;
+  tokens.forEach(tok=>{
+    if(tok.texto) appendDraftDictado(tok.texto);
+    if(tok.cerrar){
+      commitDraftDictado(i);
+      // Después de decir “punto”, el próximo tramo vuelve a texto normal salvo que toques otro botón.
+      dictationTouchMode='body';
+      dictationDraftMode='body';
+      dictationInterimText='';
+    }
+  });
+}
+function limpiarInterimDictado(texto){
+  let t=String(texto||'').trim();
+  if(!t)return '';
+  t=t.replace(/coma/gi, ',');
+  t=t.replace(/dos\s+puntos/gi, ':');
+  t=t.replace(/punto\s+y\s+coma/gi, ';');
+  t=t.replace(/(punto\s+y\s+aparte|punto\s+aparte|punto|nuevo\s+rengl[oó]n|nueva\s+l[ií]nea)/gi, '');
+  return t.replace(/\s+/g,' ').trim();
+}
 function setModoDictado(modo, i=null){
   const nuevo=esModoEspecial(modo)?modo:'body';
   if(dictationDraftMode!==nuevo && typeof i==='number') commitDraftDictado(i);
@@ -678,6 +734,24 @@ function cerrarTramoDictado(i){
     marcarSinGuardar(ok?'Cerré el tramo.':'Agregué renglón.');
   }
 }
+function cerrarBloqueConPunto(i){
+  if(!blocks[i])return;
+  if(dictatingIndex===i){
+    const ok=commitDraftDictado(i);
+    dictationInterimText='';
+    // El botón ● equivale a decir “punto”: cierra el bloque actual y vuelve a texto normal.
+    dictationTouchMode='body';
+    dictationDraftMode='body';
+    blocks[i].text=textoDictadoConDraft(i).trim();
+    dictationBaseText=(blocks[i].text||'').trim();
+    dictationParts=[];
+    dictationDraftText='';
+    dictationInterimText='';
+    aplicarTextoTemporalDictado(i,blocks[i].text||'');
+    actualizarHerramientasDictado(i);
+    marcarSinGuardar(ok?'Punto: cerré el bloque y volví a texto normal.':'Punto: quedo atento al próximo bloque.');
+  }
+}
 function insertarSeparadorNota(i){
   if(!blocks[i])return;
   if(dictatingIndex===i && (dictationDraftText||dictationInterimText)) commitDraftDictado(i);
@@ -739,6 +813,21 @@ function reemplazarPlaceholderImagen(texto,dataUrl,indice=0,imgId='',i=-1){
   if(i>=0 && blocks[i]) asegurarMapaImagenes(i)[targetId]=dataUrl;
   return lineas.join('\n');
 }
+function procesarImagenParaNota(i,indice=0,imgId='',file){
+  if(!blocks[i]||!file)return;
+  if(!(file.type||'').startsWith('image/')){status.textContent='Ese archivo no parece ser una imagen.'; return;}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      blocks[i].text=reemplazarPlaceholderImagen(blocks[i].text||'',String(reader.result||''),indice,imgId,i);
+      if(dictatingIndex===i){dictationBaseText=(blocks[i].text||'').trim(); dictationParts=[]; dictationDraftText=''; dictationInterimText='';}
+      marcarSinGuardar('Imagen agregada a la nota.');
+      render();
+    }catch(err){ console.error(err); status.textContent='No pude insertar la imagen. Probá con una imagen más liviana.'; }
+  };
+  reader.onerror=()=>{status.textContent='No pude leer la imagen seleccionada.';};
+  reader.readAsDataURL(file);
+}
 function elegirImagenParaNota(i,indice=0,imgId=''){
   if(!blocks[i])return;
   const input=document.createElement('input');
@@ -747,17 +836,7 @@ function elegirImagenParaNota(i,indice=0,imgId=''){
   input.onchange=()=>{
     const file=input.files && input.files[0];
     if(!file)return;
-    const reader=new FileReader();
-    reader.onload=()=>{
-      try{
-        blocks[i].text=reemplazarPlaceholderImagen(blocks[i].text||'',String(reader.result||''),indice,imgId,i);
-        if(dictatingIndex===i){dictationBaseText=(blocks[i].text||'').trim(); dictationParts=[]; dictationDraftText=''; dictationInterimText='';}
-        marcarSinGuardar('Imagen agregada a la nota.');
-        render();
-      }catch(err){ console.error(err); status.textContent='No pude insertar la imagen. Probá con una imagen más liviana.'; }
-    };
-    reader.onerror=()=>{status.textContent='No pude leer la imagen seleccionada.';};
-    reader.readAsDataURL(file);
+    procesarImagenParaNota(i,indice,imgId,file);
   };
   input.click();
 }
@@ -774,6 +853,7 @@ function configurarHerramientasDictado(tools,i){
     const action=btn.dataset.action;
     flashBotonDictado(btn);
     if(action==='undo'){borrarBloqueDictado(i); return;}
+    if(action==='point'){cerrarBloqueConPunto(i); return;}
     if(action==='enter'){cerrarTramoDictado(i); return;}
     if(action==='divider'){insertarSeparadorNota(i); return;}
     if(action==='image'){insertarPlaceholderImagen(i); return;}
@@ -789,7 +869,7 @@ function configurarHerramientasDictado(tools,i){
       dictationSkipFinals=dictationSkipFinals.slice(-5);
       actualizarHerramientasDictado(i);
       aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));
-      marcarSinGuardar('Modo: '+modoLabel(mode)+'.');
+      marcarSinGuardar('Modo: '+modoLabel(mode)+'. Decí punto o tocá ● para cerrar el tramo.');
       setTimeout(()=>{try{aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));}catch(e){}},60);
     }else{
       setModoDictado(mode,i);
@@ -815,6 +895,8 @@ function configurarHerramientasDictado(tools,i){
 }
 
 function detenerDictadoNota(mensaje){
+  dictationKeepAlive=false;
+  clearTimeout(dictationRestartTimer);
   const idx=dictatingIndex;
   if(idx>=0 && blocks[idx]) commitDraftDictado(idx);
   if(dictationRecognition){try{dictationRecognition.onend=null; dictationRecognition.stop();}catch(e){} dictationRecognition=null;}
@@ -837,6 +919,63 @@ function toggleDictadoNota(i){
   if(dictatingIndex>=0){detenerDictadoNota('Dictado anterior detenido.');}
   iniciarDictadoNota(i);
 }
+
+function iniciarReconocimientoDictado(i){
+  if(dictatingIndex!==i || !blocks[i] || !dictationKeepAlive) return;
+  const SR=speechRecognitionClass();
+  if(!SR){status.textContent='Este navegador no tiene dictado por voz. Probalo en Chrome Android.'; return;}
+  try{
+    const rec=new SR();
+    dictationRecognition=rec;
+    rec.lang='es-AR';
+    rec.continuous=true;
+    rec.interimResults=true;
+    rec.maxAlternatives=1;
+    rec.onstart=()=>{status.textContent='Dictado activo. Podés pausar al hablar; decí punto para cerrar el tramo.';};
+    rec.onerror=(ev)=>{
+      const code=ev && ev.error ? ev.error : '';
+      if(code==='not-allowed' || code==='service-not-allowed'){
+        dictationKeepAlive=false;
+        status.textContent='El navegador bloqueó el dictado. Revisá permiso de micrófono.';
+      }else{
+        status.textContent='El dictado hizo una pausa. Lo mantengo preparado...'+(code?' ('+code+')':'');
+      }
+    };
+    rec.onresult=(ev)=>{
+      if(dictatingIndex!==i || !blocks[i])return;
+      dictationInterimText='';
+      for(let n=ev.resultIndex;n<ev.results.length;n++){
+        const txt=(ev.results[n][0]?.transcript||'').trim();
+        if(!txt)continue;
+        if(ev.results[n].isFinal){
+          const normFinal=limpiarTextoDictadoLibre(txt).toLowerCase();
+          const dupIdx=dictationSkipFinals.findIndex(x=>x && (x===normFinal || normFinal.includes(x) || x.includes(normFinal)));
+          if(dupIdx>=0){dictationSkipFinals.splice(dupIdx,1); continue;}
+          procesarFinalDictadoPorPunto(i, txt);
+          status.textContent='Dictando en modo '+modoLabel(dictationDraftMode)+'. Decí punto o tocá ● para cerrar.';
+        }else{
+          const limpio=limpiarInterimDictado(txt);
+          if(limpio) dictationInterimText+=(dictationInterimText?' ':'')+limpio;
+        }
+      }
+      aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));
+    };
+    rec.onend=()=>{
+      if(dictatingIndex===i){
+        dictationRecognition=null;
+        if(dictationKeepAlive){
+          clearTimeout(dictationRestartTimer);
+          dictationRestartTimer=setTimeout(()=>{
+            if(dictatingIndex===i && dictationKeepAlive) iniciarReconocimientoDictado(i);
+          },360);
+        }
+      }
+    };
+    rec.start();
+  }catch(e){
+    status.textContent='El dictado se pausó. Tocá Detener dictado o probá de nuevo si no retoma.';
+  }
+}
 function iniciarDictadoNota(i){
   if(!blocks[i])return;
   if(playing){status.textContent='Pausá la reproducción antes de dictar texto.'; return;}
@@ -854,6 +993,8 @@ function iniciarDictadoNota(i){
   dictationParts=[];
   dictationSkipFinals=[];
   undoTouchLockUntil=0;
+  dictationKeepAlive=true;
+  clearTimeout(dictationRestartTimer);
   try{
     const rec=new SR();
     dictationRecognition=rec;
@@ -861,10 +1002,15 @@ function iniciarDictadoNota(i){
     rec.continuous=true;
     rec.interimResults=true;
     rec.maxAlternatives=1;
-    rec.onstart=()=>{status.textContent='Dictando texto en nota '+(i+1)+'. Tocá un botón para cerrar/abrir tramos. ↵ agrega aire si lo necesitás.';};
+    rec.onstart=()=>{status.textContent='Dictado activo en nota '+(i+1)+'. Tocá un modo, hablá y decí punto o tocá ● para cerrar. Usá Detener dictado para terminar.';};
     rec.onerror=(ev)=>{
       const code=ev && ev.error ? ev.error : '';
-      status.textContent='No pude iniciar el dictado en este navegador. Revisá permiso de micrófono y usá Chrome Android si estás en celular.'+(code?' ('+code+')':'');
+      if(code==='not-allowed' || code==='service-not-allowed'){
+        status.textContent='El navegador bloqueó el dictado. Revisá permiso de micrófono y usá Chrome Android si estás en celular.';
+        dictationKeepAlive=false;
+      }else{
+        status.textContent='El dictado hizo una pausa. Lo intento mantener activo...'+(code?' ('+code+')':'');
+      }
     };
     rec.onresult=(ev)=>{
       if(dictatingIndex!==i || !blocks[i])return;
@@ -876,31 +1022,40 @@ function iniciarDictadoNota(i){
           const normFinal=limpiarTextoDictadoLibre(txt).toLowerCase();
           const dupIdx=dictationSkipFinals.findIndex(x=>x && (x===normFinal || normFinal.includes(x) || x.includes(normFinal)));
           if(dupIdx>=0){dictationSkipFinals.splice(dupIdx,1); continue;}
-          appendDraftDictado(txt);
-          status.textContent='Sumando texto en modo '+modoLabel(dictationDraftMode)+'.';
+          procesarFinalDictadoPorPunto(i, txt);
+          status.textContent='Dictando en modo '+modoLabel(dictationDraftMode)+'. Decí punto o tocá ● para cerrar.';
         }else{
-          dictationInterimText+=(dictationInterimText?' ':'')+txt;
+          const limpio=limpiarInterimDictado(txt);
+          if(limpio) dictationInterimText+=(dictationInterimText?' ':'')+limpio;
         }
       }
       aplicarTextoTemporalDictado(i,textoDictadoConDraft(i));
     };
     rec.onend=()=>{
       if(dictatingIndex===i){
-        commitDraftDictado(i);
         dictationRecognition=null;
-        dictatingIndex=-1;
-        dictationBaseText='';
-        dictationFinalText='';
-        dictationTouchMode='body';
-        dictationDraftMode='body';
-        dictationDraftText='';
-        dictationInterimText='';
-        dictationParts=[];
-        dictationSkipFinals=[];
-        undoTouchLockUntil=0;
-        if(blocks[i]) blocks[i].text=limpiarEspaciosEditorial(blocks[i].text||'');
-        marcarSinGuardar('Dictado finalizado. Revisá el texto de la nota.');
-        render();
+        if(dictationKeepAlive){
+          status.textContent='El dictado hizo una pausa. Reanudando...';
+          clearTimeout(dictationRestartTimer);
+          dictationRestartTimer=setTimeout(()=>{
+            if(dictatingIndex===i && dictationKeepAlive) iniciarReconocimientoDictado(i);
+          },360);
+        }else{
+          commitDraftDictado(i);
+          dictatingIndex=-1;
+          dictationBaseText='';
+          dictationFinalText='';
+          dictationTouchMode='body';
+          dictationDraftMode='body';
+          dictationDraftText='';
+          dictationInterimText='';
+          dictationParts=[];
+          dictationSkipFinals=[];
+          undoTouchLockUntil=0;
+          if(blocks[i]) blocks[i].text=limpiarEspaciosEditorial(blocks[i].text||'');
+          marcarSinGuardar('Dictado finalizado. Revisá el texto de la nota.');
+          render();
+        }
       }
     };
     rec.start();
