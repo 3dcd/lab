@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Podcast por Bloques V63</title>
+<title>Podcast por Bloques V75</title>
 <style>
   :root{
     --bg1:#f7fbff;--bg2:#eef4ff;--card:#ffffff;--txt:#172033;--mut:#65758b;
@@ -32,6 +32,9 @@
   .timelineWrap.panning{cursor:grabbing;scroll-behavior:auto}
   .timelineWrap.drag{outline:3px solid rgba(79,140,255,.20);background:#f3f9ff}
   .fxTimeline.drag{outline:3px solid rgba(105,79,155,.18);background:linear-gradient(180deg,#f8f3ff,#efe7ff)}
+  .timeline.dropUpTarget{outline:3px solid rgba(79,140,255,.22);background:linear-gradient(180deg,#f5f9ff,#edf5ff);border-radius:18px}
+  .clipGhost{position:fixed;left:0;top:0;z-index:9999;pointer-events:none;transform:translate(-50%,-110%);padding:8px 12px;border-radius:16px;background:rgba(255,255,255,.94);border:1px solid #dbe7f5;box-shadow:0 10px 28px rgba(45,79,120,.18);font-size:12px;font-weight:950;color:#344255;white-space:nowrap;backdrop-filter:blur(8px)}
+  .clipGhost.fx{border-color:#dacdf2;color:#513f76;background:rgba(251,249,255,.96)}
   .timelineWrap::-webkit-scrollbar{height:8px}.timelineWrap::-webkit-scrollbar-thumb{background:#c9d8e8;border-radius:20px}.timelineWrap::-webkit-scrollbar-track{background:transparent}
   .timeline{display:flex;gap:10px;align-items:stretch;min-height:175px;position:relative;width:100%;min-width:100%;padding-right:2px}.timeline.recordingMode{width:100%;min-width:100%;overflow:hidden}
   .timeline.recordingMode .block{min-width:24px;padding-left:10px;padding-right:10px}
@@ -78,12 +81,12 @@
   
   .innerPlayerHead{display:none!important;}
 
-  .trackLabel{font-size:12px;font-weight:950;color:#53667d;margin:0 0 8px 4px;text-transform:uppercase;letter-spacing:.04em}
+  .trackLabel{font-size:12px;font-weight:950;color:#53667d;margin:0 0 8px 4px;text-transform:uppercase;letter-spacing:.04em;position:sticky;left:4px;z-index:35;width:max-content;max-width:calc(100vw - 50px);background:rgba(249,252,255,.92);border-radius:999px;padding:3px 8px;backdrop-filter:blur(6px)}
   .fxLabel{margin-top:18px}
   .fxTimeline{position:relative;display:block;min-height:124px;height:124px;align-items:initial;padding:0 0 8px;border-top:1px dashed #d9d1ea;border-radius:18px;background:linear-gradient(180deg,#fbf9ff,#f6f0ff);overflow:hidden}
   .fxTimeline:before{content:"";position:absolute;left:0;right:0;top:50%;height:3px;border-radius:999px;background:rgba(105,79,155,.18);pointer-events:none}
-  .fxToolbar{display:flex;align-items:center;gap:10px;margin:0 0 8px 4px;flex-wrap:wrap}
-  .fxToolbar .fxLabel{margin:0}
+  .fxToolbar{display:flex;align-items:center;gap:10px;margin:0 0 8px 4px;flex-wrap:wrap;position:sticky;left:4px;z-index:36;width:max-content;max-width:calc(100vw - 48px);background:rgba(249,252,255,.94);border:1px solid #e7eef8;border-radius:18px;padding:5px 7px;backdrop-filter:blur(6px);box-shadow:0 6px 16px rgba(45,79,120,.06)}
+  .fxToolbar .fxLabel{margin:0;background:transparent;border:0;padding:0}
   .fxVolLabel{font-size:12px;font-weight:900;color:#53667d;background:rgba(255,255,255,.65);border:1px solid #e2d9f0;border-radius:14px;padding:6px 9px;display:flex;align-items:center;gap:7px}
   .fxVolLabel input[type=range]{width:120px}
   .fxVolValue{min-width:18px;text-align:center;color:#513f76}
@@ -107,7 +110,34 @@
   .fxVisualHint{display:none}
   .fxTrimRead{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;font-weight:950;color:rgba(62,45,92,.68);background:rgba(255,255,255,.58);border:1px solid rgba(105,79,155,.12);border-radius:999px;padding:2px 6px;line-height:1;z-index:5;pointer-events:none;max-width:46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .fxTrimRead.left{left:32px}.fxTrimRead.right{right:32px}
-  .fxTimeline .name,.fxTimeline .dur,.fxTimeline .fxStart{display:none!important}
+  .trimHidden{display:none!important}
+
+  .voiceImportedEditable{border-style:dashed!important;background:linear-gradient(135deg,#e2ecf7,#d4e2f2)!important;padding:30px 8px 28px;}
+  .voiceImportedEditable .voiceStripeSurface{position:absolute;inset:0;border-radius:24px;pointer-events:none;z-index:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.52) 0 10px,rgba(255,255,255,.14) 10px 20px);background-size:28px 28px;}
+  .voiceImportedEditable:after{content:"";position:absolute;inset:0;border-radius:24px;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(70,100,140,.15),inset 0 1px 0 rgba(255,255,255,.55);z-index:2}
+  .voiceHandle{position:absolute;top:0;bottom:0;width:28px;z-index:4;background:rgba(255,255,255,.16);border:1px solid rgba(70,100,140,.13);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);cursor:ew-resize;touch-action:none}
+  .voiceHandle.left{left:0;border-radius:24px 7px 7px 24px}
+  .voiceHandle.right{right:0;border-radius:7px 24px 24px 7px}
+  .voiceHandle:after{content:"";position:absolute;top:50%;left:50%;width:3px;height:34px;border-radius:9px;background:rgba(70,100,140,.42);transform:translate(-50%,-50%)}
+  .voiceTrimRead{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;font-weight:950;color:rgba(45,65,92,.72);background:rgba(255,255,255,.60);border:1px solid rgba(70,100,140,.12);border-radius:999px;padding:2px 6px;line-height:1;z-index:5;pointer-events:none;max-width:42%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .voiceTrimRead.left{left:32px}.voiceTrimRead.right{right:32px}
+  .voiceImportedEditable .dur,.voiceImportedEditable .del{position:relative;z-index:6}
+  .voiceImportedEditable .name{
+    position:absolute!important;left:12px;right:12px;bottom:8px;z-index:6;padding:0!important;
+    font-size:11px!important;font-weight:950;line-height:1.1;color:rgba(45,60,80,.78);
+    white-space:nowrap;overflow:hidden;text-overflow:clip;text-align:left;pointer-events:none;
+    -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 78%,transparent 100%);
+    mask-image:linear-gradient(90deg,#000 0%,#000 78%,transparent 100%);
+  }
+  .voiceImportedEditable .name:before{content:""}
+  .fxTimeline .dur,.fxTimeline .fxStart{display:none!important}
+  .fxTimeline .name{
+    display:block!important;position:absolute;left:12px;right:12px;bottom:8px;z-index:6;
+    font-size:11px;font-weight:950;line-height:1.1;color:rgba(45,35,70,.78);
+    white-space:nowrap;overflow:hidden;text-overflow:clip;text-align:left;pointer-events:none;
+    -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 78%,transparent 100%);
+    mask-image:linear-gradient(90deg,#000 0%,#000 78%,transparent 100%);
+  }
   @media(max-width:640px){
     .roundRec,.roundPlay{min-width:74px;height:34px;border-radius:11px;padding:0 11px;font-size:13px}
     .transport{gap:6px;padding-left:4px}
@@ -139,6 +169,38 @@
     .transport{margin-bottom:12px}
   }
 
+
+
+  /* V74: parto de la v71 estable para recuperar el arrastre natural de sonidos.
+     Solo centro la X de todos los globitos, sin tocar la lógica de arrastre. */
+  .timeline .block .del,
+  .fxTimeline .block .del{
+    position:absolute !important;
+    left:50% !important;
+    right:auto !important;
+    top:7px !important;
+    transform:translateX(-50%) !important;
+    z-index:9 !important;
+  }
+  .voiceImportedEditable .del{
+    position:absolute !important;
+    left:50% !important;
+    right:auto !important;
+    top:7px !important;
+    transform:translateX(-50%) !important;
+    z-index:9 !important;
+  }
+  @media(max-width:640px){
+    .timeline:not(.recordingMode) .block .del,
+    .fxTimeline .block .del,
+    .voiceImportedEditable .del{
+      left:50% !important;
+      right:auto !important;
+      top:5px !important;
+      transform:translateX(-50%) !important;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -159,12 +221,11 @@
       <button id="loadBtn" class="open">Abrir ZIP</button>
       <button id="addAudioBtn" class="open">Agregar voz/audio</button>
       <button id="addFxBtn" class="open">Agregar sonido</button>
-      <button id="addFxSilenceBtn" class="open">Silencio sonido</button>
       <input id="projectFile" class="projectInput" type="file" accept=".zip,application/zip">
       <input id="audioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
       <input id="fxAudioFile" class="projectInput" type="file" accept="audio/*,video/*" multiple>
     </div>
-    <div class="timelineWrap" id="wrap"><div class="playhead" id="head"></div><div class="trackLabel">Voces / entrevista</div><div class="timeline" id="timeline"><div class="empty">Todavía no hay voces. Tocá “Grabar” o arrastrá audio acá.</div></div><div class="fxToolbar"><div class="trackLabel fxLabel">Sonidos / ambientes</div><label class="fxVolLabel">Ambiente <input id="fxVol" type="range" min="0" max="10" step="1" value="5"><span id="fxVolValue" class="fxVolValue">5</span></label><span class="zoomHint" id="zoomHint">Pellizcá para ampliar</span></div><div class="timeline fxTimeline" id="fxTimeline"><div class="empty">Arrastrá acá pájaros, música, ambiente o un MP4: se usa solo el audio y podés ubicarlo exacto.</div></div><div class="innerPlayerLine" id="transportLine"></div><div class="innerPlayerHead" id="transportHead"></div></div>
+    <div class="timelineWrap" id="wrap"><div class="playhead" id="head"></div><div class="trackLabel">Voces / entrevista</div><div class="timeline" id="timeline"><div class="empty">Todavía no hay voces. Tocá “Grabar” o arrastrá audio acá.</div></div><div class="fxToolbar"><div class="trackLabel fxLabel">Sonidos / ambientes</div><label class="fxVolLabel">Ambiente <input id="fxVol" type="range" min="0" max="10" step="1" value="5"><span id="fxVolValue" class="fxVolValue">5</span></label><span class="zoomHint" id="zoomHint">Zoom 100% · pellizcá / rueda</span></div><div class="timeline fxTimeline" id="fxTimeline"><div class="empty">Arrastrá acá pájaros, música, ambiente o un MP4: se usa solo el audio y podés ubicarlo exacto.</div></div><div class="innerPlayerLine" id="transportLine"></div><div class="innerPlayerHead" id="transportHead"></div></div>
     <div class="transport">
       <button id="recRoundBtn" class="roundRec" title="Grabar / detener grabación">Grabar</button>
       <button id="playStopRoundBtn" class="roundPlay" title="Reproducir / detener">Play</button>
@@ -215,8 +276,9 @@ window.addEventListener('beforeunload',function(e){
 });
 function fmt(s){s=Math.max(0,Math.round(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 function voiceRawDuration(b){return Math.max(.05,Number(b?.duration||0))}
-function getVoiceTrimStart(b){return Math.max(0,Math.min(voiceRawDuration(b)-.05,Number(b?.trimStart ?? 0)||0))}
-function getVoiceTrimEnd(b){return Math.max(getVoiceTrimStart(b)+.05,Math.min(voiceRawDuration(b),Number(b?.trimEnd ?? b?.duration ?? 0)||voiceRawDuration(b)))}
+function voiceCanTrim(b){return !!(b && b.external)}
+function getVoiceTrimStart(b){if(!voiceCanTrim(b)) return 0; return Math.max(0,Math.min(voiceRawDuration(b)-.05,Number(b?.trimStart ?? 0)||0))}
+function getVoiceTrimEnd(b){if(!voiceCanTrim(b)) return voiceRawDuration(b); return Math.max(getVoiceTrimStart(b)+.05,Math.min(voiceRawDuration(b),Number(b?.trimEnd ?? b?.duration ?? 0)||voiceRawDuration(b)))}
 function voiceClipDuration(b){return Math.max(.05,getVoiceTrimEnd(b)-getVoiceTrimStart(b))}
 function voiceTrimmedFromEnd(b){return Math.max(0, voiceRawDuration(b)-getVoiceTrimEnd(b));}
 function shortTime(s){s=Math.max(0,Number(s)||0); if(s<10)return s.toFixed(s%1?1:0)+'s'; return fmt(s);}
@@ -260,19 +322,27 @@ function updateFxClipVisual(el,b){
   }
   const l=el.querySelector('.fxTrimRead.left');
   const r=el.querySelector('.fxTrimRead.right');
-  if(l) l.textContent='−'+fxShortTime(getFxTrimStart(b));
-  if(r) r.textContent='−'+fxShortTime(fxTrimmedFromEnd(b));
+  const leftTrim=getFxTrimStart(b);
+  const rightTrim=fxTrimmedFromEnd(b);
+  if(l){ l.textContent='−'+fxShortTime(leftTrim); l.classList.toggle('trimHidden', leftTrim<0.05); }
+  if(r){ r.textContent='−'+fxShortTime(rightTrim); r.classList.toggle('trimHidden', rightTrim<0.05); }
 }
 function fxNeighborsFor(b){
   const others=fxBlocks.filter(x=>x!==b).sort((a,c)=>getFxStart(a)-getFxStart(c));
   const start=getFxStart(b), end=fxEnd(b);
-  let prevEnd=0, nextStart=60*60;
+  let prevEnd=0, nextStart=60*60, hasNext=false;
   for(const x of others){
     const xs=getFxStart(x), xe=fxEnd(x);
     if(xe<=start+0.001) prevEnd=Math.max(prevEnd,xe);
-    if(xs>=end-0.001){ nextStart=Math.min(nextStart,xs); break; }
+    if(xs>=end-0.001){ nextStart=Math.min(nextStart,xs); hasNext=true; break; }
   }
-  return {prevEnd,nextStart};
+  return {prevEnd,nextStart,hasNext};
+}
+function fxMoveRightLimitFor(b,neighbors){
+  // V75: si es el último clip de la pista, no debe crear duración virtual al empujarlo
+  // hacia la derecha. Choca contra el final real actual del proyecto.
+  if(neighbors && neighbors.hasNext) return neighbors.nextStart;
+  return Math.max(fxEnd(b), projectDuration());
 }
 function clampFxToNeighbors(b){
   const n=fxNeighborsFor(b);
@@ -296,6 +366,101 @@ function findFreeFxStart(desired,dur){
   }
   return st;
 }
+
+function normalizeFxOrder(){
+  const ordered=[...fxBlocks].sort((a,b)=>getFxStart(a)-getFxStart(b));
+  let cursor=0;
+  for(const item of ordered){
+    if(getFxStart(item)<cursor) item.start=cursor;
+    cursor=fxEnd(item);
+  }
+}
+function voiceToFxBlock(b,index,startTime){
+  if(!b || !b.external) return false;
+  const raw=voiceRawDuration(b);
+  const clipDur=voiceClipDuration(b);
+  const st=findFreeFxStart(startTime==null?voiceAbsoluteStart(index):startTime,clipDur);
+  blocks.splice(index,1);
+  fxBlocks.push({id:crypto.randomUUID(),name:b.name||'Audio externo',start:st,duration:raw,trimStart:getVoiceTrimStart(b),trimEnd:getVoiceTrimEnd(b),color:'#e8ddff',blob:b.blob,type:b.type||'application/octet-stream',filename:b.filename||'',external:true,isSilence:false,pauseAfter:0});
+  normalizeFxOrder();
+  if(startIndex>=blocks.length) startIndex=Math.max(0,blocks.length-1);
+  marcarSinGuardar('Cambios sin guardar: audio externo bajado a Sonidos / ambientes.');
+  renderConScrollQuieto();
+  return true;
+}
+function fxToVoiceBlock(b,insertAt){
+  if(!b || b.isSilence) return false;
+  const idx=fxBlocks.findIndex(x=>x===b || x.id===b.id);
+  if(idx<0) return false;
+  fxBlocks.splice(idx,1);
+  const raw=fxRawDuration(b);
+  const item={id:crypto.randomUUID(),name:b.name||'Audio externo',duration:raw,trimStart:getFxTrimStart(b),trimEnd:getFxTrimEnd(b),color:'#dde8f5',blob:b.blob,type:b.type||'application/octet-stream',filename:b.filename||'',external:true,pauseAfter:DEFAULT_SILENCE};
+  const pos=Math.max(0,Math.min(insertAt==null?blocks.length:insertAt,blocks.length));
+  blocks.splice(pos,0,item);
+  startIndex=pos;
+  normalizeFxOrder();
+  marcarSinGuardar('Cambios sin guardar: sonido subido a Voces / entrevista como audio externo.');
+  renderConScrollQuieto();
+  return true;
+}
+function clientInside(el,clientX,clientY){
+  if(!el) return false;
+  const r=el.getBoundingClientRect();
+  return clientX>=r.left && clientX<=r.right && clientY>=r.top && clientY<=r.bottom;
+}
+let clipDragGhost=null;
+function showClipGhost(text,x,y,kind='voice'){
+  if(!clipDragGhost){
+    clipDragGhost=document.createElement('div');
+    clipDragGhost.className='clipGhost';
+    document.body.appendChild(clipDragGhost);
+  }
+  clipDragGhost.className='clipGhost '+(kind||'');
+  clipDragGhost.textContent=text;
+  clipDragGhost.style.left=x+'px';
+  clipDragGhost.style.top=y+'px';
+}
+function hideClipGhost(){
+  if(clipDragGhost){clipDragGhost.remove(); clipDragGhost=null;}
+  try{timeline?.classList.remove('dropUpTarget')}catch(e){}
+  try{fxTimeline?.classList.remove('drag')}catch(e){}
+}
+function setupVoiceExternalTransfer(el,b,index){
+  if(!b.external) return;
+  let drag=null;
+  el.addEventListener('pointerdown',(ev)=>{
+    if(estaGrabando() || ev.target.closest('button,.voiceHandle')) return;
+    drag={x:ev.clientX,y:ev.clientY,moved:false};
+  },{passive:true});
+  el.addEventListener('pointermove',(ev)=>{
+    if(!drag) return;
+    const dx=Math.abs(ev.clientX-drag.x), dy=Math.abs(ev.clientY-drag.y);
+    if(dx>8 || dy>8) drag.moved=true;
+    if(drag.moved){
+      const overFx=clientInside(fxTimeline,ev.clientX,ev.clientY);
+      fxTimeline?.classList.toggle('drag',overFx);
+      showClipGhost(overFx?'Soltar en Sonidos / ambientes':'Mover audio externo',ev.clientX,ev.clientY,'fx');
+    }
+  },{passive:true});
+  el.addEventListener('pointerup',(ev)=>{
+    if(!drag) return;
+    const moved=drag.moved; const dy=ev.clientY-drag.y; drag=null;
+    hideClipGhost();
+    if(moved && dy>36 && clientInside(fxTimeline,ev.clientX,ev.clientY)){
+      ev.preventDefault(); ev.stopPropagation();
+      voiceToFxBlock(b,index,fxTimeFromPoint(ev.clientX));
+    }
+  },{passive:false});
+  el.addEventListener('pointercancel',()=>{drag=null; hideClipGhost();},{passive:true});
+}
+function swapFxIfDraggedAcross(b,drag,ev){
+  // V76: los clips de sonidos quedan anclados por tiempo absoluto.
+  // Mover uno no empuja ni intercambia los demás; simplemente choca contra
+  // el vecino anterior o siguiente. Esto evita el efecto gato/ratón donde
+  // acomodar el último desacomodaba el resto.
+  return false;
+}
+
 function mainDuration(){return totalDurationWithPauses()+((recordingLive&&blocks.length)?DEFAULT_SILENCE:0)+(recordingLive?Math.max(.2,recordingLiveDuration||.2):0)}
 function projectDuration(){return Math.max(mainDuration(), totalFxDuration(), 1)}
 function baseTimelinePxPerSecond(){
@@ -311,7 +476,7 @@ function timelinePxPerSecond(){
 function clampTimelineZoom(v){return Math.max(TIMELINE_ZOOM_MIN,Math.min(TIMELINE_ZOOM_MAX,Number(v)||1));}
 function updateZoomHint(){
   const z=$('zoomHint');
-  if(z) z.textContent='Zoom '+Math.round(timelineZoom*100)+'% · pellizcá';
+  if(z) z.textContent='Zoom '+Math.round(timelineZoom*100)+'% · pellizcá / rueda';
 }
 function syncTimelineWidth(referenceDuration=0, keepScroll=true){
   const wrapEl=$('wrap');
@@ -319,7 +484,11 @@ function syncTimelineWidth(referenceDuration=0, keepScroll=true){
   const visible=Math.max(260, wrapEl.clientWidth-28);
   const dur=Math.max(1, referenceDuration||0, projectDuration());
   const minByTime=Math.ceil(dur*timelinePxPerSecond());
-  const width=Math.max(visible, minByTime);
+  // El pellizco debe funcionar incluso con uno o dos audios cortos.
+  // Por eso el ancho base también escala con el zoom, no solo cuando
+  // la duración del proyecto ya supera el ancho visible.
+  const minByZoom=Math.ceil(visible*Math.max(1,timelineZoom));
+  const width=Math.max(visible, minByZoom, minByTime);
   const oldScroll=wrapEl.scrollLeft;
   [timeline, fxTimeline].forEach(el=>{ if(el){ el.style.width=width+'px'; el.style.minWidth=width+'px'; }});
   const line=$('transportLine');
@@ -328,10 +497,54 @@ function syncTimelineWidth(referenceDuration=0, keepScroll=true){
   updateZoomHint();
   return width;
 }
+
+function timelineDurationForWidth(width){
+  // Duración efectiva de la zona visible de edición.
+  // V78: se calcula desde el ancho real y la escala px/seg, no solo desde
+  // el último clip. Así un clip movido a la derecha no cambia la escala
+  // de los clips ya ubicados ni los hace correrse.
+  const w=Math.max(80,Number(width)||syncTimelineWidth(projectDuration(),true));
+  return Math.max(1,w/Math.max(.001,timelinePxPerSecond()));
+}
+function currentTimelineDuration(referenceDuration=0){
+  const w=syncTimelineWidth(Math.max(referenceDuration||0,projectDuration()),true);
+  return timelineDurationForWidth(w);
+}
+function timelineInnerWidth(width){return Math.max(80,(Number(width)||syncTimelineWidth(projectDuration(),true))-24);}
+function timelineAnchorLocalX(clientX){
+  const wrapEl=$('wrap');
+  if(!wrapEl) return 0;
+  const r=wrapEl.getBoundingClientRect();
+  const maxLocal=Math.max(0,wrapEl.clientWidth-24);
+  return Math.max(0,Math.min(maxLocal,(clientX-r.left)-12));
+}
+function timelineTimeAtClientX(clientX,width){
+  const wrapEl=$('wrap');
+  if(!wrapEl) return 0;
+  const contentX=Math.max(0,wrapEl.scrollLeft+timelineAnchorLocalX(clientX));
+  const dur=Math.max(1,projectDuration());
+  return (contentX/timelineInnerWidth(width))*dur;
+}
+function timelineSetScrollForTime(anchorLocalX,time,width){
+  const wrapEl=$('wrap');
+  if(!wrapEl) return;
+  const dur=Math.max(1,projectDuration());
+  const wanted=(time/dur)*timelineInnerWidth(width)-anchorLocalX;
+  const oldBehavior=wrapEl.style.scrollBehavior;
+  wrapEl.style.scrollBehavior='auto';
+  const apply=()=>{
+    const max=Math.max(0,wrapEl.scrollWidth-wrapEl.clientWidth);
+    wrapEl.scrollLeft=Math.max(0,Math.min(max,wanted));
+  };
+  apply();
+  requestAnimationFrame(apply);
+  setTimeout(apply,30);
+  setTimeout(()=>{wrapEl.style.scrollBehavior=oldBehavior;},80);
+}
 function offsetWithPauses(untilIndex){let t=0; for(let i=0;i<untilIndex;i++){t+=Math.max(.2,voiceClipDuration(blocks[i])); if(i<blocks.length-1)t+=getPauseAfter(i);} return t;}
 function estaGrabando(){return !!(recordingBusy || recordingLive || (mediaRecorder && mediaRecorder.state==='recording'));}
 function pedirSilencio(i){if(estaGrabando()) return; const actual=getPauseAfter(i); const txt=prompt('¿Cuántos segundos de silencio querés entre estos dos audios?', String(actual)); if(txt===null)return; const val=Number(String(txt).replace(',', '.')); if(!isFinite(val)||val<0){alert('Poné un número válido, por ejemplo 1, 2 o 3.5'); return;} blocks[i].pauseAfter=Math.min(60, val); marcarSinGuardar('Cambios sin guardar: silencio ajustado.'); render();}
-function updateBtns(){const has=(blocks.length>0 || fxBlocks.length>0); const rec=estaGrabando(); document.querySelector('.app')?.classList.toggle('isRecording', rec); playBtn.disabled=rec||!has||playing; wavBtn.disabled=rec||!has; saveBtn.disabled=rec||!has; pauseBtn.disabled=rec||!playing; recBtn.disabled=rec||playing; stopBtn.disabled=!rec; $('loadBtn').disabled=rec; $('addAudioBtn').disabled=rec; $('addFxBtn').disabled=rec; $('addFxSilenceBtn').disabled=rec; playBtn.textContent='▶ Reproducir'; pauseBtn.textContent='⏸ Pausar'; stopBtn.textContent='■ Detener';
+function updateBtns(){const has=(blocks.length>0 || fxBlocks.length>0); const rec=estaGrabando(); document.querySelector('.app')?.classList.toggle('isRecording', rec); playBtn.disabled=rec||!has||playing; wavBtn.disabled=rec||!has; saveBtn.disabled=rec||!has; pauseBtn.disabled=rec||!playing; recBtn.disabled=rec||playing; stopBtn.disabled=!rec; $('loadBtn').disabled=rec; $('addAudioBtn').disabled=rec; $('addFxBtn').disabled=rec; playBtn.textContent='▶ Reproducir'; pauseBtn.textContent='⏸ Pausar'; stopBtn.textContent='■ Detener';
   if(recRoundBtn){recRoundBtn.disabled=playing; recRoundBtn.classList.toggle('recording',rec); recRoundBtn.textContent=rec?'Detener':'Grabar'; recRoundBtn.title=rec?'Detener grabación':'Grabar';}
   if(playStopRoundBtn){playStopRoundBtn.disabled=rec||(!has&&!playing); playStopRoundBtn.textContent=playing?'Stop':'Play'; playStopRoundBtn.title=playing?'Detener reproducción':'Reproducir';}
 }
@@ -362,17 +575,46 @@ function updateVoiceClipVisual(el,b){
   if(surface) surface.style.backgroundPosition=(-getVoiceTrimStart(b)*18).toFixed(1)+'px 0px';
   const l=el.querySelector('.voiceTrimRead.left');
   const r=el.querySelector('.voiceTrimRead.right');
-  if(l) l.textContent='−'+shortTime(getVoiceTrimStart(b));
-  if(r) r.textContent='−'+shortTime(voiceTrimmedFromEnd(b));
+  const leftTrim=getVoiceTrimStart(b);
+  const rightTrim=voiceTrimmedFromEnd(b);
+  if(l){ l.textContent='−'+shortTime(leftTrim); l.classList.toggle('trimHidden', leftTrim<0.05); }
+  if(r){ r.textContent='−'+shortTime(rightTrim); r.classList.toggle('trimHidden', rightTrim<0.05); }
 }
 function startVoiceTrimDrag(ev,b,mode){
   if(estaGrabando()) return;
   ev.preventDefault(); ev.stopPropagation();
-  try{ev.currentTarget.setPointerCapture(ev.pointerId)}catch(e){}
+  const handle=ev.currentTarget;
+  const voiceEl=handle.closest('.block');
+
+  // V71: vuelvo al comportamiento natural de la v69: el globito se achica/agranda
+  // mientras arrastrás la máscara. La diferencia es que NO uso pointerCapture en el
+  // handle, porque al re-renderizar el bloque durante el drag algunos navegadores
+  // dejaban el borde como “pegado” hasta otro clic. El seguimiento queda en document.
   const total=Math.max(.2,totalDurationWithPauses());
   const width=Math.max(120,timeline.clientWidth||($('wrap')?.clientWidth||900));
-  const drag={x:ev.clientX,trimStart:getVoiceTrimStart(b),trimEnd:getVoiceTrimEnd(b),total,width,moved:false};
+  const drag={id:ev.pointerId,x:ev.clientX,trimStart:getVoiceTrimStart(b),trimEnd:getVoiceTrimEnd(b),total,width,moved:false,finished:false};
+  if(voiceEl) voiceEl.classList.add('selected');
+
+  const finish=(e)=>{
+    if(drag.finished) return;
+    if(e && e.pointerId!=null && e.pointerId!==drag.id) return;
+    drag.finished=true;
+    document.removeEventListener('pointermove',move,true);
+    document.removeEventListener('pointerup',finish,true);
+    document.removeEventListener('pointercancel',finish,true);
+    window.removeEventListener('blur',finish,true);
+    if(drag.moved){
+      marcarSinGuardar('Cambios sin guardar: voz/audio recortado.');
+      renderConScrollQuieto();
+    }else{
+      renderConScrollQuieto();
+    }
+  };
+
   const move=(e)=>{
+    if(e.pointerId!=null && e.pointerId!==drag.id) return;
+    e.preventDefault();
+    e.stopPropagation();
     const delta=((e.clientX-drag.x)/drag.width)*drag.total;
     if(Math.abs(e.clientX-drag.x)>2) drag.moved=true;
     if(mode==='left'){
@@ -382,15 +624,11 @@ function startVoiceTrimDrag(ev,b,mode){
     }
     renderConScrollQuieto();
   };
-  const up=()=>{
-    document.removeEventListener('pointermove',move);
-    document.removeEventListener('pointerup',up);
-    document.removeEventListener('pointercancel',up);
-    if(drag.moved){ marcarSinGuardar('Cambios sin guardar: voz/audio recortado.'); renderConScrollQuieto(); }
-  };
-  document.addEventListener('pointermove',move);
-  document.addEventListener('pointerup',up,{once:true});
-  document.addEventListener('pointercancel',up,{once:true});
+
+  document.addEventListener('pointermove',move,{capture:true,passive:false});
+  document.addEventListener('pointerup',finish,{capture:true,passive:false});
+  document.addEventListener('pointercancel',finish,{capture:true,passive:false});
+  window.addEventListener('blur',finish,{capture:true});
 }
 function renderConScrollQuieto(){
   const wrapEl=$('wrap');
@@ -440,16 +678,22 @@ function render(){
     return '0 0 '+Math.min(maxLive, Math.max(72, dur*pxPerSec)).toFixed(1)+'px';
   };
   blocks.forEach((b,i)=>{
-    const el=document.createElement('div'); el.className='block voiceEditable'+(b.external?' external':'')+(i===startIndex?' selected':''); el.draggable=true; el.style.background=b.color; el.style.flex=flexAudio(Math.max(.2,voiceClipDuration(b)), totalDur, gapTotal/Math.max(1,blocks.length*2-1)); el.dataset.id=b.id;
-    el.innerHTML=`<div class="voiceStripeSurface"></div><span class="voiceHandle left" title="Recortar inicio"></span><span class="voiceHandle right" title="Recortar final"></span><button class="del" title="Borrar">×</button><div class="name">${i+1}</div><div class="dur">${fmt(voiceClipDuration(b))}</div><span class="voiceTrimRead left"></span><span class="voiceTrimRead right"></span>`;
-    updateVoiceClipVisual(el,b);
-    el.querySelector('.voiceHandle.left')?.addEventListener('pointerdown',ev=>startVoiceTrimDrag(ev,b,'left'),{passive:false});
-    el.querySelector('.voiceHandle.right')?.addEventListener('pointerdown',ev=>startVoiceTrimDrag(ev,b,'right'),{passive:false});
-    el.querySelectorAll('.voiceHandle').forEach(h=>{
-      h.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();});
-      h.addEventListener('touchend',ev=>{ev.preventDefault();ev.stopPropagation();},{passive:false});
-      h.addEventListener('pointerup',ev=>{ev.stopPropagation();});
-    });
+    const el=document.createElement('div'); el.className='block'+(b.external?' external voiceImportedEditable':'')+(i===startIndex?' selected':''); el.draggable=true; el.style.background=b.color; el.style.flex=flexAudio(Math.max(.2,voiceClipDuration(b)), totalDur, gapTotal/Math.max(1,blocks.length*2-1)); el.dataset.id=b.id;
+    if(b.external){
+      el.innerHTML=`<div class="voiceStripeSurface"></div><span class="voiceHandle left" title="Recortar inicio"></span><span class="voiceHandle right" title="Recortar final"></span><button class="del" title="Borrar">×</button><div class="name">${escapeHtml(b.name||('Audio '+(i+1)))}</div><div class="dur">${fmt(voiceClipDuration(b))}</div><span class="voiceTrimRead left"></span><span class="voiceTrimRead right"></span>`;
+      updateVoiceClipVisual(el,b);
+      el.querySelector('.voiceHandle.left')?.addEventListener('pointerdown',ev=>startVoiceTrimDrag(ev,b,'left'),{passive:false});
+      el.querySelector('.voiceHandle.right')?.addEventListener('pointerdown',ev=>startVoiceTrimDrag(ev,b,'right'),{passive:false});
+      el.querySelectorAll('.voiceHandle').forEach(h=>{
+        h.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();});
+        h.addEventListener('touchend',ev=>{ev.preventDefault();ev.stopPropagation();},{passive:false});
+        h.addEventListener('pointerup',ev=>{ev.stopPropagation();});
+        h.addEventListener('dragstart',ev=>{ev.preventDefault();ev.stopPropagation();});
+      });
+      setupVoiceExternalTransfer(el,b,i);
+    }else{
+      el.innerHTML=`<button class="del" title="Borrar">×</button><div class="name">${i+1}</div><div class="dur">${fmt(voiceClipDuration(b))}</div>`;
+    }
     const delBtn=el.querySelector('.del');
     delBtn.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Estás seguro de que querés borrar este bloque?')) return; blocks=blocks.filter(x=>x.id!==b.id); if(startIndex>=blocks.length)startIndex=Math.max(0,blocks.length-1); marcarSinGuardar('Cambios sin guardar: bloque borrado.'); render();};
     delBtn.addEventListener('touchend',(ev)=>{ev.stopPropagation();},{passive:false});
@@ -477,9 +721,9 @@ function render(){
       }
     },{passive:false});
 
-    el.ondragstart=e=>{ if(estaGrabando()){e.preventDefault(); return;} e.dataTransfer.setData('text/plain',b.id); };
+    el.ondragstart=e=>{ if(estaGrabando()){e.preventDefault(); return;} e.dataTransfer.setData('text/plain',b.id); e.dataTransfer.setData('application/x-podcast-clip',JSON.stringify({track:'voice',id:b.id,index:i,external:!!b.external})); };
     el.ondragover=e=>e.preventDefault();
-    el.ondrop=e=>{e.preventDefault(); if(estaGrabando()) return; const from=e.dataTransfer.getData('text/plain'), to=b.id; if(from===to)return; const a=blocks.findIndex(x=>x.id===from), c=blocks.findIndex(x=>x.id===to); const [m]=blocks.splice(a,1); blocks.splice(c,0,m); marcarSinGuardar('Cambios sin guardar: orden modificado.'); render();};
+    el.ondrop=e=>{e.preventDefault(); if(estaGrabando()) return; let payload=null; try{payload=JSON.parse(e.dataTransfer.getData('application/x-podcast-clip')||'null')}catch(err){} if(payload&&payload.track==='fx'){const fx=fxBlocks.find(x=>x.id===payload.id); if(fx){fxToVoiceBlock(fx,i); return;}} const from=e.dataTransfer.getData('text/plain'), to=b.id; if(from===to)return; const a=blocks.findIndex(x=>x.id===from), c=blocks.findIndex(x=>x.id===to); if(a<0||c<0)return; const [m]=blocks.splice(a,1); blocks.splice(c,0,m); marcarSinGuardar('Cambios sin guardar: orden modificado.'); render();};
     timeline.appendChild(el);
     if(i<blocks.length-1){
       const p=getPauseAfter(i);
@@ -550,14 +794,15 @@ function addFxSilence(){
 }
 function fxTimeFromPoint(clientX){
   const r=fxTimeline.getBoundingClientRect();
-  const total=projectDuration();
+  const total=timelineDurationForWidth(r.width || syncTimelineWidth(projectDuration(),true));
   const x=Math.max(0, Math.min(r.width, clientX-r.left));
   return Math.max(0, (x/Math.max(1,r.width))*total);
 }
 function renderFxTimeline(referenceDuration=0){
   if(!fxTimeline) return;
-  const total=Math.max(referenceDuration||0,totalFxDuration(),totalDurationWithPauses(),1);
-  syncTimelineWidth(total);
+  const baseTotal=Math.max(referenceDuration||0,totalFxDuration(),totalDurationWithPauses(),1);
+  const widthNow=syncTimelineWidth(baseTotal);
+  const total=timelineDurationForWidth(widthNow);
   fxTimeline.innerHTML='';
   if(!fxBlocks.length){
     fxTimeline.innerHTML='<div class="empty">Arrastrá acá pájaros, música, ambiente o un MP4: se usa solo el audio y podés ubicarlo exacto.</div>';
@@ -578,7 +823,7 @@ function renderFxTimeline(referenceDuration=0){
     el.style.width='calc('+Math.max(.8,width).toFixed(4)+'% - 4px)';
     el.dataset.id=b.id;
     el.title=(b.isSilence?'Silencio visual':(b.name||('Sonido '+(i+1))))+' · centro: mover · bordes: recortar';
-    el.innerHTML=`<span class="fxStripeSurface"></span><span class="fxHandle left" title="Recortar comienzo"></span><span class="fxHandle right" title="Recortar final"></span><span class="fxTrimRead left">−0s</span><span class="fxTrimRead right">−0s</span><button class="del" title="Borrar">×</button><div class="name"></div><div class="dur"></div><div class="fxStart"></div>`;
+    el.innerHTML=`<span class="fxStripeSurface"></span><span class="fxHandle left" title="Recortar comienzo"></span><span class="fxHandle right" title="Recortar final"></span><span class="fxTrimRead left">−0s</span><span class="fxTrimRead right">−0s</span><button class="del" title="Borrar">×</button><div class="name">${escapeHtml(b.name||('Sonido '+(i+1)))}</div><div class="dur"></div><div class="fxStart"></div>`;
     updateFxClipVisual(el,b);
     const delBtn=el.querySelector('.del');
     delBtn.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Borrar este bloque de sonidos?')) return; fxBlocks=fxBlocks.filter(x=>x.id!==b.id); marcarSinGuardar('Cambios sin guardar: sonido borrado.'); render();};
@@ -591,7 +836,9 @@ function renderFxTimeline(referenceDuration=0){
       el.setPointerCapture(ev.pointerId);
       const mode=ev.target.classList.contains('left')?'trimLeft':(ev.target.classList.contains('right')?'trimRight':'move');
       const nb=fxNeighborsFor(b);
-      drag={x:ev.clientX,start:getFxStart(b),end:fxEnd(b),trimStart:getFxTrimStart(b),trimEnd:getFxTrimEnd(b),mode,moved:false,prevEnd:nb.prevEnd,nextStart:nb.nextStart,total:Math.max(projectDuration(),fxEnd(b),1)};
+      const projectTotalAtStart=Math.max(timelineDurationForWidth(fxTimeline.getBoundingClientRect().width),fxEnd(b),1);
+      const moveNextLimit=nb.hasNext ? nb.nextStart : projectTotalAtStart;
+      drag={x:ev.clientX,start:getFxStart(b),end:fxEnd(b),trimStart:getFxTrimStart(b),trimEnd:getFxTrimEnd(b),mode,moved:false,prevEnd:nb.prevEnd,nextStart:nb.nextStart,moveNextStart:moveNextLimit,total:projectTotalAtStart};
     },{passive:false});
     el.addEventListener('pointermove',(ev)=>{
       if(!drag) return;
@@ -600,7 +847,7 @@ function renderFxTimeline(referenceDuration=0){
       const delta=((ev.clientX-drag.x)/Math.max(1,r.width))*totalNow;
       if(drag.mode==='move'){
         const dur=drag.trimEnd-drag.trimStart;
-        b.start=Math.max(drag.prevEnd,Math.min(drag.nextStart-dur,drag.start+delta));
+        b.start=Math.max(drag.prevEnd,Math.min(drag.moveNextStart-dur,drag.start+delta));
       }else if(drag.mode==='trimLeft'){
         const wantedTrim=Math.max(0,Math.min(drag.trimEnd-.05,drag.trimStart+delta));
         const minTrimByPrev=Math.max(0,drag.trimStart+(drag.prevEnd-drag.start));
@@ -614,6 +861,11 @@ function renderFxTimeline(referenceDuration=0){
         b.trimEnd=Math.max(drag.trimStart+.05,Math.min(wantedEnd,maxTrimEndByNext,raw));
       }
       drag.moved=true;
+      if(drag.mode==='move'){
+        const overVoice=clientInside(timeline,ev.clientX,ev.clientY);
+        timeline?.classList.toggle('dropUpTarget',overVoice);
+        showClipGhost(overVoice?'Soltar en Voces / entrevista':'Mover sonido',ev.clientX,ev.clientY,overVoice?'voice':'fx');
+      }
       const denom=drag.total;
       el.style.left=((getFxStart(b)/denom)*100).toFixed(4)+'%';
       el.style.width='calc('+Math.max(.8,(fxClipDuration(b)/denom)*100).toFixed(4)+'% - 4px)';
@@ -623,9 +875,20 @@ function renderFxTimeline(referenceDuration=0){
     el.addEventListener('pointerup',(ev)=>{
       if(!drag) return;
       try{el.releasePointerCapture(ev.pointerId)}catch(e){}
-      const moved=drag.moved; const mode=drag.mode; drag=null;
+      hideClipGhost();
+      const moved=drag.moved; const mode=drag.mode;
+      if(moved && mode==='move' && clientInside(timeline,ev.clientX,ev.clientY)){
+        const insertAt=insertionIndexFromPoint(ev.clientX);
+        drag=null;
+        fxToVoiceBlock(b,insertAt);
+        return;
+      }
+      // V76: no reordenamos ni empujamos clips vecinos al soltar.
+      // Cada sonido conserva su lugar; el clip movido queda limitado por los topes.
+      drag=null;
       if(moved){ marcarSinGuardar(mode==='move'?'Cambios sin guardar: sonido reubicado en '+fmt(getFxStart(b))+'.':'Cambios sin guardar: sonido recortado.'); render(); }
     },{passive:false});
+    el.addEventListener('pointercancel',()=>{drag=null; hideClipGhost();},{passive:true});
     fxTimeline.appendChild(el);
   });
 }
@@ -1097,7 +1360,14 @@ $('addAudioBtn').onclick=()=>{ if(estaGrabando()) return; $('audioFile').click()
 $('audioFile').onchange=e=>{ if(e.target.files.length) addExternalFiles([...e.target.files], blocks.length); e.target.value=''; };
 $('addFxBtn').onclick=()=>{ if(estaGrabando()) return; $('fxAudioFile').click(); };
 $('fxAudioFile').onchange=e=>{ if(e.target.files.length) addFxFiles([...e.target.files], totalFxDuration()); e.target.value=''; };
-$('addFxSilenceBtn').onclick=addFxSilence;
+if(fxTimeline){
+  fxTimeline.addEventListener('dragover',e=>{ if(estaGrabando()) return; const hasClip=e.dataTransfer&&[...e.dataTransfer.types].includes('application/x-podcast-clip'); if(hasClip){e.preventDefault(); fxTimeline.classList.add('drag');} });
+  fxTimeline.addEventListener('dragleave',()=>fxTimeline.classList.remove('drag'));
+  fxTimeline.addEventListener('drop',e=>{ let payload=null; try{payload=JSON.parse(e.dataTransfer.getData('application/x-podcast-clip')||'null')}catch(err){} if(payload&&payload.track==='voice') { e.preventDefault(); fxTimeline.classList.remove('drag'); const b=blocks.find(x=>x.id===payload.id); const idx=blocks.findIndex(x=>x.id===payload.id); if(b&&b.external) voiceToFxBlock(b,idx,fxTimeFromPoint(e.clientX)); } });
+}
+timeline.addEventListener('dragover',e=>{ let payload=null; try{payload=JSON.parse(e.dataTransfer.getData('application/x-podcast-clip')||'null')}catch(err){} if(payload&&payload.track==='fx'){e.preventDefault();} });
+timeline.addEventListener('drop',e=>{ let payload=null; try{payload=JSON.parse(e.dataTransfer.getData('application/x-podcast-clip')||'null')}catch(err){} if(payload&&payload.track==='fx'){ e.preventDefault(); const b=fxBlocks.find(x=>x.id===payload.id); if(b) fxToVoiceBlock(b,insertionIndexFromPoint(e.clientX)); } });
+
 function mediaDuration(file){
   return new Promise(res=>{
     const isVideo=(file.type||'').startsWith('video/');
@@ -1110,14 +1380,14 @@ function mediaDuration(file){
 }
 async function addExternalFiles(files, insertAt=blocks.length){
   if(estaGrabando()) return;
-  const usable=files.filter(f=>(f.type||'').startsWith('audio/') || (f.type||'').startsWith('video/'));
+  const usable=files.filter(f=>(f.type||'').startsWith('audio/') || (f.type||'').startsWith('video/') || /\.(mp3|wav|m4a|aac|ogg|webm|mp4|mov|m4v)$/i.test(f.name||''));
   if(!usable.length){status.textContent='Ese archivo no parece audio/video. Probá con MP3, WAV, M4A, WEBM o un video con audio.'; return;}
   status.textContent='Agregando audio externo...';
   let idx=Math.max(0,Math.min(insertAt,blocks.length));
   for(const f of usable){
     const dur=await mediaDuration(f);
     const extColor='#dde8f5';
-    const item={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),duration:dur,trimStart:0,trimEnd:dur,color:extColor,blob:f,type:f.type||'application/octet-stream',filename:f.name,external:true,pauseAfter:DEFAULT_SILENCE};
+    const item={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),duration:dur,trimStart:0,trimEnd:dur,color:extColor,blob:f,type:f.type||guessMimeFromName(f.name),filename:f.name,external:true,pauseAfter:DEFAULT_SILENCE};
     blocks.splice(idx,0,item); idx++;
   }
   startIndex=Math.max(0,idx-1); marcarSinGuardar('Cambios sin guardar: audio externo insertado.'); render();
@@ -1136,7 +1406,7 @@ function initTimelinePan(){
   if(!wrapEl || wrapEl.dataset.panReady) return;
   wrapEl.dataset.panReady='1';
   let pan=null;
-  const interactiveSelector='.block,.silenceBlock,button,input,label,.fxHandle,.del,.controls,.transport';
+  const interactiveSelector='.block,.silenceBlock,button,input,label,.fxHandle,.voiceHandle,.del,.controls,.transport';
 
   wrapEl.addEventListener('pointerdown',(ev)=>{
     if(estaGrabando()) return;
@@ -1188,26 +1458,19 @@ function initTimelinePinchZoom(){
   let pinch=null;
   const dist=(a,b)=>Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
   const center=(a,b)=>({x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2});
-  function timeAtClientX(clientX,width){
-    const r=wrapEl.getBoundingClientRect();
-    const contentX=Math.max(0, wrapEl.scrollLeft + (clientX-r.left) - 12);
-    const dur=Math.max(1,projectDuration());
-    return (contentX/Math.max(1,width))*dur;
-  }
-  function setScrollForTime(clientX,time,width){
-    const r=wrapEl.getBoundingClientRect();
-    const dur=Math.max(1,projectDuration());
-    const local=(clientX-r.left)-12;
-    const wanted=(time/dur)*Math.max(1,width)-local;
-    const max=Math.max(0,wrapEl.scrollWidth-wrapEl.clientWidth);
-    wrapEl.scrollLeft=Math.max(0,Math.min(max,wanted));
-  }
   wrapEl.addEventListener('touchstart',(ev)=>{
     if(estaGrabando()) return;
     if(ev.touches.length===2){
+      ev.preventDefault();
+      ev.stopPropagation();
       const c=center(ev.touches[0],ev.touches[1]);
       const oldWidth=syncTimelineWidth(projectDuration(),true);
-      pinch={d:dist(ev.touches[0],ev.touches[1]),z:timelineZoom,cx:c.x,time:timeAtClientX(c.x,oldWidth)};
+      pinch={
+        d:dist(ev.touches[0],ev.touches[1]),
+        z:timelineZoom,
+        localX:timelineAnchorLocalX(c.x),
+        time:timelineTimeAtClientX(c.x,oldWidth)
+      };
       wrapEl.classList.add('panning');
     }
   },{passive:false,capture:true});
@@ -1215,11 +1478,14 @@ function initTimelinePinchZoom(){
     if(!pinch || ev.touches.length!==2) return;
     ev.preventDefault();
     ev.stopPropagation();
-    const c=center(ev.touches[0],ev.touches[1]);
     const ratio=dist(ev.touches[0],ev.touches[1])/Math.max(20,pinch.d);
-    timelineZoom=clampTimelineZoom(pinch.z*ratio);
+    const next=clampTimelineZoom(pinch.z*ratio);
+    if(Math.abs(next-timelineZoom)<0.001) return;
+    timelineZoom=next;
     const newWidth=syncTimelineWidth(projectDuration(),false);
-    setScrollForTime(c.x,pinch.time,newWidth);
+    // V66: el centro del pellizco queda clavado en el mismo segundo.
+    // No se recalcula desde el borde izquierdo, así evitamos el golpeteo en iPad.
+    timelineSetScrollForTime(pinch.localX,pinch.time,newWidth);
   },{passive:false,capture:true});
   function end(ev){
     if(ev.touches && ev.touches.length>=2) return;
@@ -1233,8 +1499,31 @@ function initTimelinePinchZoom(){
   wrapEl.addEventListener('touchcancel',end,{passive:true,capture:true});
 }
 
+function initTimelineWheelZoom(){
+  const wrapEl=$('wrap');
+  if(!wrapEl || wrapEl.dataset.wheelZoomReady) return;
+  wrapEl.dataset.wheelZoomReady='1';
+  wrapEl.addEventListener('wheel',(ev)=>{
+    if(estaGrabando()) return;
+    // Ruedita = zoom de tiempo, anclado exactamente debajo del cursor.
+    ev.preventDefault();
+    ev.stopPropagation();
+    const oldWidth=syncTimelineWidth(projectDuration(),true);
+    const anchorLocalX=timelineAnchorLocalX(ev.clientX);
+    const anchorTime=timelineTimeAtClientX(ev.clientX,oldWidth);
+    const factor=Math.exp((-ev.deltaY)*0.0017);
+    const next=clampTimelineZoom(timelineZoom*factor);
+    if(Math.abs(next-timelineZoom)<0.001) return;
+    timelineZoom=next;
+    const newWidth=syncTimelineWidth(projectDuration(),false);
+    timelineSetScrollForTime(anchorLocalX,anchorTime,newWidth);
+    status.textContent='Zoom de línea: '+Math.round(timelineZoom*100)+'%. Ruedita para ampliar o achicar.';
+  },{passive:false});
+}
+
 initTimelinePan();
 initTimelinePinchZoom();
+initTimelineWheelZoom();
 window.addEventListener('resize',()=>syncTimelineWidth(projectDuration()));
 $('wrap').addEventListener('dragover',e=>{ if(e.dataTransfer && e.dataTransfer.types && [...e.dataTransfer.types].includes('Files')){e.preventDefault(); $('wrap').classList.add('drag');} });
 $('wrap').addEventListener('drop',e=>{
