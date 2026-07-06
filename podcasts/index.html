@@ -111,6 +111,7 @@
   .fxTrimRead{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;font-weight:950;color:rgba(62,45,92,.68);background:rgba(255,255,255,.58);border:1px solid rgba(105,79,155,.12);border-radius:999px;padding:2px 6px;line-height:1;z-index:5;pointer-events:none;max-width:46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .fxTrimRead.left{left:32px}.fxTrimRead.right{right:32px}
   .trimHidden{display:none!important}
+  .fxNoTrim .fxHandle,.fxNoTrim .fxTrimRead{display:none!important}
 
   .voiceImportedEditable{border-style:dashed!important;background:linear-gradient(135deg,#e2ecf7,#d4e2f2)!important;padding:30px 8px 28px;}
   .voiceImportedEditable .voiceStripeSurface{position:absolute;inset:0;border-radius:24px;pointer-events:none;z-index:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.52) 0 10px,rgba(255,255,255,.14) 10px 20px);background-size:28px 28px;}
@@ -242,6 +243,7 @@ let suprimirClickRecRoundHasta=0;
 let ultimoToqueBloque={id:null,t:0};
 let hayCambiosSinGuardar=false;
 let timelineZoom=1;
+let fxTrackDuration=0; // duración estable de trabajo de la pista de sonidos; no se agranda mientras arrastrás
 const TIMELINE_ZOOM_MIN=.75;
 const TIMELINE_ZOOM_MAX=4;
 const DEFAULT_SILENCE=2;
@@ -287,11 +289,23 @@ function totalDurationWithPauses(list=blocks){return list.reduce((a,b,i)=>a+Math
 function getFxPauseAfter(i){return Math.max(0, Number(fxBlocks[i]?.pauseAfter ?? 0) || 0)}
 function getFxStart(b){return Math.max(0, Number(b?.start ?? 0) || 0)}
 function fxRawDuration(b){return Math.max(.05,Number(b?.duration||0))}
-function getFxTrimStart(b){return Math.max(0,Math.min(fxRawDuration(b)-.05,Number(b?.trimStart ?? 0)||0))}
-function getFxTrimEnd(b){return Math.max(getFxTrimStart(b)+.05,Math.min(fxRawDuration(b),Number(b?.trimEnd ?? b?.duration ?? 0)||fxRawDuration(b)))}
-function fxClipDuration(b){return Math.max(.05,getFxTrimEnd(b)-getFxTrimStart(b))}
+function getFxTrimStart(b){return 0}
+function getFxTrimEnd(b){return fxRawDuration(b)}
+function fxClipDuration(b){return fxRawDuration(b)}
 function fxEnd(b){return getFxStart(b)+fxClipDuration(b)}
 function totalFxDuration(list=fxBlocks){return list.reduce((a,b)=>Math.max(a,fxEnd(b)),0)}
+function ensureFxTrackDuration(min=0){
+  // La pista de sonidos usa una duración estable.
+  // Antes, al arrastrar el último clip hacia la derecha, totalFxDuration() crecía
+  // y obligaba a recalcular el ancho/escala; eso hacía que los otros clips parecieran correrse.
+  // Ahora la duración de trabajo solo se amplía al agregar/cargar clips o cuando la voz principal es más larga.
+  fxTrackDuration=Math.max(fxTrackDuration, Number(min)||0, mainDuration ? mainDuration() : 0, totalFxDuration(), 1);
+  return fxTrackDuration;
+}
+function resetFxTrackDuration(){
+  fxTrackDuration=Math.max(mainDuration ? mainDuration() : 0, totalFxDuration(), 1);
+  return fxTrackDuration;
+}
 function applyFxFade(gain, startTime, dur, value){
   const fade=Math.min(1, Math.max(.03,dur/2));
   try{
@@ -300,6 +314,46 @@ function applyFxFade(gain, startTime, dur, value){
     gain.gain.linearRampToValueAtTime(value,startTime+fade);
     gain.gain.setValueAtTime(value,Math.max(startTime+fade,startTime+dur-fade));
     gain.gain.linearRampToValueAtTime(0,startTime+dur);
+  }catch(e){gain.gain.value=value;}
+}
+function applyVoiceFade(gain, startTime, dur, value){
+  const fade=Math.min(0.5, Math.max(.03,dur/2));
+  try{
+    gain.gain.cancelScheduledValues(startTime);
+    gain.gain.setValueAtTime(0,startTime);
+    gain.gain.linearRampToValueAtTime(value,startTime+fade);
+    gain.gain.setValueAtTime(value,Math.max(startTime+fade,startTime+dur-fade));
+    gain.gain.linearRampToValueAtTime(0,startTime+dur);
+  }catch(e){gain.gain.value=value;}
+}
+function voiceEnvelopeAt(absTime, clipStart, clipDur, value){
+  const fade=Math.min(0.5, Math.max(.03,clipDur/2));
+  const local=absTime-clipStart;
+  if(local<=0 || local>=clipDur) return 0;
+  if(local<fade) return value*(local/fade);
+  if(local>clipDur-fade) return value*((clipDur-local)/fade);
+  return value;
+}
+function scheduleVoiceFadeFrom(gain, contextStart, clipAbsStart, clipDur, fromTime, value){
+  const fade=Math.min(0.5, Math.max(.03,clipDur/2));
+  const clipAbsEnd=clipAbsStart+clipDur;
+  const nowAbs=Math.max(fromTime, clipAbsStart);
+  const startCtx=contextStart+Math.max(0,clipAbsStart-fromTime);
+  try{
+    gain.gain.cancelScheduledValues(startCtx);
+    if(fromTime<=clipAbsStart){
+      gain.gain.setValueAtTime(0,startCtx);
+      gain.gain.linearRampToValueAtTime(value,startCtx+fade);
+      gain.gain.setValueAtTime(value,Math.max(startCtx+fade,startCtx+clipDur-fade));
+      gain.gain.linearRampToValueAtTime(0,startCtx+clipDur);
+      return;
+    }
+    gain.gain.setValueAtTime(voiceEnvelopeAt(nowAbs,clipAbsStart,clipDur,value), contextStart);
+    const fadeInEnd=clipAbsStart+fade;
+    const fadeOutStart=clipAbsEnd-fade;
+    if(fromTime<fadeInEnd){ gain.gain.linearRampToValueAtTime(value, contextStart+(fadeInEnd-fromTime)); }
+    if(fromTime<fadeOutStart){ gain.gain.setValueAtTime(value, contextStart+(fadeOutStart-fromTime)); }
+    gain.gain.linearRampToValueAtTime(0, contextStart+(clipAbsEnd-fromTime));
   }catch(e){gain.gain.value=value;}
 }
 function getFxVolume(){return Math.max(0,Math.min(10,Number(fxVol?.value ?? 5)||0))/10}
@@ -315,17 +369,9 @@ function fxShortTime(s){
 function updateFxClipVisual(el,b){
   const surface=el.querySelector('.fxStripeSurface');
   if(surface){
-    // Las diagonales quedan ancladas al audio original, pero no se dibuja
-    // nada por fuera del clip visible. Al recortar el inicio, el patrón
-    // avanza y da la sensación de que realmente se está comiendo material.
-    surface.style.backgroundPosition=(-getFxTrimStart(b)*18).toFixed(1)+'px 0px';
+    // Sonidos de abajo simplificados: el patrón queda estable y el clip se mueve entero.
+    surface.style.backgroundPosition='0px 0px';
   }
-  const l=el.querySelector('.fxTrimRead.left');
-  const r=el.querySelector('.fxTrimRead.right');
-  const leftTrim=getFxTrimStart(b);
-  const rightTrim=fxTrimmedFromEnd(b);
-  if(l){ l.textContent='−'+fxShortTime(leftTrim); l.classList.toggle('trimHidden', leftTrim<0.05); }
-  if(r){ r.textContent='−'+fxShortTime(rightTrim); r.classList.toggle('trimHidden', rightTrim<0.05); }
 }
 function fxNeighborsFor(b){
   const others=fxBlocks.filter(x=>x!==b).sort((a,c)=>getFxStart(a)-getFxStart(c));
@@ -382,7 +428,7 @@ function voiceToFxBlock(b,index,startTime){
   const st=findFreeFxStart(startTime==null?voiceAbsoluteStart(index):startTime,clipDur);
   blocks.splice(index,1);
   fxBlocks.push({id:crypto.randomUUID(),name:b.name||'Audio externo',start:st,duration:raw,trimStart:getVoiceTrimStart(b),trimEnd:getVoiceTrimEnd(b),color:'#e8ddff',blob:b.blob,type:b.type||'application/octet-stream',filename:b.filename||'',external:true,isSilence:false,pauseAfter:0});
-  normalizeFxOrder();
+  ensureFxTrackDuration(st+raw);
   if(startIndex>=blocks.length) startIndex=Math.max(0,blocks.length-1);
   marcarSinGuardar('Cambios sin guardar: audio externo bajado a Sonidos / ambientes.');
   renderConScrollQuieto();
@@ -398,7 +444,7 @@ function fxToVoiceBlock(b,insertAt){
   const pos=Math.max(0,Math.min(insertAt==null?blocks.length:insertAt,blocks.length));
   blocks.splice(pos,0,item);
   startIndex=pos;
-  normalizeFxOrder();
+  resetFxTrackDuration();
   marcarSinGuardar('Cambios sin guardar: sonido subido a Voces / entrevista como audio externo.');
   renderConScrollQuieto();
   return true;
@@ -462,7 +508,7 @@ function swapFxIfDraggedAcross(b,drag,ev){
 }
 
 function mainDuration(){return totalDurationWithPauses()+((recordingLive&&blocks.length)?DEFAULT_SILENCE:0)+(recordingLive?Math.max(.2,recordingLiveDuration||.2):0)}
-function projectDuration(){return Math.max(mainDuration(), totalFxDuration(), 1)}
+function projectDuration(){return Math.max(mainDuration(), totalFxDuration(), fxTrackDuration, 1)}
 function baseTimelinePxPerSecond(){
   // En pantallas chicas el scroll lateral tiene que aparecer antes,
   // para que con 2 o 3 globitos todavía haya buen espacio para editar.
@@ -789,20 +835,21 @@ function addFxSilence(){
   if(!isFinite(val)||val<=0){alert('Poné un tiempo válido mayor que cero.'); return;}
   const currentEnd=totalFxDuration();
   fxBlocks.push({id:crypto.randomUUID(),name:'Silencio',start:currentEnd,duration:Math.min(3600,val),color:'#f2f0f7',blob:null,type:'silence',filename:'',external:false,isSilence:true,pauseAfter:0});
+  ensureFxTrackDuration(currentEnd+Math.min(3600,val));
   marcarSinGuardar('Cambios sin guardar: silencio visual agregado a sonidos.');
   render();
 }
 function fxTimeFromPoint(clientX){
   const r=fxTimeline.getBoundingClientRect();
-  const total=timelineDurationForWidth(r.width || syncTimelineWidth(projectDuration(),true));
+  const total=ensureFxTrackDuration();
   const x=Math.max(0, Math.min(r.width, clientX-r.left));
-  return Math.max(0, (x/Math.max(1,r.width))*total);
+  return Math.max(0, Math.min(total, (x/Math.max(1,r.width))*total));
 }
 function renderFxTimeline(referenceDuration=0){
   if(!fxTimeline) return;
-  const baseTotal=Math.max(referenceDuration||0,totalFxDuration(),totalDurationWithPauses(),1);
+  const baseTotal=ensureFxTrackDuration(Math.max(referenceDuration||0,totalDurationWithPauses(),totalFxDuration(),1));
   const widthNow=syncTimelineWidth(baseTotal);
-  const total=timelineDurationForWidth(widthNow);
+  const total=baseTotal;
   fxTimeline.innerHTML='';
   if(!fxBlocks.length){
     fxTimeline.innerHTML='<div class="empty">Arrastrá acá pájaros, música, ambiente o un MP4: se usa solo el audio y podés ubicarlo exacto.</div>';
@@ -814,7 +861,7 @@ function renderFxTimeline(referenceDuration=0){
     const raw=fxRawDuration(b);
     if(b.trimStart==null) b.trimStart=0;
     if(b.trimEnd==null) b.trimEnd=raw;
-    el.className='block external'+(b.isSilence?' fxBlockSilence':'')+(isVideo&&!b.isSilence?' fxBlockVideo':'');
+    el.className='block external fxNoTrim'+(b.isSilence?' fxBlockSilence':'')+(isVideo&&!b.isSilence?' fxBlockVideo':'');
     el.draggable=false;
     el.style.background=b.color||'#e8ddff';
     const left=(getFxStart(b)/total)*100;
@@ -822,71 +869,54 @@ function renderFxTimeline(referenceDuration=0){
     el.style.left=Math.max(0,Math.min(99,left)).toFixed(4)+'%';
     el.style.width='calc('+Math.max(.8,width).toFixed(4)+'% - 4px)';
     el.dataset.id=b.id;
-    el.title=(b.isSilence?'Silencio visual':(b.name||('Sonido '+(i+1))))+' · centro: mover · bordes: recortar';
-    el.innerHTML=`<span class="fxStripeSurface"></span><span class="fxHandle left" title="Recortar comienzo"></span><span class="fxHandle right" title="Recortar final"></span><span class="fxTrimRead left">−0s</span><span class="fxTrimRead right">−0s</span><button class="del" title="Borrar">×</button><div class="name">${escapeHtml(b.name||('Sonido '+(i+1)))}</div><div class="dur"></div><div class="fxStart"></div>`;
+    el.title=(b.isSilence?'Silencio visual':(b.name||('Sonido '+(i+1))))+' · arrastrar: mover';
+    el.innerHTML=`<span class="fxStripeSurface"></span><button class="del" title="Borrar">×</button><div class="name">${escapeHtml(b.name||('Sonido '+(i+1)))}</div><div class="dur"></div><div class="fxStart"></div>`;
     updateFxClipVisual(el,b);
     const delBtn=el.querySelector('.del');
-    delBtn.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Borrar este bloque de sonidos?')) return; fxBlocks=fxBlocks.filter(x=>x.id!==b.id); marcarSinGuardar('Cambios sin guardar: sonido borrado.'); render();};
-    el.onclick=(ev)=>{ev.preventDefault(); status.textContent=(b.isSilence?'Silencio visual':'Sonido')+' desde '+fmt(getFxStart(b))+'. Centro: mover. Bordes: recortar inicio o final. Doble toque: escuchar.';};
+    delBtn.onclick=(ev)=>{ev.stopPropagation(); if(estaGrabando()) return; if(!confirm('¿Borrar este bloque de sonidos?')) return; fxBlocks=fxBlocks.filter(x=>x.id!==b.id); resetFxTrackDuration(); marcarSinGuardar('Cambios sin guardar: sonido borrado.'); render();};
+    el.onclick=(ev)=>{ev.preventDefault(); status.textContent=(b.isSilence?'Silencio visual':'Sonido')+' desde '+fmt(getFxStart(b))+'. Arrastrá el bloque para moverlo. Doble toque: escuchar.';};
     el.ondblclick=(ev)=>{ev.preventDefault(); if(!b.isSilence) playFromTime(getFxStart(b),'Reproduciendo desde este sonido hasta el final...');};
     let drag=null;
     el.addEventListener('pointerdown',(ev)=>{
       if(estaGrabando() || ev.target.closest('button')) return;
       ev.preventDefault();
       el.setPointerCapture(ev.pointerId);
-      const mode=ev.target.classList.contains('left')?'trimLeft':(ev.target.classList.contains('right')?'trimRight':'move');
       const nb=fxNeighborsFor(b);
-      const projectTotalAtStart=Math.max(timelineDurationForWidth(fxTimeline.getBoundingClientRect().width),fxEnd(b),1);
+      const projectTotalAtStart=ensureFxTrackDuration();
       const moveNextLimit=nb.hasNext ? nb.nextStart : projectTotalAtStart;
-      drag={x:ev.clientX,start:getFxStart(b),end:fxEnd(b),trimStart:getFxTrimStart(b),trimEnd:getFxTrimEnd(b),mode,moved:false,prevEnd:nb.prevEnd,nextStart:nb.nextStart,moveNextStart:moveNextLimit,total:projectTotalAtStart};
+      drag={x:ev.clientX,start:getFxStart(b),duration:fxClipDuration(b),moved:false,prevEnd:nb.prevEnd,nextStart:nb.nextStart,moveNextStart:moveNextLimit,total:projectTotalAtStart};
     },{passive:false});
     el.addEventListener('pointermove',(ev)=>{
       if(!drag) return;
       const r=fxTimeline.getBoundingClientRect();
       const totalNow=drag.total;
       const delta=((ev.clientX-drag.x)/Math.max(1,r.width))*totalNow;
-      if(drag.mode==='move'){
-        const dur=drag.trimEnd-drag.trimStart;
-        b.start=Math.max(drag.prevEnd,Math.min(drag.moveNextStart-dur,drag.start+delta));
-      }else if(drag.mode==='trimLeft'){
-        const wantedTrim=Math.max(0,Math.min(drag.trimEnd-.05,drag.trimStart+delta));
-        const minTrimByPrev=Math.max(0,drag.trimStart+(drag.prevEnd-drag.start));
-        const newTrim=Math.max(minTrimByPrev,Math.min(drag.trimEnd-.05,wantedTrim));
-        const trimDelta=newTrim-drag.trimStart;
-        b.trimStart=newTrim;
-        b.start=Math.max(drag.prevEnd,drag.start+trimDelta);
-      }else if(drag.mode==='trimRight'){
-        const wantedEnd=Math.max(drag.trimStart+.05,Math.min(raw,drag.trimEnd+delta));
-        const maxTrimEndByNext=drag.trimStart+Math.max(.05,drag.nextStart-drag.start);
-        b.trimEnd=Math.max(drag.trimStart+.05,Math.min(wantedEnd,maxTrimEndByNext,raw));
-      }
+      const maxStart=Math.max(drag.prevEnd, drag.moveNextStart-drag.duration);
+      b.start=Math.max(drag.prevEnd,Math.min(maxStart,drag.start+delta));
       drag.moved=true;
-      if(drag.mode==='move'){
-        const overVoice=clientInside(timeline,ev.clientX,ev.clientY);
-        timeline?.classList.toggle('dropUpTarget',overVoice);
-        showClipGhost(overVoice?'Soltar en Voces / entrevista':'Mover sonido',ev.clientX,ev.clientY,overVoice?'voice':'fx');
-      }
+      const overVoice=clientInside(timeline,ev.clientX,ev.clientY);
+      timeline?.classList.toggle('dropUpTarget',overVoice);
+      showClipGhost(overVoice?'Soltar en Voces / entrevista':'Mover sonido',ev.clientX,ev.clientY,overVoice?'voice':'fx');
       const denom=drag.total;
       el.style.left=((getFxStart(b)/denom)*100).toFixed(4)+'%';
       el.style.width='calc('+Math.max(.8,(fxClipDuration(b)/denom)*100).toFixed(4)+'% - 4px)';
       updateFxClipVisual(el,b);
-      el.title=(b.isSilence?'Silencio visual':(b.name||'Sonido'))+' · empieza '+fmt(getFxStart(b))+' · recortado inicio '+fxShortTime(getFxTrimStart(b))+' · final '+fxShortTime(fxTrimmedFromEnd(b));
+      el.title=(b.isSilence?'Silencio visual':(b.name||'Sonido'))+' · empieza '+fmt(getFxStart(b));
     },{passive:false});
     el.addEventListener('pointerup',(ev)=>{
       if(!drag) return;
       try{el.releasePointerCapture(ev.pointerId)}catch(e){}
       hideClipGhost();
-      const moved=drag.moved; const mode=drag.mode;
-      if(moved && mode==='move' && clientInside(timeline,ev.clientX,ev.clientY)){
+      const moved=drag.moved;
+      if(moved && clientInside(timeline,ev.clientX,ev.clientY)){
         const insertAt=insertionIndexFromPoint(ev.clientX);
         drag=null;
         fxToVoiceBlock(b,insertAt);
         return;
       }
-      // V76: no reordenamos ni empujamos clips vecinos al soltar.
-      // Cada sonido conserva su lugar; el clip movido queda limitado por los topes.
       drag=null;
-      if(moved){ marcarSinGuardar(mode==='move'?'Cambios sin guardar: sonido reubicado en '+fmt(getFxStart(b))+'.':'Cambios sin guardar: sonido recortado.'); render(); }
+      timeline?.classList.remove('dropUpTarget');
+      if(moved){ marcarSinGuardar('Cambios sin guardar: sonido reubicado en '+fmt(getFxStart(b))+'.'); render(); }
     },{passive:false});
     el.addEventListener('pointercancel',()=>{drag=null; hideClipGhost();},{passive:true});
     fxTimeline.appendChild(el);
@@ -906,6 +936,7 @@ async function addFxFiles(files, startTime=null){
     const dur=await mediaDuration(f);
     const safeStart=findFreeFxStart(start,dur);
     fxBlocks.push({id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),start:safeStart,duration:dur,trimStart:0,trimEnd:dur,color:'#e8ddff',blob:f,type:f.type||guessMimeFromName(f.name),filename:f.name,external:true,isSilence:false,pauseAfter:0});
+    ensureFxTrackDuration(safeStart+dur);
     start=safeStart+dur;
   }
   marcarSinGuardar('Cambios sin guardar: sonido/video agregado como audio. Arrastralo para ubicarlo.'); render();
@@ -948,7 +979,7 @@ async function createProjectZipBlob(){
   const zip=new JSZip();
   const aud=zip.folder('audios');
   const fx=zip.folder('sonidos');
-  const project={version:5,created:new Date().toISOString(),defaultSilence:DEFAULT_SILENCE,fxVolume:Number(fxVol?.value ?? 5)||5,blocks:[],fxBlocks:[]};
+  const project={version:6,created:new Date().toISOString(),defaultSilence:DEFAULT_SILENCE,fxVolume:Number(fxVol?.value ?? 5)||5,fxTrackDuration:ensureFxTrackDuration(),blocks:[],fxBlocks:[]};
   for(let i=0;i<blocks.length;i++){
     const b=blocks[i]; const ext=(b.type.includes('wav')?'wav':b.type.includes('mpeg')?'mp3':b.type.includes('mp4')?'mp4':'webm'); const filename=`audio-${i+1}.${ext}`;
     aud.file(filename,b.blob); project.blocks.push({name:b.name,duration:b.duration,trimStart:getVoiceTrimStart(b),trimEnd:getVoiceTrimEnd(b),color:b.color,filename:'audios/'+filename,type:b.type,external:!!b.external,pauseAfter:getPauseAfter(i)});
@@ -1196,8 +1227,9 @@ async function scheduleMainFrom(ctx, fromTime, startAt){
     const delay=Math.max(0,absStart-fromTime);
     const dur=Math.max(.03,clipDur-inside);
     const src=ctx.createBufferSource(); src.buffer=buf;
-    const gain=ctx.createGain(); gain.gain.value=Number(vol.value);
+    const gain=ctx.createGain();
     src.connect(gain).connect(ctx.destination);
+    scheduleVoiceFadeFrom(gain,startAt,absStart,clipDur,fromTime,Number(vol.value));
     src.start(startAt+delay,offset,dur);
     playSources.push({src,gain});
   });
@@ -1338,9 +1370,9 @@ async function exportWav(){
     let t=0;
     for(let i=0;i<blocks.length;i++){
       const b=blocks[i]; const buf=await decode(b.blob,ctx); const src=ctx.createBufferSource(); src.buffer=buf;
-      const gain=ctx.createGain(); gain.gain.value=1;
+      const gain=ctx.createGain();
       const clipDur=voiceClipDuration(b);
-      src.connect(gain).connect(ctx.destination); src.start(t,getVoiceTrimStart(b),clipDur); t+=clipDur; if(i<blocks.length-1)t+=getPauseAfter(i);
+      src.connect(gain).connect(ctx.destination); applyVoiceFade(gain,t,clipDur,1); src.start(t,getVoiceTrimStart(b),clipDur); t+=clipDur; if(i<blocks.length-1)t+=getPauseAfter(i);
     }
     for(let i=0;i<fxBlocks.length;i++){
       const b=fxBlocks[i];
@@ -1556,7 +1588,7 @@ async function loadZip(file){
       nf.push({id:crypto.randomUUID(),name:item.name,start:startVal,duration:dur,trimStart:Number(item.trimStart ?? 0),trimEnd:Number(item.trimEnd ?? dur),color:item.color||'#e8ddff',blob:new Blob([blob],{type:item.type||blob.type}),type:item.type||blob.type,filename:item.filename,external:!!item.external,isSilence:false,pauseAfter:0});
       oldFxCursor=startVal+dur+Number(item.pauseAfter||0);
     }
-    blocks=nb; fxBlocks=nf; if(fxVol && pj.fxVolume!=null){fxVol.value=String(Math.max(0,Math.min(10,Number(pj.fxVolume)||5))); updateFxVolLabel();} startIndex=0; marcarGuardado('✓ Proyecto cargado con voces y sonidos.'); render();
+    blocks=nb; fxBlocks=nf; fxTrackDuration=Math.max(Number(pj.fxTrackDuration)||0, totalDurationWithPauses(), totalFxDuration(), 1); if(fxVol && pj.fxVolume!=null){fxVol.value=String(Math.max(0,Math.min(10,Number(pj.fxVolume)||5))); updateFxVolLabel();} startIndex=0; marcarGuardado('✓ Proyecto cargado con voces y sonidos.'); render();
   }catch(e){status.textContent='No pude abrir ese ZIP de proyecto.';}
 }
 ['dragenter','dragover'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); $('wrap')?.classList.add('drag'); const fxr=fxTimeline?.getBoundingClientRect(); if(fxr && e.clientY>=fxr.top && e.clientY<=fxr.bottom) fxTimeline.classList.add('drag'); else fxTimeline?.classList.remove('drag');});}); ['dragleave','drop'].forEach(ev=>{document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop'){ $('wrap')?.classList.remove('drag'); fxTimeline?.classList.remove('drag'); }});}); document.addEventListener('drop',e=>{if(estaGrabando()) return; const files=[...e.dataTransfer.files]; const f=files.find(x=>x.name.toLowerCase().endsWith('.zip')); const media=files.filter(x=>(x.type||'').startsWith('audio/') || (x.type||'').startsWith('video/') || /\.(mp3|wav|m4a|aac|ogg|webm|mp4|mov|m4v)$/i.test(x.name||'')); if(f)loadZip(f); else if(media.length){ const fxr=fxTimeline?.getBoundingClientRect(); if(fxr && e.clientY>=fxr.top && e.clientY<=fxr.bottom) addFxFiles(media, fxTimeFromPoint(e.clientX)); else addExternalFiles(media, insertionIndexFromPoint(e.clientX)); } else status.textContent='Soltá el ZIP para abrir proyecto, o soltá audio/video en voces o sonidos.';});
