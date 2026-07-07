@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Masa negra multicolor expresiva</title>
+<style>
+  html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#f6f6f2; touch-action:none; font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif; }
+  canvas { display:block; width:100vw; height:100vh; touch-action:none; }
+  .panel { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); width:min(520px, calc(100vw - 44px)); background:rgba(255,255,255,.72); backdrop-filter:blur(10px); border:1px solid rgba(0,0,0,.08); border-radius:18px; padding:12px 16px 13px; box-sizing:border-box; box-shadow:0 12px 30px rgba(0,0,0,.08); user-select:none; }
+  .panelHint { font-size:14px; line-height:1.25; color:#151515; text-align:center; margin:0 4px 10px; font-weight:520; letter-spacing:-0.01em; }
+  .row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:13px; color:#222; }
+  input[type="range"] { width:100%; accent-color:#111; }
+
+  .textOverlay {
+    position: fixed;
+    left: 50%;
+    top: clamp(28px, 7vh, 72px);
+    transform: translateX(-50%);
+    width: min(900px, calc(100vw - 42px));
+    text-align: center;
+    color: #111;
+    pointer-events: none;
+    user-select: none;
+    z-index: 5;
+    line-height: 1.18;
+  }
+  .textOverlay .intro,
+  .textOverlay .question {
+    position: absolute;
+    left: 0;
+    right: 0;
+    transition: opacity 1600ms ease, transform 1600ms ease;
+    will-change: opacity, transform;
+  }
+  .textOverlay .intro {
+    opacity: 1;
+    transform: translateY(0);
+    font-size: clamp(25px, 4.3vw, 52px);
+    font-weight: 650;
+    letter-spacing: -0.035em;
+  }
+  .textOverlay .question {
+    opacity: 0;
+    transform: translateY(18px);
+    font-size: clamp(22px, 3.4vw, 42px);
+    font-weight: 560;
+    letter-spacing: -0.028em;
+  }
+  .textOverlay.reveal .intro {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  .textOverlay.reveal .question {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @media (max-height: 620px) {
+    .textOverlay { top: 18px; }
+    .textOverlay .intro { font-size: clamp(22px, 4vw, 40px); }
+    .textOverlay .question { font-size: clamp(20px, 3.2vw, 34px); }
+  }
+
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="textOverlay" class="textOverlay">
+  <div class="intro">
+    <div>No estás moviendo formas.</div>
+    <div>Quizás estás moviendo una idea.</div>
+  </div>
+  <div class="question">
+    <div>¿Qué representa para vos la masa?</div>
+    <div>¿Y qué representan los colores?</div>
+  </div>
+</div>
+<div class="panel">
+  <div class="panelHint">Elegí la intensidad con la que querés vivir esta experiencia.</div>
+  <div class="row"><span>Vida / reacción</span><strong id="val">70</strong></div>
+  <input id="intensity" type="range" min="1" max="100" value="70" />
+</div>
+<script>
+const canvas = document.getElementById('c');
+const textOverlay = document.getElementById('textOverlay');
+let hasInteractedText = false;
+let revealTextTimer = null;
+const ctx = canvas.getContext('2d');
+const slider = document.getElementById('intensity');
+const val = document.getElementById('val');
+let W=0,H=0,DPR=1;
+const blob = { cx:0, cy:0, r:150, points:[] };
+let pointer = { active:false, x:0, y:0, px:0, py:0, vx:0, vy:0, kind:'mouse' };
+let lastT = performance.now();
+function makeSoftBallData(n=54){
+  const pts=[];
+  for(let i=0;i<n;i++){ pts.push({a:i/n*Math.PI*2, off:0, v:0}); }
+  return pts;
+}
+const balls = [
+  {name:'rojo',  color:'#d81717', seed:0.2},
+  {name:'azul',  color:'#1776d8', seed:1.4},
+  {name:'verde', color:'#16a35d', seed:2.6},
+  {name:'gris',  color:'#7b7b7b', seed:3.8},
+  {name:'amarillo', color:'#e0b51b', seed:5.0}
+].map((b,i)=>({ ...b, x:0,y:0,vx:0,vy:0,r:44,drag:false,pull:0,squish:0,stretchX:1,stretchY:1,rot:0,_placed:false,homeIndex:i, pts:makeSoftBallData(64) }));
+let activeBall = null;
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  setupBlob();
+}
+window.addEventListener('resize', resize);
+
+function setupBlob(){
+  blob.cx = W*0.5; blob.cy = H*0.45;
+  blob.r = Math.min(W,H)*0.19; blob.r = Math.max(105, Math.min(blob.r,190));
+  blob.points = [];
+  const n = 224; // contorno más denso para deformación más expresiva
+  for(let i=0;i<n;i++){ const a=i/n*Math.PI*2; blob.points.push({a,off:0,v:0}); }
+  const startR = Math.max(blob.r*0.30, 32);
+  balls.forEach((b,i)=>{
+    b.r = startR * (i===0 ? 1.04 : 0.92);
+    if(!b._placed){
+      const gap = Math.max(78, b.r*1.75);
+      b.x = blob.cx + (i-2)*gap;
+      b.y = Math.min(H-110, blob.cy + blob.r*1.45);
+      b._placed = true;
+    }
+  });
+}
+function intensity(){ return Number(slider.value)/100; }
+slider.addEventListener('input',()=> val.textContent = slider.value);
+function triggerTextReveal(){
+  if(hasInteractedText) return;
+  hasInteractedText = true;
+  clearTimeout(revealTextTimer);
+  revealTextTimer = setTimeout(()=>{
+    textOverlay.classList.add('reveal');
+  }, 2600);
+}
+function getPos(e){ const t = e.touches ? e.touches[0] : e; return {x:t.clientX,y:t.clientY,kind:e.pointerType || (e.touches?'touch':'mouse')}; }
+function down(e){
+  e.preventDefault(); triggerTextReveal(); const p=getPos(e);
+  pointer.active=true; pointer.x=pointer.px=p.x; pointer.y=pointer.py=p.y; pointer.vx=pointer.vy=0; pointer.kind=p.kind;
+  activeBall = null;
+  for(let i=balls.length-1;i>=0;i--){
+    const b=balls[i]; if(Math.hypot(p.x-b.x,p.y-b.y)<b.r*1.7){ activeBall=b; b.drag=true; break; }
+  }
+}
+function move(e){ if(!pointer.active) return; e.preventDefault(); const p=getPos(e); pointer.vx=p.x-pointer.x; pointer.vy=p.y-pointer.y; pointer.px=pointer.x; pointer.py=pointer.y; pointer.x=p.x; pointer.y=p.y; }
+function up(){ pointer.active=false; if(activeBall) activeBall.drag=false; activeBall=null; }
+canvas.addEventListener('pointerdown',down,{passive:false}); canvas.addEventListener('pointermove',move,{passive:false}); canvas.addEventListener('pointerup',up); canvas.addEventListener('pointercancel',up);
+canvas.addEventListener('touchstart',down,{passive:false}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',up);
+function angleDiff(a,b){ let d=a-b; while(d>Math.PI)d-=Math.PI*2; while(d<-Math.PI)d+=Math.PI*2; return d; }
+
+function update(dt){
+  const I=intensity(); const touchScale = pointer.kind==='touch' ? 0.55 : 1;
+  // Bolas: arrastre + captura suave. Si están adentro y no se arrastran, descansan cerca de una órbita interna mínima, sin ponerse locas.
+  balls.forEach((b,idx)=>{
+    const dx=blob.cx-b.x, dy=blob.cy-b.y; const dist=Math.hypot(dx,dy)||1;
+    const inside = dist < blob.r*0.83;
+    const near = Math.max(0, 1 - (dist-blob.r*0.10)/(blob.r*1.75));
+    b.pull += (near-b.pull)*0.07;
+    if(b.drag && pointer.active){
+      b.vx += (pointer.x-b.x)*0.34; b.vy += (pointer.y-b.y)*0.34;
+    }
+    if(!b.drag && near>.10){
+      // Atracción hasta entrar; una vez dentro, fuerza muy baja para que quede protegido y calmo.
+      const targetR = inside ? blob.r*(0.18 + 0.10*Math.sin(b.seed)) : blob.r*0.42;
+      const tx = blob.cx + Math.cos(b.seed + performance.now()*0.00012)*targetR;
+      const ty = blob.cy + Math.sin(b.seed + performance.now()*0.00010)*targetR;
+      b.vx += (tx-b.x) * (inside ? 0.006 : 0.018) * I;
+      b.vy += (ty-b.y) * (inside ? 0.006 : 0.018) * I;
+    }
+    if(b.drag && near>.20){ b.vx += dx/dist*near*I*0.65; b.vy += dy/dist*near*I*0.65; }
+    b.x += b.vx; b.y += b.vy;
+    b.vx *= b.drag ? 0.62 : (inside ? 0.88 : 0.91);
+    b.vy *= b.drag ? 0.62 : (inside ? 0.88 : 0.91);
+    // Evitar vibración loca dentro.
+    if(inside && !b.drag){ b.vx *= 0.74; b.vy *= 0.74; }
+    const sp=Math.min(1,Math.hypot(b.vx,b.vy)/42);
+    const enter=Math.max(0,1-dist/(blob.r*1.02));
+    // Los cuerpos de color tienen deformación propia, pero sin convertirse en óvalos rígidos.
+    const speed=Math.min(1, Math.hypot(b.vx,b.vy)/34);
+    b.pts.forEach(q=>{
+      q.v += -q.off*(0.075+I*0.018);
+      q.v *= 0.82;
+      const dir=Math.atan2(b.vy, b.vx || 0.0001);
+      if(b.drag){
+        const ad=Math.abs(angleDiff(q.a, dir));
+        const rear=Math.abs(angleDiff(q.a, dir+Math.PI));
+        q.v += Math.exp(-(ad*ad)/0.52)*speed*I*2.2;
+        q.v -= Math.exp(-(rear*rear)/0.45)*speed*I*1.7;
+      }
+      if(inside){
+        const toCenter=Math.atan2(blob.cy-b.y, blob.cx-b.x);
+        const ad=Math.abs(angleDiff(q.a,toCenter));
+        q.v += Math.exp(-(ad*ad)/0.48)*I*0.55;
+      }
+    });
+    const cpy=b.pts.map(q=>q.off);
+    for(let j=0;j<b.pts.length;j++){
+      const prev=cpy[(j-1+b.pts.length)%b.pts.length], next=cpy[(j+1)%b.pts.length];
+      b.pts[j].off += ((prev+next)*0.5-b.pts[j].off)*0.18;
+      b.pts[j].off += b.pts[j].v;
+      b.pts[j].off=Math.max(-b.r*0.20, Math.min(b.r*0.24, b.pts[j].off));
+    }
+    b.rot = Math.atan2(b.vy, b.vx || 0.0001);
+    b.stretchX = 1; b.stretchY = 1;
+  });
+
+  let touchInfluence=0, ta=0;
+  if(pointer.active && !activeBall){
+    const px=pointer.x-blob.cx, py=pointer.y-blob.cy; const pd=Math.hypot(px,py); ta=Math.atan2(py,px);
+    touchInfluence=Math.max(0,1-Math.abs(pd-blob.r)/(blob.r*.95));
+  }
+  for(const p of blob.points){
+    p.v += -p.off*(0.036+I*0.021);
+    p.v *= 0.905-I*0.026;
+    // respiración orgánica muy sutil: vida propia, sin depender solamente del dedo
+    const breathe = Math.sin(performance.now()*0.00125 + p.a*5.0) + 0.55*Math.sin(performance.now()*0.0009 + p.a*9.0);
+    p.v += breathe * I * 0.018;
+    if(touchInfluence>0){
+      const ad=Math.abs(angleDiff(p.a,ta)); const fall=Math.exp(-(ad*ad)/(0.42)); const speed=Math.min(28,Math.hypot(pointer.vx,pointer.vy));
+      p.v += fall*touchInfluence*I*touchScale*(speed*0.38+3.15);
+    }
+    // Cada bola deforma la masa negra sin dibujar puentes grises: solo cambia la silueta.
+    balls.forEach(b=>{
+      const dx=b.x-blob.cx, dy=b.y-blob.cy; const dist=Math.hypot(dx,dy)||1; const ra=Math.atan2(dy,dx);
+      const redSurfaceDist=dist-blob.r; const inf=Math.max(0,1-Math.abs(redSurfaceDist)/(blob.r*1.22));
+      const inside=Math.max(0,1-dist/(blob.r*0.98));
+      if(inf>0 || inside>0){
+        const ad=Math.abs(angleDiff(p.a,ra)); const fallN=Math.exp(-(ad*ad)/(0.31)); const fallW=Math.exp(-(ad*ad)/(0.95));
+        p.v += fallW*inf*I*5.75;
+        p.v -= fallN*inside*I*4.85;
+      }
+    });
+  }
+  const pts=blob.points; const copy=pts.map(p=>p.off);
+  for(let i=0;i<pts.length;i++){
+    const prev=copy[(i-1+pts.length)%pts.length], next=copy[(i+1)%pts.length];
+    pts[i].off += ((prev+next)*0.5-pts[i].off)*0.075;
+    pts[i].off = Math.max(-blob.r*0.58, Math.min(blob.r*0.82, pts[i].off));
+    pts[i].off += pts[i].v;
+  }
+}
+function blobPath(){
+  const pts=blob.points.map(p=>{const rr=blob.r+p.off; return {x:blob.cx+Math.cos(p.a)*rr,y:blob.cy+Math.sin(p.a)*rr};});
+  ctx.beginPath();
+  for(let i=0;i<pts.length;i++){ const p0=pts[(i-1+pts.length)%pts.length], p1=pts[i], p2=pts[(i+1)%pts.length]; const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2; if(i===0) ctx.moveTo((p0.x+p1.x)/2,(p0.y+p1.y)/2); ctx.quadraticCurveTo(p1.x,p1.y,mx,my); }
+  ctx.closePath();
+}
+function drawBall(b){
+  // Color pleno: ahora también tiene borde vivo propio, pero sin filete, sombra ni degradé.
+  const pts=b.pts.map(q=>{ const rr=b.r+q.off; return {x:b.x+Math.cos(q.a)*rr,y:b.y+Math.sin(q.a)*rr}; });
+  ctx.beginPath();
+  for(let i=0;i<pts.length;i++){
+    const p0=pts[(i-1+pts.length)%pts.length], p1=pts[i], p2=pts[(i+1)%pts.length];
+    const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2;
+    if(i===0) ctx.moveTo((p0.x+p1.x)/2,(p0.y+p1.y)/2);
+    ctx.quadraticCurveTo(p1.x,p1.y,mx,my);
+  }
+  ctx.closePath();
+  ctx.fillStyle = b.color;
+  ctx.fill();
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // Negro pleno: sin sombra, sin brillo, sin rastros auxiliares.
+  blobPath();
+  ctx.fillStyle='#050505';
+  ctx.fill();
+  balls.forEach(drawBall);
+}
+function loop(t){ const dt=Math.min(32,t-lastT); lastT=t; update(dt/16.67); draw(); requestAnimationFrame(loop); }
+resize(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>
