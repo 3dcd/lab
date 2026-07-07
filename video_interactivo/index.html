@@ -1,0 +1,1876 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Video interactivo - editor v0.45 fondo fijo + panel anclado</title>
+<style>
+  :root {
+    --accent:#f7c55b;
+    --green:#93ffb7;
+    --panel:rgba(255,255,255,.08);
+    --card:rgba(255,255,255,.96);
+    --ink:#111;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100svh;
+    background:radial-gradient(circle at 20% 0%,#2d2d38,#08080b 62%);
+    color:white; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    overflow-x:hidden;
+  }
+  .app{width:min(1240px,100%);min-height:100svh;margin:0 auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .brand{font-weight:900} .brand small{display:block;color:#c9c9d3;font-size:12px;font-weight:500;margin-top:2px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button,label.btn{
+    border:0;border-radius:13px;padding:9px 12px;background:#fff;color:#111;font-weight:850;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.18)
+  }
+  button.secondary,label.secondary{background:#2a2a35;color:#fff;border:1px solid rgba(255,255,255,.12)}
+  button.accent{background:var(--accent);color:#111} button.good{background:var(--green);color:#111} button.danger{background:#4b2020;color:#fff}
+  .stageShell{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+  .stage{position:relative;width:min(90svh,92vw);aspect-ratio:1/1;background:#050505;border-radius:28px;box-shadow:0 24px 70px rgba(0,0,0,.45);overflow:visible}
+  .videoBox{position:absolute;inset:4%;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 12px 36px rgba(0,0,0,.36);z-index:1}
+  video{width:100%;height:100%;object-fit:contain;background:#000;display:block;pointer-events:none;user-select:none;-webkit-user-select:none}
+  .bubble{
+    position:absolute;width:min(230px,28vw);background:var(--card);color:var(--ink);border-radius:22px;padding:13px 15px;
+    box-shadow:0 18px 48px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,255,255,.65);
+    z-index:12;line-height:1.25;pointer-events:none;user-select:none;-webkit-user-select:none;
+    opacity:1;transition:none;
+  }
+  .bubble.visible{opacity:1}
+  body.editing .bubble{pointer-events:auto;cursor:grab;touch-action:none;outline:2px solid rgba(247,197,91,.45)}
+  body.editing .bubble:active{cursor:grabbing}
+  .bubble.selected{outline:3px solid var(--green)}
+  .bubble .kicker{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#8b6a10;font-weight:900;margin-bottom:5px}
+  .bubble .title{font-size:clamp(15px,1.7vw,22px);font-weight:950;line-height:1.04;margin-bottom:6px}
+  .bubble .text{font-size:clamp(11.5px,.95vw,14.5px);font-weight:650;color:#242424}
+
+  .bubble.size-1{width:min(230px,28vw);}
+  .bubble.size-2{width:min(300px,34vw);padding:16px 18px;border-radius:25px;}
+  .bubble.size-3{width:min(370px,40vw);padding:18px 21px;border-radius:28px;}
+  .bubble.size-2 .title{font-size:clamp(18px,2.05vw,27px);}
+  .bubble.size-2 .text{font-size:clamp(13px,1.15vw,16.5px);}
+  .bubble.size-3 .title{font-size:clamp(21px,2.35vw,32px);}
+  .bubble.size-3 .text{font-size:clamp(14.5px,1.28vw,18px);}
+
+  .bubble.blend-normal{mix-blend-mode:normal;}
+  .bubble.blend-multiply{mix-blend-mode:multiply;}
+  .bubble.blend-screen{mix-blend-mode:screen;}
+  .bubble.blend-overlay{mix-blend-mode:overlay;}
+  .bubble.blend-darken{mix-blend-mode:darken;}
+  .bubble.blend-lighten{mix-blend-mode:lighten;}
+  .bubble.blend-difference{mix-blend-mode:difference;}
+  .bubble::after{content:none;position:absolute;width:20px;height:20px;background:var(--card);transform:rotate(45deg);z-index:-1}
+  .bubble.has-pointer::after{content:""}
+  .bubble.tail-left::after{left:-7px;top:50%;margin-top:-10px}
+  .bubble.tail-right::after{right:-7px;top:50%;margin-top:-10px}
+  .bubble.tail-top::after{top:-7px;left:50%;margin-left:-10px}
+  .bubble.tail-bottom::after{bottom:-7px;left:50%;margin-left:-10px}
+  .bubble.tail-top-left::after{top:-7px;left:24px}
+  .bubble.tail-top-right::after{top:-7px;right:24px}
+  .bubble.tail-bottom-left::after{bottom:-7px;left:24px}
+  .bubble.tail-bottom-right::after{bottom:-7px;right:24px}
+
+  /* v0.28: colores pastel y modo relleno/filete */
+  .bubble{
+    --bubble-bg:var(--card);
+    --bubble-accent:#f7c55b;
+    --bubble-text:#111;
+    --bubble-panel-bg:var(--bubble-bg);
+  }
+  .bubble.style-filled{
+    background:var(--bubble-bg) !important;
+    color:var(--bubble-text) !important;
+    box-shadow:0 16px 36px rgba(0,0,0,.30), inset 0 0 0 1px rgba(255,255,255,.55) !important;
+  }
+  .bubble.style-filled .title,
+  .bubble.style-filled .text{color:var(--bubble-text) !important;}
+  .bubble.style-outline{
+    background:rgba(12,12,16,.48) !important;
+    color:var(--bubble-accent) !important;
+    border:2px solid var(--bubble-accent) !important;
+    box-shadow:0 14px 34px rgba(0,0,0,.28) !important;
+  }
+  .bubble.style-outline .title,
+  .bubble.style-outline .text{color:var(--bubble-accent) !important;}
+  .bubble.style-filled::after{background:var(--bubble-bg) !important;}
+  .bubble.style-outline::after{
+    background:#242730 !important;
+    border:2px solid var(--bubble-accent) !important;
+    box-shadow:none !important;
+  }
+  .colorPicker{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 4px}
+  .colorChoice{position:relative;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .colorChoice input{position:absolute;opacity:0;pointer-events:none}
+  .swatch{width:28px;height:28px;border-radius:9px;border:2px solid rgba(255,255,255,.28);box-shadow:0 3px 10px rgba(0,0,0,.25)}
+  .colorChoice input:checked + .swatch{outline:3px solid var(--accent);outline-offset:2px}
+  .styleChoice{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px}
+  .styleChoice label{display:inline-flex;align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none}
+  .styleChoice input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+  .styleChoice .pill{display:inline-flex;align-items:center;justify-content:center;min-height:30px;border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:6px 10px;background:rgba(255,255,255,.045);font-size:12px;font-weight:850;color:#e8e8ee;line-height:1;transition:background .16s,border-color .16s,color .16s,transform .16s}
+  .styleChoice input:checked + .pill{font-weight:950;color:#111;background:var(--accent);border-color:var(--accent);box-shadow:0 4px 14px rgba(247,197,91,.18)}
+  .styleChoice label:active .pill{transform:scale(.97)}
+  .lockIcon{width:32px;height:30px;padding:0!important;font-size:0;position:relative}
+  .lockIcon::before{content:"";position:absolute;left:9px;top:12px;width:14px;height:10px;border:2px solid currentColor;border-radius:3px;box-sizing:border-box}
+  .lockIcon::after{content:"";position:absolute;left:11px;top:5px;width:10px;height:11px;border:2px solid currentColor;border-bottom:none;border-radius:10px 10px 0 0;box-sizing:border-box;transform:translateY(0)}
+  .styleChoice input:not(:checked)+.lockIcon::after{left:14px;top:5px;transform:rotate(28deg);transform-origin:2px 10px}
+  body.editing .bubble.locked{cursor:pointer}
+  body.editing .bubble.locked .editLockBadge{display:flex}
+  .editLockBadge{display:none;position:absolute;right:7px;top:7px;width:18px;height:18px;border-radius:6px;background:rgba(15,15,18,.58);backdrop-filter:blur(5px);z-index:4;align-items:center;justify-content:center;color:var(--bubble-accent);border:1px solid rgba(255,255,255,.16)}
+  .editLockBadge::before{content:"";position:absolute;left:5px;top:8px;width:8px;height:6px;border:1.6px solid currentColor;border-radius:2px;box-sizing:border-box}
+  .editLockBadge::after{content:"";position:absolute;left:6px;top:4px;width:6px;height:7px;border:1.6px solid currentColor;border-bottom:none;border-radius:7px 7px 0 0;box-sizing:border-box}
+  .customControls{
+    background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:10px;display:grid;gap:8px
+  }
+  .seekRow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .controls{background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:12px;display:grid;gap:10px}
+  .help{font-size:12px;color:#bbb;line-height:1.35}
+  .eventList{max-height:360px;overflow:auto;background:#101016;border-radius:14px;padding:8px;font-size:13px;color:#ddd}
+  .eventItem{padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:14px;margin-bottom:8px;background:rgba(255,255,255,.035)}
+  .eventItem.active{outline:2px solid var(--accent)}
+  .eventHead{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}
+
+  /* v0.47 mini línea de tiempo editable por bloque */
+  .eventItem{border-color:color-mix(in srgb, var(--event-color, rgba(255,255,255,.14)) 72%, rgba(255,255,255,.10));}
+  .eventItem.active{outline:2px solid var(--event-color, var(--accent));}
+  .miniTimeline{margin:9px 0 6px; touch-action:none; user-select:none; -webkit-user-select:none;}
+  .miniTimelineTrack{position:relative;height:18px;border-radius:999px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 4px rgba(0,0,0,.38);}
+  .miniTimelineSpan{position:absolute;top:50%;height:4px;transform:translateY(-50%);border-radius:999px;background:var(--event-color, var(--accent));box-shadow:0 0 10px color-mix(in srgb, var(--event-color, var(--accent)) 55%, transparent);cursor:grab;touch-action:none;}
+  .miniTimelineSpan:active{cursor:grabbing;}
+  .miniTimelineHandle{position:absolute;top:50%;width:14px;height:14px;border-radius:999px;border:0;background:var(--event-color, var(--accent));transform:translate(-50%,-50%);box-shadow:0 2px 8px rgba(0,0,0,.55);padding:0;min-height:0;cursor:ew-resize;touch-action:none;}
+  .miniTimelineHandle.end{transform:translate(50%,-50%);}
+  .miniTimelineLabels{display:flex;justify-content:space-between;color:#bfc0c8;font-size:11px;margin-top:3px;}
+  .inlineEdit .miniTimeline{margin-top:2px;margin-bottom:8px;}
+  .time{color:var(--accent);font-weight:900} .muted{color:#aaa;font-size:12px} .hidden{display:none!important}
+  input[type=file]{display:none}
+  input,textarea{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:#101016;color:white;padding:9px;font:inherit}
+  textarea{min-height:62px;resize:vertical}
+  .inlineEdit{display:grid;gap:8px;margin-top:8px}
+  .mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .viewText b{font-size:15px;color:#fff} .viewText p{margin:.25rem 0 0;color:#d6d6dc}
+
+  .videoLoader{
+    position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;
+    background:#050505;border-radius:28px;overflow:hidden;pointer-events:none;
+    transition:opacity .55s ease, visibility .55s ease;
+  }
+  .videoLoader::before{
+    content:"";position:absolute;left:18%;right:18%;height:3px;border-radius:999px;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.88), transparent);
+    animation:loaderSweep 1.05s ease-in-out infinite;
+    box-shadow:0 0 18px rgba(255,255,255,.22);
+  }
+  .videoLoader::after{
+    content:"Cargando video";position:absolute;margin-top:38px;font-size:12px;font-weight:850;letter-spacing:.08em;
+    color:rgba(255,255,255,.62);text-transform:uppercase;
+  }
+  @keyframes loaderSweep{
+    0%{transform:translateX(-38%) scaleX(.35);opacity:.35}
+    50%{transform:translateX(0) scaleX(1);opacity:1}
+    100%{transform:translateX(38%) scaleX(.35);opacity:.35}
+  }
+  .videoBox.video-ready .videoLoader{opacity:0;visibility:hidden}
+  .videoBox video{opacity:0;transition:opacity .55s ease}
+  .videoBox.video-ready video{opacity:1}
+
+  @media(max-width:760px){
+    .app{padding:9px}
+    .stage{width:100%;aspect-ratio:1/1;border-radius:22px}
+    .videoBox{inset:4%}
+    .bubble{width:38vw;min-width:108px;max-width:150px;border-radius:16px;padding:9px 10px}
+    .bubble .title{font-size:13.5px} .bubble .text{font-size:10.5px}
+    .bubble.size-2{width:48vw;max-width:190px;padding:11px 12px}
+    .bubble.size-3{width:58vw;max-width:230px;padding:12px 14px}
+    .bubble.size-2 .title{font-size:16px}.bubble.size-2 .text{font-size:12px}
+    .bubble.size-3 .title{font-size:18px}.bubble.size-3 .text{font-size:13px}
+    .mini{grid-template-columns:1fr 1fr}
+    .seekRow{grid-template-columns:auto 1fr}
+    .seekRow .duration{display:none}
+  }
+
+  /* v0.23: estética general */
+  body{
+    background:
+      radial-gradient(circle at center, rgba(90,90,120,.42), rgba(28,28,38,.18) 38%, #08080b 76%) !important;
+  }
+  .videoBox{
+    border-radius:28px !important;
+    overflow:hidden !important;
+  }
+  video{
+    border-radius:28px !important;
+  }
+  .stage{
+    overflow:visible !important;
+  }
+  .bubble{
+    
+  }
+
+
+  /* v0.23: estética más pro */
+  body{
+    background:#242730 !important;
+  }
+  .stage{
+    background:#111217 !important;
+  }
+  .videoBox{
+    border-radius:28px !important;
+    overflow:hidden !important;
+    background:#050505 !important;
+  }
+  video{
+    border-radius:28px !important;
+  }
+
+  /* Globitos más limpios, sin filete amarillo visible */
+  .bubble{
+    border:0 !important;
+    outline:none;
+    box-shadow:0 16px 36px rgba(0,0,0,.30), inset 0 0 0 1px rgba(255,255,255,.55) !important;
+    overflow:visible !important;
+  }
+  body.editing .bubble{
+    outline:2px solid rgba(255,255,255,.35) !important;
+  }
+  .bubble.selected{
+    outline:2px solid rgba(255,255,255,.70) !important;
+  }
+  .bubble::after{
+    background:var(--card) !important;
+    box-shadow:none !important;
+    z-index:-1 !important;
+  }
+  .bubble:not(.has-pointer)::after{content:none !important;}
+
+  .publicInfo{
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:22px;
+    padding:16px 18px;
+    color:#e8e8ee;
+    line-height:1.45;
+  }
+  .publicInfo h2{
+    margin:0 0 6px;
+    font-size:clamp(18px,2.2vw,28px);
+    color:#fff;
+  }
+  .publicInfo p{
+    margin:0;
+    color:#cfd0d8;
+    font-size:14px;
+  }
+  .publicInfo ul{
+    margin:10px 0 0;
+    padding-left:18px;
+    color:#d9d9df;
+    font-size:14px;
+  }
+  body.editing .publicInfo{
+    display:none;
+  }
+
+
+  /* v0.24: entrada suave por escala para globitos/eventos */
+  @keyframes popInSoft{
+    0%{
+      transform:scale(.58);
+    }
+    72%{
+      transform:scale(1.055);
+    }
+    100%{
+      transform:scale(1);
+    }
+  }
+  .bubble{
+    transform-origin:center center;
+    animation:popInSoft .34s cubic-bezier(.18,.88,.22,1.12);
+    will-change:transform;
+  }
+  .bubble.no-pop,
+  body.editing .bubble:active{
+    animation:none !important;
+  }
+
+
+  /* v0.28 override final: colores por evento */
+  .bubble.style-filled{background:var(--bubble-bg) !important;color:var(--bubble-text) !important;}
+  .bubble.style-filled .title,.bubble.style-filled .text{color:var(--bubble-text) !important;}
+  .bubble.style-filled.has-pointer::after{background:var(--bubble-bg) !important;}
+  .bubble.style-outline{background:rgba(12,12,16,.48) !important;color:var(--bubble-accent) !important;border:2px solid var(--bubble-accent) !important;box-shadow:0 14px 34px rgba(0,0,0,.28) !important;}
+  .bubble.style-outline .title,.bubble.style-outline .text{color:var(--bubble-accent) !important;}
+  .bubble.style-outline.has-pointer::after{background:#242730 !important;border:2px solid var(--bubble-accent) !important;}
+
+
+  /* v0.30: filete limpio y señalador integrado */
+  .bubble{
+    border:0 !important;
+    box-shadow:0 16px 36px rgba(0,0,0,.30) !important;
+  }
+  .bubble.style-filled{
+    border:0 !important;
+    box-shadow:0 16px 36px rgba(0,0,0,.30) !important;
+  }
+  .bubble.style-outline{
+    --outline-fill:rgba(12,12,16,.50);
+    background:var(--outline-fill) !important;
+    border:2px solid var(--bubble-accent) !important;
+    box-shadow:0 14px 34px rgba(0,0,0,.28) !important;
+  }
+  .bubble.has-pointer::before,
+  .bubble.has-pointer::after{
+    content:"" !important;
+    position:absolute !important;
+    display:block !important;
+    transform:none !important;
+    margin:0 !important;
+    box-shadow:none !important;
+    border:0 !important;
+    pointer-events:none !important;
+  }
+  .bubble.style-filled.has-pointer::before{content:none !important;}
+  .bubble.style-filled.has-pointer::after{
+    width:18px !important;
+    height:18px !important;
+    background:var(--bubble-bg) !important;
+    z-index:-1 !important;
+  }
+  .bubble.style-outline.has-pointer::before{
+    width:18px !important;
+    height:18px !important;
+    background:var(--bubble-accent) !important;
+    z-index:-2 !important;
+  }
+  .bubble.style-outline.has-pointer::after{
+    width:14px !important;
+    height:14px !important;
+    background:var(--outline-fill) !important;
+    z-index:-1 !important;
+  }
+  .bubble:not(.has-pointer)::before,
+  .bubble:not(.has-pointer)::after{content:none !important;}
+
+  .bubble.tail-left::before{left:-15px;top:50%;margin-top:-9px !important;clip-path:polygon(100% 0,0 50%,100% 100%);}
+  .bubble.tail-left::after{left:-11px;top:50%;margin-top:-7px !important;clip-path:polygon(100% 0,0 50%,100% 100%);}
+  .bubble.tail-right::before{right:-15px;top:50%;margin-top:-9px !important;clip-path:polygon(0 0,100% 50%,0 100%);}
+  .bubble.tail-right::after{right:-11px;top:50%;margin-top:-7px !important;clip-path:polygon(0 0,100% 50%,0 100%);}
+  .bubble.tail-top::before{top:-15px;left:50%;margin-left:-9px !important;clip-path:polygon(0 100%,50% 0,100% 100%);}
+  .bubble.tail-top::after{top:-11px;left:50%;margin-left:-7px !important;clip-path:polygon(0 100%,50% 0,100% 100%);}
+  .bubble.tail-bottom::before{bottom:-15px;left:50%;margin-left:-9px !important;clip-path:polygon(0 0,50% 100%,100% 0);}
+  .bubble.tail-bottom::after{bottom:-11px;left:50%;margin-left:-7px !important;clip-path:polygon(0 0,50% 100%,100% 0);}
+
+  .bubble.tail-top-left::before{top:-15px;left:24px;clip-path:polygon(0 100%,50% 0,100% 100%);}
+  .bubble.tail-top-left::after{top:-11px;left:26px;clip-path:polygon(0 100%,50% 0,100% 100%);}
+  .bubble.tail-top-right::before{top:-15px;right:24px;clip-path:polygon(0 100%,50% 0,100% 100%);}
+  .bubble.tail-top-right::after{top:-11px;right:26px;clip-path:polygon(0 100%,50% 0,100% 100%);}
+  .bubble.tail-bottom-left::before{bottom:-15px;left:24px;clip-path:polygon(0 0,50% 100%,100% 0);}
+  .bubble.tail-bottom-left::after{bottom:-11px;left:26px;clip-path:polygon(0 0,50% 100%,100% 0);}
+  .bubble.tail-bottom-right::before{bottom:-15px;right:24px;clip-path:polygon(0 0,50% 100%,100% 0);}
+  .bubble.tail-bottom-right::after{bottom:-11px;right:26px;clip-path:polygon(0 0,50% 100%,100% 0);}
+
+  .bubble.style-filled.tail-left::after{left:-9px !important;top:50%;margin-top:-9px !important;}
+  .bubble.style-filled.tail-right::after{right:-9px !important;top:50%;margin-top:-9px !important;}
+  .bubble.style-filled.tail-top::after{top:-9px !important;left:50%;margin-left:-9px !important;}
+  .bubble.style-filled.tail-bottom::after{bottom:-9px !important;left:50%;margin-left:-9px !important;}
+  .bubble.style-filled.tail-top-left::after{top:-9px !important;left:24px !important;}
+  .bubble.style-filled.tail-top-right::after{top:-9px !important;right:24px !important;}
+  .bubble.style-filled.tail-bottom-left::after{bottom:-9px !important;left:24px !important;}
+  .bubble.style-filled.tail-bottom-right::after{bottom:-9px !important;right:24px !important;}
+
+
+  /* v0.32: limpieza final de filetes fantasma + señalador imantado */
+  .bubble,
+  .bubble.style-filled,
+  .bubble.style-outline{
+    outline:none !important;
+    -webkit-tap-highlight-color:transparent !important;
+  }
+  body.editing .bubble,
+  .bubble.selected{
+    outline:none !important;
+  }
+
+  .bubble.style-filled{
+    border:0 !important;
+    box-shadow:0 16px 36px rgba(0,0,0,.30) !important;
+  }
+  .bubble.style-outline{
+    border:2px solid var(--bubble-accent) !important;
+    box-shadow:0 14px 34px rgba(0,0,0,.28) !important;
+    background:rgba(12,12,16,.50) !important;
+  }
+
+  .bubble.has-pointer::before{content:none !important;display:none !important;}
+  .bubble.has-pointer::after{
+    content:"" !important;
+    position:absolute !important;
+    display:block !important;
+    width:20px !important;
+    height:24px !important;
+    margin:0 !important;
+    border:0 !important;
+    outline:0 !important;
+    box-shadow:none !important;
+    transform:none !important;
+    pointer-events:none !important;
+    z-index:-1 !important;
+  }
+  .bubble.style-filled.has-pointer::after{background:var(--bubble-bg) !important;}
+  .bubble.style-outline.has-pointer::after{background:var(--bubble-accent) !important;}
+  .bubble:not(.has-pointer)::before,
+  .bubble:not(.has-pointer)::after{content:none !important;display:none !important;}
+
+  /* Base del triángulo pegada/imantada al borde del globito */
+  .bubble.tail-left::after{
+    left:-20px !important; right:auto !important; top:50% !important; bottom:auto !important;
+    margin-top:-12px !important; margin-left:0 !important;
+    clip-path:polygon(100% 0,0 50%,100% 100%) !important;
+  }
+  .bubble.tail-right::after{
+    right:-20px !important; left:auto !important; top:50% !important; bottom:auto !important;
+    margin-top:-12px !important; margin-left:0 !important;
+    clip-path:polygon(0 0,100% 50%,0 100%) !important;
+  }
+  .bubble.tail-top::after{
+    top:-20px !important; bottom:auto !important; left:50% !important; right:auto !important;
+    width:24px !important; height:20px !important; margin-left:-12px !important; margin-top:0 !important;
+    clip-path:polygon(0 100%,50% 0,100% 100%) !important;
+  }
+  .bubble.tail-bottom::after{
+    bottom:-20px !important; top:auto !important; left:50% !important; right:auto !important;
+    width:24px !important; height:20px !important; margin-left:-12px !important; margin-top:0 !important;
+    clip-path:polygon(0 0,50% 100%,100% 0) !important;
+  }
+  .bubble.tail-top-left::after{
+    top:-20px !important; bottom:auto !important; left:24px !important; right:auto !important;
+    width:24px !important; height:20px !important; margin:0 !important;
+    clip-path:polygon(0 100%,50% 0,100% 100%) !important;
+  }
+  .bubble.tail-top-right::after{
+    top:-20px !important; bottom:auto !important; right:24px !important; left:auto !important;
+    width:24px !important; height:20px !important; margin:0 !important;
+    clip-path:polygon(0 100%,50% 0,100% 100%) !important;
+  }
+  .bubble.tail-bottom-left::after{
+    bottom:-20px !important; top:auto !important; left:24px !important; right:auto !important;
+    width:24px !important; height:20px !important; margin:0 !important;
+    clip-path:polygon(0 0,50% 100%,100% 0) !important;
+  }
+  .bubble.tail-bottom-right::after{
+    bottom:-20px !important; top:auto !important; right:24px !important; left:auto !important;
+    width:24px !important; height:20px !important; margin:0 !important;
+    clip-path:polygon(0 0,50% 100%,100% 0) !important;
+  }
+
+
+  /* v0.35: controles debajo del video + panel lateral limpio */
+  .workspace{
+    flex:1;
+    min-height:0;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(330px,390px);
+    gap:14px;
+    align-items:stretch;
+  }
+  .videoPane{
+    min-width:0;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .sidePane{
+    min-height:0;
+    overflow-y:auto;
+    padding-right:3px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .videoPane .stageShell{flex:1;min-height:0;}
+  .videoPane .stage{width:min(100%, calc(100svh - 150px));max-width:100%;}
+  .stage,.videoBox{box-shadow:none !important;}
+  .customControls{flex:0 0 auto;}
+  .sidePane .eventList{max-height:none;overflow:visible;}
+  @media(max-width:880px){
+    .workspace{display:flex;flex-direction:column;min-height:auto;}
+    .sidePane{overflow:visible;padding-right:0;}
+    .videoPane .stage{width:100%;}
+    .stageShell{flex:none;}
+    .eventList{max-height:360px;overflow:auto;}
+  }
+
+
+  /* v0.36: layout de edición fijo y más equilibrado */
+  html,body{height:100%;overflow:hidden;}
+  .app{
+    height:100svh !important;
+    min-height:0 !important;
+    width:min(1320px,100%) !important;
+    padding:12px 14px !important;
+    overflow:hidden !important;
+  }
+  header{flex:0 0 auto;}
+  .workspace{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    height:auto !important;
+    display:grid !important;
+    grid-template-columns:minmax(520px,1fr) minmax(360px,430px) !important;
+    gap:16px !important;
+    align-items:center !important;
+  }
+  .videoPane{
+    min-width:0 !important;
+    min-height:0 !important;
+    align-self:center !important;
+    justify-content:center !important;
+    display:flex !important;
+    flex-direction:column !important;
+    gap:8px !important;
+  }
+  .videoPane .stageShell{
+    flex:0 0 auto !important;
+    min-height:0 !important;
+    align-items:center !important;
+    justify-content:center !important;
+  }
+  .videoPane .stage{
+    width:min(calc(100vw - 490px), calc(100svh - 160px), 760px) !important;
+    min-width:420px;
+    max-width:100% !important;
+  }
+  .customControls{
+    width:100%;
+    margin-top:4px !important;
+    flex:0 0 auto !important;
+  }
+  .sidePane{
+    align-self:center !important;
+    min-height:0 !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch;
+    padding-right:4px !important;
+  }
+  .sidePane .eventList{max-height:none !important;overflow:visible !important;}
+
+  @media(max-width:880px){
+    html,body{height:100%;overflow:hidden;}
+    .app{
+      height:100svh !important;
+      min-height:0 !important;
+      padding:10px 14px !important;
+      gap:10px !important;
+      overflow:hidden !important;
+    }
+    header{flex:0 0 auto;}
+    .workspace{
+      flex:1 1 auto !important;
+      min-height:0 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      gap:12px !important;
+      overflow:hidden !important;
+      align-items:stretch !important;
+    }
+    .videoPane{
+      flex:0 0 auto !important;
+      min-height:0 !important;
+      gap:8px !important;
+    }
+    .videoPane .stageShell{flex:none !important;}
+    .videoPane .stage{
+      width:100% !important;
+      min-width:0 !important;
+      max-width:100% !important;
+      aspect-ratio:1/1 !important;
+    }
+    .customControls{flex:0 0 auto !important;}
+    .sidePane{
+      flex:1 1 auto !important;
+      min-height:0 !important;
+      overflow-y:auto !important;
+      padding-right:0 !important;
+      align-self:stretch !important;
+    }
+    .sidePane .eventList{max-height:none !important;overflow:visible !important;}
+  }
+
+  @media(min-width:881px) and (max-height:760px){
+    .videoPane .stage{width:min(calc(100vw - 490px), calc(100svh - 145px), 690px) !important;}
+  }
+
+
+
+  /* v0.37: video más grande, controles imantados y scroll oscuro */
+  html,body{height:100%;overflow:hidden;}
+  .app{
+    width:min(1480px,100%) !important;
+    height:100svh !important;
+    min-height:0 !important;
+    padding:12px 16px !important;
+    overflow:hidden !important;
+    gap:10px !important;
+  }
+  header{flex:0 0 auto;}
+  .workspace{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    display:grid !important;
+    grid-template-columns:minmax(620px,1fr) minmax(390px,460px) !important;
+    gap:18px !important;
+    align-items:start !important;
+  }
+  .videoPane{
+    align-self:start !important;
+    justify-content:flex-start !important;
+    gap:8px !important;
+    min-height:0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+  }
+  .videoPane .stageShell{
+    flex:0 0 auto !important;
+    align-items:center !important;
+    justify-content:center !important;
+    min-height:0 !important;
+  }
+  .videoPane .stage{
+    width:min(calc(100vw - 520px), calc(100svh - 112px), 860px) !important;
+    min-width:520px !important;
+    max-width:100% !important;
+  }
+  .customControls{
+    width:100% !important;
+    max-width:860px !important;
+    margin:0 auto !important;
+    flex:0 0 auto !important;
+  }
+  .sidePane{
+    align-self:start !important;
+    min-height:0 !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch;
+    padding-right:4px !important;
+    scrollbar-color:rgba(255,255,255,.22) transparent;
+    scrollbar-width:thin;
+  }
+  .sidePane::-webkit-scrollbar{width:8px;}
+  .sidePane::-webkit-scrollbar-track{background:transparent;}
+  .sidePane::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:999px;border:2px solid transparent;background-clip:content-box;}
+  .sidePane::-webkit-scrollbar-corner{background:transparent;}
+  .eventList::-webkit-scrollbar{width:8px;}
+  .eventList::-webkit-scrollbar-track{background:transparent;}
+  .eventList::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:999px;border:2px solid transparent;background-clip:content-box;}
+  .sidePane .eventList{max-height:none !important;overflow:visible !important;}
+
+  @media(min-width:881px) and (max-height:820px){
+    .videoPane .stage{width:min(calc(100vw - 520px), calc(100svh - 132px), 800px) !important;}
+  }
+  @media(min-width:881px) and (max-height:700px){
+    .videoPane .stage{width:min(calc(100vw - 520px), calc(100svh - 148px), 720px) !important;}
+  }
+
+  @media(max-width:880px){
+    html,body{height:100%;overflow:hidden;}
+    .app{
+      width:100% !important;
+      height:100svh !important;
+      min-height:0 !important;
+      padding:8px 8px calc(8px + env(safe-area-inset-bottom)) !important;
+      gap:8px !important;
+      overflow:hidden !important;
+    }
+    header{flex:0 0 auto;gap:8px;}
+    .brand{font-size:18px;line-height:1.05;}
+    .brand small{font-size:12px;}
+    .workspace{
+      flex:1 1 auto !important;
+      min-height:0 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      gap:8px !important;
+      overflow:hidden !important;
+      align-items:stretch !important;
+    }
+    .videoPane{
+      flex:0 0 auto !important;
+      gap:7px !important;
+      align-self:stretch !important;
+    }
+    .videoPane .stageShell{flex:none !important;}
+    .videoPane .stage{
+      width:100% !important;
+      min-width:0 !important;
+      max-width:100% !important;
+      aspect-ratio:1/1 !important;
+      border-radius:22px !important;
+    }
+    .videoBox{inset:2.5% !important;border-radius:24px !important;}
+    video{border-radius:24px !important;}
+    .customControls{flex:0 0 auto !important;margin:0 !important;}
+    .sidePane{
+      flex:1 1 auto !important;
+      min-height:0 !important;
+      overflow-y:auto !important;
+      padding-right:0 !important;
+      align-self:stretch !important;
+      scrollbar-color:rgba(255,255,255,.18) transparent;
+      scrollbar-width:thin;
+    }
+    .sidePane .eventList{max-height:none !important;overflow:visible !important;}
+  }
+
+  @media(max-width:420px){
+    .app{padding:7px 7px calc(7px + env(safe-area-inset-bottom)) !important;}
+    button,label.btn{padding:8px 11px;border-radius:13px;}
+    .customControls{padding:9px;border-radius:18px;}
+    .controls{padding:10px;border-radius:20px;}
+  }
+
+
+
+  /* v0.38: corrección real de tamaño de video */
+  .workspace{
+    grid-template-columns:minmax(0,1fr) minmax(390px,460px) !important;
+    gap:18px !important;
+  }
+  .videoPane, .videoPane .stageShell{
+    width:100% !important;
+    max-width:none !important;
+  }
+  .videoPane .stageShell{
+    display:flex !important;
+  }
+  .videoPane .stage{
+    /* La etapa crece hasta donde permita el alto útil, no queda limitada por un ancho viejo */
+    width:min(100%, calc(100svh - 118px), 920px) !important;
+    min-width:0 !important;
+    max-width:none !important;
+  }
+  .customControls{
+    max-width:920px !important;
+    width:min(100%, 920px) !important;
+    align-self:center !important;
+  }
+  .sidePane{
+    max-height:calc(100svh - 82px) !important;
+  }
+
+  @media(min-width:881px) and (max-height:820px){
+    .videoPane .stage{width:min(100%, calc(100svh - 126px), 860px) !important;}
+  }
+  @media(min-width:881px) and (max-height:700px){
+    .videoPane .stage{width:min(100%, calc(100svh - 142px), 760px) !important;}
+  }
+
+  @media(max-width:880px){
+    .videoPane, .videoPane .stageShell{
+      width:100% !important;
+      max-width:none !important;
+      align-self:stretch !important;
+    }
+    .videoPane .stageShell{
+      display:flex !important;
+      justify-content:center !important;
+    }
+    .videoPane .stage{
+      width:100% !important;
+      max-width:none !important;
+      min-width:0 !important;
+      aspect-ratio:1/1 !important;
+    }
+  }
+
+  @media(max-width:420px){
+    .app{padding-left:6px !important;padding-right:6px !important;}
+    .videoBox{inset:2% !important;}
+  }
+
+
+  /* Experimento filtros visuales */
+  .filterPanel{
+    background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:10px;display:grid;gap:8px;
+  }
+  .filterTitle{font-size:12px;color:#cfcfd8;font-weight:850;letter-spacing:.02em}
+  .filterButtons{display:flex;gap:7px;flex-wrap:wrap}
+  .filterBtn{font-size:12px;padding:7px 9px;border-radius:11px;background:#252531;color:#fff;border:1px solid rgba(255,255,255,.11);box-shadow:none}
+  .filterBtn.active{background:var(--accent);color:#111}
+  .videoBox.fx-bw video{filter:grayscale(1) contrast(1.08)}
+  .videoBox.fx-burn video{filter:grayscale(1) contrast(2.1) brightness(1.35) saturate(.25)}
+  .videoBox.fx-pixel video{filter:grayscale(1) contrast(1.8) brightness(1.12); transform:scale(1.015); image-rendering:pixelated}
+  .videoBox.fx-noir video{filter:grayscale(1) contrast(1.45) brightness(.82)}
+  .videoBox.fx-warm video{filter:sepia(.42) saturate(1.55) contrast(1.05)}
+  .videoBox.fx-cold video{filter:saturate(1.15) contrast(1.08) hue-rotate(175deg)}
+  .videoBox.fx-invert video{filter:invert(1) hue-rotate(180deg) contrast(1.05)}
+  .videoBox.fx-burn::after, .videoBox.fx-noir::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%, transparent 48%, rgba(0,0,0,.42) 100%);z-index:5}
+  .videoBox.fx-pixel::before{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px 5px);mix-blend-mode:overlay;opacity:.42}
+  .aiOverlay{position:absolute;inset:0;z-index:7;pointer-events:none;display:none;overflow:hidden}
+  .videoBox.ai-on .aiOverlay{display:block}
+  .aiBox{position:absolute;border:2px solid rgba(247,197,91,.85);border-radius:6px;box-shadow:0 0 18px rgba(247,197,91,.28);opacity:.75}
+  .aiBox::before{content:attr(data-label);position:absolute;left:-2px;top:-20px;background:rgba(247,197,91,.92);color:#111;border-radius:5px 5px 5px 0;font-size:10px;font-weight:900;padding:3px 5px;white-space:nowrap}
+  .aiScan{position:absolute;left:0;right:0;height:2px;background:rgba(147,255,183,.75);box-shadow:0 0 14px rgba(147,255,183,.8);animation:scanLine 2.4s linear infinite}
+  @keyframes scanLine{from{top:0%}to{top:100%}}
+
+  /* Texturas superpuestas sobre el video: textura + mezcla + opacidad libres */
+  .textureOverlay{
+    position:absolute;inset:0;z-index:5;pointer-events:none;
+    opacity:var(--texture-opacity,0);
+    background-image:var(--texture-image,none);
+    background-size:cover;background-position:center;background-repeat:repeat;
+    mix-blend-mode:var(--texture-blend,soft-light);
+    filter:contrast(1.18) brightness(1.02);
+    transition:opacity .18s ease;
+  }
+  .textureTools{display:grid;gap:8px}
+  .textureOpacityRow{display:flex;align-items:center;gap:8px;font-size:12px;color:#d7d7df}
+  .textureOpacityRow input{flex:1;min-width:120px}
+  .textureOpacityValue{min-width:38px;text-align:right;color:var(--accent);font-weight:900}
+
+
+
+
+
+  /* v0.44: fondo general rectangular con luz central */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:-2;
+    background-image:linear-gradient(rgba(8,8,10,.30),rgba(8,8,10,.58)), url('fondo.png');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    filter:saturate(.88) contrast(1.05);
+  }
+  body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    pointer-events:none;
+    background:radial-gradient(circle at center, rgba(255,255,255,.16) 0%, rgba(255,255,255,.07) 34%, rgba(0,0,0,.34) 78%, rgba(0,0,0,.62) 100%);
+    mix-blend-mode:soft-light;
+  }
+  .app{position:relative;z-index:1;}
+  .editorActionBar{
+    position:sticky;
+    top:0;
+    z-index:40;
+    background:rgba(18,18,24,.92);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.13);
+    border-radius:18px;
+    padding:10px;
+    box-shadow:0 12px 36px rgba(0,0,0,.26);
+  }
+  .editorActionBar button,.editorActionBar label.btn{font-size:13px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;}
+  /* v0.46: barra superior más baja y siempre visible */
+  .editorActionBar.compactBar{padding:7px 8px;border-radius:15px;gap:6px;}
+  .editorActionBar.compactBar button,.editorActionBar.compactBar label.btn{font-size:12px;min-height:32px;padding:7px 10px;border-radius:12px;line-height:1;}
+  .editorActionBar.compactBar .iconTxt{font-size:13px;font-weight:900;letter-spacing:.1px;}
+  .eventItem .eventHead .row button{font-size:12px;min-height:31px;padding:7px 9px;}
+  .visualSettingsItem{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:10px;}
+  .visualSettingsItem .eventHead{margin-bottom:0;}
+  .settingsSummary{margin-top:6px;color:#bdbdc8;font-size:12px;line-height:1.35;}
+  .visualSettingsBody{margin-top:10px;display:grid;gap:10px;}
+  .visualSettingsItem.open{border-color:rgba(247,197,91,.35);box-shadow:0 0 0 1px rgba(247,197,91,.10) inset;}
+
+  /* v0.44: fondo + marcos independientes + carga manual */
+  .stage{
+    background:#111217 var(--stage-bg, url('fondo_marco.png')) center/cover no-repeat !important;
+  }
+  .stage.no-bg{--stage-bg:none;}
+  .videoBox{
+    border:10px solid #000 !important;
+    box-sizing:border-box !important;
+  }
+  .frameOverlay{
+    position:absolute;inset:-1px;z-index:8;pointer-events:none;
+    opacity:var(--frame-opacity,1);
+    background-image:var(--frame-image,none);
+    background-size:100% 100%;
+    background-position:center;
+    background-repeat:no-repeat;
+    mix-blend-mode:multiply;
+    filter:contrast(1.08) brightness(.98);
+  }
+  .textureOverlay{z-index:5;}
+  .aiOverlay{z-index:7;}
+  .assetTools{display:grid;gap:8px}
+  .assetRow{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+  .assetNote{font-size:11.5px;color:#bdbdc8;line-height:1.35;margin-top:-2px}
+  .filterBtn.fileBtn{display:inline-flex;align-items:center;justify-content:center}
+  .filterBtn.fileBtn input{display:none}
+
+
+  /* v0.45: bloqueo del scroll general en iPad/celular. Sólo scrollea el panel derecho */
+  html, body{
+    position:fixed !important;
+    inset:0 !important;
+    width:100% !important;
+    height:100% !important;
+    overflow:hidden !important;
+    overscroll-behavior:none !important;
+    -webkit-overflow-scrolling:auto !important;
+  }
+  body{touch-action:none;}
+  .app{
+    position:fixed !important;
+    inset:0 !important;
+    height:100dvh !important;
+    max-height:100dvh !important;
+    overflow:hidden !important;
+    margin:auto !important;
+  }
+  .workspace,.videoPane,.videoPane .stageShell,.stage,.videoBox,.customControls{
+    overscroll-behavior:none !important;
+  }
+  .sidePane{
+    touch-action:pan-y !important;
+    overscroll-behavior:contain !important;
+    -webkit-overflow-scrolling:touch !important;
+  }
+  .bubble{touch-action:none !important;}
+
+  /* v0.45: fondo general cambiable por variable */
+  body::before{
+    background-image:linear-gradient(rgba(8,8,10,.30),rgba(8,8,10,.58)), var(--page-bg, url('fondo.png')) !important;
+    background-size:cover !important;
+    background-position:center !important;
+    background-repeat:no-repeat !important;
+  }
+
+  /* v0.45: separación más marcada entre fondo general, fondo del marco y video */
+  .stage{
+    box-shadow:
+      0 0 0 8px rgba(0,0,0,.34),
+      0 0 0 10px rgba(255,255,255,.045),
+      0 18px 48px rgba(0,0,0,.44) !important;
+    border:1px solid rgba(0,0,0,.62) !important;
+  }
+  .stage::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:28px;
+    pointer-events:none;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.08), inset 0 0 42px rgba(0,0,0,.28);
+    z-index:0;
+  }
+  .videoBox{
+    box-shadow:0 0 0 6px rgba(0,0,0,.68), 0 12px 28px rgba(0,0,0,.42) !important;
+  }
+  .editorActionBar{
+    position:sticky !important;
+    top:0 !important;
+    z-index:80 !important;
+  }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">Video interactivo <small>Editor v0.50 · timeline independiente</small></div>
+    <div class="row">
+      <button id="editorBtn" class="accent">Editar</button>
+      <button id="restartBtn" class="secondary">Reiniciar video</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <div class="videoPane">
+      <main class="stageShell">
+        <section class="stage" id="stage">
+          <div class="videoBox" id="videoBox">
+            <video id="video" playsinline webkit-playsinline preload="auto" src="video.mp4"></video>
+            <div class="textureOverlay" id="textureOverlay" aria-hidden="true"></div>
+            <div class="frameOverlay" id="frameOverlay" aria-hidden="true"></div>
+            <div class="aiOverlay" id="aiOverlay"><div class="aiScan"></div><div class="aiBox" data-label="OBJETO 01" style="left:12%;top:18%;width:30%;height:22%"></div><div class="aiBox" data-label="ZONA 02" style="left:54%;top:32%;width:28%;height:18%"></div><div class="aiBox" data-label="MOVIMIENTO" style="left:28%;top:64%;width:38%;height:20%"></div></div>
+            <div class="videoLoader" id="videoLoader" aria-hidden="true"></div>
+          </div>
+          <div id="overlayBubbles"></div>
+        </section>
+      </main>
+
+      <section class="customControls">
+        <div class="seekRow">
+          <button id="mainPlay" class="accent">Play</button>
+          <input id="seek" type="range" min="0" max="1000" value="0">
+          <div class="duration"><span id="timeNow">0:00.0</span> / <span id="timeDur">0:00.0</span></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="sidePane">
+      <section class="publicInfo" id="publicInfo">
+    <h2>Recorrido informativo</h2>
+    <p>Esta presentación acompaña el video con datos visuales y comentarios breves para destacar detalles importantes del recorrido.</p>
+    <ul>
+      <li>Superficie estimada: 120 m² cubiertos.</li>
+      <li>Ambientes luminosos y circulación cómoda.</li>
+      <li>Información adicional agregada mediante globitos interactivos.</li>
+    </ul>
+  </section>
+
+  <section id="editor" class="controls hidden">
+    <div class="row editorActionBar compactBar">
+      <button id="addCurrent" class="accent"><span class="iconTxt">+ Bloque</span></button>
+      <button id="exportJson" class="secondary" title="Exportar JSON"><span class="iconTxt">⬆ JSON</span></button>
+      <label class="btn secondary" for="importJson" title="Importar JSON"><span class="iconTxt">⬇ JSON</span></label><input id="importJson" type="file" accept="application/json,.json,.hunk">
+    </div>
+
+    <div class="eventItem visualSettingsItem" id="visualSettingsItem" ondblclick="toggleVisualSettings()" title="Doble clic: abrir/cerrar settings visuales">
+      <div class="eventHead">
+        <div>
+          <span class="time">Settings visuales</span>
+          <span class="muted"> · video · fondo marco · bordes · textura</span>
+          <div class="settingsSummary" id="settingsSummary">Fondo marco, sin borde, sin textura.</div>
+        </div>
+        <div class="row">
+          <button class="secondary" onclick="event.stopPropagation(); toggleVisualSettings()">Editar</button>
+        </div>
+      </div>
+      <div class="inlineEdit visualSettingsBody hidden" id="visualSettingsBody" onclick="event.stopPropagation()">
+        <div class="filterPanel assetTools">
+          <div class="filterTitle">Video</div>
+          <div class="assetRow">
+            <button class="filterBtn active" id="useFixedVideo">video.mp4</button>
+            <label class="filterBtn fileBtn" for="manualVideo">Cargar video<input id="manualVideo" type="file" accept="video/mp4,video/webm,video/ogg,video/*"></label>
+          </div>
+          <div class="assetNote">Si no cargás nada manual, usa el archivo <b>video.mp4</b> de la carpeta.</div>
+
+          <div class="filterTitle">Fondo general</div>
+          <div class="filterButtons" id="pageBgButtons">
+            <button class="filterBtn" data-page-bg="none">Sin fondo</button>
+            <button class="filterBtn active" data-page-bg="fixed">fondo.png</button>
+            <label class="filterBtn fileBtn" for="manualPageBg">Cargar fondo general<input id="manualPageBg" type="file" accept="image/png,image/jpeg,image/webp,image/*"></label>
+          </div>
+          <div class="assetNote">Este fondo ocupa toda la pantalla y queda fijo. Si cargás uno manual, se mantiene mientras el HTML esté abierto.</div>
+
+          <div class="filterTitle">Fondo del marco</div>
+          <div class="filterButtons" id="bgButtons">
+            <button class="filterBtn" data-bg="none">Sin fondo</button>
+            <button class="filterBtn active" data-bg="fixed">fondo_marco.png</button>
+            <label class="filterBtn fileBtn" for="manualBg">Cargar fondo<input id="manualBg" type="file" accept="image/png,image/jpeg,image/webp,image/*"></label>
+          </div>
+          <div class="assetNote">Este fondo queda dentro del cuadrado, detrás del video. El fondo general rectangular queda aplicado a toda la pantalla.</div>
+        </div>
+
+        <div class="filterPanel textureTools">
+          <div class="filterTitle">Marco / borde</div>
+          <div class="filterButtons" id="frameButtons">
+            <button class="filterBtn active" data-frame="none">Sin marco</button>
+            <button class="filterBtn" data-frame="1">Borde 1</button>
+            <button class="filterBtn" data-frame="2">Borde 2</button>
+            <button class="filterBtn" data-frame="3">Borde 3</button>
+            <button class="filterBtn" data-frame="4">Borde 4</button>
+          </div>
+          <div class="assetNote">El marco usa mezcla <b>multiplicar / más oscuro</b> fija: lo blanco no molesta y lo negro se integra con el borde del video.</div>
+
+          <div class="filterTitle">Textura sobre el video</div>
+          <div class="filterButtons" id="textureButtons">
+            <button class="filterBtn active" data-texture="none">Sin textura</button>
+            <button class="filterBtn" data-texture="1">Textura 1</button>
+            <button class="filterBtn" data-texture="2">Textura 2</button>
+            <button class="filterBtn" data-texture="3">Papel doblado</button>
+            <button class="filterBtn" data-texture="4">Textura 4</button>
+          </div>
+          <div class="filterTitle">Mezcla</div>
+          <div class="filterButtons" id="textureBlendButtons">
+            <button class="filterBtn active" data-blend="normal">Normal</button>
+            <button class="filterBtn" data-blend="multiply">Oscurecer</button>
+            <button class="filterBtn" data-blend="screen">Pantalla</button>
+            <button class="filterBtn" data-blend="overlay">Superponer</button>
+            <button class="filterBtn" data-blend="darken">Más oscuro</button>
+            <button class="filterBtn" data-blend="lighten">Aclarar</button>
+            <button class="filterBtn" data-blend="difference">Diferencia</button>
+            <button class="filterBtn" data-blend="soft-light">Suave</button>
+          </div>
+          <div class="textureOpacityRow">
+            <span>Opacidad</span>
+            <input id="textureOpacity" type="range" min="0" max="100" value="45">
+            <span class="textureOpacityValue" id="textureOpacityValue">45%</span>
+          </div>
+          <div class="row">
+            <button class="secondary" onclick="toggleVisualSettings()">Cerrar settings</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="help">
+      Modo público por defecto: la persona sólo ve el video con globitos. El prólogo queda preparado para editar en la próxima etapa. Para editar, tocá <b>Editar</b> e ingresá el código <b>1234</b>. El video usa controles propios para evitar pantalla completa en iPad/celular.
+    </div>
+    <div class="eventList" id="eventList"></div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+const video=document.getElementById('video');
+const videoBox=document.getElementById('videoBox');
+const stage=document.getElementById('stage');
+const overlayBubbles=document.getElementById('overlayBubbles');
+const editor=document.getElementById('editor');
+const eventList=document.getElementById('eventList');
+const mainPlay=document.getElementById('mainPlay');
+const seek=document.getElementById('seek');
+const timeNow=document.getElementById('timeNow');
+const timeDur=document.getElementById('timeDur');
+const textureButtons=document.getElementById('textureButtons');
+const textureBlendButtons=document.getElementById('textureBlendButtons');
+const textureOpacity=document.getElementById('textureOpacity');
+const textureOpacityValue=document.getElementById('textureOpacityValue');
+const frameButtons=document.getElementById('frameButtons');
+const bgButtons=document.getElementById('bgButtons');
+const pageBgButtons=document.getElementById('pageBgButtons');
+const manualPageBg=document.getElementById('manualPageBg');
+const manualVideo=document.getElementById('manualVideo');
+const manualBg=document.getElementById('manualBg');
+const useFixedVideo=document.getElementById('useFixedVideo');
+const aiOverlay=document.getElementById('aiOverlay');
+
+
+let currentFrame='none';
+let currentBg='fixed';
+let manualVideoUrl=null;
+let manualBgUrl=null;
+let currentPageBg='fixed';
+let manualPageBgUrl=null;
+const frameMap={
+  none:'none',
+  1:"url('borde_1.png')",
+  2:"url('borde_2.png')",
+  3:"url('borde_3.png')",
+  4:"url('borde_4.png')"
+};
+function updateFrame(){
+  const image=frameMap[currentFrame] || 'none';
+  videoBox.style.setProperty('--frame-image', image);
+  videoBox.style.setProperty('--frame-opacity', currentFrame==='none'?'0':'1');
+  document.querySelectorAll('#frameButtons .filterBtn').forEach(btn=>btn.classList.toggle('active', btn.dataset.frame===currentFrame));
+  updateSettingsSummary();
+}
+function setFrame(name){currentFrame=name||'none';updateFrame();}
+
+function updatePageBackground(){
+  let bg="url('fondo.png')";
+  if(currentPageBg==='none') bg='none';
+  if(currentPageBg==='manual' && manualPageBgUrl) bg=`url("${manualPageBgUrl}")`;
+  document.body.style.setProperty('--page-bg', bg);
+  document.querySelectorAll('#pageBgButtons .filterBtn').forEach(btn=>btn.classList.toggle('active', btn.dataset.pageBg===currentPageBg));
+  updateSettingsSummary();
+}
+function setPageBackgroundMode(name){currentPageBg=name||'fixed';updatePageBackground();}
+function updateBackground(){
+  let bg='none';
+  if(currentBg==='fixed') bg="url('fondo_marco.png')";
+  if(currentBg==='manual' && manualBgUrl) bg=`url("${manualBgUrl}")`;
+  stage.style.setProperty('--stage-bg', bg);
+  stage.classList.toggle('no-bg', bg==='none');
+  document.querySelectorAll('#bgButtons .filterBtn').forEach(btn=>btn.classList.toggle('active', btn.dataset.bg===currentBg));
+  updateSettingsSummary();
+}
+function setBackgroundMode(name){currentBg=name||'none';updateBackground();}
+
+let videoTexture='none';
+let videoTextureBlend='normal';
+let videoTextureOpacity=.45;
+const textureMap={
+  none:'none',
+  1:"url('textura_1.png')",
+  2:"url('textura_2.png')",
+  3:"url('textura_3.png')",
+  4:"url('textura_4.png')"
+};
+
+function updateSettingsSummary(){
+  const el=document.getElementById('settingsSummary');
+  if(!el) return;
+  const pageBgLabel=currentPageBg==='none'?'sin fondo general':(currentPageBg==='manual'?'fondo general manual':'fondo.png');
+  const bgLabel=currentBg==='none'?'sin fondo marco':(currentBg==='manual'?'fondo marco manual':'fondo_marco.png');
+  const frameLabel=currentFrame==='none'?'sin borde':'borde '+currentFrame;
+  const texLabel=videoTexture==='none'?'sin textura':(videoTexture==='3'?'papel doblado':'textura '+videoTexture);
+  const blendLabel=videoTexture==='none'?'':` · mezcla ${videoTextureBlend} · ${Math.round(videoTextureOpacity*100)}%`;
+  el.textContent=`${pageBgLabel}, ${bgLabel}, ${frameLabel}, ${texLabel}${blendLabel}.`;
+}
+function toggleVisualSettings(force){
+  const body=document.getElementById('visualSettingsBody');
+  const item=document.getElementById('visualSettingsItem');
+  if(!body) return;
+  const willOpen = (typeof force==='boolean') ? force : body.classList.contains('hidden');
+  body.classList.toggle('hidden', !willOpen);
+  if(item) item.classList.toggle('open', willOpen);
+}
+
+function updateVideoTexture(){
+  const image=textureMap[videoTexture] || 'none';
+  const activeOpacity=(videoTexture==='none')?0:videoTextureOpacity;
+  videoBox.style.setProperty('--texture-image', image);
+  videoBox.style.setProperty('--texture-blend', videoTextureBlend);
+  videoBox.style.setProperty('--texture-opacity', String(activeOpacity));
+  document.querySelectorAll('#textureButtons .filterBtn').forEach(btn=>btn.classList.toggle('active', btn.dataset.texture===videoTexture));
+  document.querySelectorAll('#textureBlendButtons .filterBtn').forEach(btn=>btn.classList.toggle('active', btn.dataset.blend===videoTextureBlend));
+  if(textureOpacityValue) textureOpacityValue.textContent=Math.round(videoTextureOpacity*100)+'%';
+  updateSettingsSummary();
+}
+function setVideoTexture(name){videoTexture=name||'none';updateVideoTexture();}
+function setVideoTextureBlend(name){videoTextureBlend=name||'normal';updateVideoTexture();}
+if(textureButtons){
+  textureButtons.addEventListener('click', ev=>{
+    const btn=ev.target.closest('.filterBtn');
+    if(!btn) return;
+    setVideoTexture(btn.dataset.texture || 'none');
+  });
+}
+if(textureBlendButtons){
+  textureBlendButtons.addEventListener('click', ev=>{
+    const btn=ev.target.closest('.filterBtn');
+    if(!btn) return;
+    setVideoTextureBlend(btn.dataset.blend || 'normal');
+  });
+}
+if(textureOpacity){
+  textureOpacity.addEventListener('input', ()=>{
+    videoTextureOpacity=(Number(textureOpacity.value)||0)/100;
+    updateVideoTexture();
+  });
+}
+updateVideoTexture();
+updateFrame();
+updatePageBackground();
+updateBackground();
+if(frameButtons){
+  frameButtons.addEventListener('click', ev=>{
+    const btn=ev.target.closest('.filterBtn');
+    if(!btn || !btn.dataset.frame) return;
+    setFrame(btn.dataset.frame);
+  });
+}
+if(bgButtons){
+  bgButtons.addEventListener('click', ev=>{
+    const btn=ev.target.closest('.filterBtn');
+    if(!btn || !btn.dataset.bg) return;
+    setBackgroundMode(btn.dataset.bg);
+  });
+}
+
+if(pageBgButtons){
+  pageBgButtons.addEventListener('click', ev=>{
+    const btn=ev.target.closest('.filterBtn');
+    if(!btn || !btn.dataset.pageBg) return;
+    setPageBackgroundMode(btn.dataset.pageBg);
+  });
+}
+if(manualPageBg){
+  manualPageBg.addEventListener('change', ev=>{
+    const f=ev.target.files && ev.target.files[0];
+    if(!f) return;
+    if(manualPageBgUrl) URL.revokeObjectURL(manualPageBgUrl);
+    manualPageBgUrl=URL.createObjectURL(f);
+    setPageBackgroundMode('manual');
+  });
+}
+if(manualBg){
+  manualBg.addEventListener('change', ev=>{
+    const f=ev.target.files && ev.target.files[0];
+    if(!f) return;
+    if(manualBgUrl) URL.revokeObjectURL(manualBgUrl);
+    manualBgUrl=URL.createObjectURL(f);
+    setBackgroundMode('manual');
+  });
+}
+if(manualVideo){
+  manualVideo.addEventListener('change', ev=>{
+    const f=ev.target.files && ev.target.files[0];
+    if(!f) return;
+    if(manualVideoUrl) URL.revokeObjectURL(manualVideoUrl);
+    manualVideoUrl=URL.createObjectURL(f);
+    videoBox.classList.remove('video-ready');
+    video.src=manualVideoUrl;
+    video.load();
+    video.pause();
+    if(useFixedVideo) useFixedVideo.classList.remove('active');
+  });
+}
+if(useFixedVideo){
+  useFixedVideo.addEventListener('click', ()=>{
+    videoBox.classList.remove('video-ready');
+    video.src='video.mp4';
+    video.load();
+    video.pause();
+    useFixedVideo.classList.add('active');
+  });
+}
+
+let selectedIndex=-1;
+let openEditIndex=-1;
+let dragIndex=-1;
+let dragEl=null;
+let dragOffset={x:0,y:0};
+let dragging=false;
+let lastOverlayKey='';
+const animatedVisibleEvents=new Set();
+
+let events=[
+  {start:1.0,duration:5,type:'text',boxX:58,boxY:14,title:'Nuevo título',text:'Nuevo texto para este momento de video.',showPointer:true,bubbleColor:'warm',bubbleStyle:'filled',bubbleSize:1,locked:false,bubbleBlend:'normal'}
+];
+
+const bubbleColors={
+  warm:{label:'Amarillo',bg:'#f7c55b',accent:'#f7c55b',text:'#111'},
+  coral:{label:'Rojo suave',bg:'#ff9b83',accent:'#ff9b83',text:'#111'},
+  sky:{label:'Celeste',bg:'#9fdcff',accent:'#9fdcff',text:'#111'},
+  green:{label:'Verde',bg:'#a8e6a1',accent:'#a8e6a1',text:'#111'},
+  white:{label:'Blanco',bg:'#f5f2ea',accent:'#f5f2ea',text:'#111'}
+};
+function colorPickerHtml(i,current){
+  return `<div class="colorPicker">`+Object.entries(bubbleColors).map(([key,c])=>`
+    <label class="colorChoice" title="${c.label}">
+      <input type="radio" name="bubbleColor-${i}" value="${key}" ${current===key?'checked':''}>
+      <span class="swatch" style="background:${c.bg}"></span>
+    </label>`).join('')+`</div>`;
+}
+function stylePickerHtml(i,current){
+  return `<div class="styleChoice">
+    <label><input type="radio" name="bubbleStyle-${i}" value="filled" ${current!=='outline'?'checked':''}><span class="pill">Relleno</span></label>
+    <label><input type="radio" name="bubbleStyle-${i}" value="outline" ${current==='outline'?'checked':''}><span class="pill">Filete</span></label>
+  </div>`;
+}
+function sizePickerHtml(i,current){
+  current=Number(current)||1;
+  return `<div class="styleChoice">
+    <label><input type="radio" name="bubbleSize-${i}" value="1" ${current===1?'checked':''}><span class="pill">X</span></label>
+    <label><input type="radio" name="bubbleSize-${i}" value="2" ${current===2?'checked':''}><span class="pill">2X</span></label>
+    <label><input type="radio" name="bubbleSize-${i}" value="3" ${current===3?'checked':''}><span class="pill">3X</span></label>
+  </div>`;
+}
+function blendPickerHtml(i,current){
+  current=current||'normal';
+  const opts=[
+    ['normal','Normal'],
+    ['multiply','Oscurecer'],
+    ['screen','Pantalla'],
+    ['overlay','Superponer'],
+    ['darken','Más oscuro'],
+    ['lighten','Aclarar'],
+    ['difference','Diferencia']
+  ];
+  return `<div class="styleChoice">`+opts.map(([value,label])=>`
+    <label><input type="radio" name="bubbleBlend-${i}" value="${value}" ${current===value?'checked':''}><span class="pill">${label}</span></label>`).join('')+`
+  </div>`;
+}
+function selectedRadio(name,fallback){
+  return document.querySelector(`input[name="${name}"]:checked`)?.value || fallback;
+}
+
+function fmt(s){s=Number(s)||0;const m=Math.floor(s/60);const ss=(s%60).toFixed(1).padStart(4,'0');return `${m}:${ss}`;}
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+function attr(s){return escapeHtml(s).replace(/"/g,'&quot;');}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+
+function tailClassFor(e){
+  const x=Number(e.boxX)||0, y=Number(e.boxY)||0;
+  const left=x<33, right=x>60, top=y<25, bottom=y>62;
+  if(top&&left)return 'tail-bottom-right';
+  if(top&&right)return 'tail-bottom-left';
+  if(bottom&&left)return 'tail-top-right';
+  if(bottom&&right)return 'tail-top-left';
+  if(top)return 'tail-bottom';
+  if(bottom)return 'tail-top';
+  if(left)return 'tail-right';
+  return 'tail-left';
+}
+
+function cleanEvents(){
+  events=events.map((e,i)=>({
+    start:Number(e.start)||0,
+    duration:Number(e.duration)||4,
+    type:e.type||'text',
+    boxX:('boxX' in e)?Number(e.boxX):(i%2?8:58),
+    boxY:('boxY' in e)?Number(e.boxY):(12+i*12),
+    title:e.title||'',
+    text:e.text||'',
+    showPointer:e.showPointer!==false,
+    bubbleColor:e.bubbleColor||'warm',
+    bubbleStyle:e.bubbleStyle==='outline'?'outline':'filled',
+    bubbleSize:([1,2,3].includes(Number(e.bubbleSize))?Number(e.bubbleSize):1),
+    locked:e.locked===true,
+    bubbleBlend:['normal','multiply','screen','overlay','darken','lighten','difference'].includes(e.bubbleBlend)?e.bubbleBlend:'normal'
+  }));
+}
+
+
+
+function projectDuration(){
+  const videoDur=Number(video?.duration)||0;
+  const maxEvent=events.reduce((m,e)=>Math.max(m,(Number(e.start)||0)+(Number(e.duration)||0)),0);
+  // Si el navegador todavía no cargó la duración del video, no uses el último evento
+  // como total del timeline: eso mandaba el handle de fin al extremo derecho.
+  // Usamos 30s como base estable hasta que metadata del video esté disponible.
+  return Math.max(1, videoDur || 30, maxEvent);
+}
+function eventColor(e){
+  return (bubbleColors[e?.bubbleColor]||bubbleColors.warm).accent;
+}
+function miniTimelineHtml(i,e){
+  const total=projectDuration();
+  const start=clamp(Number(e.start)||0,0,total);
+  const end=clamp(start+(Number(e.duration)||0.5),0,total);
+  const left=(start/total)*100;
+  const right=Math.max(left+0.25,(end/total)*100);
+  return `<div class="miniTimeline" data-i="${i}" style="--event-color:${eventColor(e)}" onclick="event.stopPropagation()" ondblclick="event.stopPropagation()">
+    <div class="miniTimelineTrack">
+      <div class="miniTimelineSpan" style="left:${left}%;width:${Math.max(.7,right-left)}%" onpointerdown="startTimelineDrag(event,${i},'move')"></div>
+      <button class="miniTimelineHandle start" title="Mover inicio" style="left:${left}%" onpointerdown="startTimelineDrag(event,${i},'start')"></button>
+      <button class="miniTimelineHandle end" title="Mover fin" style="right:${Math.max(0,100-right)}%" onpointerdown="startTimelineDrag(event,${i},'end')"></button>
+    </div>
+    <div class="miniTimelineLabels"><span>${fmt(start)}</span><span>${fmt(end)}</span></div>
+  </div>`;
+}
+let timelineDrag=null;
+function updateMiniTimelineDom(root,e,total){
+  if(!root||!e) return;
+  const start=clamp(Number(e.start)||0,0,total);
+  const end=clamp(start+(Number(e.duration)||0.5),0,total);
+  const left=(start/total)*100;
+  const right=Math.max(left+0.25,(end/total)*100);
+  const span=root.querySelector('.miniTimelineSpan');
+  const hs=root.querySelector('.miniTimelineHandle.start');
+  const he=root.querySelector('.miniTimelineHandle.end');
+  const labels=root.querySelectorAll('.miniTimelineLabels span');
+  if(span){ span.style.left=left+'%'; span.style.width=Math.max(.7,right-left)+'%'; }
+  if(hs){ hs.style.left=left+'%'; }
+  if(he){ he.style.right=Math.max(0,100-right)+'%'; }
+  if(labels[0]) labels[0].textContent=fmt(start);
+  if(labels[1]) labels[1].textContent=fmt(end);
+}
+function syncTimelineInputs(i){
+  const e=events[i];
+  if(!e) return;
+  const startEl=document.getElementById('start-'+i);
+  const durationEl=document.getElementById('duration-'+i);
+  if(startEl) startEl.value=(Number(e.start)||0).toFixed(2);
+  if(durationEl) durationEl.value=(Number(e.duration)||0).toFixed(2);
+}
+window.startTimelineDrag=(ev,i,mode)=>{
+  if(!events[i]) return;
+  ev.preventDefault(); ev.stopPropagation();
+  saveOpenEditor();
+  selectedIndex=i;
+  const root=ev.currentTarget.closest('.miniTimeline');
+  const track=root.querySelector('.miniTimelineTrack');
+  const rect=track.getBoundingClientRect();
+  const total=projectDuration();
+  const pointerId=ev.pointerId;
+  try{ ev.currentTarget.setPointerCapture(pointerId); }catch(err){}
+  timelineDrag={i,mode,rect,total,start:Number(events[i].start)||0,duration:Number(events[i].duration)||0.5,x0:ev.clientX,root,pointerId};
+  document.body.classList.add('timeline-dragging');
+  document.addEventListener('pointermove',onTimelineDragMove,{passive:false});
+  document.addEventListener('pointerup',endTimelineDrag,{once:true,passive:false});
+  onTimelineDragMove(ev);
+};
+function onTimelineDragMove(ev){
+  if(!timelineDrag) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const d=timelineDrag;
+  const e=events[d.i];
+  if(!e) return;
+  const minDur=.3;
+  let previewTime=Number(e.start)||0;
+  if(d.mode==='move'){
+    const delta=((ev.clientX-d.x0)/Math.max(1,d.rect.width))*d.total;
+    const dur=Math.max(minDur,d.duration);
+    e.start=+clamp(d.start+delta,0,Math.max(0,d.total-dur)).toFixed(2);
+    e.duration=+dur.toFixed(2);
+    previewTime=e.start;
+  }else{
+    const t=clamp(((ev.clientX-d.rect.left)/Math.max(1,d.rect.width))*d.total,0,d.total);
+    const baseStart=(d.mode==='start') ? d.start : (Number(e.start)||0);
+    const baseEnd=d.start+Math.max(minDur,d.duration);
+    if(d.mode==='start'){
+      // Solo limita contra el fin del MISMO globito. No mira ni empuja otros globitos.
+      const ns=clamp(t,0,baseEnd-minDur);
+      e.start=+ns.toFixed(2);
+      e.duration=+Math.max(minDur,baseEnd-ns).toFixed(2);
+      previewTime=e.start;
+    }else{
+      // El final también es independiente: puede superponerse con otros eventos.
+      const ne=clamp(t,baseStart+minDur,d.total);
+      e.start=+baseStart.toFixed(2);
+      e.duration=+Math.max(minDur,ne-baseStart).toFixed(2);
+      previewTime=baseStart+e.duration;
+    }
+  }
+  if(video && Number.isFinite(previewTime)){
+    try{ video.pause(); video.currentTime=clamp(previewTime,0,Number(video.duration)||d.total); }catch(err){}
+  }
+  updateMiniTimelineDom(d.root,e,d.total);
+  syncTimelineInputs(d.i);
+  updateControls();
+  forceRenderOverlays();
+}
+function endTimelineDrag(ev){
+  document.removeEventListener('pointermove',onTimelineDragMove);
+  document.body.classList.remove('timeline-dragging');
+  if(timelineDrag){
+    // No leer valores viejos del formulario al soltar: el drag ya actualizó evento e inputs.
+    syncTimelineInputs(timelineDrag.i);
+    updateControls();
+    renderList();
+    forceRenderOverlays();
+  }
+  timelineDrag=null;
+}
+function renderList(){
+  cleanEvents();
+  eventList.innerHTML=events.map((e,i)=>`
+    <div class="eventItem ${selectedIndex===i?'active':''}" style="--event-color:${eventColor(e)}" onclick="selectEvent(event,${i})" ondblclick="openEditorFromList(event,${i})" title="Toque: seleccionar / ir · Doble toque: editar">
+      <div class="eventHead">
+        <div><span class="time">${fmt(e.start)}</span> <span class="muted">· dura ${Number(e.duration).toFixed(1)}s · caja ${e.boxX.toFixed(0)}/${e.boxY.toFixed(0)} · ${e.showPointer?'con señal':'sin señal'} · ${bubbleColors[e.bubbleColor]?.label||'Color'} · ${e.bubbleStyle==='outline'?'filete':'relleno'} · ${e.bubbleSize||1}X · mezcla ${e.bubbleBlend||'normal'} ${e.locked?'· bloqueado':''}</span></div>
+        <div class="row">
+          <button class="secondary" onclick="event.stopPropagation(); toggleEdit(${i})">Editar</button>
+          <button class="danger" onclick="event.stopPropagation(); delEvent(${i})">Quitar</button>
+        </div>
+      </div>
+      ${openEditIndex===i?'':miniTimelineHtml(i,e)}
+      <div class="viewText"><b>${escapeHtml(e.title)}</b><p>${escapeHtml(e.text)}</p></div>
+      <div class="inlineEdit ${openEditIndex===i?'':'hidden'}" id="edit-${i}">
+        <div class="mini">
+          <label>Inicio<input id="start-${i}" type="number" step=".1" value="${e.start}"></label>
+          <label>Duración<input id="duration-${i}" type="number" min=".5" step=".5" value="${e.duration}"></label>
+          <label>Caja X %<input id="boxX-${i}" type="number" min="0" max="100" step="1" value="${e.boxX}"></label>
+          <label>Caja Y %<input id="boxY-${i}" type="number" min="0" max="100" step="1" value="${e.boxY}"></label>
+        </div>
+        ${miniTimelineHtml(i,e)}
+        <label>Título<input id="title-${i}" value="${attr(e.title)}"></label>
+        <label>Texto<textarea id="text-${i}">${escapeHtml(e.text)}</textarea></label>
+        <label class="row" style="justify-content:flex-start"><input id="showPointer-${i}" type="checkbox" ${e.showPointer?'checked':''} style="width:auto"> Mostrar señalador / muequita</label>
+        <label>Color del globito${colorPickerHtml(i,e.bubbleColor)}</label>
+        <label>Tamaño / jerarquía${sizePickerHtml(i,e.bubbleSize)}</label>
+        <label>Estilo del globito${stylePickerHtml(i,e.bubbleStyle)}</label>
+        <label>Mezcla con el video${blendPickerHtml(i,e.bubbleBlend)}</label>
+        <label>Bloquear posición
+          <div class="styleChoice">
+            <label title="Bloquear / desbloquear"><input id="locked-${i}" type="checkbox" ${e.locked?'checked':''}><span class="pill lockIcon" aria-label="Bloquear posición"></span></label>
+          </div>
+        </label>
+        <div class="row">
+          <button class="good" onclick="saveEvent(${i})">Salvar</button>
+        </div>
+      </div>
+    </div>`).join('') || 'Sin eventos guardados.';
+  bindLiveEditors();
+}
+
+function saveOpenEditor(){
+  if(openEditIndex>=0 && events[openEditIndex]) readEventForm(openEditIndex);
+}
+function goToEventTime(i){
+  if(!events[i]) return;
+  selectedIndex=i;
+  const start=Number(events[i].start)||0;
+  // Pequeño empujón dentro del tramo para que el globito aparezca seguro
+  // incluso en navegadores que redondean el frame exacto de inicio.
+  video.currentTime=Math.max(0,start+0.01);
+  video.pause();
+  updateControls();
+  forceRenderOverlays();
+  setTimeout(forceRenderOverlays,80);
+}
+function openEditorFor(i){
+  saveOpenEditor();
+  openEditIndex=i;
+  goToEventTime(i);
+  renderList();
+  forceRenderOverlays();
+  setTimeout(()=>document.getElementById('edit-'+i)?.scrollIntoView({block:'nearest',behavior:'smooth'}),0);
+}
+window.toggleEdit=(i)=>{
+  if(openEditIndex===i){ saveOpenEditor(); openEditIndex=-1; renderList(); forceRenderOverlays(); }
+  else openEditorFor(i);
+};
+window.jumpEvent=(i)=>{
+  saveOpenEditor();
+  goToEventTime(i);
+  renderList();
+};
+let lastTapList={idx:-1,time:0};
+window.selectEvent=(ev,i)=>{
+  if(ev?.target?.closest('button,input,textarea,label')) return;
+  if(!events[i])return;
+  const now=Date.now();
+  const isDouble=lastTapList.idx===i && now-lastTapList.time<460;
+  lastTapList={idx:i,time:now};
+  ev?.preventDefault?.();
+  if(isDouble){
+    openEditorFor(i);
+    lastTapList={idx:-1,time:0};
+    return;
+  }
+  saveOpenEditor();
+  goToEventTime(i);
+  renderList();
+};
+window.openEditorFromList=(ev,i)=>{
+  if(ev?.target?.closest('button,input,textarea,label')) return;
+  ev?.preventDefault();
+  ev?.stopPropagation();
+  openEditorFor(i);
+  lastTapList={idx:-1,time:0};
+};
+function readEventForm(i){
+  if(!events[i]) return;
+  const startEl=document.getElementById('start-'+i);
+  const durationEl=document.getElementById('duration-'+i);
+  const boxXEl=document.getElementById('boxX-'+i);
+  const boxYEl=document.getElementById('boxY-'+i);
+  const titleEl=document.getElementById('title-'+i);
+  const textEl=document.getElementById('text-'+i);
+  if(startEl) events[i].start=Number(startEl.value)||0;
+  if(durationEl) events[i].duration=Number(durationEl.value)||4;
+  if(boxXEl) events[i].boxX=clamp(Number(boxXEl.value)||0,0,94);
+  if(boxYEl) events[i].boxY=clamp(Number(boxYEl.value)||0,0,94);
+  if(titleEl) events[i].title=titleEl.value;
+  if(textEl) events[i].text=textEl.value;
+  events[i].showPointer=document.getElementById('showPointer-'+i)?.checked!==false;
+  events[i].bubbleColor=selectedRadio('bubbleColor-'+i,events[i].bubbleColor||'warm');
+  events[i].bubbleStyle=selectedRadio('bubbleStyle-'+i,events[i].bubbleStyle||'filled');
+  events[i].bubbleSize=Number(selectedRadio('bubbleSize-'+i,events[i].bubbleSize||1))||1;
+  events[i].bubbleBlend=selectedRadio('bubbleBlend-'+i,events[i].bubbleBlend||'normal');
+  events[i].locked=document.getElementById('locked-'+i)?.checked===true;
+  selectedIndex=i;
+}
+function liveUpdateEvent(i){
+  readEventForm(i);
+  forceRenderOverlays();
+}
+function bindLiveEditors(){
+  document.querySelectorAll('.inlineEdit').forEach(box=>{
+    const i=Number(box.id.replace('edit-',''));
+    box.querySelectorAll('input,textarea').forEach(el=>{
+      el.addEventListener('input',()=>liveUpdateEvent(i));
+      el.addEventListener('change',()=>liveUpdateEvent(i));
+    });
+  });
+}
+window.saveEvent=(i)=>{
+  readEventForm(i);
+  openEditIndex=-1;
+  renderList(); forceRenderOverlays();
+};
+window.delEvent=(i)=>{if(confirm('¿Quitar este bloque?')){events.splice(i,1);selectedIndex=-1;openEditIndex=-1;renderList();forceRenderOverlays();}};
+
+function visibleEvents(){
+  const t=video.currentTime;
+  // Muestra los globitos únicamente dentro de su rango real de tiempo.
+  // Aunque un globito esté seleccionado o abierto en edición, si la línea
+  // de tiempo sale de su tramo, desaparece como en el modo público.
+  return events.map((e,i)=>({...e,index:i})).filter(e=>t>=e.start && t<=e.start+e.duration);
+}
+
+function renderOverlays(){
+  if(dragging) return;
+  const vis=visibleEvents();
+  const visibleIndices=new Set(vis.map(e=>e.index));
+  // Si un evento ya no está visible, se libera para que pueda animar
+  // nuevamente cuando vuelva a entrar en escena más adelante.
+  for(const idx of Array.from(animatedVisibleEvents)){
+    if(!visibleIndices.has(idx)) animatedVisibleEvents.delete(idx);
+  }
+  const key=vis.map(e=>[e.index,e.start,e.duration,Math.round(e.boxX*10)/10,Math.round(e.boxY*10)/10,e.title,e.text,e.showPointer,e.bubbleColor,e.bubbleStyle,e.bubbleSize,e.bubbleBlend,e.locked].join(':')).join('|')+'|edit:'+(editor.classList.contains('hidden')?'0':'1')+'|open:'+openEditIndex+'|sel:'+selectedIndex;
+  if(key===lastOverlayKey)return;
+  lastOverlayKey=key;
+  overlayBubbles.innerHTML='';
+  vis.forEach((e)=>{
+    const bub=document.createElement('div');
+    const alreadyAnimated=animatedVisibleEvents.has(e.index);
+    const c=bubbleColors[e.bubbleColor]||bubbleColors.warm;
+    bub.className='bubble style-'+(e.bubbleStyle==='outline'?'outline':'filled')+' size-'+(e.bubbleSize||1)+' blend-'+(e.bubbleBlend||'normal')+' '+(e.locked?'locked ':'')+(e.showPointer?'has-pointer '+tailClassFor(e):'')+' '+(e.index===selectedIndex?'selected ':'')+(alreadyAnimated?'no-pop':'');
+    bub.style.setProperty('--bubble-bg',c.bg);
+    bub.style.setProperty('--bubble-accent',c.accent);
+    bub.style.setProperty('--bubble-text',c.text);
+    bub.style.left=clamp(e.boxX,0,94)+'%';
+    bub.style.top=clamp(e.boxY,0,94)+'%';
+    bub.dataset.index=e.index;
+    bub.innerHTML=`${e.locked?'<span class="editLockBadge" aria-hidden="true"></span>':''}<div class="title">${escapeHtml(e.title)}</div><div class="text">${escapeHtml(e.text)}</div>`;
+    if(!editor.classList.contains('hidden')){
+      bub.addEventListener('pointerdown',startDrag,{passive:false});
+      bub.addEventListener('dblclick',(ev)=>activateBubbleEditor(e.index,ev));
+      bub.addEventListener('click',handleBubbleTap,{passive:false});
+    }
+    overlayBubbles.appendChild(bub);
+    animatedVisibleEvents.add(e.index);
+  });
+}
+function forceRenderOverlays(){lastOverlayKey='';renderOverlays();}
+
+let lastTapBubble={idx:-1,time:0};
+function activateBubbleEditor(idx, ev){
+  if(ev){ev.preventDefault(); ev.stopPropagation();}
+  if(Number.isNaN(idx) || !events[idx]) return;
+  openEditorFor(idx);
+  lastTapBubble={idx:-1,time:0};
+}
+function registerBubbleTap(idx, ev){
+  const now=Date.now();
+  if(lastTapBubble.idx===idx && now-lastTapBubble.time<460){
+    activateBubbleEditor(idx, ev);
+    return true;
+  }
+  lastTapBubble={idx,time:now};
+  return false;
+}
+function handleBubbleTap(ev){
+  const idx=Number(ev.currentTarget.dataset.index);
+  registerBubbleTap(idx, ev);
+}
+
+function startDrag(ev){
+  ev.preventDefault();
+  ev.stopPropagation();
+  const idx=Number(ev.currentTarget.dataset.index);
+  if(Number.isNaN(idx))return;
+
+  // El doble clic/doble toque se detecta acá, antes del arrastre.
+  // Esto funciona mejor en PC, iPad y celular porque algunos navegadores
+  // cancelan el evento dblclick cuando hay pointerdown + preventDefault.
+  if(registerBubbleTap(idx, ev)) return;
+  if(events[idx]?.locked){
+    selectedIndex=idx;
+    video.pause();
+    updateControls();
+    renderList();
+    forceRenderOverlays();
+    return;
+  }
+
+  dragIndex=idx;
+  selectedIndex=idx;
+  dragging=true;
+  dragEl=ev.currentTarget;
+  video.pause();
+  updateControls();
+  const r=dragEl.getBoundingClientRect();
+  dragOffset.x=ev.clientX-r.left;
+  dragOffset.y=ev.clientY-r.top;
+  try{dragEl.setPointerCapture(ev.pointerId)}catch(e){}
+  renderList();
+}
+
+window.addEventListener('pointermove',ev=>{
+  if(dragIndex<0||!dragEl)return;
+  ev.preventDefault();
+  const sr=stage.getBoundingClientRect();
+  const x=((ev.clientX-sr.left-dragOffset.x)/sr.width)*100;
+  const y=((ev.clientY-sr.top-dragOffset.y)/sr.height)*100;
+  const bw=(dragEl.getBoundingClientRect().width/sr.width)*100;
+  const bh=(dragEl.getBoundingClientRect().height/sr.height)*100;
+  events[dragIndex].boxX=clamp(x,0,100-bw);
+  events[dragIndex].boxY=clamp(y,0,100-bh);
+  dragEl.style.left=events[dragIndex].boxX+'%';
+  dragEl.style.top=events[dragIndex].boxY+'%';
+},{passive:false});
+
+window.addEventListener('pointerup',ev=>{
+  if(dragIndex<0)return;
+  dragIndex=-1; dragEl=null; dragging=false;
+  renderList(); forceRenderOverlays();
+},{passive:false});
+
+function updateControls(){
+  const d=video.duration||0, t=video.currentTime||0;
+  seek.value=d?Math.round((t/d)*1000):0;
+  timeNow.textContent=fmt(t);
+  timeDur.textContent=fmt(d);
+  mainPlay.textContent=video.paused?'Play':'Pausa';
+}
+mainPlay.onclick=()=>video.paused?video.play():video.pause();
+seek.addEventListener('input',()=>{if(video.duration){video.currentTime=(Number(seek.value)/1000)*video.duration;updateControls();forceRenderOverlays();}});
+
+document.getElementById('editorBtn').onclick=()=>/*patched*/{editor.classList.toggle('hidden');document.body.classList.toggle('editing',!editor.classList.contains('hidden'));forceRenderOverlays();};
+document.getElementById('restartBtn').onclick=()=>{video.currentTime=0;video.play();};
+document.getElementById('addCurrent').onclick=()=>{
+  events.push({start:+video.currentTime.toFixed(1),duration:5,type:'text',boxX:58,boxY:14,title:'Nuevo título',text:'Nuevo texto para este momento del video.',showPointer:true,bubbleColor:'warm',bubbleStyle:'filled',bubbleSize:1,locked:false,bubbleBlend:'normal'});
+  openEditorFor(events.length-1);
+};
+document.getElementById('exportJson').onclick=()=>{
+  cleanEvents();
+  const project={video:'video.mp4',version:'0.50-timeline-independiente',visual:{pageBackground:currentPageBg,frame:currentFrame,background:currentBg,texture:videoTexture,blend:videoTextureBlend,opacity:videoTextureOpacity},events};
+  const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='proyecto-video-v050.hunk.json';a.click();
+};
+document.getElementById('importJson').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const data=JSON.parse(await f.text());
+  events=Array.isArray(data)?data:(data.events||[]);
+  if(data.visual){
+    if(data.visual.pageBackground) setPageBackgroundMode(data.visual.pageBackground);
+    if(data.visual.frame) setFrame(data.visual.frame);
+    if(data.visual.background) setBackgroundMode(data.visual.background);
+    if(data.visual.texture) setVideoTexture(data.visual.texture);
+    if(data.visual.blend) setVideoTextureBlend(data.visual.blend);
+    if(typeof data.visual.opacity==='number'){ videoTextureOpacity=data.visual.opacity; if(textureOpacity) textureOpacity.value=Math.round(videoTextureOpacity*100); updateVideoTexture(); }
+  }
+  selectedIndex=-1;openEditIndex=-1;renderList();forceRenderOverlays();
+};
+
+
+function markVideoReady(){ videoBox.classList.add('video-ready'); }
+video.addEventListener('loadeddata',markVideoReady);
+video.addEventListener('canplay',markVideoReady);
+video.addEventListener('error',()=>{ videoBox.classList.add('video-ready'); });
+if(video.readyState>=2) markVideoReady();
+
+video.addEventListener('loadedmetadata',updateControls);
+video.addEventListener('timeupdate',()=>{updateControls();renderOverlays();});
+video.addEventListener('play',()=>{selectedIndex=-1;renderList();updateControls();forceRenderOverlays();});
+video.addEventListener('pause',()=>{updateControls();forceRenderOverlays();});
+window.addEventListener('resize',forceRenderOverlays);
+
+
+function syncSidePaneHeight(){
+  const workspace=document.querySelector('.workspace');
+  const videoPane=document.querySelector('.videoPane');
+  const sidePane=document.querySelector('.sidePane');
+  if(!workspace||!videoPane||!sidePane)return;
+  if(window.matchMedia('(min-width: 881px)').matches){
+    const h=Math.round(videoPane.getBoundingClientRect().height);
+    sidePane.style.height=h+'px';
+    sidePane.style.maxHeight=h+'px';
+  }else{
+    sidePane.style.height='';
+    sidePane.style.maxHeight='';
+  }
+}
+function requestFirstFrame(){
+  if(video.dataset.firstFrameRequested==='1')return;
+  if(video.readyState<1)return;
+  video.dataset.firstFrameRequested='1';
+  try{
+    // En iPad/Safari a veces no pinta el frame inicial hasta hacer un seek mínimo.
+    const target=Math.min(0.12, Math.max(0.001, (video.duration||1)-0.02));
+    if(Math.abs(video.currentTime-target)>0.015) video.currentTime=target;
+    video.pause();
+  }catch(e){}
+}
+video.addEventListener('loadedmetadata',()=>{requestFirstFrame();setTimeout(syncSidePaneHeight,60);});
+video.addEventListener('seeked',()=>{markVideoReady();updateControls();forceRenderOverlays();});
+video.addEventListener('loadeddata',()=>{markVideoReady();requestFirstFrame();});
+video.addEventListener('canplay',()=>{markVideoReady();});
+window.addEventListener('resize',()=>setTimeout(syncSidePaneHeight,60));
+window.addEventListener('orientationchange',()=>setTimeout(syncSidePaneHeight,250));
+setTimeout(syncSidePaneHeight,80);
+setTimeout(()=>{try{video.load();}catch(e){}},0);
+
+renderList(); updateControls(); forceRenderOverlays(); syncSidePaneHeight();
+</script>
+</body>
+</html>
