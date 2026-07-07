@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bandeja Lab v17 · Sueltos y borrar grupo</title>
+<style>
+:root{
+  --bg1:#101826;--bg2:#1d2b3f;--line:rgba(255,255,255,.24);
+  --txt:#fff8ef;--mut:#c6d1df;--accent:#ffd186;--danger:#ff6f7d;--ok:#b9ffce;--cyan:#9fe7ff;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);overflow:hidden;
+  background:radial-gradient(circle at 20% 0%,rgba(255,209,134,.22),transparent 35%),
+  radial-gradient(circle at 90% 12%,rgba(159,231,255,.20),transparent 30%),
+  linear-gradient(135deg,var(--bg2),var(--bg1) 65%,#08101b);
+}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:12px;padding:12px}
+.workspace{
+  position:relative;min-width:0;border:2px solid var(--line);border-radius:30px;overflow:hidden;touch-action:none;
+  background:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px),
+  radial-gradient(circle at center,rgba(255,255,255,.08),rgba(255,255,255,.025));
+  background-size:34px 34px,34px 34px,100% 100%;
+  box-shadow:0 24px 80px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12);
+}
+.topbar{
+  position:absolute;left:14px;right:14px;top:14px;z-index:80;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;pointer-events:none;
+}
+.brand{
+  pointer-events:auto;padding:12px 14px;border-radius:20px;background:rgba(8,12,20,.55);backdrop-filter:blur(16px);
+  border:2px solid rgba(255,255,255,.17);box-shadow:0 10px 28px rgba(0,0,0,.22);
+}
+h1{margin:0;font-size:22px;letter-spacing:-.04em;line-height:1}.brand p{margin:4px 0 0;color:var(--mut);font-size:12px;font-weight:750}
+.actions{pointer-events:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+button,.fileBtn{
+  appearance:none;border:0;border-radius:16px;padding:10px 12px;font-weight:950;color:#172032;background:#f7f0e7;
+  box-shadow:0 8px 20px rgba(0,0,0,.20);cursor:pointer;font-family:inherit;font-size:13px;
+}
+button:hover,.fileBtn:hover{transform:translateY(-1px);filter:brightness(1.02)}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.primary{background:var(--accent)}.green{background:var(--ok)}.red{background:var(--danger);color:white}.dark{background:rgba(255,255,255,.13);color:var(--txt);border:2px solid rgba(255,255,255,.18)}
+input[type=file]{display:none}
+.dropHint{
+  position:absolute;inset:88px 16px 16px;display:grid;place-items:center;text-align:center;border:3px dashed rgba(255,255,255,.24);
+  border-radius:28px;color:rgba(255,255,255,.68);font-weight:900;z-index:1;pointer-events:none;transition:.18s;
+}
+.dropHint strong{font-size:32px;display:block;color:rgba(255,255,255,.88);letter-spacing:-.05em}.dropHint span{font-size:14px;color:rgba(255,255,255,.58);display:block;margin-top:6px}
+.workspace.dragOver .dropHint{border-color:var(--accent);background:rgba(255,209,134,.10);color:white}
+.workspace.panning{cursor:grabbing}
+.workspace.panning .board{cursor:grabbing}
+.board{
+  position:absolute;
+  left:0;top:0;
+  width:100000px;height:100000px;
+  z-index:5;
+  overflow:visible;
+  transform-origin:0 0;
+  will-change:transform;
+}
+.groupDelete{
+  position:absolute;
+  width:34px;height:34px;
+  border-radius:999px;
+  background:rgba(255,111,125,.96);
+  color:white;
+  display:none;
+  place-items:center;
+  font-size:24px;
+  font-weight:1000;
+  line-height:1;
+  border:3px solid rgba(255,255,255,.86);
+  box-shadow:0 12px 26px rgba(0,0,0,.35);
+  cursor:pointer;
+  z-index:5000;
+  user-select:none;
+}
+.groupDelete.show{display:grid}
+.groupDelete:hover{transform:scale(1.06)}
+.item{
+  position:absolute;width:154px;min-height:122px;border-radius:20px;background:rgba(246,239,228,.96);color:#1f2632;
+  box-shadow:0 18px 45px rgba(0,0,0,.30);border:3px solid rgba(255,255,255,.82);
+  overflow:hidden;transform:rotate(var(--rot,0deg));cursor:grab;touch-action:none;user-select:none;
+  transition:left .16s ease,top .16s ease,box-shadow .12s,outline .12s,transform .16s;
+  z-index:10;
+}
+.item.dragging,.item.groupDragging,.workspace.hardDragging .item{transition:none!important}
+.item:active{cursor:grabbing}
+.item.selected{outline:4px solid rgba(255,209,134,.82);box-shadow:0 0 0 8px rgba(255,209,134,.16),0 18px 50px rgba(0,0,0,.36)}
+.item.magnetTarget{outline:5px solid rgba(185,255,206,.9);transform:rotate(var(--rot,0deg)) scale(1.035)}
+.item.clustered{box-shadow:0 18px 45px rgba(0,0,0,.30), inset 0 0 0 2px rgba(255,209,134,.55)}
+.item.clusterOpen{box-shadow:0 0 0 8px rgba(159,231,255,.13),0 18px 50px rgba(0,0,0,.38)}
+.item.clusterMaster .countBubble{
+  display:grid;
+}
+.thumb{height:88px;background:linear-gradient(135deg,#dbe4ef,#f8fafc);display:grid;place-items:center;overflow:hidden;position:relative}
+.thumb img,.thumb video{width:100%;height:100%;object-fit:cover;display:block}.icon{font-size:38px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.12))}
+.name{padding:8px 10px 3px;font-size:12px;line-height:1.12;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{padding:0 10px 9px;color:#687487;font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin{position:absolute;top:7px;right:8px;width:18px;height:18px;border-radius:999px;background:radial-gradient(circle at 35% 35%,#fff,#ffd186 45%,#a96828);box-shadow:0 3px 9px rgba(0,0,0,.30)}
+.countBubble{position:absolute;right:7px;bottom:7px;min-width:25px;height:25px;padding:0 7px;border-radius:999px;background:#172032;color:#ffd186;font-size:12px;font-weight:1000;border:2px solid rgba(255,255,255,.76);z-index:4;display:none;place-items:center}
+.deleteMini{position:absolute;top:7px;left:8px;width:22px;height:22px;border-radius:999px;background:rgba(0,0,0,.55);color:white;display:grid;place-items:center;font-size:15px;font-weight:950;opacity:0;transition:.15s;z-index:3}
+.item:hover .deleteMini,.item.selected .deleteMini{opacity:1}
+.lassoSvg{
+  position:absolute;
+  left:0;top:0;
+  width:100000px;height:100000px;
+  z-index:55;
+  pointer-events:none;
+  display:none;
+  opacity:0;
+  overflow:visible;
+}
+.lassoPath,.lassoPathGlow{fill:none;stroke:transparent;stroke-width:0;opacity:0}
+.zoomHud{
+  position:absolute;left:18px;bottom:18px;z-index:70;
+  padding:8px 10px;border-radius:999px;
+  background:rgba(8,12,20,.52);border:2px solid rgba(255,255,255,.14);
+  color:rgba(255,255,255,.72);font-size:12px;font-weight:900;
+  pointer-events:none;backdrop-filter:blur(12px);
+}
+.side{
+  min-width:0;border:2px solid var(--line);border-radius:30px;background:rgba(255,255,255,.09);
+  box-shadow:0 24px 80px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12);overflow:hidden;display:flex;flex-direction:column;
+}
+.panelHead{padding:16px 16px 12px;border-bottom:2px solid rgba(255,255,255,.13);background:rgba(0,0,0,.18)}
+.panelHead b{font-size:20px;letter-spacing:-.04em}.panelHead p{margin:4px 0 0;color:var(--mut);font-size:12px;font-weight:750}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px;border-bottom:2px solid rgba(255,255,255,.12)}
+.stat{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.11);border-radius:16px;padding:10px}
+.stat span{display:block;font-size:11px;color:var(--mut);font-weight:900;text-transform:uppercase;letter-spacing:.05em}.stat strong{display:block;font-size:20px;letter-spacing:-.04em;margin-top:2px}
+.preview{flex:1;min-height:0;padding:14px;overflow:auto}.empty{height:100%;min-height:250px;display:grid;place-items:center;text-align:center;color:rgba(255,255,255,.60);border:2px dashed rgba(255,255,255,.20);border-radius:22px;padding:20px;font-weight:850}
+.previewBox{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.12);border-radius:22px;padding:12px}.previewMedia{width:100%;max-height:330px;object-fit:contain;border-radius:16px;background:#02060b;display:block}.preview audio{width:100%}
+.info{margin-top:12px;display:grid;gap:7px}.infoRow{background:rgba(0,0,0,.16);border:2px solid rgba(255,255,255,.09);border-radius:14px;padding:9px 10px;font-size:12px;color:#e7f0fb;overflow-wrap:anywhere}.infoRow b{color:#fff}
+textarea{width:100%;min-height:140px;resize:vertical;border:2px solid rgba(255,255,255,.13);background:rgba(255,255,255,.94);color:#172032;border-radius:16px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+.bottomActions{padding:12px 14px 14px;display:flex;gap:8px;flex-wrap:wrap;border-top:2px solid rgba(255,255,255,.12);background:rgba(0,0,0,.14)}
+.notice{font-size:11px;color:rgba(255,255,255,.60);line-height:1.35;padding:0 16px 14px;font-weight:750}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(30px);background:rgba(0,0,0,.72);color:white;padding:12px 14px;border-radius:16px;border:2px solid rgba(255,255,255,.18);box-shadow:0 16px 45px rgba(0,0,0,.35);opacity:0;pointer-events:none;z-index:100;transition:.22s;font-weight:850;font-size:13px;max-width:90vw;text-align:center}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:900px){body{overflow:auto}.app{height:auto;min-height:100%;grid-template-columns:1fr;padding:10px}.workspace{height:68vh;min-height:540px}.side{min-height:520px}}
+@media(max-width:560px){.topbar{position:relative;left:auto;right:auto;top:auto;padding:10px;display:block}.brand{margin-bottom:8px}.actions{justify-content:flex-start}.dropHint{inset:152px 10px 10px}.workspace{height:72vh;border-radius:22px}.side{border-radius:22px}.item{width:136px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="workspace" id="workspace">
+    <div class="topbar">
+      <div class="brand"><h1>Bandeja Lab v17</h1><p>Archivos múltiples sueltos + cruz para borrar grupo completo.</p></div>
+      <div class="actions">
+        <label class="fileBtn primary" for="fileInput">+ Agregar</label><input id="fileInput" type="file" multiple webkitdirectory>
+        <button class="green" id="zipBtn">ZIP</button>
+        <button class="dark" id="scatterBtn">Mezclar</button>
+        <button class="red" id="clearBtn">Vaciar</button>
+      </div>
+    </div>
+    <div class="dropHint" id="dropHint"><div><strong>Tirá archivos acá</strong><span>Lazo para agrupar. Rueda para zoom. Botón medio para mover. En táctil: pellizco y dos dedos.</span></div></div>
+    <div class="board" id="board"></div>
+    <svg class="lassoSvg" id="lassoSvg"><path class="lassoPathGlow" id="lassoPathGlow"></path><path class="lassoPath" id="lassoPath"></path></svg>
+    <div class="zoomHud" id="zoomHud">100%</div>
+  </section>
+  <aside class="side">
+    <div class="panelHead"><b>Previo</b><p>Tocá una tarjeta. Todo queda local.</p></div>
+    <div class="stats"><div class="stat"><span>Archivos</span><strong id="countStat">0</strong></div><div class="stat"><span>Peso</span><strong id="sizeStat">0 KB</strong></div></div>
+    <div class="preview" id="preview"><div class="empty">Todavía no hay nada seleccionado.<br><br>Agregá archivos y usá esta zona como lupa de previo.</div></div>
+    <div class="bottomActions">
+      <button class="dark" id="downloadOneBtn" disabled>Descargar</button>
+      <button class="dark" id="removeOneBtn" disabled>Eliminar</button>
+      <button class="dark" id="copyInfoBtn" disabled>Copiar info</button>
+    </div>
+    <div class="notice">Privacidad: los archivos quedan dentro del navegador. No se suben a un servidor. Si cerrás sin exportar, la bandeja se pierde.</div>
+  </aside>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const workspace=document.getElementById('workspace'),board=document.getElementById('board'),fileInput=document.getElementById('fileInput'),preview=document.getElementById('preview'),countStat=document.getElementById('countStat'),sizeStat=document.getElementById('sizeStat'),toastEl=document.getElementById('toast'),lassoSvg=document.getElementById('lassoSvg'),lassoPath=document.getElementById('lassoPath'),lassoPathGlow=document.getElementById('lassoPathGlow'),zoomHud=document.getElementById('zoomHud');
+let items=[],clusters=[],selectedId=null,zTop=20,drag=null,lasso=null,openClusterId=null;
+let view={x:0,y:0,scale:1};
+const W=154,H=122,MAGNET=112;
+
+function applyView(){
+  board.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.scale})`;
+  lassoSvg.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.scale})`;
+  lassoSvg.style.transformOrigin='0 0';
+  zoomHud.textContent=Math.round(view.scale*100)+'%';
+}
+function clampScale(s){return Math.max(.18,Math.min(4.5,s))}
+function screenToWorld(clientX,clientY){
+  const r=workspace.getBoundingClientRect();
+  return {x:(clientX-r.left-view.x)/view.scale,y:(clientY-r.top-view.y)/view.scale};
+}
+function zoomAt(clientX,clientY,newScale){
+  const r=workspace.getBoundingClientRect();
+  const old=view.scale;
+  newScale=clampScale(newScale);
+  const wx=(clientX-r.left-view.x)/old;
+  const wy=(clientY-r.top-view.y)/old;
+  view.x=clientX-r.left-wx*newScale;
+  view.y=clientY-r.top-wy*newScale;
+  view.scale=newScale;
+  applyView();
+}
+
+
+function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>toastEl.classList.remove('show'),1500)}
+function uid(){return'i_'+Math.random().toString(36).slice(2)+Date.now().toString(36)}
+function formatBytes(bytes){if(!bytes)return'0 KB';const u=['B','KB','MB','GB'];let n=bytes,i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return(i===0?n:n.toFixed(n>=10?1:2))+' '+u[i]}
+function fileKind(file){const t=file.type||'',n=file.name.toLowerCase();if(t.startsWith('image/'))return'image';if(t.startsWith('video/'))return'video';if(t.startsWith('audio/'))return'audio';if(t.startsWith('text/')||/\.(txt|html|css|js|json|csv|md)$/i.test(n))return'text';if(t==='application/pdf'||n.endsWith('.pdf'))return'pdf';if(n.endsWith('.zip'))return'zip';return'file'}
+function iconFor(kind){return{image:'🖼️',video:'🎬',audio:'🎧',text:'📄',pdf:'📕',zip:'🗜️',file:'📦'}[kind]||'📦'}
+function randomPos(){
+  const r=workspace.getBoundingClientRect(),topSafe=window.innerWidth<560?178:108;
+  const left=(-view.x)/view.scale+18;
+  const top=(-view.y)/view.scale+topSafe/view.scale;
+  const visibleW=r.width/view.scale;
+  const visibleH=r.height/view.scale;
+  return{x:left+Math.random()*Math.max(80,visibleW-230),y:top+Math.random()*Math.max(80,visibleH-190),rot:(Math.random()*10-5).toFixed(2)}
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+async function addFiles(fileList, options={}){
+  const files=Array.from(fileList||[]); if(!files.length)return [];
+  const added=[];
+  const base = options.base || dropPoint || null;
+  for(let idx=0; idx<files.length; idx++){
+    const file=files[idx];
+    const p=base ? {x:base.x+(idx%4)*178, y:base.y+Math.floor(idx/4)*150, rot:(idx*3-4).toFixed(2)} : randomPos();
+    const item={id:uid(),file,kind:fileKind(file),url:URL.createObjectURL(file),x:p.x,y:p.y,rot:p.rot,z:zTop++,clusterId:null,relX:0,relY:0,path:file.webkitRelativePath||file.relativePath||file.name};
+    items.push(item); added.push(item); renderItem(item);
+  }
+  updateStats();
+  if(!options.silent){
+    selectItem(added[added.length-1]?.id);
+    toast(files.length===1?'Archivo agregado':'Archivos agregados: '+files.length);
+  }
+  return added;
+}
+function positionEl(el,it){if(!el)return;el.style.left=it.x+'px';el.style.top=it.y+'px';el.style.zIndex=it.z;el.style.setProperty('--rot',(it.rot||0)+'deg')}
+function renderItem(it){
+  const el=document.createElement('div'); el.className='item'; el.dataset.id=it.id; positionEl(el,it);
+  const thumb=it.kind==='image'?`<img src="${it.url}">`:it.kind==='video'?`<video src="${it.url}" muted playsinline></video>`:`<div class="icon">${iconFor(it.kind)}</div>`;
+  el.innerHTML=`<div class="thumb">${thumb}<div class="pin"></div><div class="deleteMini">×</div><div class="countBubble"></div></div><div class="name">${escapeHtml(it.file.name)}</div><div class="meta">${it.kind.toUpperCase()} · ${formatBytes(it.file.size)}</div>`;
+  board.appendChild(el); bindItemEvents(el,it); updateItemClusterVisual(it.id);
+}
+function bindItemEvents(el,it){
+  el.addEventListener('pointerdown',e=>{
+    if(e.target.classList.contains('deleteMini'))return;
+    if(activePointers.size>=2)return;
+    selectItem(it.id); it.z=zTop++; positionEl(el,it); el.classList.add('dragging');
+    const c=it.clusterId?clusters.find(x=>x.id===it.clusterId):null;
+    const movingWhole=!!c && c.id!==openClusterId;
+    const members=movingWhole?c.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean).map(m=>({id:m.id,origX:m.x,origY:m.y,origZ:m.z})):null;
+    if(movingWhole&&members){
+      workspace.classList.add('hardDragging');
+      members.forEach(m=>board.querySelector(`[data-id="${m.id}"]`)?.classList.add('groupDragging'));
+    }
+    drag={id:it.id,startX:e.clientX,startY:e.clientY,origX:it.x,origY:it.y,moved:false,movingWhole,clusterId:it.clusterId,members,wasOpen:!!c&&c.id===openClusterId};
+    try{el.setPointerCapture(e.pointerId)}catch(err){}
+    e.preventDefault(); e.stopPropagation();
+  });
+  el.addEventListener('pointermove',e=>{
+    if(!drag||drag.id!==it.id)return;
+    const dx=(e.clientX-drag.startX)/view.scale,dy=(e.clientY-drag.startY)/view.scale;
+    if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;
+    if(drag.movingWhole&&drag.members){
+      // Grupo cerrado = mazacote rígido. No hay transición, no hay persecución.
+      drag.members.forEach((m)=>{
+        const obj=items.find(i=>i.id===m.id);
+        obj.x=m.origX+dx;
+        obj.y=m.origY+dy;
+        positionEl(board.querySelector(`[data-id="${obj.id}"]`),obj);
+      });
+      if(drag.clusterId) updateGroupDelete(drag.clusterId);
+    }else{
+      it.x=drag.origX+dx; it.y=drag.origY+dy; positionEl(el,it); highlightMagnet(it.id);
+    }
+  });
+  el.addEventListener('pointerup',e=>{
+    try{el.releasePointerCapture(e.pointerId)}catch(err){}
+    el.classList.remove('dragging');
+    if(drag?.members){
+      workspace.classList.remove('hardDragging');
+      drag.members.forEach(m=>board.querySelector(`[data-id="${m.id}"]`)?.classList.remove('groupDragging'));
+    }
+    if(drag&&drag.moved){
+      if(drag.movingWhole){
+        const c=clusters.find(x=>x.id===drag.clusterId);
+        if(c){
+          const b=boundsOf(c.itemIds,0);
+          c.x=b.x; c.y=b.y;
+          c.itemIds.forEach((id,n)=>{
+            const obj=items.find(i=>i.id===id);
+            obj.relX=obj.x-c.x;
+            obj.relY=obj.y-c.y;
+            obj.z=zTop+n;
+            positionEl(board.querySelector(`[data-id="${obj.id}"]`),obj);
+          });
+          zTop+=c.itemIds.length+1; updateGroupDelete(c.id);
+        }
+      }else if(drag.wasOpen && it.clusterId===openClusterId){
+        // Si el grupo estaba abierto y moviste una pieza, la intención es sacarla.
+        // Solo entra a otro grupo si la soltás claramente sobre algo externo.
+        const target=nearestMagnet(it.id);
+        if(target){
+          const oldClusterId=it.clusterId;
+          detachOnly(it.id);
+          if(target.item.clusterId) addToCluster(target.item.clusterId,it.id);
+          else createCluster([target.item.id,it.id]);
+          if(oldClusterId && clusters.find(c=>c.id===oldClusterId)) openCluster(oldClusterId);
+          toast('Pasó a otro grupo');
+        }else{
+          extractFromCluster(it.id,true);
+        }
+      }else{
+        handleMagnetDrop(it.id);
+      }
+    }
+    drag=null; clearMagnetTargets();
+  });
+  el.addEventListener('dblclick',e=>{ if(it.clusterId) openCluster(it.clusterId); else selectItem(it.id); e.stopPropagation(); });
+  el.querySelector('.deleteMini').addEventListener('click',e=>{e.stopPropagation();removeItem(it.id)});
+}
+function itemRect(it){return{x:it.x,y:it.y,w:W,h:H,cx:it.x+W/2,cy:it.y+H/2}}
+function boundsOf(ids,pad=0){
+  const arr=ids.map(id=>items.find(i=>i.id===id)).filter(Boolean);
+  if(!arr.length)return null;
+  const minX=Math.min(...arr.map(i=>i.x)),minY=Math.min(...arr.map(i=>i.y)),maxX=Math.max(...arr.map(i=>i.x+W)),maxY=Math.max(...arr.map(i=>i.y+H));
+  return{x:minX-pad,y:minY-pad,w:maxX-minX+pad*2,h:maxY-minY+pad*2};
+}
+function dist(a,b){return Math.hypot(a.cx-b.cx,a.cy-b.cy)}
+function nearestMagnet(itemId){
+  const it=items.find(i=>i.id===itemId),r=itemRect(it);let best=null;
+  for(const other of items){
+    if(other.id===itemId)continue;
+    if(it.clusterId && other.clusterId===it.clusterId)continue;
+    const limit = (drag && drag.wasOpen) ? 78 : MAGNET;
+    const d=dist(r,itemRect(other));
+    if(d<limit && (!best||d<best.d))best={item:other,d};
+  }
+  return best;
+}
+function highlightMagnet(itemId){clearMagnetTargets();const best=nearestMagnet(itemId);if(best)board.querySelector(`[data-id="${best.item.id}"]`)?.classList.add('magnetTarget')}
+function clearMagnetTargets(){document.querySelectorAll('.magnetTarget').forEach(e=>e.classList.remove('magnetTarget'))}
+function handleMagnetDrop(itemId){
+  const it=items.find(i=>i.id===itemId); if(!it)return;
+  const best=nearestMagnet(itemId); if(!best)return;
+  const target=best.item;
+  if(target.clusterId) addToCluster(target.clusterId,it.id);
+  else if(it.clusterId) addToCluster(it.clusterId,target.id);
+  else createCluster([target.id,it.id]);
+  toast('Agrupados');
+}
+
+function groupBounds(clusterId,pad=0){
+  const c=clusters.find(x=>x.id===clusterId);
+  if(!c)return null;
+  return boundsOf(c.itemIds,pad);
+}
+function ensureGroupDelete(c){
+  if(c.deleteEl)return c.deleteEl;
+  const btn=document.createElement('div');
+  btn.className='groupDelete';
+  btn.textContent='×';
+  btn.title='Borrar grupo completo';
+  btn.dataset.clusterId=c.id;
+  btn.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();});
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    deleteCluster(c.id);
+  });
+  board.appendChild(btn);
+  c.deleteEl=btn;
+  return btn;
+}
+function updateGroupDelete(clusterId){
+  const c=clusters.find(x=>x.id===clusterId);
+  if(!c)return;
+  const btn=ensureGroupDelete(c);
+  const b=groupBounds(clusterId,0);
+  if(!b)return;
+  btn.style.left=(b.x-42)+'px';
+  btn.style.top=(b.y+4)+'px';
+  btn.style.zIndex=6000;
+  const show=!!selectedId && c.itemIds.includes(selectedId);
+  btn.classList.toggle('show',show);
+}
+function updateAllGroupDeletes(){
+  clusters.forEach(c=>updateGroupDelete(c.id));
+}
+function deleteCluster(clusterId){
+  const c=clusters.find(x=>x.id===clusterId);
+  if(!c)return;
+  const ids=[...c.itemIds];
+  ids.forEach(id=>{
+    const it=items.find(i=>i.id===id);
+    if(it)URL.revokeObjectURL(it.url);
+    board.querySelector(`[data-id="${id}"]`)?.remove();
+  });
+  c.deleteEl?.remove();
+  items=items.filter(i=>!ids.includes(i.id));
+  clusters=clusters.filter(x=>x.id!==clusterId);
+  if(openClusterId===clusterId)openClusterId=null;
+  selectedId=null;
+  updateStats();
+  selectItem(items[0]?.id||null);
+  toast('Grupo eliminado');
+}
+
+function createCluster(ids){
+  ids=[...new Set(ids)].filter(id=>items.find(i=>i.id===id));
+  if(ids.length<2)return;
+  ids.forEach(id=>{const it=items.find(i=>i.id===id); if(it.clusterId) detachOnly(id);});
+  const base=items.find(i=>i.id===ids[0]);
+  const id='c_'+uid(),c={id,itemIds:[],x:base.x,y:base.y,open:false,deleteEl:null}; clusters.push(c);
+  ids.forEach((itemId,n)=>{
+    const it=items.find(i=>i.id===itemId);
+    it.clusterId=id;c.itemIds.push(itemId);
+    it.relX=n*18;it.relY=n*14;it.x=c.x+it.relX;it.y=c.y+it.relY;it.rot=(n*3-2).toFixed(2);it.z=zTop++;
+    const el=board.querySelector(`[data-id="${it.id}"]`); positionEl(el,it); el?.classList.remove('clusterOpen'); updateItemClusterVisual(it.id);
+  });
+  closeCluster(id,true); selectItem(ids[ids.length-1]); updateStats(); updateGroupDelete(id);
+}
+function addToCluster(clusterId,itemId){
+  const c=clusters.find(x=>x.id===clusterId),it=items.find(i=>i.id===itemId); if(!c||!it)return;
+  if(it.clusterId && it.clusterId!==clusterId) detachOnly(itemId);
+  if(!c.itemIds.includes(itemId))c.itemIds.push(itemId);
+  it.clusterId=clusterId;
+  if(c.open) openCluster(clusterId); else closeCluster(clusterId,true);
+  updateClusterTags(clusterId); updateGroupDelete(clusterId);
+}
+function detachOnly(itemId){
+  const it=items.find(i=>i.id===itemId); if(!it||!it.clusterId)return;
+  const c=clusters.find(x=>x.id===it.clusterId);
+  if(c){
+    c.itemIds=c.itemIds.filter(id=>id!==itemId);
+    if(c.itemIds.length<=1){
+      const last=items.find(i=>i.id===c.itemIds[0]);
+      if(last){last.clusterId=null;last.relX=0;last.relY=0;board.querySelector(`[data-id="${last.id}"]`)?.classList.remove('clusterOpen');updateItemClusterVisual(last.id)}
+      c.deleteEl?.remove();
+      clusters=clusters.filter(x=>x.id!==c.id); if(openClusterId===c.id)openClusterId=null;
+    } else {
+      updateGroupDelete(c.id);
+    }
+  }
+  it.clusterId=null; it.relX=0; it.relY=0; board.querySelector(`[data-id="${it.id}"]`)?.classList.remove('clusterOpen'); updateItemClusterVisual(it.id);
+}
+function openCluster(clusterId){
+  if(openClusterId && openClusterId!==clusterId) closeCluster(openClusterId,true);
+  const c=clusters.find(x=>x.id===clusterId); if(!c)return; c.open=true; openClusterId=clusterId;
+  // Separación corta y desordenada; siguen agarrados hasta que una pieza sale afuera.
+  const centerX=c.x+40, centerY=c.y+35;
+  const offsets=[
+    {x:-36,y:-28,r:-7},{x:58,y:-18,r:5},{x:-18,y:64,r:8},{x:78,y:58,r:-5},
+    {x:20,y:118,r:6},{x:126,y:18,r:-8},{x:-74,y:40,r:4},{x:112,y:112,r:7}
+  ];
+  c.itemIds.forEach((id,n)=>{
+    const it=items.find(i=>i.id===id); if(!it)return;
+    const o=offsets[n%offsets.length];
+    const ring=Math.floor(n/offsets.length);
+    it.x=centerX+o.x+ring*36; it.y=centerY+o.y+ring*28; it.rot=o.r; it.z=zTop++;
+    const el=board.querySelector(`[data-id="${it.id}"]`); positionEl(el,it); el?.classList.add('clusterOpen'); updateItemClusterVisual(it.id);
+  });
+  updateGroupDelete(clusterId); toast('Grupo abierto');
+}
+function closeCluster(clusterId,silent=false){
+  const c=clusters.find(x=>x.id===clusterId); if(!c)return; c.open=false; if(openClusterId===clusterId)openClusterId=null;
+  c.itemIds.forEach((id,n)=>{
+    const it=items.find(i=>i.id===id); if(!it)return;
+    it.relX=n*18; it.relY=n*14; it.x=c.x+it.relX; it.y=c.y+it.relY; it.rot=(n*3-2).toFixed(2); it.z=zTop++;
+    const el=board.querySelector(`[data-id="${it.id}"]`); positionEl(el,it); el?.classList.remove('clusterOpen'); updateItemClusterVisual(it.id);
+  });
+  updateClusterTags(clusterId); updateGroupDelete(clusterId); updateGroupDelete(clusterId);
+  if(!silent)toast('Grupo cerrado');
+}
+function outsideOpenGroup(it){
+  const c=clusters.find(x=>x.id===openClusterId); if(!c)return false;
+  const others=c.itemIds.filter(id=>id!==it.id).map(id=>items.find(i=>i.id===id)).filter(Boolean);
+  if(!others.length)return true;
+  const b=boundsOf(others.map(o=>o.id),90);
+  const cx=it.x+W/2,cy=it.y+H/2;
+  return !(cx>=b.x&&cx<=b.x+b.w&&cy>=b.y&&cy<=b.y+b.h);
+}
+function extractFromCluster(itemId,keepPos=false){
+  const it=items.find(i=>i.id===itemId),c=clusters.find(x=>x.id===it?.clusterId); if(!it||!c)return;
+  c.itemIds=c.itemIds.filter(id=>id!==itemId); it.clusterId=null; it.relX=0; it.relY=0; it.rot=(Math.random()*8-4).toFixed(2); it.z=zTop++;
+  if(!keepPos){it.x+=45;it.y+=45}
+  const el=board.querySelector(`[data-id="${it.id}"]`); positionEl(el,it); el?.classList.remove('clusterOpen'); updateItemClusterVisual(it.id);
+  if(c.itemIds.length<=1){
+    const last=items.find(i=>i.id===c.itemIds[0]);
+    if(last){last.clusterId=null;last.relX=0;last.relY=0;board.querySelector(`[data-id="${last.id}"]`)?.classList.remove('clusterOpen');updateItemClusterVisual(last.id)}
+    c.deleteEl?.remove();
+    clusters=clusters.filter(x=>x.id!==c.id); openClusterId=null;
+  }else { openCluster(c.id); updateGroupDelete(c.id); }
+  selectItem(itemId); toast('Pieza afuera');
+}
+function updateItemClusterVisual(itemId){
+  const it=items.find(i=>i.id===itemId),el=board.querySelector(`[data-id="${itemId}"]`); if(!it||!el)return;
+  const c=it.clusterId?clusters.find(x=>x.id===it.clusterId):null;
+  el.classList.toggle('clustered',!!c);
+  el.classList.toggle('clusterMaster',!!c && !c.open && c.itemIds[0]===itemId);
+  const bubble=el.querySelector('.countBubble'); if(bubble)bubble.textContent=c?c.itemIds.length:'';
+}
+function updateClusterTags(clusterId){const c=clusters.find(x=>x.id===clusterId); if(c)c.itemIds.forEach(updateItemClusterVisual)}
+function selectItem(id){selectedId=id||null;document.querySelectorAll('.item').forEach(el=>el.classList.toggle('selected',el.dataset.id===selectedId));const has=!!selectedId;document.getElementById('downloadOneBtn').disabled=!has;document.getElementById('removeOneBtn').disabled=!has;document.getElementById('copyInfoBtn').disabled=!has;updateAllGroupDeletes();renderPreview()}
+async function renderPreview(){
+  const it=items.find(x=>x.id===selectedId); if(!it){preview.innerHTML=`<div class="empty">Todavía no hay nada seleccionado.<br><br>Agregá archivos y usá esta zona como lupa de previo.</div>`;return}
+  let media=''; if(it.kind==='image')media=`<img class="previewMedia" src="${it.url}">`; else if(it.kind==='video')media=`<video class="previewMedia" src="${it.url}" controls playsinline></video>`; else if(it.kind==='audio')media=`<audio src="${it.url}" controls></audio>`; else if(it.kind==='pdf')media=`<iframe class="previewMedia" src="${it.url}" style="height:330px;border:0"></iframe>`; else if(it.kind==='text'){const text=await it.file.text().catch(()=>'(No pude leer el texto)');media=`<textarea spellcheck="false">${escapeHtml(text.slice(0,12000))}</textarea>`} else media=`<div class="empty" style="min-height:180px">${iconFor(it.kind)}<br>Este tipo de archivo no tiene previo directo.</div>`;
+  const c=it.clusterId?clusters.find(x=>x.id===it.clusterId):null;
+  preview.innerHTML=`<div class="previewBox">${media}<div class="info"><div class="infoRow"><b>Nombre:</b> ${escapeHtml(it.file.name)}</div><div class="infoRow"><b>Tipo:</b> ${escapeHtml(it.file.type||'sin tipo declarado')} · ${it.kind}</div><div class="infoRow"><b>Peso:</b> ${formatBytes(it.file.size)}</div><div class="infoRow"><b>Estado:</b> ${c?'Agrupado con '+c.itemIds.length+' piezas':'Suelto sobre la mesa'}</div></div></div>`;
+}
+function removeItem(id){const it=items.find(i=>i.id===id); if(!it)return; detachOnly(id); URL.revokeObjectURL(it.url); items=items.filter(i=>i.id!==id); board.querySelector(`[data-id="${id}"]`)?.remove(); if(selectedId===id)selectItem(items[0]?.id||null); updateStats()}
+function updateStats(){countStat.textContent=items.length;sizeStat.textContent=formatBytes(items.reduce((s,i)=>s+i.file.size,0));document.getElementById('dropHint').style.display=items.length?'none':'grid'}
+function clearAll(){if(!items.length)return;if(!confirm('¿Vaciar la bandeja? Se pierde todo lo no exportado.'))return;items.forEach(i=>URL.revokeObjectURL(i.url));items=[];clusters=[];selectedId=null;openClusterId=null;board.innerHTML='';updateStats();selectItem(null);toast('Bandeja vacía')}
+function scatter(){clusters.forEach(c=>c.deleteEl?.remove());clusters=[];openClusterId=null;items.forEach(item=>{item.clusterId=null;item.relX=0;item.relY=0;const p=randomPos();item.x=p.x;item.y=p.y;item.rot=p.rot;item.z=zTop++;const el=board.querySelector(`[data-id="${item.id}"]`);positionEl(el,item);el?.classList.remove('clusterOpen');updateItemClusterVisual(item.id)});toast('Mesa mezclada')}
+function downloadFile(it){const a=document.createElement('a');a.href=it.url;a.download=it.file.name||'archivo';a.click()}
+async function copyInfo(){const it=items.find(x=>x.id===selectedId);if(!it)return;const txt=`Archivo: ${it.file.name}\nTipo: ${it.file.type||it.kind}\nPeso: ${formatBytes(it.file.size)}\nEstado: ${it.clusterId?'agrupado':'suelto'}`;try{await navigator.clipboard.writeText(txt);toast('Información copiada')}catch(e){toast('No pude copiar')}}
+async function exportZip(){if(!items.length){toast('No hay archivos');return}try{const blob=await makeZip(items);const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='bandeja-lab-grupos.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);toast('ZIP exportado')}catch(e){console.error(e);toast('No pude armar el ZIP')}}
+async function makeZip(fileItems){const files=[];for(const it of fileItems){const data=new Uint8Array(await it.file.arrayBuffer());let name=it.file.name;if(it.clusterId){const c=clusters.find(c=>c.id===it.clusterId);name=(c.name||('grupo-'+(clusters.indexOf(c)+1)))+'/'+it.file.name}files.push({name:safeNamePath(name),data})}const chunks=[],central=[];let offset=0;for(const f of files){const nameBytes=new TextEncoder().encode(f.name),crc=crc32(f.data),local=new Uint8Array(30+nameBytes.length),dv=new DataView(local.buffer);dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint32(14,crc,true);dv.setUint32(18,f.data.length,true);dv.setUint32(22,f.data.length,true);dv.setUint16(26,nameBytes.length,true);local.set(nameBytes,30);chunks.push(local,f.data);const cent=new Uint8Array(46+nameBytes.length),cdv=new DataView(cent.buffer);cdv.setUint32(0,0x02014b50,true);cdv.setUint16(4,20,true);cdv.setUint16(6,20,true);cdv.setUint32(16,crc,true);cdv.setUint32(20,f.data.length,true);cdv.setUint32(24,f.data.length,true);cdv.setUint16(28,nameBytes.length,true);cdv.setUint32(42,offset,true);cent.set(nameBytes,46);central.push(cent);offset+=local.length+f.data.length}const centralStart=offset;let centralSize=0;central.forEach(c=>centralSize+=c.length);chunks.push(...central);const end=new Uint8Array(22),edv=new DataView(end.buffer);edv.setUint32(0,0x06054b50,true);edv.setUint16(8,files.length,true);edv.setUint16(10,files.length,true);edv.setUint32(12,centralSize,true);edv.setUint32(16,centralStart,true);chunks.push(end);return new Blob(chunks,{type:'application/zip'})}
+function safeNamePath(name){return(name||'archivo').split('/').map(p=>p.replace(/[\\:*?"<>|]/g,'_')).join('/')}
+let crcTable=null;function makeCrcTable(){let c,t=[];for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);t[n]=c>>>0}return t}
+function crc32(data){if(!crcTable)crcTable=makeCrcTable();let crc=0^(-1);for(let i=0;i<data.length;i++)crc=(crc>>>8)^crcTable[(crc^data[i])&0xff];return(crc^(-1))>>>0}
+
+function boardPoint(e){return screenToWorld(e.clientX,e.clientY)}
+function startEmptyGesture(e){
+  if(e.target.closest?.('.item') || e.target.closest?.('.topbar') || e.target.closest?.('.side'))return;
+  if(activePointers.size>=2)return;
+  if(openClusterId){closeCluster(openClusterId,true);selectItem(null);return;}
+  selectItem(null);
+  const p=boardPoint(e);
+  lasso={points:[p],active:true};
+  lassoSvg.style.display='block';
+  drawLasso();
+  e.preventDefault();
+}
+board.addEventListener('pointerdown',startEmptyGesture);
+workspace.addEventListener('pointerdown',startEmptyGesture);
+board.addEventListener('pointermove',e=>{if(!lasso?.active)return;const p=boardPoint(e),last=lasso.points[lasso.points.length-1];if(Math.hypot(p.x-last.x,p.y-last.y)>6){lasso.points.push(p);drawLasso();previewLassoSelection()}});
+board.addEventListener('pointerup',()=>{if(lasso?.active)finishLasso()});
+function drawLasso(){const pts=lasso.points;if(!pts.length)return;let d=`M ${pts[0].x} ${pts[0].y}`;for(let i=1;i<pts.length;i++)d+=` L ${pts[i].x} ${pts[i].y}`;if(pts.length>2)d+=' Z';lassoPath.setAttribute('d',d);lassoPathGlow.setAttribute('d',d)}
+function previewLassoSelection(){const ids=items.filter(it=>!it.clusterId && rectTouchedByLasso(it,lasso.points)).map(i=>i.id);document.querySelectorAll('.item').forEach(el=>el.classList.toggle('selected',ids.includes(el.dataset.id)))}
+function finishLasso(){const ids=items.filter(it=>!it.clusterId && rectTouchedByLasso(it,lasso.points)).map(i=>i.id);lassoSvg.style.display='none';lasso=null;document.querySelectorAll('.item').forEach(el=>el.classList.remove('selected'));if(ids.length>=2){createCluster(ids);toast('Agrupados')}else if(ids.length===1)selectItem(ids[0]);else selectItem(null)}
+function rectTouchedByLasso(it, pts){
+  const r={x:it.x,y:it.y,w:W,h:H};
+  const center={x:it.x+W/2,y:it.y+H/2};
+  if(pointInPoly(center,pts)) return true;
+
+  // Si algún punto del lazo cae dentro de la tarjeta, también selecciona.
+  for(const p of pts){
+    if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h) return true;
+  }
+
+  // Si el segmento del lazo cruza el rectángulo de la tarjeta.
+  const corners=[
+    {x:r.x,y:r.y},{x:r.x+r.w,y:r.y},{x:r.x+r.w,y:r.y+r.h},{x:r.x,y:r.y+r.h}
+  ];
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1], b=pts[i];
+    for(let j=0;j<4;j++){
+      const c=corners[j], d=corners[(j+1)%4];
+      if(segmentsIntersect(a,b,c,d)) return true;
+    }
+  }
+  return false;
+}
+function segmentsIntersect(a,b,c,d){
+  const ccw=(p,q,r)=>(r.y-p.y)*(q.x-p.x)>(q.y-p.y)*(r.x-p.x);
+  return (ccw(a,c,d)!==ccw(b,c,d)) && (ccw(a,b,c)!==ccw(a,b,d));
+}
+
+function pointInPoly(p,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const xi=poly[i].x,yi=poly[i].y,xj=poly[j].x,yj=poly[j].y;const inter=((yi>p.y)!=(yj>p.y))&&(p.x<(xj-xi)*(p.y-yi)/(yj-yi+0.00001)+xi);if(inter)inside=!inside}return inside}
+
+
+
+async function addFilesGroupedByPath(files){
+  const groups=new Map();
+  const loose=[];
+  for(const f of files){
+    const rel=f.webkitRelativePath || f.relativePath || '';
+    if(rel && rel.includes('/')){
+      const root=rel.split('/')[0] || 'Carpeta';
+      if(!groups.has(root))groups.set(root,[]);
+      groups.get(root).push(f);
+    }else{
+      loose.push(f);
+    }
+  }
+  for(const [name,groupFiles] of groups){
+    const p=randomPos();
+    const added=await addFiles(groupFiles,{silent:true,base:p});
+    createCluster(added.map(i=>i.id));
+    const c=clusters.find(cl=>added.every(i=>cl.itemIds.includes(i.id)));
+    if(c)c.name=name;
+  }
+  if(loose.length) await addFiles(loose,{base:dropPoint});
+  if(groups.size) toast(groups.size===1?'Carpeta convertida en grupo':groups.size+' carpetas convertidas en grupos');
+}
+
+
+async function filesFromHandle(handle, prefix=''){
+  const out=[];
+  if(!handle) return out;
+  if(handle.kind === 'file'){
+    const f=await handle.getFile();
+    try{ f.relativePath = prefix + f.name; }catch(e){}
+    out.push(f);
+  }else if(handle.kind === 'directory'){
+    for await (const [name,child] of handle.entries()){
+      const sub=await filesFromHandle(child, prefix + handle.name + '/');
+      out.push(...sub);
+    }
+  }
+  return out;
+}
+async function entryFromItem(item){
+  try{
+    if(item.webkitGetAsEntry) return item.webkitGetAsEntry();
+    if(item.getAsEntry) return item.getAsEntry();
+  }catch(e){}
+  return null;
+}
+
+async function addDroppedDataTransfer(dt, dropPoint=null){
+  const filesDirect=Array.from(dt.files||[]);
+  const dtItems=Array.from(dt.items||[]);
+
+  // Primero detectamos carpeta real. Si no hay carpeta, muchos archivos juntos SIEMPRE entran sueltos.
+  let hasDirectoryHint=false;
+  for(const item of dtItems){
+    try{
+      const entry=item.webkitGetAsEntry?.() || item.getAsEntry?.();
+      if(entry?.isDirectory) hasDirectoryHint=true;
+    }catch(e){}
+  }
+
+  if(filesDirect.length && !hasDirectoryHint){
+    await addFiles(filesDirect,{base:dropPoint});
+    return;
+  }
+
+  let handled=false;
+
+  // Carpetas arrastradas: se convierten en grupo.
+  if(dtItems.length && dtItems.some(item=>item.getAsFileSystemHandle)){
+    const loose=[];
+    let folders=0;
+    for(const item of dtItems){
+      try{
+        const handle=await item.getAsFileSystemHandle();
+        if(handle?.kind==='directory'){
+          folders++;
+          const files=await filesFromHandle(handle,'');
+          if(files.length){
+            const p=dropPoint || randomPos();
+            const added=await addFiles(files,{silent:true,base:p});
+            createCluster(added.map(i=>i.id));
+            const c=clusters.find(cl=>added.every(i=>cl.itemIds.includes(i.id)));
+            if(c)c.name=handle.name;
+            handled=true;
+          }
+        }else if(handle?.kind==='file'){
+          const f=await handle.getFile();
+          loose.push(f);
+          handled=true;
+        }
+      }catch(e){}
+    }
+    if(loose.length) await addFiles(loose,{base:dropPoint});
+    if(folders) toast(folders===1?'Carpeta convertida en grupo':'Carpetas convertidas en grupos: '+folders);
+    if(handled) return;
+  }
+
+  const entries=[];
+  for(const item of dtItems){
+    const entry=await entryFromItem(item);
+    if(entry) entries.push(entry);
+  }
+  if(entries.length){
+    let folders=0;
+    const looseFiles=[];
+    for(const entry of entries){
+      if(entry.isDirectory){
+        folders++;
+        await addDirectoryEntryAsGroup(entry, dropPoint);
+        handled=true;
+      }else if(entry.isFile){
+        const f=await fileFromEntry(entry);
+        if(f){looseFiles.push(f);handled=true;}
+      }
+    }
+    if(looseFiles.length) await addFiles(looseFiles,{base:dropPoint});
+    if(folders) toast(folders===1?'Carpeta convertida en grupo':'Carpetas convertidas en grupos: '+folders);
+    if(handled) return;
+  }
+
+  if(filesDirect.length){
+    if(filesDirect.some(f=>f.webkitRelativePath || f.relativePath)) await addFilesGroupedByPath(filesDirect);
+    else await addFiles(filesDirect,{base:dropPoint});
+    return;
+  }
+
+  const fromItems=dtItems.map(item=>item.getAsFile?.()).filter(Boolean);
+  if(fromItems.length){
+    await addFiles(fromItems,{base:dropPoint});
+    return;
+  }
+
+  toast('No pude leer lo que soltaste. Probá con el botón Agregar.');
+}
+
+function fileFromEntry(entry){
+  return new Promise(resolve=>{
+    try{
+      entry.file(file=>resolve(file),()=>resolve(null));
+    }catch(e){resolve(null)}
+  });
+}
+async function readDirectory(entry, prefix=''){
+  const reader=entry.createReader();
+  const all=[];
+  async function readBatch(){
+    const batch=await new Promise(resolve=>reader.readEntries(resolve));
+    if(!batch.length) return;
+    for(const child of batch){
+      if(child.isFile){
+        const file=await fileFromEntry(child);
+        if(file){
+          try{ file.relativePath = prefix + file.name; }catch(e){}
+          all.push(file);
+        }
+      }else if(child.isDirectory){
+        const sub=await readDirectory(child, prefix + child.name + '/');
+        all.push(...sub);
+      }
+    }
+    await readBatch();
+  }
+  await readBatch();
+  return all;
+}
+async function addDirectoryEntryAsGroup(entry, basePoint=null){
+  const files=await readDirectory(entry, entry.name + '/');
+  if(!files.length){ toast('La carpeta no tenía archivos legibles'); return; }
+  const p=basePoint || randomPos();
+  const added=await addFiles(files,{silent:true,base:p});
+  const ids=added.map(i=>i.id);
+  createCluster(ids);
+  const c=clusters.find(cl=>ids.every(id=>cl.itemIds.includes(id)));
+  if(c){ c.name=entry.name; }
+  selectItem(ids[ids.length-1]);
+}
+
+
+const activePointers=new Map();
+let pinch=null;
+workspace.addEventListener('pointerdown',e=>{
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activePointers.size===2){
+    lasso=null;
+    lassoSvg.style.display='none';
+    drag=null;
+    document.querySelectorAll('.item').forEach(el=>el.classList.remove('dragging','groupDragging','selected'));
+    const pts=[...activePointers.values()];
+    pinch={
+      startDist:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y),
+      startScale:view.scale,
+      startX:view.x,
+      startY:view.y,
+      centerX:(pts[0].x+pts[1].x)/2,
+      centerY:(pts[0].y+pts[1].y)/2
+    };
+  }
+},true);
+workspace.addEventListener('pointermove',e=>{
+  if(!activePointers.has(e.pointerId))return;
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activePointers.size===2&&pinch){
+    e.preventDefault();
+    const pts=[...activePointers.values()];
+    const distNow=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+    const centerNow={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2};
+    const newScale=clampScale(pinch.startScale*Math.pow(distNow/pinch.startDist,1.45));
+    const r=workspace.getBoundingClientRect();
+    const wx=(pinch.centerX-r.left-pinch.startX)/pinch.startScale;
+    const wy=(pinch.centerY-r.top-pinch.startY)/pinch.startScale;
+    view.x=centerNow.x-r.left-wx*newScale;
+    view.y=centerNow.y-r.top-wy*newScale;
+    view.scale=newScale;
+    applyView();
+  }
+},true);
+function endPointer(e){
+  activePointers.delete(e.pointerId);
+  if(activePointers.size<2)pinch=null;
+}
+workspace.addEventListener('pointerup',endPointer,true);
+workspace.addEventListener('pointercancel',endPointer,true);
+workspace.addEventListener('wheel',e=>{
+  // Ruedita directa: para adelante/atrás hace zoom, sin tener que apretar tecla.
+  e.preventDefault();
+  const factor=Math.exp(-e.deltaY*0.0024);
+  zoomAt(e.clientX,e.clientY,view.scale*factor);
+},{passive:false});
+
+let mousePan=null;
+workspace.addEventListener('mousedown',e=>{
+  if(e.button!==1)return;
+  e.preventDefault();
+  e.stopPropagation();
+  mousePan={startX:e.clientX,startY:e.clientY,origX:view.x,origY:view.y};
+  workspace.classList.add('panning');
+});
+window.addEventListener('mousemove',e=>{
+  if(!mousePan)return;
+  e.preventDefault();
+  view.x=mousePan.origX+(e.clientX-mousePan.startX);
+  view.y=mousePan.origY+(e.clientY-mousePan.startY);
+  applyView();
+});
+window.addEventListener('mouseup',e=>{
+  if(e.button!==1&&mousePan)return;
+  mousePan=null;
+  workspace.classList.remove('panning');
+});
+workspace.addEventListener('auxclick',e=>{
+  if(e.button===1)e.preventDefault();
+});
+
+
+fileInput.addEventListener('change',async e=>{
+  const files=Array.from(e.target.files||[]);
+  if(files.some(f=>f.webkitRelativePath || f.relativePath)){
+    await addFilesGroupedByPath(files);
+  }else{
+    await addFiles(files);
+  }
+  fileInput.value='';
+});
+function isExternalFileDrag(e){
+  const types=Array.from(e.dataTransfer?.types||[]);
+  return types.includes('Files') || types.includes('application/x-moz-file');
+}
+function globalDragOver(e){
+  if(!isExternalFileDrag(e)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if(e.dataTransfer)e.dataTransfer.dropEffect='copy';
+  workspace.classList.add('dragOver');
+}
+async function globalDrop(e){
+  if(!isExternalFileDrag(e)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  workspace.classList.remove('dragOver');
+  await addDroppedDataTransfer(e.dataTransfer, boardPoint(e));
+}
+document.addEventListener('dragenter',globalDragOver,true);
+document.addEventListener('dragover',globalDragOver,true);
+document.addEventListener('drop',globalDrop,true);
+document.addEventListener('dragleave',e=>{
+  if(e.clientX<=0||e.clientY<=0||e.clientX>=window.innerWidth||e.clientY>=window.innerHeight){
+    workspace.classList.remove('dragOver');
+  }
+},true);
+
+document.getElementById('zipBtn').onclick=exportZip;document.getElementById('clearBtn').onclick=clearAll;document.getElementById('scatterBtn').onclick=scatter;
+document.getElementById('downloadOneBtn').onclick=()=>{const it=items.find(x=>x.id===selectedId);if(it)downloadFile(it)};
+document.getElementById('removeOneBtn').onclick=()=>{if(selectedId)removeItem(selectedId)};
+document.getElementById('copyInfoBtn').onclick=copyInfo;
+updateStats();
+applyView();
+</script>
+</body>
+</html>
