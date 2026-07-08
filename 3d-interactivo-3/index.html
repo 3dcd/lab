@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Motor 3D interactivo - Importmap</title>
+<style>
+:root{--bg:#111;--panel:#1b1b1d;--txt:#f3f3f3;--muted:#aaa;--line:#333;--accent:#00d6d6;--err:#ff6b6b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}#app{display:grid;grid-template-columns:minmax(0,1fr) 340px;height:100vh;width:100vw}#viewer{position:relative;background:radial-gradient(circle at 50% 45%,#2a2a2d 0,#111 65%)}canvas{display:block;width:100%;height:100%}#loading{position:absolute;inset:0;display:grid;place-items:center;background:#111c;font-size:16px;text-align:center;z-index:5;padding:24px;line-height:1.4}.error{color:#ffd8d8}.ok{color:#b8ffd3}#hint{position:absolute;left:18px;bottom:18px;background:#0009;padding:10px 12px;border:1px solid #ffffff22;border-radius:14px;font-size:13px;color:#ddd;max-width:460px;line-height:1.35}aside{background:var(--panel);border-left:1px solid var(--line);padding:18px;overflow:auto}h1{font-size:18px;margin:0 0 8px}p{color:var(--muted);font-size:13px;line-height:1.45;margin:0 0 14px}.btns{display:grid;gap:8px;margin:12px 0 18px}.btn{border:1px solid #ffffff22;background:#26262a;color:#fff;border-radius:12px;padding:11px 12px;text-align:left;cursor:pointer;font-weight:650;display:flex;align-items:center;gap:10px}.btn:hover{background:#303038}.btn.active{outline:2px solid var(--accent);background:#263336}.dot{width:16px;height:16px;border-radius:999px;border:1px solid #fff8;flex:0 0 auto}.small{font-size:12px;color:#bbb;font-weight:500;margin-left:auto}.row{display:flex;gap:8px;margin-bottom:12px}.mini{flex:1;border:1px solid #ffffff22;background:#222;color:#eee;border-radius:10px;padding:9px;cursor:pointer}.mini:hover{background:#2d2d33}.badge{display:inline-block;border:1px solid #ffffff22;border-radius:999px;padding:4px 8px;color:#bbb;font-size:12px;margin:0 0 12px}#picked{margin-top:8px;color:#fff;font-size:13px}.warn{background:#332900;border:1px solid #7b6500;color:#ffeaa0;padding:10px;border-radius:12px;margin-top:12px;font-size:12px;line-height:1.35}code{background:#0008;padding:2px 5px;border-radius:6px}@media(max-width:800px){#app{grid-template-columns:1fr;grid-template-rows:1fr auto}aside{max-height:44vh;border-left:0;border-top:1px solid var(--line)}#hint{display:none}}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+</head>
+<body>
+<div id="app"><main id="viewer"><div id="loading">Iniciando visor…</div><div id="hint">Arrastrá para girar, rueda/pellizco para zoom. Esta versión FIX usa cambio de texturas completas, más compatible con hostings.</div></main><aside><span class="badge">Versión importmap / debug</span><h1>Motor interactivo</h1><p>Si algo falla, ahora aparece el error en pantalla. Los botones cambian texturas ya horneadas con cada zona resaltada.</p><div class="row"><button class="mini" id="clearBtn">Original</button><button class="mini" id="autoBtn">Auto demo</button></div><div class="btns" id="buttons"></div><div id="picked">Zona activa: original</div><div class="warn"><b>Para subir:</b> mantené juntas las carpetas <code>assets</code>, <code>textures</code> y <code>masks</code> al lado de <code>index.html</code>. Si subís solo el HTML, queda cargando.</div></aside></div>
+<script>
+const $load=document.getElementById('loading');
+function show(msg, cls=''){ $load.innerHTML='<div class="'+cls+'">'+msg+'</div>'; }
+window.addEventListener('error', e=>show('Error de JavaScript:<br>'+String(e.message)+'<br><small>'+String(e.filename||'')+'</small>','error'));
+window.addEventListener('unhandledrejection', e=>show('Error cargando recurso:<br>'+String(e.reason&&e.reason.message?e.reason.message:e.reason),'error'));
+const zones = [{"id": "manguera_aire", "label": "Manguera / admisión de aire", "color": "#ff3040", "texture": "textures/manguera_aire.jpg"}, {"id": "tapa_superior", "label": "Tapa superior / carcasa", "color": "#00d6d6", "texture": "textures/tapa_superior.jpg"}, {"id": "zona_combustible", "label": "Depósito / zona combustible", "color": "#ffd028", "texture": "textures/zona_combustible.jpg"}, {"id": "embrague_lateral", "label": "Embrague / lateral mecánico", "color": "#8a5cff", "texture": "textures/embrague_lateral.jpg"}, {"id": "cardan_bajo", "label": "Cardan / transmisión baja", "color": "#38e86e", "texture": "textures/cardan_bajo.jpg"}, {"id": "tornillos_detalles", "label": "Tornillos / detalles metálicos", "color": "#ffffff", "texture": "textures/tornillos_detalles.jpg"}];
+(async function start(){
+  show('Chequeando archivos…');
+  try{
+    const test = await fetch('assets/motor.glb', {cache:'no-store'});
+    if(!test.ok) throw new Error('No encuentro assets/motor.glb — status '+test.status);
+  }catch(err){ show('No pude leer <code>assets/motor.glb</code>.<br>Revisá que la carpeta <code>assets</code> haya subido junto al HTML.<br><br>'+err.message,'error'); return; }
+  show('Cargando librería 3D…');
+  let THREE, GLTFLoader, OrbitControls;
+  try{
+    THREE = await import('three');
+    ({GLTFLoader} = await import('three/addons/loaders/GLTFLoader.js'));
+    ({OrbitControls} = await import('three/addons/controls/OrbitControls.js'));
+  }catch(err){ show('No cargó Three.js desde CDN.<br>Revisá conexión o bloqueo del CDN. Esta versión ya incluye importmap para resolver three.<br><br>'+err.message,'error'); return; }
+  const viewer=document.getElementById('viewer'); const scene=new THREE.Scene(); const camera=new THREE.PerspectiveCamera(45,1,0.01,100); camera.position.set(.65,.45,1.2);
+  const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); viewer.appendChild(renderer.domElement);
+  const controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=true;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x333333,1.25)); const key=new THREE.DirectionalLight(0xffffff,2.4); key.position.set(2,3,4); scene.add(key); const fill=new THREE.DirectionalLight(0x88bbff,.85); fill.position.set(-3,1,2); scene.add(fill);
+  let mesh=null, originalMap=null, current='base'; const texLoader=new THREE.TextureLoader(); const tex={};
+  function loadTex(path){ return new Promise((res,rej)=>texLoader.load(path, t=>{t.flipY=false; t.colorSpace=THREE.SRGBColorSpace; res(t)}, undefined, rej)); }
+  show('Cargando texturas…');
+  tex.base=await loadTex('textures/base.jpg'); for(const z of zones){ tex[z.id]=await loadTex(z.texture); }
+  const buttons=document.getElementById('buttons'); zones.forEach(z=>{ const b=document.createElement('button'); b.className='btn'; b.dataset.id=z.id; b.innerHTML=`<span class="dot" style="background:${z.color}"></span><span>${z.label}</span><span class="small">textura</span>`; b.onclick=()=>select(z.id); buttons.appendChild(b); });
+  function resize(){const r=viewer.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/r.height; camera.updateProjectionMatrix();} window.addEventListener('resize',resize); resize();
+  function fit(obj){const box=new THREE.Box3().setFromObject(obj); const size=box.getSize(new THREE.Vector3()); const center=box.getCenter(new THREE.Vector3()); controls.target.copy(center); const max=Math.max(size.x,size.y,size.z)||1; camera.position.copy(center).add(new THREE.Vector3(max*.9,max*.55,max*1.6)); camera.near=max/100; camera.far=max*100; camera.updateProjectionMatrix(); controls.update();}
+  function select(id){ current=id||'base'; document.querySelectorAll('.btn').forEach(b=>b.classList.toggle('active', b.dataset.id===id)); document.getElementById('picked').textContent='Zona activa: '+(id?(zones.find(z=>z.id===id)||{}).label:'original'); if(mesh){ mesh.traverse?null:null; mesh.material.map=tex[current]; mesh.material.needsUpdate=true; }}
+  document.getElementById('clearBtn').onclick=()=>select(null); let timer=null, idx=0; document.getElementById('autoBtn').onclick=()=>{ if(timer){clearInterval(timer);timer=null;return} select(zones[idx++%zones.length].id); timer=setInterval(()=>select(zones[idx++%zones.length].id),1400); };
+  show('Cargando motor…<br><small>Si el hosting es lento puede tardar unos segundos.</small>');
+  new GLTFLoader().load('assets/motor.glb', gltf=>{ scene.add(gltf.scene); gltf.scene.traverse(o=>{ if(o.isMesh){ if(!mesh) mesh=o; o.material=o.material.clone(); o.material.map=tex.base; o.material.needsUpdate=true; }}); fit(gltf.scene); $load.style.display='none'; }, xhr=>{ if(xhr.total){ show('Cargando motor… '+Math.round(xhr.loaded/xhr.total*100)+'%'); }}, err=>{ show('El GLB falló al cargar.<br>'+err.message,'error'); });
+  function anim(){requestAnimationFrame(anim); controls.update(); renderer.render(scene,camera);} anim();
+})();
+</script>
+</body></html>
