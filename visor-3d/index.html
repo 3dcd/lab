@@ -114,6 +114,20 @@
       flex:1 1 auto;
       min-height:0;
       overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .model-frame{
+      position:relative;
+      flex:0 0 auto;
+      width:100%;
+      height:100%;
+      max-width:100%;
+      max-height:100%;
+      overflow:hidden;
+      border-radius:inherit;
     }
 
     model-viewer{
@@ -806,7 +820,8 @@
       touch-action:none;
       outline:none;
       opacity:1;
-      transform:translate(-50%, -50%) translateY(0) scale(1);
+      --bubble-anchor-transform:translate(-50%, -50%);
+      transform:var(--bubble-anchor-transform) translateY(0) scale(1);
       transition:box-shadow .14s ease;
       will-change:transform, opacity;
     }
@@ -820,13 +835,13 @@
     }
 
     @keyframes bubbleEnter{
-      from{opacity:0; transform:translate(-50%, -50%) translateY(8px) scale(.965)}
-      to{opacity:1; transform:translate(-50%, -50%) translateY(0) scale(1)}
+      from{opacity:0; transform:var(--bubble-anchor-transform) translateY(8px) scale(.965)}
+      to{opacity:1; transform:var(--bubble-anchor-transform) translateY(0) scale(1)}
     }
 
     @keyframes bubbleExit{
-      from{opacity:1; transform:translate(-50%, -50%) translateY(0) scale(1)}
-      to{opacity:0; transform:translate(-50%, -50%) translateY(-8px) scale(.96)}
+      from{opacity:1; transform:var(--bubble-anchor-transform) translateY(0) scale(1)}
+      to{opacity:0; transform:var(--bubble-anchor-transform) translateY(-8px) scale(.96)}
     }
 
     .info-bubble:active{cursor:grabbing}
@@ -849,6 +864,12 @@
       height:0;
       background:transparent;
     }
+
+    .info-bubble.pointer-bottom{--bubble-anchor-transform:translate(-50%, calc(-100% - 11px));}
+    .info-bubble.pointer-top{--bubble-anchor-transform:translate(-50%, 11px);}
+    .info-bubble.pointer-left{--bubble-anchor-transform:translate(11px, -50%);}
+    .info-bubble.pointer-right{--bubble-anchor-transform:translate(calc(-100% - 11px), -50%);}
+    .info-bubble.pointer-none{--bubble-anchor-transform:translate(-50%, -50%);}
 
     .info-bubble.pointer-bottom::after{
       left:50%;
@@ -906,7 +927,7 @@
       height:calc(100vh - 150px);
     }
 
-    .viewer-card:fullscreen model-viewer{
+    .viewer-card:fullscreen .model-frame{
       min-height:100%;
       height:100%;
     }
@@ -925,18 +946,10 @@
       background:#050506;
     }
 
-    .viewer-card:fullscreen model-viewer{
+    .viewer-card:fullscreen .model-frame{
       flex:0 1 auto;
       width:min(100vw, calc((100vh - 150px) * 1.45));
       max-width:100vw;
-    }
-
-    .viewer-card:fullscreen .bubble-layer{
-      left:50%;
-      right:auto;
-      width:min(100vw, calc((100vh - 150px) * 1.45));
-      max-width:100vw;
-      transform:translateX(-50%);
     }
 
 
@@ -1151,6 +1164,20 @@
       .step-arrow::before{border-top-width:10px;border-bottom-width:10px}
       .step-arrow.prev::before{border-right-width:16px}
       .step-arrow.next::before{border-left-width:16px}
+
+      .info-bubble{
+        min-width:88px;
+        max-width:54vw;
+        min-height:34px;
+        padding:7px 9px;
+        font-size:11px;
+        border-radius:14px;
+        line-height:1.24;
+      }
+      .info-bubble.pointer-bottom::after{bottom:-9px;border-left-width:9px;border-right-width:9px;border-top-width:9px}
+      .info-bubble.pointer-top::after{top:-9px;border-left-width:9px;border-right-width:9px;border-bottom-width:9px}
+      .info-bubble.pointer-left::after{left:-9px;border-top-width:9px;border-bottom-width:9px;border-right-width:9px}
+      .info-bubble.pointer-right::after{right:-9px;border-top-width:9px;border-bottom-width:9px;border-left-width:9px}
     }
   
     /* iPad apaisado: bloquear scroll general y priorizar gestos del modelo */
@@ -1514,6 +1541,145 @@
     .export-toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
 
+    /* Ajuste final: el marco de composición ya no muestra una “máscara” visible.
+       Mantiene el anclaje de puntita de globitos, pero unifica el fondo del visor
+       para que no aparezcan franjas grises/blancas cuando cambia la proporción. */
+    .viewer-stage,
+    .model-frame,
+    model-viewer{
+      background:#fff !important;
+    }
+
+    .viewer-stage{
+      background:radial-gradient(circle at center,#ffffff 0,#ffffff 58%,#f8f9fb 100%) !important;
+    }
+
+    .model-frame{
+      box-shadow:none !important;
+      border:0 !important;
+    }
+
+    /* En celular, todo el editor queda encerrado en el alto visible. La consola de
+       keyframes no se escapa por debajo y el visor cede altura de forma ordenada. */
+    @media(max-width:700px){
+      html,
+      body{
+        width:100%;
+        height:100%;
+        max-height:100%;
+        overflow:hidden !important;
+        overscroll-behavior:none;
+      }
+
+      body{
+        min-height:100dvh;
+      }
+
+      header{
+        height:58px !important;
+        min-height:58px !important;
+        padding:0 12px !important;
+      }
+
+      .brand{font-size:15px !important;}
+      .back{font-size:12px !important;padding:8px 10px !important;}
+
+      main{
+        height:calc(100dvh - 58px) !important;
+        max-height:calc(100dvh - 58px) !important;
+        padding:8px !important;
+        overflow:hidden !important;
+      }
+
+      .workspace{
+        height:100% !important;
+        max-height:100% !important;
+        overflow:hidden !important;
+      }
+
+      .viewer-card{
+        height:100% !important;
+        max-height:100% !important;
+        min-height:0 !important;
+        border-radius:20px !important;
+        overflow:hidden !important;
+      }
+
+      .viewer-stage{
+        flex:1 1 auto !important;
+        min-height:0 !important;
+        height:auto !important;
+      }
+
+      .motion-dock{
+        flex:0 0 auto !important;
+        padding:6px 7px calc(7px + env(safe-area-inset-bottom,0px)) !important;
+        max-height:42dvh !important;
+        overflow:hidden !important;
+      }
+
+      .motion-head{
+        margin-bottom:4px !important;
+        gap:5px !important;
+      }
+
+      .motion-title strong{font-size:11px !important;}
+      .motion-title span{font-size:10px !important;}
+
+      .motion-controls{
+        gap:5px !important;
+        flex-wrap:nowrap !important;
+        overflow-x:auto !important;
+        padding-bottom:2px !important;
+      }
+
+      .motion-btn,
+      .motion-timebox{
+        min-height:30px !important;
+        padding:6px 8px !important;
+        font-size:10px !important;
+        border-radius:10px !important;
+      }
+
+      .step-arrows{
+        margin:4px 0 5px !important;
+        gap:8px !important;
+      }
+
+      .step-arrow{
+        width:46px !important;
+        height:34px !important;
+      }
+
+      .timeline-row{
+        grid-template-columns:38px minmax(0,1fr) 38px !important;
+        gap:5px !important;
+      }
+
+      .timeline-clock{
+        font-size:9px !important;
+        padding:6px 4px !important;
+        border-radius:9px !important;
+      }
+
+      .mini-timeline{
+        height:28px !important;
+        border-radius:12px !important;
+      }
+
+      .mini-timeline::before,
+      .kf-dot{top:16px !important;}
+      .timeline-scale{top:3px !important;}
+      .tick-label{display:none !important;}
+      .playhead{top:3px !important;bottom:3px !important;}
+      .kf-dot::after{display:none !important;}
+
+      .top-title{top:12px !important;}
+      .top-title h1{font-size:24px !important;}
+      .top-title p{font-size:10px !important;margin-top:3px !important;}
+    }
+
+
   </style>
 </head>
 <body>
@@ -1532,21 +1698,23 @@
           <p>Demo cargado · podés cargar o arrastrar otro modelo</p>
         </div>
 
-        <model-viewer
-          src="./demo.glb"
-          id="viewer"
-          camera-controls
-          touch-action="pan-y"
-          shadow-intensity="1"
-          shadow-softness="0.65"
-          exposure="1"
-          environment-image="neutral"
-          camera-orbit="0deg 75deg 105%"
-          field-of-view="30deg"
-          interaction-prompt="none">
-        </model-viewer>
+        <div class="model-frame" id="modelFrame">
+          <model-viewer
+            src="./demo.glb"
+            id="viewer"
+            camera-controls
+            touch-action="pan-y"
+            shadow-intensity="1"
+            shadow-softness="0.65"
+            exposure="1"
+            environment-image="neutral"
+            camera-orbit="0deg 75deg 105%"
+            field-of-view="30deg"
+            interaction-prompt="none">
+          </model-viewer>
 
-        <div class="bubble-layer" id="bubbleLayer"></div>
+          <div class="bubble-layer" id="bubbleLayer"></div>
+        </div>
 
         <div class="tool-strip">
           <button class="strip-btn" id="homeBtn" title="Reset cámara">⌂</button>
@@ -1947,6 +2115,32 @@
     }
 
 
+
+    const COMPOSITION_ASPECT = 1.0;
+    function updateModelFrameSize(){
+      const frame = document.getElementById('modelFrame');
+      const stage = document.querySelector('.viewer-stage');
+      if(!frame || !stage) return;
+      const r = stage.getBoundingClientRect();
+      if(!r.width || !r.height) return;
+      let w = Math.min(r.width, r.height * COMPOSITION_ASPECT);
+      let h = Math.min(r.height, w / COMPOSITION_ASPECT);
+      // Si queda demasiado bajo en pantallas angostas, priorizamos ancho completo.
+      if(r.width < r.height * 0.92){
+        w = r.width;
+        h = Math.min(r.height, w / COMPOSITION_ASPECT);
+      }
+      frame.style.width = `${Math.round(w)}px`;
+      frame.style.height = `${Math.round(h)}px`;
+    }
+
+    window.addEventListener('resize', updateModelFrameSize);
+    window.addEventListener('orientationchange', () => setTimeout(updateModelFrameSize, 260));
+    if(window.ResizeObserver){
+      new ResizeObserver(updateModelFrameSize).observe(document.querySelector('.viewer-stage'));
+    }
+    updateModelFrameSize();
+
     fileInput.addEventListener('change', e => loadModel(e.target.files[0]));
 
 
@@ -1976,6 +2170,7 @@
     });
 
     viewer.addEventListener('load', () => {
+      updateModelFrameSize();
       loadStatus.textContent = currentObjectUrl ? '● Cargado' : '● Demo';
       viewer.environmentImage = 'neutral';
       rememberMaterials();
@@ -2200,6 +2395,7 @@
       clock: document.getElementById('timelineClock'),
       durationClock: document.getElementById('durationClock'),
       stage: document.querySelector('.viewer-stage'),
+      modelFrame: document.getElementById('modelFrame'),
       bubbleLayer: document.getElementById('bubbleLayer')
     };
 
@@ -2790,7 +2986,9 @@
       selectedBubbleId = bubbleId;
       bubbleEl.classList.add('selected');
       bubbleEl.contentEditable = 'true';
+      bubbleEl.setAttribute('inputmode', 'text');
       bubbleEl.focus({preventScroll:true});
+      window.setTimeout(() => bubbleEl.focus({preventScroll:true}), 30);
 
       const range = document.createRange();
       range.selectNodeContents(bubbleEl);
@@ -2805,6 +3003,7 @@
         if(nextText !== originalText) pushUndoState();
         bubble.text = nextText;
         bubbleEl.contentEditable = 'false';
+        bubbleEl.removeAttribute('inputmode');
         editingBubble = false;
         bubblesHiddenByCameraInteraction = false;
         renderBubbleForActiveKeyframe();
@@ -2830,6 +3029,8 @@
       }, {once:true});
     }
 
+    let lastBubbleTap = {id:null, time:0};
+
     function startBubbleDrag(event, keyframeId, bubbleId){
       if(editingBubble || event.currentTarget?.isContentEditable) return;
       if(event.button !== undefined && event.button !== 0) return;
@@ -2837,10 +3038,12 @@
       const kf = keyframes.find(item => item.id === keyframeId);
       const bubble = ensureBubbles(kf).find(item => item.id === bubbleId);
       if(!kf || !bubble) return;
-      const stageRect = keyframeUI.stage.getBoundingClientRect();
+      const stageRect = (keyframeUI.modelFrame || keyframeUI.stage).getBoundingClientRect();
       const bubbleEl = event.currentTarget;
       const startX = event.clientX;
       const startY = event.clientY;
+      const startBubbleX = Number.isFinite(bubble.x) ? bubble.x : 50;
+      const startBubbleY = Number.isFinite(bubble.y) ? bubble.y : 30;
       let moved = false;
       let undoSaved = false;
       event.preventDefault?.();
@@ -2853,20 +3056,33 @@
         if(!moved) return;
         if(!undoSaved){ pushUndoState(); undoSaved = true; }
         moveEvent.preventDefault();
-        const x = ((moveEvent.clientX - stageRect.left) / stageRect.width) * 100;
-        const y = ((moveEvent.clientY - stageRect.top) / stageRect.height) * 100;
-        bubble.x = Math.max(8, Math.min(92, x));
-        bubble.y = Math.max(10, Math.min(88, y));
+        const x = startBubbleX + (dx / stageRect.width) * 100;
+        const y = startBubbleY + (dy / stageRect.height) * 100;
+        bubble.x = Math.max(5, Math.min(95, x));
+        bubble.y = Math.max(5, Math.min(95, y));
         bubbleEl.style.left = `${bubble.x}%`;
         bubbleEl.style.top = `${bubble.y}%`;
         bubbleEl.className = `info-bubble ${pointerClassForBubble(bubble)} selected`;
       };
 
-      const up = () => {
+      const up = upEvent => {
         bubbleEl.releasePointerCapture?.(event.pointerId);
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
-        if(moved) renderBubbleForActiveKeyframe(false, false);
+        if(moved){
+          renderBubbleForActiveKeyframe(false, false);
+          return;
+        }
+        if(event.pointerType === 'touch' || event.pointerType === 'pen'){
+          const now = Date.now();
+          if(lastBubbleTap.id === bubbleId && now - lastBubbleTap.time < 430){
+            lastBubbleTap = {id:null, time:0};
+            startBubbleEdit(bubbleEl, keyframeId, bubbleId);
+          }else{
+            lastBubbleTap = {id:bubbleId, time:now};
+            selectBubbleDom(bubbleId);
+          }
+        }
       };
 
       window.addEventListener('pointermove', move);
@@ -3284,8 +3500,8 @@
     model-viewer{width:100%;height:100%;--poster-color:transparent;filter:brightness(var(--view-brightness,1)) contrast(var(--view-contrast,1));background:radial-gradient(circle at center,#ffffff 0,#fbfcfd 52%,#f0f2f5 100%);opacity:0;transform:translateY(10px) scale(.94);transition:opacity .95s ease,transform .95s cubic-bezier(.2,.9,.2,1);transform-origin:center center}.viewer-shell.is-ready model-viewer{opacity:1;transform:translateY(0) scale(1)}model-viewer::part(default-progress-bar){display:none;height:0;opacity:0}
     .titlemark{position:absolute;top:18px;left:22px;z-index:10;pointer-events:none;text-transform:uppercase;letter-spacing:.045em;color:rgba(15,18,26,.86);text-shadow:0 8px 26px rgba(255,255,255,.78)}
     .titlemark strong{display:block;font-size:18px;line-height:1;font-weight:950}.titlemark span{display:block;margin-top:5px;font-size:10px;font-weight:850;letter-spacing:.18em;color:rgba(15,18,26,.42)}
-    .bubble-layer{position:absolute;inset:0;pointer-events:none;z-index:6}.info-bubble{position:absolute;transform:translate(-50%,-50%);max-width:min(320px,42%);min-width:116px;padding:13px 15px;border-radius:18px;background:#fff;border:0;box-shadow:0 16px 40px rgba(0,0,0,.14);font-weight:850;font-size:14px;line-height:1.25;pointer-events:none;white-space:pre-wrap;will-change:transform,opacity}.info-bubble:after{content:"";position:absolute;width:18px;height:18px;background:inherit;border:0;transform:rotate(45deg)}.pointer-bottom:after{left:50%;bottom:-10px;margin-left:-9px;border-top:0;border-left:0}.pointer-top:after{left:50%;top:-10px;margin-left:-9px;border-right:0;border-bottom:0}.pointer-left:after{left:-10px;top:50%;margin-top:-9px;border-right:0;border-top:0}.pointer-right:after{right:-10px;top:50%;margin-top:-9px;border-left:0;border-bottom:0}.pointer-none:after{display:none}
-    .bubble-enter{animation:bubbleEnter .72s cubic-bezier(.2,.9,.2,1) both}.bubble-exit{animation:bubbleExit .38s cubic-bezier(.5,0,.25,1) both}@keyframes bubbleEnter{0%{opacity:0;transform:translate(-50%,-50%) translateY(8px) scale(.965)}100%{opacity:1;transform:translate(-50%,-50%) translateY(0) scale(1)}}@keyframes bubbleExit{0%{opacity:1;transform:translate(-50%,-50%) translateY(0) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) translateY(-8px) scale(.96)}}
+    .bubble-layer{position:absolute;inset:0;pointer-events:none;z-index:6}.info-bubble{position:absolute;--bubble-anchor-transform:translate(-50%,-50%);transform:var(--bubble-anchor-transform);max-width:min(320px,42%);min-width:116px;padding:13px 15px;border-radius:18px;background:#fff;border:0;box-shadow:0 16px 40px rgba(0,0,0,.14);font-weight:850;font-size:14px;line-height:1.25;pointer-events:none;white-space:pre-wrap;will-change:transform,opacity}.info-bubble:after{content:"";position:absolute;width:18px;height:18px;background:inherit;border:0;transform:rotate(45deg)}.pointer-bottom{--bubble-anchor-transform:translate(-50%,calc(-100% - 10px))}.pointer-top{--bubble-anchor-transform:translate(-50%,10px)}.pointer-left{--bubble-anchor-transform:translate(10px,-50%)}.pointer-right{--bubble-anchor-transform:translate(calc(-100% - 10px),-50%)}.pointer-none{--bubble-anchor-transform:translate(-50%,-50%)}.pointer-bottom:after{left:50%;bottom:-10px;margin-left:-9px;border-top:0;border-left:0}.pointer-top:after{left:50%;top:-10px;margin-left:-9px;border-right:0;border-bottom:0}.pointer-left:after{left:-10px;top:50%;margin-top:-9px;border-right:0;border-top:0}.pointer-right:after{right:-10px;top:50%;margin-top:-9px;border-left:0;border-bottom:0}.pointer-none:after{display:none}
+    .bubble-enter{animation:bubbleEnter .72s cubic-bezier(.2,.9,.2,1) both}.bubble-exit{animation:bubbleExit .38s cubic-bezier(.5,0,.25,1) both}@keyframes bubbleEnter{0%{opacity:0;transform:var(--bubble-anchor-transform) translateY(8px) scale(.965)}100%{opacity:1;transform:var(--bubble-anchor-transform) translateY(0) scale(1)}}@keyframes bubbleExit{0%{opacity:1;transform:var(--bubble-anchor-transform) translateY(0) scale(1)}100%{opacity:0;transform:var(--bubble-anchor-transform) translateY(-8px) scale(.96)}}
     .navwrap{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:9;display:flex;gap:8px;align-items:center;justify-content:center}.nav{width:46px;height:42px;border:0;border-radius:999px;background:rgba(255,255,255,.78);box-shadow:0 14px 38px rgba(0,0,0,.11);font-size:26px;font-weight:900;cursor:pointer;backdrop-filter:blur(14px);line-height:1}.nav:disabled{opacity:.18;cursor:default}
     .hint{position:absolute;right:18px;bottom:22px;font-size:11px;font-weight:850;color:rgba(0,0,0,.38);background:rgba(255,255,255,.46);border:1px solid rgba(0,0,0,.05);border-radius:999px;padding:7px 10px;backdrop-filter:blur(12px)}
     .public-prologue{width:min(92vmin,920px);max-width:920px;margin:0 auto;color:rgba(15,18,26,.78);font-size:15px;line-height:1.55;font-weight:600;text-align:left;white-space:pre-wrap;padding:0 4px 8px;column-count:2;column-gap:34px;column-fill:balance}
