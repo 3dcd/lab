@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Historia Clínica Digital — Luz & Piel v1.6</title>
+<title>Historia Clínica Digital — Luz & Piel v1.7</title>
 
 <style>
   :root{
@@ -298,6 +298,48 @@
   .zip-drop-card strong{display:block;font-size:22px;color:var(--rosa-oscuro);margin-bottom:8px}
   .zip-drop-card span{color:var(--muted)}
 
+  input[type="date"]{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    box-sizing:border-box;
+    -webkit-appearance:none;
+    appearance:none;
+    background-color:#fff;
+    padding-right:40px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23805255' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+    background-size:20px 20px;
+  }
+  input[type="date"]::-webkit-date-and-time-value{
+    text-align:left;
+    min-height:1.2em;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator{
+    opacity:0;
+    position:absolute;
+    right:0;
+    width:44px;
+    height:100%;
+    cursor:pointer;
+  }
+
+  @media (hover:none) and (pointer:coarse){
+    input,select,textarea,button{
+      font-size:16px;
+    }
+    .field{
+      min-width:0;
+    }
+    .field input,
+    .field select,
+    .field textarea{
+      min-width:0;
+      max-width:100%;
+    }
+  }
+
   @media print{
     aside,.topbar,.hero,.collapse,.screen-only{display:none!important}
     .app{display:block}
@@ -380,7 +422,7 @@
         </div>
       </section>
 
-      <form id="clinicalForm">
+      <form id="clinicalForm" autocomplete="off">
         <section class="section" id="datos">
           <div class="section-header">
             <div class="section-title"><div class="section-number">1</div><div><h3>Datos de la consulta y de la paciente</h3><p>Identificación y contacto</p></div></div>
@@ -389,7 +431,7 @@
           <div class="section-body">
             <div class="grid four">
               <label class="field"><span>Fecha de consulta</span><input type="date" name="fecha_consulta"></label>
-              <label class="field"><span>N.º de ficha</span><input type="text" name="numero_ficha" placeholder="Ej. LP-0001"></label>
+              <label class="field"><span>N.º de ficha</span><input type="text" name="numero_ficha" placeholder="Ej. LP-0001" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" data-lpignore="true"></label>
               <label class="field span-2"><span>Apellido y nombre</span><input type="text" name="paciente_nombre" placeholder="Nombre completo"></label>
               <label class="field"><span>Fecha de nacimiento</span><input type="text" name="fecha_nacimiento" placeholder="DD/MM/AAAA" inputmode="numeric" maxlength="10"></label>
               <label class="field"><span>Edad</span><input type="number" name="edad" min="0" max="120"></label>
