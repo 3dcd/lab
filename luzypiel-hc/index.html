@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Historia Clínica Digital — Luz & Piel v1.6</title>
+
+<style>
+  :root{
+    --rosa:#a96f72;
+    --rosa-oscuro:#805255;
+    --rosa-suave:#ead8d6;
+    --beige:#f7efe7;
+    --beige-2:#fffaf6;
+    --dorado:#c49a3a;
+    --dorado-suave:#ead5a0;
+    --texto:#3f3433;
+    --muted:#756866;
+    --borde:#dfcbc5;
+    --blanco:#ffffff;
+    --sombra:0 12px 32px rgba(93,58,58,.10);
+    --radio:18px;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color:var(--texto);
+    background:
+      radial-gradient(circle at top left, rgba(234,216,214,.52), transparent 38%),
+      linear-gradient(180deg,#fbf7f2 0%,#f7efe7 100%);
+  }
+
+  button,input,textarea,select{font:inherit}
+  button{cursor:pointer}
+  .app{
+    min-height:100vh;
+    display:grid;
+    grid-template-columns:280px minmax(0,1fr);
+  }
+
+  aside{
+    position:sticky;
+    top:0;
+    height:100vh;
+    padding:24px 18px;
+    background:rgba(255,250,246,.92);
+    border-right:1px solid var(--borde);
+    backdrop-filter:blur(14px);
+    overflow:auto;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:4px 4px 20px;
+    border-bottom:1px solid var(--borde);
+  }
+  .brand img{
+    width:76px;height:76px;border-radius:50%;
+    box-shadow:0 8px 24px rgba(128,82,85,.16);
+  }
+  .brand h1{font-size:18px;line-height:1.15;margin:0;color:var(--rosa-oscuro)}
+  .brand small{display:block;margin-top:5px;color:var(--muted)}
+
+  .patient-card{
+    margin:18px 0 12px;
+    padding:14px;
+    border-radius:16px;
+    background:linear-gradient(145deg,var(--rosa),var(--rosa-oscuro));
+    color:white;
+    box-shadow:var(--sombra);
+  }
+  .patient-card .label{font-size:12px;opacity:.78;text-transform:uppercase;letter-spacing:.08em}
+  .patient-card strong{display:block;font-size:18px;margin:5px 0 4px}
+  .patient-card span{font-size:13px;opacity:.9}
+
+  nav{display:grid;gap:7px;margin-top:14px}
+  nav a{
+    text-decoration:none;color:var(--texto);
+    padding:11px 12px;border-radius:12px;
+    font-size:14px;font-weight:650;
+    transition:.18s ease;
+  }
+  nav a:hover{background:var(--rosa-suave);color:var(--rosa-oscuro);transform:translateX(2px)}
+  nav a span{display:inline-grid;place-items:center;width:24px;height:24px;margin-right:8px;border-radius:8px;background:var(--beige);color:var(--rosa-oscuro);font-size:12px}
+
+  main{min-width:0}
+  .topbar{
+    position:sticky;top:0;z-index:10;
+    display:flex;align-items:center;justify-content:space-between;gap:18px;
+    padding:16px 28px;
+    background:rgba(255,255,255,.90);
+    border-bottom:1px solid var(--borde);
+    backdrop-filter:blur(16px);
+  }
+  .top-title h2{margin:0;font-size:21px;color:var(--rosa-oscuro)}
+  .top-title p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+  .status{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:7px 10px;border-radius:999px;
+    background:#fff5d8;color:#7d652b;font-size:12px;font-weight:750;
+  }
+  .status.saved{background:#e9f5ed;color:#416c4f}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+
+  .actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+  .btn{
+    border:1px solid var(--borde);
+    background:white;color:var(--texto);
+    padding:10px 13px;border-radius:11px;font-weight:750;font-size:13px;
+    box-shadow:0 3px 9px rgba(70,45,45,.06);
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:0 7px 14px rgba(70,45,45,.10)}
+  .btn.primary{background:var(--rosa);color:white;border-color:var(--rosa)}
+  .btn.gold{background:linear-gradient(145deg,#d6b25c,#b88c28);color:white;border-color:#b88c28}
+  .btn.danger{color:#9a4c4c}
+  .btn.icon::before{margin-right:7px}
+
+  .content{max-width:1480px;margin:0 auto;padding:28px}
+  .hero{
+    display:grid;grid-template-columns:1.35fr .65fr;gap:18px;
+    margin-bottom:22px;
+  }
+  .welcome{
+    padding:25px 26px;border-radius:22px;
+    background:linear-gradient(130deg,#fff 0%,#fff9f3 72%);
+    border:1px solid var(--borde);
+    box-shadow:var(--sombra);
+  }
+  .welcome .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.13em;color:var(--dorado);font-weight:850}
+  .welcome h3{font-family:Georgia,serif;font-size:30px;margin:8px 0;color:var(--rosa-oscuro)}
+  .welcome p{margin:0;color:var(--muted);line-height:1.55}
+  .summary-box{
+    padding:20px;border-radius:22px;
+    background:linear-gradient(145deg,var(--rosa-oscuro),var(--rosa));
+    color:#fff;box-shadow:var(--sombra);
+  }
+  .summary-box h4{margin:0 0 13px}
+  .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .summary-item{padding:10px;border-radius:12px;background:rgba(255,255,255,.12)}
+  .summary-item small{display:block;opacity:.72;margin-bottom:4px}
+  .summary-item strong{font-size:15px}
+
+  .section{
+    margin-bottom:18px;
+    border:1px solid var(--borde);
+    border-radius:var(--radio);
+    background:rgba(255,255,255,.94);
+    box-shadow:0 9px 24px rgba(83,53,53,.07);
+    overflow:hidden;
+  }
+  .section-header{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:18px 20px;
+    background:linear-gradient(90deg,rgba(234,216,214,.72),rgba(255,255,255,.9));
+    border-bottom:1px solid var(--borde);
+  }
+  .section-title{display:flex;align-items:center;gap:12px}
+  .section-number{
+    width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
+    background:var(--rosa);color:white;font-weight:850
+  }
+  .section-header h3{font-size:17px;margin:0;color:var(--rosa-oscuro)}
+  .section-header p{margin:3px 0 0;font-size:12px;color:var(--muted)}
+  .collapse{
+    border:0;background:white;width:34px;height:34px;border-radius:10px;color:var(--rosa-oscuro);font-size:18px
+  }
+  .section-body{padding:20px}
+  .section.closed .section-body{display:none}
+  .section.closed .collapse{transform:rotate(-90deg)}
+
+  .grid{display:grid;gap:14px}
+  .grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .span-2{grid-column:span 2}
+  .span-3{grid-column:span 3}
+  .span-all{grid-column:1/-1}
+
+  label.field{display:grid;gap:7px}
+  label.field > span{font-size:13px;font-weight:780;color:var(--rosa-oscuro)}
+  input[type=text],input[type=date],input[type=email],input[type=tel],input[type=number],select,textarea{
+    width:100%;border:1px solid var(--borde);border-radius:11px;
+    padding:11px 12px;background:var(--beige-2);color:var(--texto);outline:none;
+    transition:border .15s, box-shadow .15s;
+  }
+  textarea{min-height:90px;resize:vertical}
+  input:focus,select:focus,textarea:focus{border-color:var(--rosa);box-shadow:0 0 0 3px rgba(169,111,114,.14);background:white}
+
+  .choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+  .choice{
+    position:relative;display:flex;align-items:center;gap:9px;
+    min-height:44px;padding:10px 11px;border:1px solid var(--borde);border-radius:11px;background:var(--beige-2);
+  }
+  .choice input{width:17px;height:17px;accent-color:var(--rosa)}
+  .choice:hover{border-color:var(--rosa)}
+  .choice strong{font-size:13px}
+
+  .subhead{
+    margin:20px 0 11px;padding-bottom:7px;
+    border-bottom:1px dashed var(--borde);
+    color:var(--rosa-oscuro);font-size:14px;font-weight:850;
+  }
+  .subhead:first-child{margin-top:0}
+
+  .scale-row{
+    display:grid;grid-template-columns:190px repeat(3,1fr) 1.4fr;gap:8px;align-items:center;
+    padding:8px 0;border-bottom:1px solid #f0e5e0
+  }
+  .scale-row:last-child{border-bottom:0}
+  .scale-row > strong{font-size:13px}
+  .segmented{display:flex;justify-content:center}
+  .segmented input{accent-color:var(--rosa);width:17px;height:17px}
+
+  .notice{
+    padding:13px 15px;border-radius:12px;border:1px solid #d8b878;
+    background:#fff8e8;color:#6f5a2d;font-size:13px;line-height:1.45
+  }
+  .danger-note{border-color:#d9aaa6;background:#fff0ef;color:#79423e}
+
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+  .photo-box{
+    position:relative;min-height:235px;border:2px dashed var(--rosa);border-radius:14px;
+    background:var(--beige-2);display:grid;place-items:center;overflow:hidden;
+    transition:.18s ease;
+  }
+  .photo-box.drag-over{border-color:var(--dorado);background:#fff8e8;transform:translateY(-2px)}
+  .photo-box img{width:100%;height:100%;object-fit:contain;position:absolute;inset:0;background:#f8f3ee}
+  .photo-box.orientation-landscape{aspect-ratio:16/9;min-height:0}
+  .photo-box.orientation-portrait{aspect-ratio:3/4;min-height:0}
+  .photo-box.orientation-square{aspect-ratio:1/1;min-height:0}
+  .photo-box.has-photo > label{opacity:0;pointer-events:none}
+  .photo-box label{
+    position:relative;z-index:2;padding:11px 14px;border-radius:10px;
+    background:rgba(255,255,255,.94);font-weight:780;color:var(--rosa-oscuro);
+    cursor:pointer;text-align:center;line-height:1.35
+  }
+  .photo-box input{display:none}
+  .photo-tag{
+    position:absolute;left:10px;top:10px;z-index:3;
+    padding:6px 9px;border-radius:999px;background:rgba(128,82,85,.88);
+    color:white;font-size:12px;font-weight:800;pointer-events:none
+  }
+  .photo-actions{
+    position:absolute;right:9px;bottom:9px;z-index:4;display:flex;gap:6px
+  }
+  .photo-actions button{
+    border:0;border-radius:9px;padding:7px 9px;background:rgba(255,255,255,.94);
+    color:var(--rosa-oscuro);font-weight:850;box-shadow:0 3px 10px rgba(0,0,0,.12)
+  }
+
+  .session-card{
+    border:1px solid var(--borde);border-radius:15px;padding:15px;background:var(--beige-2);margin-bottom:12px
+  }
+  .session-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .session-head h4{margin:0;color:var(--rosa-oscuro)}
+  .session-card textarea{min-height:90px}
+  .session-card label.field > span{min-height:18px}
+  .remove-session{border:0;background:#fff0ef;color:#984b4b;border-radius:9px;padding:7px 10px;font-weight:750}
+
+  .footer{
+    text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px
+  }
+
+  @media(max-width:1150px){
+    .app{grid-template-columns:220px minmax(0,1fr)}
+    .topbar{align-items:flex-start;flex-direction:column}
+    .actions{justify-content:flex-start}
+    .hero{grid-template-columns:1fr}
+    .grid.four{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(max-width:820px){
+    .app{display:block}
+    aside{position:relative;height:auto}
+    nav{display:none}
+    .content{padding:16px}
+    .topbar{position:relative;padding:14px 16px}
+    .grid.two,.grid.three,.grid.four,.choice-grid,.photo-grid{grid-template-columns:1fr}
+    .span-2,.span-3{grid-column:auto}
+    .scale-row{grid-template-columns:1fr repeat(3,45px)}
+    .scale-row input[type=text]{grid-column:1/-1}
+  }
+
+  .zip-drop-overlay{
+    position:fixed;inset:0;z-index:9999;display:none;place-items:center;
+    background:rgba(63,52,51,.68);backdrop-filter:blur(8px);
+  }
+  .zip-drop-overlay.active{display:grid}
+  .zip-drop-card{
+    width:min(520px,calc(100vw - 40px));padding:34px;border-radius:24px;
+    background:white;border:2px dashed var(--dorado);text-align:center;
+    box-shadow:0 24px 70px rgba(0,0,0,.28)
+  }
+  .zip-drop-card strong{display:block;font-size:22px;color:var(--rosa-oscuro);margin-bottom:8px}
+  .zip-drop-card span{color:var(--muted)}
+
+  @media print{
+    aside,.topbar,.hero,.collapse,.screen-only{display:none!important}
+    .app{display:block}
+    .content{max-width:none;padding:0}
+    .section{break-inside:avoid;box-shadow:none}
+    body{background:white}
+    .section.closed .section-body{display:block}
+  }
+</style>
+</head>
+<body>
+<div class="zip-drop-overlay" id="zipDropOverlay">
+  <div class="zip-drop-card">
+    <strong>Soltá aquí el respaldo ZIP</strong>
+    <span>La historia clínica se abrirá automáticamente.</span>
+  </div>
+</div>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <img src="data:image/jpeg;base64,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" alt="Logo Luz & Piel" />
+      <div>
+        <h1>Historia Clínica Digital</h1>
+        <small>Luz & Piel · Belleza y Salud</small>
+      </div>
+    </div>
+
+    <div class="patient-card">
+      <div class="label">Paciente actual</div>
+      <strong id="patientNameSide">Nueva paciente</strong>
+      <span id="patientMetaSide">Ficha sin guardar</span>
+    </div>
+
+    <nav>
+      <a href="#datos"><span>01</span>Datos personales</a>
+      <a href="#motivo"><span>02</span>Motivo y objetivos</a>
+      <a href="#salud"><span>03</span>Salud y seguridad</a>
+      <a href="#derma"><span>04</span>Antecedentes cutáneos</a>
+      <a href="#rutina"><span>05</span>Rutina y hábitos</a>
+      <a href="#evaluacion"><span>06</span>Evaluación de piel</a>
+      <a href="#fotos"><span>07</span>Registro fotográfico</a>
+      <a href="#plan"><span>08</span>Plan de tratamiento</a>
+      <a href="#sesiones"><span>09</span>Sesiones</a>
+      <a href="#domicilio"><span>10</span>Apoyo domiciliario</a>
+      <a href="#consentimiento"><span>11</span>Consentimiento</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="top-title">
+        <h2 id="pagePatientName">Nueva historia clínica</h2>
+        <p><span id="lastModified">Sin modificaciones registradas</span> · <span class="status" id="saveStatus"><span class="dot"></span>Cambios sin guardar</span></p>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="newPatient()">＋ Nueva</button>
+        <button class="btn" onclick="document.getElementById('zipInput').click()">📂 Abrir ZIP</button>
+        <input id="zipInput" type="file" accept=".zip" hidden>
+        <button class="btn gold" onclick="saveZip()">⬇ Guardar ZIP</button>
+        <button class="btn" onclick="printSummary()">🖨 Imprimir / PDF</button>
+        <button class="btn" onclick="prepareEmail()">✉ Preparar envío</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <section class="hero">
+        <div class="welcome">
+          <div class="eyebrow">Ficha profesional confidencial</div>
+          <h3>Evaluación, tratamiento y seguimiento</h3>
+          <p>Formulario digital pensado para completar con rapidez, conservar antecedentes relevantes y acompañar la evolución de cada paciente. No reemplaza el diagnóstico médico.</p>
+        </div>
+        <div class="summary-box">
+          <h4>Resumen de ficha</h4>
+          <div class="summary-grid">
+            <div class="summary-item"><small>N.º de ficha</small><strong id="summaryNumber">—</strong></div>
+            <div class="summary-item"><small>Fecha</small><strong id="summaryDate">—</strong></div>
+            <div class="summary-item"><small>Fototipo</small><strong id="summaryPhoto">—</strong></div>
+            <div class="summary-item"><small>Sesiones</small><strong id="summarySessions">0</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <form id="clinicalForm">
+        <section class="section" id="datos">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">1</div><div><h3>Datos de la consulta y de la paciente</h3><p>Identificación y contacto</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="grid four">
+              <label class="field"><span>Fecha de consulta</span><input type="date" name="fecha_consulta"></label>
+              <label class="field"><span>N.º de ficha</span><input type="text" name="numero_ficha" placeholder="Ej. LP-0001"></label>
+              <label class="field span-2"><span>Apellido y nombre</span><input type="text" name="paciente_nombre" placeholder="Nombre completo"></label>
+              <label class="field"><span>Fecha de nacimiento</span><input type="text" name="fecha_nacimiento" placeholder="DD/MM/AAAA" inputmode="numeric" maxlength="10"></label>
+              <label class="field"><span>Edad</span><input type="number" name="edad" min="0" max="120"></label>
+              <label class="field"><span>Ocupación</span><input type="text" name="ocupacion"></label>
+              <label class="field"><span>Localidad</span><input type="text" name="localidad"></label>
+              <label class="field span-2"><span>Domicilio</span><input type="text" name="domicilio"></label>
+              <label class="field"><span>Teléfono</span><input type="tel" name="telefono"></label>
+              <label class="field"><span>E-mail</span><input type="email" name="email"></label>
+              <label class="field span-2"><span>Dermatólogo/a tratante</span><input type="text" name="dermatologo"></label>
+              <label class="field span-2"><span>Derivado/a por</span><input type="text" name="derivado_por"></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="motivo">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">2</div><div><h3>Motivo de consulta y objetivos</h3><p>Qué desea mejorar y cuál es su prioridad</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="choice-grid">
+              <label class="choice"><input type="checkbox" name="motivo" value="Prevención / cuidado general"><strong>Prevención / cuidado general</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Arrugas / envejecimiento"><strong>Arrugas / envejecimiento</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Flaccidez"><strong>Flaccidez</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Manchas / tono irregular"><strong>Manchas / tono irregular</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Acné / brotes"><strong>Acné / brotes</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Rosácea / enrojecimiento"><strong>Rosácea / enrojecimiento</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Sensibilidad / ardor"><strong>Sensibilidad / ardor</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Deshidratación / tirantez"><strong>Deshidratación / tirantez</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Seborrea / poros"><strong>Seborrea / poros</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Textura / cicatrices"><strong>Textura / cicatrices</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Preparación para evento"><strong>Preparación para evento</strong></label>
+<label class="choice"><input type="checkbox" name="motivo" value="Otro"><strong>Otro</strong></label>
+            </div>
+            <div class="grid two" style="margin-top:15px">
+              <label class="field"><span>Motivo principal y evolución</span><textarea name="motivo_detalle" placeholder="Inicio, cambios, molestias, desencadenantes y zonas prioritarias"></textarea></label>
+              <label class="field"><span>Expectativa de la paciente</span><textarea name="expectativa" placeholder="Qué desea mejorar y prioridad"></textarea></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="salud">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">3</div><div><h3>Antecedentes de salud y seguridad</h3><p>Marcar solo lo relevante y detallar</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="grid four">
+              <label class="field"><span>Embarazo</span><select name="embarazo"><option>No</option><option>Sí</option><option>Posible</option></select></label>
+              <label class="field"><span>Lactancia</span><select name="lactancia"><option>No</option><option>Sí</option></select></label>
+              <label class="field"><span>Menstruación / menopausia</span><input type="text" name="menopausia"></label>
+              <label class="field"><span>Último control médico</span><input type="text" name="ultimo_control"></label>
+            </div>
+            <div class="subhead">Condiciones que pueden modificar el tratamiento</div>
+            <div class="choice-grid"><label class="choice"><input type="checkbox" name="condicion_salud" value="Hipertensión / cardiopatía"><strong>Hipertensión / cardiopatía</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Diabetes / resistencia a la insulina"><strong>Diabetes / resistencia a la insulina</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Tiroides / alteración hormonal"><strong>Tiroides / alteración hormonal</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Enfermedad autoinmune / inmunosupresión"><strong>Enfermedad autoinmune / inmunosupresión</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Epilepsia / convulsiones"><strong>Epilepsia / convulsiones</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Trastorno de coagulación / trombosis"><strong>Trastorno de coagulación / trombosis</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Enfermedad renal o hepática"><strong>Enfermedad renal o hepática</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Antecedentes oncológicos"><strong>Antecedentes oncológicos</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Marcapasos / dispositivo electrónico"><strong>Marcapasos / dispositivo electrónico</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Implantes metálicos / prótesis"><strong>Implantes metálicos / prótesis</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Rellenos, hilos o implantes faciales"><strong>Rellenos, hilos o implantes faciales</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Cirugía o procedimiento reciente"><strong>Cirugía o procedimiento reciente</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Alergias a medicamentos / cosméticos"><strong>Alergias a medicamentos / cosméticos</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Alergia a látex / adhesivos / anestésicos"><strong>Alergia a látex / adhesivos / anestésicos</strong></label>
+<label class="choice"><input type="checkbox" name="condicion_salud" value="Otra condición relevante"><strong>Otra condición relevante</strong></label></div>
+            <div class="grid two" style="margin-top:15px">
+              <label class="field"><span>Detalle de condiciones, cirugías, implantes y alergias</span><textarea name="salud_detalle"></textarea></label>
+              <label class="field"><span>Autorización médica, precauciones o tratamiento a posponer</span><textarea name="precauciones_medicas"></textarea></label>
+            </div>
+            <div class="subhead">Medicación y factores de riesgo cutáneo</div>
+            <div class="choice-grid"><label class="choice"><input type="checkbox" name="factor_riesgo" value="Isotretinoína oral actual o reciente"><strong>Isotretinoína oral actual o reciente</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Retinoides tópicos"><strong>Retinoides tópicos</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Anticoagulantes / antiagregantes"><strong>Anticoagulantes / antiagregantes</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Corticoides / inmunosupresores"><strong>Corticoides / inmunosupresores</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Antibióticos"><strong>Antibióticos</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Medicamentos fotosensibilizantes"><strong>Medicamentos fotosensibilizantes</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Hormonas / anticonceptivos"><strong>Hormonas / anticonceptivos</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Otra medicación o suplemento"><strong>Otra medicación o suplemento</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Herpes labial recurrente"><strong>Herpes labial recurrente</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Queloides / cicatriz hipertrófica"><strong>Queloides / cicatriz hipertrófica</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Hiperpigmentación postinflamatoria"><strong>Hiperpigmentación postinflamatoria</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Fotosensibilidad"><strong>Fotosensibilidad</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Hematomas / sangrado fácil"><strong>Hematomas / sangrado fácil</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Infección, herida o irritación activa"><strong>Infección, herida o irritación activa</strong></label>
+<label class="choice"><input type="checkbox" name="factor_riesgo" value="Fiebre / malestar actual"><strong>Fiebre / malestar actual</strong></label></div>
+            <label class="field" style="margin-top:15px"><span>Medicamentos, dosis, frecuencia y observaciones</span><textarea name="medicacion_detalle"></textarea></label>
+          </div>
+        </section>
+
+        <section class="section" id="derma">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">4</div><div><h3>Antecedentes dermatológicos y estéticos</h3><p>Diagnósticos y procedimientos previos</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="subhead">Antecedentes o diagnósticos previos</div>
+            <div class="choice-grid"><label class="choice"><input type="checkbox" name="antecedente_derma" value="Acné"><strong>Acné</strong></label>
+<label class="choice"><input type="checkbox" name="antecedente_derma" value="Rosácea"><strong>Rosácea</strong></label>
+<label class="choice"><input type="checkbox" name="antecedente_derma" value="Dermatitis / eczema"><strong>Dermatitis / eczema</strong></label>
+<label class="choice"><input type="checkbox" name="antecedente_derma" value="Psoriasis"><strong>Psoriasis</strong></label>
+<label class="choice"><input type="checkbox" name="antecedente_derma" value="Melasma / manchas"><strong>Melasma / manchas</strong></label>
+<label class="choice"><input type="checkbox" name="antecedente_derma" value="Herpes simple"><strong>Herpes simple</strong></label>
+<label class="choice"><input type="checkbox" name="antecedente_derma" value="Infecciones cutáneas"><strong>Infecciones cutáneas</strong></label>
+<label class="choice"><input type="checkbox" name="antecedente_derma" value="Cáncer de piel / lesión controlada"><strong>Cáncer de piel / lesión controlada</strong></label>
+<label class="choice"><input type="checkbox" name="antecedente_derma" value="Reacción a cosméticos"><strong>Reacción a cosméticos</strong></label>
+<label class="choice"><input type="checkbox" name="antecedente_derma" value="Otro diagnóstico"><strong>Otro diagnóstico</strong></label></div>
+            <div class="subhead">Procedimientos previos</div>
+            <div class="choice-grid"><label class="choice"><input type="checkbox" name="procedimiento_previo" value="Limpieza / hidratación"><strong>Limpieza / hidratación</strong></label>
+<label class="choice"><input type="checkbox" name="procedimiento_previo" value="Peeling químico"><strong>Peeling químico</strong></label>
+<label class="choice"><input type="checkbox" name="procedimiento_previo" value="Microdermoabrasión / dermaplaning"><strong>Microdermoabrasión / dermaplaning</strong></label>
+<label class="choice"><input type="checkbox" name="procedimiento_previo" value="Microneedling"><strong>Microneedling</strong></label>
+<label class="choice"><input type="checkbox" name="procedimiento_previo" value="Radiofrecuencia / ultrasonido"><strong>Radiofrecuencia / ultrasonido</strong></label>
+<label class="choice"><input type="checkbox" name="procedimiento_previo" value="Electroporación / LED"><strong>Electroporación / LED</strong></label>
+<label class="choice"><input type="checkbox" name="procedimiento_previo" value="Láser / IPL"><strong>Láser / IPL</strong></label>
+<label class="choice"><input type="checkbox" name="procedimiento_previo" value="Toxina / rellenos / bioestimuladores"><strong>Toxina / rellenos / bioestimuladores</strong></label>
+<label class="choice"><input type="checkbox" name="procedimiento_previo" value="Cirugía estética"><strong>Cirugía estética</strong></label>
+<label class="choice"><input type="checkbox" name="procedimiento_previo" value="Otro procedimiento"><strong>Otro procedimiento</strong></label></div>
+            <div class="grid four" style="margin-top:15px">
+              <label class="field"><span>Último procedimiento</span><input type="text" name="ultimo_procedimiento"></label>
+              <label class="field"><span>Fecha</span><input type="date" name="fecha_procedimiento"></label>
+              <label class="field"><span>Resultado / tolerancia</span><input type="text" name="resultado_previo"></label>
+              <label class="field"><span>Reacción adversa</span><select name="reaccion_adversa"><option>No</option><option>Sí</option></select></label>
+              <label class="field span-all"><span>Detalle dermatológico, tratamientos indicados y reacciones previas</span><textarea name="detalle_dermatologico"></textarea></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="rutina">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">5</div><div><h3>Rutina domiciliaria y hábitos</h3><p>Productos, exposición y adherencia</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="grid four">
+              <label class="field"><span>Limpieza mañana</span><input type="text" name="limpieza_am"></label>
+              <label class="field"><span>Limpieza noche</span><input type="text" name="limpieza_pm"></label>
+              <label class="field"><span>Sérum / activo AM</span><input type="text" name="serum_am"></label>
+              <label class="field"><span>Sérum / activo PM</span><input type="text" name="serum_pm"></label>
+              <label class="field"><span>Hidratante</span><input type="text" name="hidratante"></label>
+              <label class="field"><span>Protector solar</span><input type="text" name="protector"></label>
+              <label class="field"><span>FPS</span><input type="number" name="fps"></label>
+              <label class="field"><span>Reaplica</span><select name="reaplica"><option>No</option><option>Sí</option></select></label>
+              <label class="field"><span>Exfoliante / frecuencia</span><input type="text" name="exfoliante"></label>
+              <label class="field"><span>Producto médico</span><input type="text" name="producto_medico"></label>
+            </div>
+            <div class="subhead">Factores que pueden influir</div>
+            <div class="choice-grid"><label class="choice"><input type="checkbox" name="habito" value="Exposición solar"><strong>Exposición solar</strong></label>
+<label class="choice"><input type="checkbox" name="habito" value="Trabajo al aire libre"><strong>Trabajo al aire libre</strong></label>
+<label class="choice"><input type="checkbox" name="habito" value="Tabaco / vapeo"><strong>Tabaco / vapeo</strong></label>
+<label class="choice"><input type="checkbox" name="habito" value="Estrés / sueño insuficiente"><strong>Estrés / sueño insuficiente</strong></label>
+<label class="choice"><input type="checkbox" name="habito" value="Calor, frío o viento"><strong>Calor, frío o viento</strong></label>
+<label class="choice"><input type="checkbox" name="habito" value="Ciclo hormonal"><strong>Ciclo hormonal</strong></label>
+<label class="choice"><input type="checkbox" name="habito" value="Maquillaje / oclusión"><strong>Maquillaje / oclusión</strong></label>
+<label class="choice"><input type="checkbox" name="habito" value="Dieta o hábito asociado a brotes"><strong>Dieta o hábito asociado a brotes</strong></label></div>
+            <label class="field" style="margin-top:15px"><span>Productos, marcas, concentraciones, tolerancia y adherencia</span><textarea name="productos_detalle"></textarea></label>
+          </div>
+        </section>
+
+        <section class="section" id="evaluacion">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">6</div><div><h3>Evaluación semiológica</h3><p>Biotipo, fototipo, barrera y lesiones</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="subhead">Biotipo y estado funcional</div>
+            <div class="choice-grid"><label class="choice"><input type="checkbox" name="biotipo" value="Normal / eudérmica"><strong>Normal / eudérmica</strong></label>
+<label class="choice"><input type="checkbox" name="biotipo" value="Seca / alípica"><strong>Seca / alípica</strong></label>
+<label class="choice"><input type="checkbox" name="biotipo" value="Grasa / seborreica"><strong>Grasa / seborreica</strong></label>
+<label class="choice"><input type="checkbox" name="biotipo" value="Mixta"><strong>Mixta</strong></label>
+<label class="choice"><input type="checkbox" name="biotipo" value="Deshidratada"><strong>Deshidratada</strong></label>
+<label class="choice"><input type="checkbox" name="biotipo" value="Sensible / reactiva"><strong>Sensible / reactiva</strong></label></div>
+            <div class="subhead">Fototipo de Fitzpatrick</div>
+            <div class="choice-grid"><label class="choice"><input type="radio" name="fototipo" value="I · Siempre se quema"><strong>I · Siempre se quema</strong></label>
+<label class="choice"><input type="radio" name="fototipo" value="II · Se quema fácil"><strong>II · Se quema fácil</strong></label>
+<label class="choice"><input type="radio" name="fototipo" value="III · A veces se quema"><strong>III · A veces se quema</strong></label>
+<label class="choice"><input type="radio" name="fototipo" value="IV · Rara vez se quema"><strong>IV · Rara vez se quema</strong></label>
+<label class="choice"><input type="radio" name="fototipo" value="V · Muy rara vez"><strong>V · Muy rara vez</strong></label>
+<label class="choice"><input type="radio" name="fototipo" value="VI · No se quema"><strong>VI · No se quema</strong></label></div>
+            <div class="subhead">Parámetros observados</div>
+            
+    <div class="scale-row">
+      <strong>Hidratación</strong>
+      <label class="segmented"><input type="radio" name="escala_hidratacion" value="Bajo" title="Bajo"></label>
+      <label class="segmented"><input type="radio" name="escala_hidratacion" value="Medio" title="Medio"></label>
+      <label class="segmented"><input type="radio" name="escala_hidratacion" value="Alto" title="Alto"></label>
+      <input type="text" name="obs_hidratacion" placeholder="Observación">
+    </div>
+    <div class="scale-row">
+      <strong>Seborrea</strong>
+      <label class="segmented"><input type="radio" name="escala_seborrea" value="Bajo" title="Bajo"></label>
+      <label class="segmented"><input type="radio" name="escala_seborrea" value="Medio" title="Medio"></label>
+      <label class="segmented"><input type="radio" name="escala_seborrea" value="Alto" title="Alto"></label>
+      <input type="text" name="obs_seborrea" placeholder="Observación">
+    </div>
+    <div class="scale-row">
+      <strong>Sensibilidad / reactividad</strong>
+      <label class="segmented"><input type="radio" name="escala_sensibilidad_reactividad" value="Bajo" title="Bajo"></label>
+      <label class="segmented"><input type="radio" name="escala_sensibilidad_reactividad" value="Medio" title="Medio"></label>
+      <label class="segmented"><input type="radio" name="escala_sensibilidad_reactividad" value="Alto" title="Alto"></label>
+      <input type="text" name="obs_sensibilidad_reactividad" placeholder="Observación">
+    </div>
+    <div class="scale-row">
+      <strong>Integridad de barrera</strong>
+      <label class="segmented"><input type="radio" name="escala_integridad_de_barrera" value="Bajo" title="Bajo"></label>
+      <label class="segmented"><input type="radio" name="escala_integridad_de_barrera" value="Medio" title="Medio"></label>
+      <label class="segmented"><input type="radio" name="escala_integridad_de_barrera" value="Alto" title="Alto"></label>
+      <input type="text" name="obs_integridad_de_barrera" placeholder="Observación">
+    </div>
+    <div class="scale-row">
+      <strong>Turgencia / elasticidad</strong>
+      <label class="segmented"><input type="radio" name="escala_turgencia_elasticidad" value="Bajo" title="Bajo"></label>
+      <label class="segmented"><input type="radio" name="escala_turgencia_elasticidad" value="Medio" title="Medio"></label>
+      <label class="segmented"><input type="radio" name="escala_turgencia_elasticidad" value="Alto" title="Alto"></label>
+      <input type="text" name="obs_turgencia_elasticidad" placeholder="Observación">
+    </div>
+            <div class="subhead">Signos y lesiones observadas</div>
+            <div class="choice-grid"><label class="choice"><input type="checkbox" name="lesion" value="Eritema / flushing"><strong>Eritema / flushing</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Telangiectasias"><strong>Telangiectasias</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Descamación / xerosis"><strong>Descamación / xerosis</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Poros dilatados"><strong>Poros dilatados</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Milia"><strong>Milia</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Comedones abiertos"><strong>Comedones abiertos</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Comedones cerrados"><strong>Comedones cerrados</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Pápulas"><strong>Pápulas</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Pústulas"><strong>Pústulas</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Nódulos / quistes"><strong>Nódulos / quistes</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Máculas pigmentadas"><strong>Máculas pigmentadas</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Melasma / léntigos"><strong>Melasma / léntigos</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Hiperpigmentación postinflamatoria"><strong>Hiperpigmentación postinflamatoria</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Cicatrices"><strong>Cicatrices</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Lesión a derivar"><strong>Lesión a derivar</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Arrugas dinámicas"><strong>Arrugas dinámicas</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Arrugas estáticas"><strong>Arrugas estáticas</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Surcos / pliegues"><strong>Surcos / pliegues</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Flaccidez"><strong>Flaccidez</strong></label>
+<label class="choice"><input type="checkbox" name="lesion" value="Opacidad / textura irregular"><strong>Opacidad / textura irregular</strong></label></div>
+            <div class="grid two" style="margin-top:15px">
+              <label class="field"><span>Descripción semiológica</span><textarea name="descripcion_semiologica" placeholder="Color, temperatura, textura, grosor, respuesta al roce y zonas prioritarias"></textarea></label>
+              <label class="field"><span>Envejecimiento, pigmentación y zonas prioritarias</span><textarea name="envejecimiento_pigmentacion"></textarea></label>
+            </div>
+            <div class="notice danger-note" style="margin-top:14px"><strong>Derivar / no tratar:</strong> lesión nueva o cambiante, sangrado o ulceración, infección activa, acné nodular o quístico, síntomas oculares, dolor persistente o diagnóstico incierto.</div>
+          </div>
+        </section>
+
+        <section class="section" id="fotos">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">7</div><div><h3>Registro fotográfico</h3><p>Frente y perfiles para seguimiento clínico</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="photo-grid">
+              <div class="photo-box" data-slot="frente" draggable="true">
+                <span class="photo-tag">Frente</span>
+                <label>Arrastrar foto aquí<br><small>o hacer clic para seleccionar</small><input type="file" accept="image/*" data-photo="frente"></label>
+                <div class="photo-actions screen-only"><button type="button" data-move="right" title="Mover a la derecha">→</button></div>
+              </div>
+              <div class="photo-box" data-slot="perfil_izquierdo" draggable="true">
+                <span class="photo-tag">Perfil izquierdo</span>
+                <label>Arrastrar foto aquí<br><small>o hacer clic para seleccionar</small><input type="file" accept="image/*" data-photo="perfil_izquierdo"></label>
+                <div class="photo-actions screen-only"><button type="button" data-move="left" title="Mover a la izquierda">←</button><button type="button" data-move="right" title="Mover a la derecha">→</button></div>
+              </div>
+              <div class="photo-box" data-slot="perfil_derecho" draggable="true">
+                <span class="photo-tag">Perfil derecho</span>
+                <label>Arrastrar foto aquí<br><small>o hacer clic para seleccionar</small><input type="file" accept="image/*" data-photo="perfil_derecho"></label>
+                <div class="photo-actions screen-only"><button type="button" data-move="left" title="Mover a la izquierda">←</button></div>
+              </div>
+            </div>
+            <label class="field" style="margin-top:15px"><span>Códigos / observaciones del mapa facial</span><textarea name="mapa_observaciones" placeholder="E: eritema · T: telangiectasia · P: pigmentación · A: acné · C: cicatriz · X: no tratar"></textarea></label>
+          </div>
+        </section>
+
+        <section class="section" id="plan">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">8</div><div><h3>Impresión cosmiátrica y plan de tratamiento</h3><p>Objetivos, técnica y criterios de seguimiento</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="grid two">
+              <label class="field"><span>Impresión cosmiátrica</span><textarea name="impresion_cosmiatrica" placeholder="Biotipo, alteraciones observadas y relación con el motivo de consulta"></textarea></label>
+              <label class="field"><span>Objetivos prioritarios</span><textarea name="objetivos_prioritarios"></textarea></label>
+            </div>
+            <div class="grid four" style="margin-top:15px">
+              <label class="field"><span>Tratamiento / técnica</span><input type="text" name="tratamiento"></label>
+              <label class="field"><span>Zona</span><input type="text" name="zona"></label>
+              <label class="field"><span>Frecuencia sugerida</span><input type="text" name="frecuencia"></label>
+              <label class="field"><span>Cantidad estimada de sesiones</span><input type="number" name="cantidad_sesiones"></label>
+              <label class="field span-2"><span>Aparatología prevista</span><input type="text" name="aparatologia"></label>
+              <label class="field span-2"><span>Precauciones / contraindicaciones</span><input type="text" name="contraindicaciones"></label>
+              <label class="field span-2"><span>Derivación / interconsulta</span><input type="text" name="derivacion"></label>
+              <label class="field span-2"><span>Reevaluación</span><input type="text" name="reevaluacion"></label>
+              <label class="field span-all"><span>Plan por etapas y criterios para ajustar o suspender</span><textarea name="plan_etapas"></textarea></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="sesiones">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">9</div><div><h3>Registro de sesiones y evolución</h3><p>Agregar tantas sesiones como sean necesarias</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div id="sessionsContainer"></div>
+            <button type="button" class="btn primary screen-only" onclick="addSession()">＋ Agregar sesión</button>
+            <label class="field" style="margin-top:15px"><span>Balance de evolución / cambios del plan</span><textarea name="balance_evolucion"></textarea></label>
+          </div>
+        </section>
+
+        <section class="section" id="domicilio">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">10</div><div><h3>Apoyo domiciliario</h3><p>Rutina indicada y señales para consultar</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="grid four">
+              <label class="field"><span>Mañana · limpieza</span><input type="text" name="apoyo_limpieza_am"></label>
+              <label class="field"><span>Mañana · sérum / hidratante</span><input type="text" name="apoyo_serum_am"></label>
+              <label class="field"><span>Protector solar</span><input type="text" name="apoyo_protector"></label>
+              <label class="field"><span>Frecuencia / reaplicación</span><input type="text" name="apoyo_frecuencia"></label>
+              <label class="field span-2"><span>Noche · limpieza / tratamiento</span><input type="text" name="apoyo_noche"></label>
+              <label class="field span-2"><span>Semanal / especial</span><input type="text" name="apoyo_semanal"></label>
+              <label class="field span-all"><span>Indicaciones generales y señales para consultar</span><textarea name="indicaciones_generales"></textarea></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="consentimiento">
+          <div class="section-header">
+            <div class="section-title"><div class="section-number">11</div><div><h3>Consentimiento y firmas</h3><p>Autorizaciones y constancia profesional</p></div></div>
+            <button type="button" class="collapse" onclick="toggleSection(this)">⌄</button>
+          </div>
+          <div class="section-body">
+            <div class="notice">
+              Declaro que la información brindada es verdadera y me comprometo a comunicar cambios de salud, medicación, embarazo, alergias o procedimientos recientes. He recibido una explicación clara del objetivo del tratamiento, cuidados, molestias previsibles, alternativas y motivos por los que podría suspenderse o requerir derivación. Comprendo que los resultados varían según la respuesta individual y la adherencia domiciliaria.
+            </div>
+            <div class="choice-grid" style="margin-top:14px">
+              <label class="choice"><input type="checkbox" name="autoriza_tratamiento"><strong>Autoriza el tratamiento acordado</strong></label>
+              <label class="choice"><input type="checkbox" name="autoriza_fotos_clinicas"><strong>Autoriza fotografías clínicas confidenciales</strong></label>
+              <label class="choice"><input type="checkbox" name="autoriza_uso_imagen"><strong>Autoriza uso educativo/promocional sin identificación</strong></label>
+              <label class="choice"><input type="checkbox" name="no_autoriza_externo"><strong>No autoriza uso externo de imágenes</strong></label>
+            </div>
+            <div class="grid four" style="margin-top:15px">
+              <label class="field span-2"><span>Firma / conformidad de la paciente</span><input type="text" name="firma_paciente" placeholder="Nombre completo"></label>
+              <label class="field"><span>DNI</span><input type="text" name="dni"></label>
+              <label class="field"><span>Fecha</span><input type="date" name="fecha_firma"></label>
+              <label class="field span-2"><span>Profesional</span><input type="text" name="firma_profesional" value="Blanca"></label>
+              <label class="field span-2"><span>Actualización de antecedentes</span><input type="text" name="actualizacion_antecedentes"></label>
+            </div>
+            <div class="notice" style="margin-top:14px"><strong>Recomendación:</strong> para procedimientos específicos o de mayor complejidad, utilizar además un consentimiento particular con riesgos, cuidados y contraindicaciones propios de esa técnica.</div>
+          </div>
+        </section>
+      </form>
+      <div class="footer">Luz & Piel · Documento confidencial de uso profesional</div>
+    </div>
+  </main>
+</div>
+
+<script>
+const form = document.getElementById('clinicalForm');
+const photos = {};
+const photoOrientations = {};
+let dirty = true;
+let sessionCounter = 0;
+
+function makeChoice(name, value, label, type='checkbox'){
+  return `<label class="choice"><input type="${type}" name="${name}" value="${value}"><strong>${label}</strong></label>`;
+}
+
+function toggleSection(btn){ btn.closest('.section').classList.toggle('closed'); }
+
+function setDirty(){
+  dirty = true;
+  const s = document.getElementById('saveStatus');
+  s.className='status';
+  s.innerHTML='<span class="dot"></span>Cambios sin guardar';
+  document.getElementById('lastModified').textContent='Modificado ' + new Date().toLocaleString('es-AR');
+  updateSummary();
+}
+
+function setSaved(){
+  dirty = false;
+  const s = document.getElementById('saveStatus');
+  s.className='status saved';
+  s.innerHTML='<span class="dot"></span>Respaldo actualizado';
+}
+
+function slugify(str){
+  return (str || 'Paciente')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+}
+
+function formToObject(){
+  const fd = new FormData(form);
+  const obj = {};
+  for (const [k,v] of fd.entries()){
+    if (obj[k] !== undefined) obj[k] = Array.isArray(obj[k]) ? [...obj[k],v] : [obj[k],v];
+    else obj[k] = v;
+  }
+  form.querySelectorAll('input[type=checkbox]').forEach(el=>{
+    if (!(el.name in obj)) obj[el.name] = false;
+  });
+  obj._sessions = [...document.querySelectorAll('.session-card')].map(card=>{
+    const o={};
+    card.querySelectorAll('input,textarea').forEach(el=>o[el.dataset.key]=el.value);
+    return o;
+  });
+  obj._photos = photos;
+  obj._photoOrientations = photoOrientations;
+  obj._meta = {version:'1.0', savedAt:new Date().toISOString(), app:'Historia Clínica Digital — Luz & Piel'};
+  return obj;
+}
+
+function fillForm(data){
+  form.reset();
+  for (const [key,val] of Object.entries(data)){
+    const els = form.elements[key];
+    if (!els) continue;
+    const arr = Array.isArray(val) ? val : [val];
+    if (els instanceof RadioNodeList || (els.length && !els.tagName)){
+      [...els].forEach(el=>{
+        if (el.type==='checkbox' || el.type==='radio') el.checked = arr.includes(el.value) || val===true;
+        else el.value = val;
+      });
+    } else if (els.type==='checkbox'){
+      els.checked = val===true || val===els.value || arr.includes(els.value);
+    } else {
+      els.value = val ?? '';
+    }
+  }
+  document.getElementById('sessionsContainer').innerHTML='';
+  sessionCounter=0;
+  (data._sessions || []).forEach(s=>addSession(s));
+  Object.keys(photos).forEach(k=>delete photos[k]);
+  Object.assign(photos,data._photos||{});
+  Object.keys(photoOrientations).forEach(k=>delete photoOrientations[k]);
+  Object.assign(photoOrientations,data._photoOrientations||{});
+  document.querySelectorAll('[data-photo]').forEach(inp=>renderPhotoSlot(inp.dataset.photo));
+  updateSummary();
+}
+
+function updateSummary(){
+  const name = form.elements.paciente_nombre?.value || 'Nueva paciente';
+  const num = form.elements.numero_ficha?.value || '—';
+  const date = form.elements.fecha_consulta?.value || '—';
+  const photo = form.querySelector('input[name=fototipo]:checked')?.value || '—';
+  document.getElementById('patientNameSide').textContent=name;
+  document.getElementById('pagePatientName').textContent=name==='Nueva paciente'?'Nueva historia clínica':name;
+  document.getElementById('patientMetaSide').textContent = num==='—'?'Ficha sin número':`Ficha ${num}`;
+  document.getElementById('summaryNumber').textContent=num;
+  document.getElementById('summaryDate').textContent=date;
+  document.getElementById('summaryPhoto').textContent=photo;
+  document.getElementById('summarySessions').textContent=document.querySelectorAll('.session-card').length;
+}
+
+function addSession(data={}){
+  sessionCounter++;
+  const n=sessionCounter;
+  const card=document.createElement('div');
+  card.className='session-card';
+  card.innerHTML=`
+    <div class="session-head"><h4>Sesión ${n}</h4><button type="button" class="remove-session screen-only">Eliminar</button></div>
+    <div class="grid four">
+      <label class="field"><span>Fecha</span><input type="date" data-key="fecha" value="${data.fecha||''}"></label>
+      <label class="field"><span>Objetivo / zona</span><input type="text" data-key="objetivo" value="${data.objetivo||''}"></label>
+      <label class="field span-2"><span>Procedimiento</span><input type="text" data-key="procedimiento" value="${data.procedimiento||''}"></label>
+      <label class="field span-2"><span>Productos / activos</span><input type="text" data-key="productos" value="${data.productos||''}"></label>
+      <label class="field"><span>Concentración / pH</span><input type="text" data-key="concentracion" value="${data.concentracion||''}"></label>
+      <label class="field"><span>Tiempo</span><input type="text" data-key="tiempo" value="${data.tiempo||''}"></label>
+      <label class="field span-2"><span>Aparatología / parámetros</span><textarea data-key="aparatologia">${data.aparatologia||''}</textarea></label>
+      <label class="field span-2"><span>Respuesta y evolución</span><textarea data-key="respuesta">${data.respuesta||''}</textarea></label>
+      <label class="field span-2"><span>Indicaciones</span><textarea data-key="indicaciones">${data.indicaciones||''}</textarea></label>
+    </div>`;
+  card.querySelector('.remove-session').onclick=()=>{card.remove();renumberSessions();setDirty()};
+  card.querySelectorAll('input,textarea').forEach(el=>el.addEventListener('input',setDirty));
+  document.getElementById('sessionsContainer').appendChild(card);
+  updateSummary();
+}
+
+function renumberSessions(){
+  document.querySelectorAll('.session-card h4').forEach((h,i)=>h.textContent=`Sesión ${i+1}`);
+  sessionCounter=document.querySelectorAll('.session-card').length;
+  updateSummary();
+}
+
+// ZIP autocontenido: funciona localmente y no depende de internet.
+const crcTable=(()=>{const table=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);table[n]=c>>>0;}return table;})();
+function crc32(bytes){let c=0xFFFFFFFF;for(const b of bytes)c=crcTable[(c^b)&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function u16(n){return new Uint8Array([n&255,(n>>>8)&255]);}
+function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]);}
+function concatBytes(parts){const len=parts.reduce((a,b)=>a+b.length,0),out=new Uint8Array(len);let o=0;for(const p of parts){out.set(p,o);o+=p.length;}return out;}
+function textBytes(text){return new TextEncoder().encode(text);}
+function dataUrlBytes(dataUrl){const m=dataUrl.match(/^data:([^;]+);base64,(.*)$/);if(!m)return null;const bin=atob(m[2]);const out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return {mime:m[1],bytes:out};}
+function dosDateTime(date=new Date()){let year=Math.max(1980,date.getFullYear());return {time:(date.getHours()<<11)|(date.getMinutes()<<5)|(date.getSeconds()>>1),date:((year-1980)<<9)|((date.getMonth()+1)<<5)|date.getDate()};}
+function makeZip(files){
+  const locals=[],centrals=[];let offset=0;const dt=dosDateTime();
+  for(const file of files){
+    const name=textBytes(file.name),data=file.bytes,crc=crc32(data);
+    const local=concatBytes([u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(dt.time),u16(dt.date),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);
+    locals.push(local);
+    centrals.push(concatBytes([u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(dt.time),u16(dt.date),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]));
+    offset+=local.length;
+  }
+  const central=concatBytes(centrals),eocd=concatBytes([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(central.length),u32(offset),u16(0)]);
+  return new Blob([...locals,central,eocd],{type:'application/zip'});
+}
+async function readZipFile(arrayBuffer,targetName){
+  const b=new Uint8Array(arrayBuffer),v=new DataView(arrayBuffer);let eocd=-1;
+  for(let i=b.length-22;i>=Math.max(0,b.length-65557);i--){if(v.getUint32(i,true)===0x06054b50){eocd=i;break;}}
+  if(eocd<0)throw new Error('ZIP inválido');
+  const entries=v.getUint16(eocd+10,true),centralOffset=v.getUint32(eocd+16,true);let p=centralOffset;
+  for(let i=0;i<entries;i++){
+    if(v.getUint32(p,true)!==0x02014b50)throw new Error('Directorio ZIP inválido');
+    const method=v.getUint16(p+10,true),compressed=v.getUint32(p+20,true),nameLen=v.getUint16(p+28,true),extraLen=v.getUint16(p+30,true),commentLen=v.getUint16(p+32,true),localOffset=v.getUint32(p+42,true);
+    const name=new TextDecoder().decode(b.slice(p+46,p+46+nameLen));
+    if(name===targetName){
+      const localNameLen=v.getUint16(localOffset+26,true),localExtraLen=v.getUint16(localOffset+28,true),dataStart=localOffset+30+localNameLen+localExtraLen,data=b.slice(dataStart,dataStart+compressed);
+      if(method===0)return data;
+      if(method===8&&typeof DecompressionStream!=='undefined'){
+        const stream=new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        return new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+      throw new Error('Este ZIP usa una compresión no compatible con este navegador');
+    }
+    p+=46+nameLen+extraLen+commentLen;
+  }
+  throw new Error(`No contiene ${targetName}`);
+}
+async function saveZip(showMessage=false){
+  try{
+    const data=formToObject();
+    const files=[
+      {name:'historia_clinica.json',bytes:textBytes(JSON.stringify(data,null,2))},
+      {name:'resumen_clinico.html',bytes:textBytes(makePrintableHtml(data))},
+      {name:'LEEME.txt',bytes:textBytes('Historia Clínica Digital — Luz & Piel\nEste respaldo puede abrirse nuevamente desde el botón “Abrir ZIP”.\nDocumento confidencial de uso profesional.')}
+    ];
+    for(const [name,dataUrl] of Object.entries(photos)){
+      const decoded=dataUrlBytes(dataUrl);if(!decoded)continue;
+      const ext=(decoded.mime.split('/')[1]||'jpg').replace('jpeg','jpg');
+      files.push({name:`fotos/${name}.${ext}`,bytes:decoded.bytes});
+    }
+    const blob=makeZip(files),a=document.createElement('a');
+    const date=form.elements.fecha_consulta.value||new Date().toISOString().slice(0,10);
+    const ficha=slugify(form.elements.numero_ficha.value||''),paciente=slugify(form.elements.paciente_nombre.value);
+    a.href=URL.createObjectURL(blob);a.download=`${ficha?ficha+'_':''}${paciente}_${date}.zip`;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2500);setSaved();
+    if(showMessage)alert('El ZIP quedó descargado. Podés adjuntarlo manualmente al correo que quieras enviar.');
+    return true;
+  }catch(err){alert('No se pudo guardar el ZIP: '+err.message);return false;}
+}
+
+function makePrintableHtml(data){
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const isFilled=v=>{
+    if(Array.isArray(v)) return v.length>0;
+    if(v===true) return true;
+    if(v===false || v===null || v===undefined) return false;
+    return String(v).trim()!=='';
+  };
+  const labelMap={
+    fecha_consulta:'Fecha de consulta',numero_ficha:'N.º de ficha',paciente_nombre:'Apellido y nombre',
+    fecha_nacimiento:'Fecha de nacimiento',edad:'Edad',ocupacion:'Ocupación',localidad:'Localidad',
+    domicilio:'Domicilio',telefono:'Teléfono',email:'E-mail',dermatologo:'Dermatólogo/a tratante',
+    derivado_por:'Derivado/a por',motivo:'Motivo de consulta',motivo_detalle:'Motivo principal y evolución',
+    expectativa:'Expectativa de la paciente',embarazo:'Embarazo',lactancia:'Lactancia',
+    menopausia:'Menstruación / menopausia',ultimo_control:'Último control médico',
+    condicion_salud:'Condiciones de salud relevantes',salud_detalle:'Detalle de salud, cirugías, implantes y alergias',
+    precauciones_medicas:'Autorización médica / precauciones',factor_riesgo:'Medicación y factores de riesgo',
+    medicacion_detalle:'Medicamentos y observaciones',antecedente_derma:'Antecedentes dermatológicos',
+    procedimiento_previo:'Procedimientos previos',ultimo_procedimiento:'Último procedimiento',
+    fecha_procedimiento:'Fecha del procedimiento',resultado_previo:'Resultado / tolerancia',
+    reaccion_adversa:'Reacción adversa',detalle_dermatologico:'Detalle dermatológico',
+    limpieza_am:'Limpieza mañana',limpieza_pm:'Limpieza noche',serum_am:'Sérum / activo AM',
+    serum_pm:'Sérum / activo PM',hidratante:'Hidratante',protector:'Protector solar',fps:'FPS',
+    reaplica:'Reaplica',exfoliante:'Exfoliante / frecuencia',producto_medico:'Producto médico',
+    habito:'Factores que pueden influir',productos_detalle:'Productos, tolerancia y adherencia',
+    biotipo:'Biotipo / estado funcional',fototipo:'Fototipo',lesion:'Signos y lesiones observadas',
+    descripcion_semiologica:'Descripción semiológica',envejecimiento_pigmentacion:'Envejecimiento y pigmentación',
+    mapa_observaciones:'Mapa facial / observaciones',impresion_cosmiatrica:'Impresión cosmiátrica',
+    objetivos_prioritarios:'Objetivos prioritarios',tratamiento:'Tratamiento / técnica',zona:'Zona',
+    frecuencia:'Frecuencia sugerida',cantidad_sesiones:'Cantidad estimada de sesiones',
+    aparatologia:'Aparatología prevista',contraindicaciones:'Precauciones / contraindicaciones',
+    derivacion:'Derivación / interconsulta',reevaluacion:'Reevaluación',plan_etapas:'Plan por etapas',
+    balance_evolucion:'Balance de evolución',apoyo_limpieza_am:'Apoyo domiciliario · limpieza AM',
+    apoyo_serum_am:'Apoyo domiciliario · sérum / hidratante',apoyo_protector:'Protector solar indicado',
+    apoyo_frecuencia:'Frecuencia / reaplicación',apoyo_noche:'Rutina nocturna indicada',
+    apoyo_semanal:'Tratamiento semanal / especial',indicaciones_generales:'Indicaciones generales',
+    autoriza_tratamiento:'Autoriza tratamiento',autoriza_fotos_clinicas:'Autoriza fotografías clínicas',
+    autoriza_uso_imagen:'Autoriza uso educativo/promocional',no_autoriza_externo:'No autoriza uso externo',
+    firma_paciente:'Conformidad de la paciente',dni:'DNI',fecha_firma:'Fecha de firma',
+    firma_profesional:'Profesional',actualizacion_antecedentes:'Actualización de antecedentes'
+  };
+
+  const groups=[
+    ['Datos de la paciente',['fecha_consulta','numero_ficha','paciente_nombre','fecha_nacimiento','edad','ocupacion','localidad','domicilio','telefono','email','dermatologo','derivado_por']],
+    ['Motivo y objetivos',['motivo','motivo_detalle','expectativa']],
+    ['Salud y seguridad',['embarazo','lactancia','menopausia','ultimo_control','condicion_salud','salud_detalle','precauciones_medicas','factor_riesgo','medicacion_detalle']],
+    ['Antecedentes dermatológicos y rutina',['antecedente_derma','procedimiento_previo','ultimo_procedimiento','fecha_procedimiento','resultado_previo','reaccion_adversa','detalle_dermatologico','limpieza_am','limpieza_pm','serum_am','serum_pm','hidratante','protector','fps','reaplica','exfoliante','producto_medico','habito','productos_detalle']],
+    ['Evaluación cosmiátrica',['biotipo','fototipo','lesion','descripcion_semiologica','envejecimiento_pigmentacion','mapa_observaciones']],
+    ['Plan de tratamiento',['impresion_cosmiatrica','objetivos_prioritarios','tratamiento','zona','frecuencia','cantidad_sesiones','aparatologia','contraindicaciones','derivacion','reevaluacion','plan_etapas']],
+    ['Apoyo domiciliario',['apoyo_limpieza_am','apoyo_serum_am','apoyo_protector','apoyo_frecuencia','apoyo_noche','apoyo_semanal','indicaciones_generales']],
+    ['Consentimiento',['autoriza_tratamiento','autoriza_fotos_clinicas','autoriza_uso_imagen','no_autoriza_externo','firma_paciente','dni','fecha_firma','firma_profesional','actualizacion_antecedentes']]
+  ];
+
+  // Include dynamic scales only when completed.
+  const extraKeys=Object.keys(data).filter(k=>(k.startsWith('escala_')||k.startsWith('obs_')) && isFilled(data[k]));
+  if(extraKeys.length) groups.splice(5,0,['Parámetros de evaluación',extraKeys]);
+
+  const renderValue=v=>{
+    if(Array.isArray(v)) return v.map(esc).join(' · ');
+    if(v===true) return 'Sí';
+    return esc(v);
+  };
+
+  let content='';
+  for(const [title,keys] of groups){
+    const rows=keys.filter(k=>isFilled(data[k])).map(k=>`
+      <div class="row">
+        <div class="key">${esc(labelMap[k] || k.replace(/^escala_/,'Escala: ').replace(/^obs_/,'Observación: ').replaceAll('_',' '))}</div>
+        <div class="value">${renderValue(data[k])}</div>
+      </div>`).join('');
+    if(rows) content+=`<section><h2>${esc(title)}</h2>${rows}</section>`;
+  }
+
+  const sessions=(data._sessions||[]).filter(s=>Object.values(s).some(isFilled));
+  if(sessions.length){
+    content+=`<section><h2>Sesiones y evolución</h2>${sessions.map((s,i)=>`
+      <div class="session">
+        <h3>Sesión ${i+1}${s.fecha?' · '+esc(s.fecha):''}</h3>
+        ${Object.entries(s).filter(([k,v])=>k!=='fecha'&&isFilled(v)).map(([k,v])=>`
+          <div class="row"><div class="key">${esc(({
+            objetivo:'Objetivo / zona',procedimiento:'Procedimiento',productos:'Productos / activos',
+            concentracion:'Concentración / pH',tiempo:'Tiempo',aparatologia:'Aparatología / parámetros',
+            respuesta:'Respuesta y evolución',indicaciones:'Indicaciones'
+          })[k]||k)}</div><div class="value">${renderValue(v)}</div></div>`).join('')}
+      </div>`).join('')}</section>`;
+  }
+
+  const photoEntries=Object.entries(data._photos||{}).filter(([,v])=>v);
+  if(photoEntries.length){
+    const photoNames={frente:'Frente',perfil_izquierdo:'Perfil izquierdo',perfil_derecho:'Perfil derecho'};
+    const orientations=data._photoOrientations||{};
+    content+=`<section><h2>Registro fotográfico</h2><div class="photos">${photoEntries.map(([k,v])=>`
+      <figure class="${esc(orientations[k]||'landscape')}"><div class="photo-frame"><img src="${v}" alt="${esc(photoNames[k]||k)}"></div><figcaption>${esc(photoNames[k]||k)}</figcaption></figure>`).join('')}</div></section>`;
+  }
+
+  if(!content) content='<p class="empty">No hay datos cargados para imprimir.</p>';
+
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Historia clínica — ${esc(data.paciente_nombre||'Paciente')}</title>
+  <style>
+    @page{size:A4;margin:12mm}
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;color:#3f3433;margin:0;font-size:10.5pt;line-height:1.3}
+    header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #a96f72;padding-bottom:6px;margin-bottom:8px}
+    h1{font-size:18pt;color:#805255;margin:0}header p{margin:2px 0 0;color:#756866}
+    .conf{font-size:8.5pt;color:#756866;text-align:right}
+    section{margin:0 0 7px;break-inside:auto}
+    h2{font-size:11.5pt;color:#805255;background:#f3e6df;margin:0;padding:4px 6px;border-left:4px solid #c49a3a}
+    h3{font-size:10.5pt;color:#805255;margin:6px 0 2px}
+    .row{display:grid;grid-template-columns:34% 66%;border-bottom:1px solid #eadfd9;break-inside:avoid}
+    .key,.value{padding:3px 5px;white-space:pre-wrap}
+    .key{font-weight:bold;color:#6e5553;background:#fffaf6}
+    .session{border:1px solid #dfcbc5;padding:4px 6px;margin-top:5px;break-inside:avoid}
+    .photos{display:flex;flex-wrap:wrap;align-items:flex-start;gap:7px;margin-top:5px}
+    figure{margin:0;break-inside:avoid;text-align:center}
+    figure.landscape{width:31.5%}
+    figure.portrait{width:22%}
+    figure.square{width:27%}
+    .photo-frame{width:100%;background:#f8f3ee;border:1px solid #dfcbc5;display:flex;align-items:center;justify-content:center}
+    figure.landscape .photo-frame{aspect-ratio:16/9}
+    figure.portrait .photo-frame{aspect-ratio:3/4}
+    figure.square .photo-frame{aspect-ratio:1/1}
+    figure img{display:block;width:100%;height:100%;object-fit:contain}
+    figcaption{text-align:center;font-size:8.5pt;margin-top:2px}
+    .empty{padding:20px;text-align:center;color:#756866}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style></head><body>
+  <header><div><h1>Historia Clínica Cosmiátrica</h1><p>Luz & Piel · ${esc(data.paciente_nombre||'Paciente')}</p></div><div class="conf">Documento confidencial<br>Uso profesional</div></header>
+  ${content}
+  </body></html>`;
+}
+
+function printSummary(){
+  const data=formToObject();
+  const printable=makePrintableHtml(data);
+  const w=window.open('','_blank');
+  if(!w){
+    alert('El navegador bloqueó la ventana de impresión. Habilitá las ventanas emergentes para este sitio.');
+    return;
+  }
+  w.document.open();
+  w.document.write(printable);
+  w.document.close();
+  w.onload=()=>{w.focus();w.print();};
+}
+
+async function loadBackupFile(file){
+  if(!file) return;
+  if(!file.name.toLowerCase().endsWith('.zip')){
+    alert('El archivo debe ser un respaldo ZIP de Luz & Piel.');
+    return;
+  }
+  try{
+    const bytes=await readZipFile(await file.arrayBuffer(),'historia_clinica.json');
+    const data=JSON.parse(new TextDecoder().decode(bytes));
+    fillForm(data);
+    setSaved();
+    document.getElementById('lastModified').textContent='Respaldo abierto '+new Date().toLocaleString('es-AR');
+  }catch(err){
+    alert('No se pudo abrir el respaldo: '+err.message);
+  }
+}
+
+document.getElementById('zipInput').addEventListener('change',async e=>{
+  await loadBackupFile(e.target.files[0]);
+  e.target.value='';
+});
+
+// Permite arrastrar únicamente un archivo ZIP sobre el HTML.
+// Las imágenes quedan reservadas para las tres áreas fotográficas.
+const zipDropOverlay=document.getElementById('zipDropOverlay');
+let pageDragDepth=0;
+
+function dragLooksLikeZip(dataTransfer){
+  const items=[...(dataTransfer?.items||[])].filter(item=>item.kind==='file');
+  if(!items.length) return false;
+
+  return items.some(item=>{
+    const type=(item.type||'').toLowerCase();
+    return type==='application/zip' ||
+           type==='application/x-zip-compressed' ||
+           type==='application/x-zip';
+  });
+}
+
+document.addEventListener('dragenter',e=>{
+  if(e.target.closest && e.target.closest('.photo-box')) return;
+  if(!dragLooksLikeZip(e.dataTransfer)) return;
+  e.preventDefault();
+  pageDragDepth++;
+  zipDropOverlay.classList.add('active');
+});
+
+document.addEventListener('dragover',e=>{
+  if(e.target.closest && e.target.closest('.photo-box')) return;
+  if(!dragLooksLikeZip(e.dataTransfer)) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect='copy';
+});
+
+document.addEventListener('dragleave',e=>{
+  if(!zipDropOverlay.classList.contains('active')) return;
+  pageDragDepth=Math.max(0,pageDragDepth-1);
+  if(pageDragDepth===0) zipDropOverlay.classList.remove('active');
+});
+
+document.addEventListener('drop',async e=>{
+  if(e.target.closest && e.target.closest('.photo-box')) return;
+
+  const file=e.dataTransfer?.files?.[0];
+  if(!file || !file.name.toLowerCase().endsWith('.zip')) return;
+
+  e.preventDefault();
+  pageDragDepth=0;
+  zipDropOverlay.classList.remove('active');
+  await loadBackupFile(file);
+});
+
+function newPatient(){
+  if(dirty && !confirm('Hay cambios sin guardar. ¿Querés iniciar una ficha nueva igualmente?')) return;
+  form.reset();
+  document.getElementById('sessionsContainer').innerHTML='';
+  sessionCounter=0;
+  Object.keys(photos).forEach(k=>delete photos[k]);
+  Object.keys(photoOrientations).forEach(k=>delete photoOrientations[k]);
+  document.querySelectorAll('.photo-box').forEach(box=>{
+    box.querySelectorAll('img').forEach(i=>i.remove());
+    box.classList.remove('has-photo','orientation-landscape','orientation-portrait','orientation-square');
+  });
+  const today=new Date().toISOString().slice(0,10);
+  form.elements.fecha_consulta.value=today;
+  addSession({fecha:today});
+  setDirty();
+}
+
+async function prepareEmail(){await saveZip(true);}
+
+function getOrientation(width,height){
+  if(!width || !height) return 'landscape';
+  const ratio=width/height;
+  if(ratio>1.12) return 'landscape';
+  if(ratio<0.88) return 'portrait';
+  return 'square';
+}
+
+function applyPhotoOrientation(box,orientation){
+  box.classList.remove('orientation-landscape','orientation-portrait','orientation-square');
+  box.classList.add(`orientation-${orientation||'landscape'}`);
+}
+
+function renderPhotoSlot(slot){
+  const box=document.querySelector(`.photo-box[data-slot="${slot}"]`);
+  if(!box) return;
+  box.querySelectorAll('img').forEach(i=>i.remove());
+  box.classList.toggle('has-photo',Boolean(photos[slot]));
+
+  if(!photos[slot]){
+    box.classList.remove('orientation-landscape','orientation-portrait','orientation-square');
+    return;
+  }
+
+  const img=document.createElement('img');
+  img.alt='Registro fotográfico';
+  img.onload=()=>{
+    const orientation=photoOrientations[slot] || getOrientation(img.naturalWidth,img.naturalHeight);
+    photoOrientations[slot]=orientation;
+    applyPhotoOrientation(box,orientation);
+  };
+  img.src=photos[slot];
+  box.prepend(img);
+}
+
+function assignPhoto(slot,file){
+  if(!file || !file.type.startsWith('image/')) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const probe=new Image();
+    probe.onload=()=>{
+      photos[slot]=reader.result;
+      photoOrientations[slot]=getOrientation(probe.naturalWidth,probe.naturalHeight);
+      renderPhotoSlot(slot);
+      setDirty();
+    };
+    probe.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function swapPhotos(a,b){
+  const tempPhoto=photos[a];
+  photos[a]=photos[b];
+  photos[b]=tempPhoto;
+
+  const tempOrientation=photoOrientations[a];
+  photoOrientations[a]=photoOrientations[b];
+  photoOrientations[b]=tempOrientation;
+
+  renderPhotoSlot(a);
+  renderPhotoSlot(b);
+  setDirty();
+}
+
+document.querySelectorAll('[data-photo]').forEach(inp=>{
+  inp.addEventListener('change',()=>{
+    const file=inp.files[0];
+    if(file) assignPhoto(inp.dataset.photo,file);
+    inp.value='';
+  });
+});
+
+let draggedPhotoSlot=null;
+document.querySelectorAll('.photo-box').forEach(box=>{
+  const slot=box.dataset.slot;
+
+  box.addEventListener('dragstart',e=>{
+    if(!photos[slot]){e.preventDefault();return;}
+    draggedPhotoSlot=slot;
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain',slot);
+  });
+
+  box.addEventListener('dragend',()=>{draggedPhotoSlot=null;});
+
+  box.addEventListener('dragenter',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    box.classList.add('drag-over');
+  });
+
+  box.addEventListener('dragover',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    box.classList.add('drag-over');
+    e.dataTransfer.dropEffect=draggedPhotoSlot?'move':'copy';
+  });
+
+  box.addEventListener('dragleave',e=>{
+    e.stopPropagation();
+    box.classList.remove('drag-over');
+  });
+
+  box.addEventListener('drop',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    box.classList.remove('drag-over');
+
+    const file=e.dataTransfer.files && e.dataTransfer.files[0];
+    if(file){
+      assignPhoto(slot,file);
+    }else{
+      const source=draggedPhotoSlot || e.dataTransfer.getData('text/plain');
+      if(source && source!==slot) swapPhotos(source,slot);
+    }
+    draggedPhotoSlot=null;
+  });
+
+  box.querySelectorAll('[data-move]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const boxes=[...document.querySelectorAll('.photo-box')];
+      const index=boxes.indexOf(box);
+      const targetIndex=btn.dataset.move==='left'?index-1:index+1;
+      if(targetIndex<0 || targetIndex>=boxes.length) return;
+      swapPhotos(slot,boxes[targetIndex].dataset.slot);
+    });
+  });
+});
+
+function parseBirthDate(value){
+  const m=String(value||'').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!m)return null;
+  const day=Number(m[1]),month=Number(m[2]),year=Number(m[3]);
+  if(day===0||month===0)return {partial:true,year};
+  const d=new Date(year,month-1,day,12,0,0);
+  if(d.getFullYear()!==year||d.getMonth()!==month-1||d.getDate()!==day)return null;
+  return {partial:false,date:d,year};
+}
+function calculateAgeFromBirth(){
+  const parsed=parseBirthDate(form.elements.fecha_nacimiento.value);
+  if(!parsed||parsed.partial)return;
+  const birth=parsed.date,today=new Date();let age=today.getFullYear()-birth.getFullYear();
+  const month=today.getMonth()-birth.getMonth();if(month<0||(month===0&&today.getDate()<birth.getDate()))age--;
+  form.elements.edad.value=Math.max(0,age);updateSummary();
+}
+function estimateBirthFromAge(){
+  const age=parseInt(form.elements.edad.value,10);if(Number.isNaN(age)||age<0||age>120)return;
+  const year=new Date().getFullYear()-age;
+  form.elements.fecha_nacimiento.value=`00/00/${year}`;
+  form.elements.fecha_nacimiento.title='Año estimado: faltan día y mes exactos';updateSummary();
+}
+function formatBirthTyping(){
+  const input=form.elements.fecha_nacimiento;let digits=input.value.replace(/\D/g,'').slice(0,8);
+  if(digits.length>4)digits=digits.slice(0,2)+'/'+digits.slice(2,4)+'/'+digits.slice(4);
+  else if(digits.length>2)digits=digits.slice(0,2)+'/'+digits.slice(2);
+  input.value=digits;
+}
+form.elements.fecha_nacimiento.addEventListener('input',formatBirthTyping);
+form.elements.fecha_nacimiento.addEventListener('change',()=>{form.elements.fecha_nacimiento.title='';calculateAgeFromBirth();});
+form.elements.edad.addEventListener('change',estimateBirthFromAge);
+
+form.addEventListener('input',setDirty);
+form.addEventListener('change',setDirty);
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+
+const today=new Date().toISOString().slice(0,10);
+form.elements.fecha_consulta.value=today;
+form.elements.fecha_firma.value=today;
+addSession({fecha:today});
+updateSummary();
+</script>
+</body>
+</html>
