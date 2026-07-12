@@ -1,0 +1,10 @@
+REPRODUCTOR DE IMAGEN + AUDIO/VIDEO
+
+Abrí index.html para probarlo.
+Para publicarlo, subí index.html junto con las carpetas imagenes, audios y videos, conservando exactamente esta estructura.
+
+Los botones −10 y +10 avanzan o retroceden dentro de la pista.
+Los botones personalizados saltan al tiempo configurado y comienzan la reproducción.
+
+Piezas exportadas: 11
+Título: LOS REDONDOS
