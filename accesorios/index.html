@@ -1,1 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>3DCD LAB · Creador de calcos, chapitas y llaveros v0.3</title>
+<style>
+:root{--bg:#090d18;--panel:#141b2e;--panel2:#0d1424;--txt:#f2f5ff;--muted:#9da9c8;--accent:#4dd8ff;--pink:#ff4b9b;--green:#36e3a4;--line:#2a3554;--warn:#ffd166}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#070b14,#11182b);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:17px 20px;background:#080c16;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}h1{font-size:20px;margin:0 0 5px}.sub{font-size:13px;color:var(--muted);max-width:980px}
+main{display:grid;grid-template-columns:350px minmax(0,1fr);gap:15px;padding:15px;min-height:calc(100vh - 78px)}
+.panel{background:rgba(20,27,46,.97);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 16px 36px rgba(0,0,0,.22)}
+.controls{display:flex;flex-direction:column;gap:13px;align-self:start}.group{border-bottom:1px solid var(--line);padding-bottom:13px}.group:last-child{border:0;padding-bottom:0}
+.groupTitle{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.groupTitle strong,label{font-size:12px;font-weight:800;color:#dce4fb}label{display:block;margin-bottom:7px}.mini{font-size:11px;color:var(--muted)}
+input[type=file]{width:100%;font-size:12px}input[type=range]{width:100%}input[type=number],select{width:100%;background:#0b1120;color:white;border:1px solid #354363;border-radius:10px;padding:9px}
+.row{display:grid;grid-template-columns:1fr 86px;gap:8px;align-items:center}.value{padding:8px;background:#0b1120;border:1px solid #354363;border-radius:10px;text-align:center;font-size:12px;color:var(--accent)}
+.product{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.product button,.tabs button,button{appearance:none;border:0;border-radius:11px;padding:10px 11px;background:#25304e;color:white;font-weight:800;cursor:pointer}.product button.active,.tabs button.active{outline:2px solid var(--accent);background:#1c2948}.product button{font-size:12px;padding:9px 5px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions .full{grid-column:1/-1}.primary{background:linear-gradient(90deg,#00bfe9,#596cff)}.green{background:linear-gradient(90deg,#11b77e,#37df9f);color:#06130e}.pink{background:linear-gradient(90deg,#ff2c82,#ff6748)}.amber{background:linear-gradient(90deg,#e7a31d,#ffd166);color:#211500}button:disabled{opacity:.38;cursor:not-allowed}
+.stage{display:grid;grid-template-rows:auto minmax(520px,1fr) auto;gap:11px;min-width:0}.tabs{display:flex;gap:7px;flex-wrap:wrap}.viewer{position:relative;min-height:540px;background:#060a12;border:1px solid var(--line);border-radius:18px;display:flex;align-items:center;justify-content:center;overflow:auto}.viewer canvas{max-width:100%;height:auto}.hint{position:absolute;left:11px;bottom:11px;background:#07101ddd;border:1px solid #273452;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted);pointer-events:none}.status{font-size:12px;color:var(--muted);line-height:1.55}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#0b1120;border:1px solid #354363;color:var(--green);font-size:11px}.note{font-size:12px;color:var(--muted);line-height:1.5}.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.card{background:#0c1323;border:1px solid #2b3857;border-radius:13px;padding:10px}.card b{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}.card span{font-size:14px;color:white}.hidden{display:none!important}
+@media(max-width:950px){main{grid-template-columns:1fr}.stage{grid-template-rows:auto minmax(410px,1fr) auto}.viewer{min-height:420px}header{position:relative}.summary{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>3DCD LAB · Creador de calcos, chapitas y llaveros <span style="font-size:12px;color:var(--accent)">v0.3</span></h1>
+<div class="sub">Cargá una imagen clara, quitá el fondo, generá la guía de corte y exportá una base 3D con borde elevado. En modo llavero también agrega una pestaña superior con agujero.</div>
+</header>
+<main>
+<section class="panel controls">
+  <div class="group">
+    <label>1. Cargar PNG, JPG o WebP</label>
+    <input id="file" type="file" accept="image/png,image/jpeg,image/webp" />
+  </div>
+  <div class="group">
+    <div class="groupTitle"><strong>2. Tipo de producto</strong><span class="mini">Misma imagen, distintas salidas</span></div>
+    <div class="product">
+      <button data-product="sticker" class="active">Calco</button>
+      <button data-product="badge">Chapita</button>
+      <button data-product="keychain">Llavero</button>
+    </div>
+  </div>
+  <div class="group">
+    <label>Tipo de fondo</label>
+    <select id="bgMode"><option value="auto">Automático</option><option value="transparent">Transparente</option><option value="white">Blanco</option></select>
+    <div style="height:8px"></div>
+    <label>Sensibilidad del fondo blanco</label>
+    <div class="row"><input id="threshold" type="range" min="1" max="120" value="35"><div class="value" id="thresholdV">35</div></div>
+  </div>
+  <div class="group">
+    <label>Margen de corte alrededor de la imagen</label>
+    <div class="row"><input id="cutMargin" type="range" min="0" max="40" value="8"><div class="value" id="cutMarginV">8 px</div></div>
+    <div style="height:8px"></div>
+    <label>Suavizado del contorno</label>
+    <div class="row"><input id="simplify" type="range" min="1" max="12" value="4"><div class="value" id="simplifyV">4</div></div>
+  </div>
+  <div class="group">
+    <div class="groupTitle"><strong>3. Medidas físicas</strong><span class="mini">Para impresión y STL</span></div>
+    <label>Ancho final</label><div class="row"><input id="widthMm" type="number" min="10" max="300" step="1" value="55"><div class="value">mm</div></div>
+    <div style="height:8px"></div>
+    <label>Espesor de base</label><div class="row"><input id="baseDepth" type="number" min="0.8" max="10" step="0.2" value="2"><div class="value">mm</div></div>
+  </div>
+  <div class="group" id="borderGroup">
+    <div class="groupTitle"><strong>4. Borde para papel y resina</strong><span class="mini">Chapita / llavero</span></div>
+    <label>Ancho del cordón</label><div class="row"><input id="wallWidth" type="number" min="0.6" max="5" step="0.1" value="1.2"><div class="value">mm</div></div>
+    <div style="height:8px"></div>
+    <label>Altura extra del borde</label><div class="row"><input id="wallHeight" type="number" min="0.4" max="5" step="0.1" value="1.2"><div class="value">mm</div></div>
+  </div>
+  <div class="group hidden" id="keyGroup">
+    <div class="groupTitle"><strong>5. Agarre de llavero</strong><span class="mini">Automático arriba</span></div>
+    <label>Diámetro del agujero</label><div class="row"><input id="holeDia" type="number" min="2" max="10" step="0.2" value="3.2"><div class="value">mm</div></div>
+    <div style="height:8px"></div>
+    <label>Diámetro exterior</label><div class="row"><input id="ringDia" type="number" min="6" max="18" step="0.5" value="7.5"><div class="value">mm</div></div>
+  </div>
+  <div class="actions">
+    <button id="process" class="primary full" disabled>Generar diseño</button>
+    <button id="maskedBtn" disabled>PNG enmascarado</button>
+    <button id="svgBtn" class="green" disabled>SVG de corte</button>
+    <button id="stlBtn" class="pink full" disabled>STL chapita / llavero</button>
+  </div>
+  <div class="status" id="status">Primero cargá una imagen con una figura bien notoria.</div>
+</section>
+<section class="stage">
+  <div class="tabs">
+    <button data-view="original" class="active">Original</button>
+    <button data-view="masked">Imagen enmascarada</button>
+    <button data-view="guide">Guía de corte</button>
+    <button data-view="product">Vista del producto</button>
+  </div>
+  <div class="viewer panel"><canvas id="canvas"></canvas><div class="hint" id="hint">La máscara técnica trabaja por detrás; acá ves el resultado útil.</div></div>
+  <div class="summary">
+    <div class="card"><b>Producto</b><span id="sumProduct">Calco</span></div>
+    <div class="card"><b>Contorno</b><span id="sumPoints">—</span></div>
+    <div class="card"><b>Tamaño físico</b><span id="sumSize">—</span></div>
+    <div class="card"><b>Salida 3D</b><span id="sum3d">No aplica</span></div>
+  </div>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s), canvas=$('#canvas'), ctx=canvas.getContext('2d');
+let img=null, original=null, mask=null, cutMask=null, contour=null, currentView='original', product='sticker';
+const els={file:$('#file'),bgMode:$('#bgMode'),threshold:$('#threshold'),cutMargin:$('#cutMargin'),simplify:$('#simplify'),widthMm:$('#widthMm'),baseDepth:$('#baseDepth'),wallWidth:$('#wallWidth'),wallHeight:$('#wallHeight'),holeDia:$('#holeDia'),ringDia:$('#ringDia'),process:$('#process'),masked:$('#maskedBtn'),svg:$('#svgBtn'),stl:$('#stlBtn'),status:$('#status')};
+function sync(){ $('#thresholdV').textContent=els.threshold.value;$('#cutMarginV').textContent=els.cutMargin.value+' px';$('#simplifyV').textContent=els.simplify.value; }
+['threshold','cutMargin','simplify'].forEach(id=>$('#'+id).addEventListener('input',sync));sync();
 
+document.querySelectorAll('.product button').forEach(b=>b.onclick=()=>{product=b.dataset.product;document.querySelectorAll('.product button').forEach(x=>x.classList.toggle('active',x===b));$('#borderGroup').classList.toggle('hidden',product==='sticker');$('#keyGroup').classList.toggle('hidden',product!=='keychain');els.stl.disabled=product==='sticker'||!contour;$('#sumProduct').textContent=product==='sticker'?'Calco':product==='badge'?'Chapita':'Llavero';$('#sum3d').textContent=product==='sticker'?'No aplica':product==='badge'?'Base + borde':'Base exterior + borde continuo + agarre';if(contour){currentView='product';setActiveTab('product');draw();}});
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{currentView=b.dataset.view;setActiveTab(currentView);draw();});
+function setActiveTab(v){document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x.dataset.view===v));}
+
+els.file.onchange=()=>{const f=els.file.files[0];if(!f)return;const url=URL.createObjectURL(f);img=new Image();img.onload=()=>{const max=950,scale=Math.min(1,max/Math.max(img.width,img.height));canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));ctx.drawImage(img,0,0,canvas.width,canvas.height);original=ctx.getImageData(0,0,canvas.width,canvas.height);mask=cutMask=contour=null;els.process.disabled=false;[els.masked,els.svg,els.stl].forEach(b=>b.disabled=true);els.status.innerHTML='<span class="badge">Imagen cargada</span> '+canvas.width+' × '+canvas.height+' px';currentView='original';setActiveTab('original');draw();URL.revokeObjectURL(url)};img.src=url};
+
+function buildMask(){const d=original.data,w=canvas.width,h=canvas.height,out=new Uint8Array(w*h),mode=els.bgMode.value,t=+els.threshold.value;for(let i=0;i<w*h;i++){const r=d[i*4],g=d[i*4+1],b=d[i*4+2],a=d[i*4+3];let fg;if(mode==='transparent')fg=a>20;else if(mode==='white')fg=(255-r)+(255-g)+(255-b)>t*3;else fg=a<250?a>20:((255-r)+(255-g)+(255-b)>t*3);out[i]=fg?1:0;}return out;}
+function dilate(src,r,w,h){if(r<=0)return src.slice();let a=src.slice(),b=new Uint8Array(src.length);for(let k=0;k<r;k++){b.fill(0);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let v=0;for(let yy=-1;yy<=1&&!v;yy++)for(let xx=-1;xx<=1;xx++){const nx=x+xx,ny=y+yy;if(nx>=0&&ny>=0&&nx<w&&ny<h&&a[ny*w+nx]){v=1;break}}b[y*w+x]=v;}[a,b]=[b,a]}return a;}
+function largestComponent(src,w,h){const seen=new Uint8Array(src.length),dirs=[[1,0],[-1,0],[0,1],[0,-1]],components=[],q=[];for(let i=0;i<src.length;i++){if(!src[i]||seen[i])continue;q.length=0;q.push(i);seen[i]=1;const pix=[];while(q.length){const p=q.pop();pix.push(p);const x=p%w,y=(p/w)|0;for(const [dx,dy] of dirs){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<w&&ny<h){const n=ny*w+nx;if(src[n]&&!seen[n]){seen[n]=1;q.push(n)}}}}components.push(pix)}if(!components.length)return new Uint8Array(src.length);components.sort((a,b)=>b.length-a.length);const keep=new Uint8Array(src.length);components[0].forEach(i=>keep[i]=1);return keep;}
+function traceMoore(src,w,h){let sx=-1,sy=-1;outer:for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++)if(src[y*w+x]&&!src[y*w+x-1]){sx=x;sy=y;break outer}if(sx<0)return[];const dirs=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];let x=sx,y=sy,dir=4,pts=[],guard=0;do{pts.push([x,y]);let found=false;for(let k=1;k<=8;k++){const nd=(dir+k)%8,nx=x+dirs[nd][0],ny=y+dirs[nd][1];if(nx>=0&&ny>=0&&nx<w&&ny<h&&src[ny*w+nx]){x=nx;y=ny;dir=(nd+4)%8;found=true;break}}if(!found)break;if(++guard>w*h*4)break;}while(!(x===sx&&y===sy&&pts.length>8));return pts;}
+function simplifyRadial(pts,step){if(pts.length<3)return pts;const out=[];for(let i=0;i<pts.length;i+=Math.max(1,step))out.push(pts[i]);return out;}
+function processDesign(){mask=largestComponent(buildMask(),canvas.width,canvas.height);cutMask=dilate(mask,+els.cutMargin.value,canvas.width,canvas.height);contour=simplifyRadial(traceMoore(cutMask,canvas.width,canvas.height),+els.simplify.value);if(contour.length<3){els.status.textContent='No se pudo detectar una figura. Probá con más sensibilidad o con fondo transparente.';return;}els.masked.disabled=false;els.svg.disabled=false;els.stl.disabled=product==='sticker';const n=normalizedContour();$('#sumPoints').textContent=contour.length+' puntos';$('#sumSize').textContent=n.w.toFixed(1)+' × '+n.h.toFixed(1)+' mm';els.status.innerHTML='<span class="badge">Diseño listo</span> Imagen enmascarada, guía vectorial y '+(product==='sticker'?'salida de corte':'STL productivo')+' disponibles.';currentView='product';setActiveTab('product');draw();}
+els.process.onclick=processDesign;
+
+function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);if(!original)return;if(currentView==='original'){ctx.putImageData(original,0,0);return;}if(!mask){ctx.putImageData(original,0,0);return;}if(currentView==='masked'){drawMasked(false);return;}if(currentView==='guide'){drawMasked(false);drawContour('#ff4b9b',3,[9,7]);return;}drawProductPreview();}
+function drawMasked(addWhiteMargin){const im=ctx.createImageData(canvas.width,canvas.height);const d=original.data;for(let i=0;i<mask.length;i++){const keep=addWhiteMargin?cutMask[i]:mask[i];if(keep){im.data[i*4]=mask[i]?d[i*4]:255;im.data[i*4+1]=mask[i]?d[i*4+1]:255;im.data[i*4+2]=mask[i]?d[i*4+2]:255;im.data[i*4+3]=255}else im.data[i*4+3]=0;}ctx.clearRect(0,0,canvas.width,canvas.height);ctx.putImageData(im,0,0);}
+function drawContour(color,width,dash=[]){if(!contour)return;ctx.save();ctx.beginPath();contour.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.restore();}
+function drawProductPreview(){ctx.fillStyle='#08101d';ctx.fillRect(0,0,canvas.width,canvas.height);drawMasked(true);ctx.save();ctx.globalCompositeOperation='destination-over';ctx.fillStyle=product==='sticker'?'#ffffff':'#5bcfe8';ctx.beginPath();contour.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fill();ctx.restore();if(product!=='sticker'){drawContour('#61e3ff',Math.max(3,+els.wallWidth.value*2.4));drawContour('#0a4c60',1);if(product==='keychain')drawKeyPreview();}else drawContour('#ff4b9b',3,[9,7]);}
+function topAnchorPx(){let minY=Infinity,cands=[];for(const p of contour)minY=Math.min(minY,p[1]);for(const p of contour)if(p[1]<=minY+Math.max(4,canvas.height*.02))cands.push(p);const x=cands.length?cands.reduce((s,p)=>s+p[0],0)/cands.length:canvas.width/2;return[x,minY];}
+function drawKeyPreview(){const [x,y]=topAnchorPx(),outer=Math.max(11,+els.ringDia.value*1.55),inner=outer*(+els.holeDia.value/+els.ringDia.value);ctx.save();ctx.lineWidth=Math.max(5,outer-inner);ctx.strokeStyle='#61e3ff';ctx.beginPath();ctx.arc(x,y-outer*.36,(outer+inner)/4,0,Math.PI*2);ctx.stroke();ctx.lineWidth=2;ctx.strokeStyle='#0a4c60';ctx.stroke();ctx.restore();}
+
+function download(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+els.masked.onclick=()=>{const c=document.createElement('canvas');c.width=canvas.width;c.height=canvas.height;const x=c.getContext('2d'),im=x.createImageData(c.width,c.height),d=original.data;for(let i=0;i<mask.length;i++){if(mask[i]){im.data[i*4]=d[i*4];im.data[i*4+1]=d[i*4+1];im.data[i*4+2]=d[i*4+2];im.data[i*4+3]=d[i*4+3]}else im.data[i*4+3]=0}x.putImageData(im,0,0);c.toBlob(b=>download('imagen_enmascarada.png',b),'image/png')};
+function normalizedContour(){let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;contour.forEach(([x,y])=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y)});const W=Math.max(1,maxX-minX),H=Math.max(1,maxY-minY),mm=+els.widthMm.value,scale=mm/W;return{pts:contour.map(([x,y])=>[(x-minX)*scale,(maxY-y)*scale]),w:mm,h:H*scale,scale,minX,minY,maxX,maxY};}
+els.svg.onclick=()=>{const n=normalizedContour(),d=n.pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(3)+' '+p[1].toFixed(3)).join(' ')+' Z';const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${n.w}mm" height="${n.h.toFixed(3)}mm" viewBox="0 0 ${n.w} ${n.h.toFixed(3)}"><path d="${d}" fill="none" stroke="#ff00aa" stroke-width="0.2"/></svg>`;download('guia_corte.svg',new Blob([svg],{type:'image/svg+xml'}))};
+
+function area(poly){let a=0;for(let i=0,j=poly.length-1;i<poly.length;j=i++)a+=(poly[j][0]*poly[i][1]-poly[i][0]*poly[j][1]);return a/2}
+function pointInTri(p,a,b,c){const s=(p1,p2,p3)=>(p1[0]-p3[0])*(p2[1]-p3[1])-(p2[0]-p3[0])*(p1[1]-p3[1]);const b1=s(p,a,b)<0,b2=s(p,b,c)<0,b3=s(p,c,a)<0;return b1===b2&&b2===b3}
+function triangulate(poly){const p=area(poly)<0?poly.slice().reverse():poly.slice(),idx=p.map((_,i)=>i),tris=[];let guard=0;while(idx.length>3&&guard++<20000){let ear=false;for(let k=0;k<idx.length;k++){const ia=idx[(k-1+idx.length)%idx.length],ib=idx[k],ic=idx[(k+1)%idx.length],a=p[ia],b=p[ib],c=p[ic];const cross=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);if(cross<=0)continue;let inside=false;for(const ii of idx){if(ii===ia||ii===ib||ii===ic)continue;if(pointInTri(p[ii],a,b,c)){inside=true;break}}if(!inside){tris.push([ia,ib,ic]);idx.splice(k,1);ear=true;break}}if(!ear)break;}if(idx.length===3)tris.push([idx[0],idx[1],idx[2]]);return{poly:p,tris}}
+function normal(a,b,c){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1;return n.map(x=>x/l)}
+function facet(a,b,c){const n=normal(a,b,c);return`facet normal ${n.join(' ')}\n outer loop\n  vertex ${a.join(' ')}\n  vertex ${b.join(' ')}\n  vertex ${c.join(' ')}\n endloop\nendfacet\n`}
+function extrudedPolygon(poly,z0,z1,name='pieza'){const {poly:p,tris}=triangulate(poly);if(!tris.length)throw new Error('No se pudo triangular el contorno.');let s=`solid ${name}\n`;for(const [a,b,c] of tris){s+=facet([p[a][0],p[a][1],z0],[p[c][0],p[c][1],z0],[p[b][0],p[b][1],z0]);s+=facet([p[a][0],p[a][1],z1],[p[b][0],p[b][1],z1],[p[c][0],p[c][1],z1]);}for(let i=0;i<p.length;i++){const j=(i+1)%p.length,a=p[i],b=p[j];s+=facet([a[0],a[1],z0],[b[0],b[1],z0],[b[0],b[1],z1]);s+=facet([a[0],a[1],z0],[b[0],b[1],z1],[a[0],a[1],z1]);}return s+'endsolid '+name+'\n';}
+function cylinder(cx,cy,r,z0,z1,segments=28,name='cilindro'){const p=[];for(let i=0;i<segments;i++){const a=i/segments*Math.PI*2;p.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}return extrudedPolygon(p,z0,z1,name)}
+function pathLength(poly){let L=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];L+=Math.hypot(b[0]-a[0],b[1]-a[1]);}return L;}
+function resampleClosed(poly,count){const seg=[],cum=[0];let total=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length],l=Math.hypot(b[0]-a[0],b[1]-a[1]);seg.push(l);total+=l;cum.push(total);}const out=[];for(let k=0;k<count;k++){const target=total*k/count;let i=0;while(i<seg.length-1&&cum[i+1]<target)i++;const a=poly[i],b=poly[(i+1)%poly.length],t=seg[i]?((target-cum[i])/seg[i]):0;out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);}return out;}
+function rotateToClosest(poly,target){let best=0,d=Infinity;for(let i=0;i<poly.length;i++){const q=poly[i],dd=(q[0]-target[0])**2+(q[1]-target[1])**2;if(dd<d){d=dd;best=i}}return poly.slice(best).concat(poly.slice(0,best));}
+function quad(s,a,b,c,d){return s+facet(a,b,c)+facet(a,c,d)}
+function continuousRing(outer,inner,z0,z1,name='borde_continuo'){
+  const count=Math.max(48,Math.min(420,Math.round(Math.max(pathLength(outer),pathLength(inner))*2.2)));
+  let o=resampleClosed(outer,count),i=resampleClosed(inner,count);
+  if(area(o)<0)o.reverse(); if(area(i)<0)i.reverse();
+  i=rotateToClosest(i,o[0]);
+  let s=`solid ${name}
+`;
+  for(let k=0;k<count;k++){const j=(k+1)%count;
+    const O0=[o[k][0],o[k][1],z0],O1=[o[j][0],o[j][1],z0],OT0=[o[k][0],o[k][1],z1],OT1=[o[j][0],o[j][1],z1];
+    const I0=[i[k][0],i[k][1],z0],I1=[i[j][0],i[j][1],z0],IT0=[i[k][0],i[k][1],z1],IT1=[i[j][0],i[j][1],z1];
+    s=quad(s,O0,O1,OT1,OT0);          // pared exterior
+    s=quad(s,I1,I0,IT0,IT1);          // pared interior
+    s=quad(s,OT0,OT1,IT1,IT0);        // tapa superior continua
+    s=quad(s,O1,O0,I0,I1);            // base del cordón
+  }
+  return s+`endsolid ${name}
+`;
+}
+function annulus(cx,cy,outerR,innerR,z0,z1,segments=64,name='anillo_llavero'){
+  let s=`solid ${name}
+`;
+  for(let k=0;k<segments;k++){const a=k/segments*Math.PI*2,b=(k+1)/segments*Math.PI*2;
+    const o0=[cx+Math.cos(a)*outerR,cy+Math.sin(a)*outerR,z0],o1=[cx+Math.cos(b)*outerR,cy+Math.sin(b)*outerR,z0];
+    const ot0=[o0[0],o0[1],z1],ot1=[o1[0],o1[1],z1];
+    const i0=[cx+Math.cos(a)*innerR,cy+Math.sin(a)*innerR,z0],i1=[cx+Math.cos(b)*innerR,cy+Math.sin(b)*innerR,z0];
+    const it0=[i0[0],i0[1],z1],it1=[i1[0],i1[1],z1];
+    s=quad(s,o0,o1,ot1,ot0);s=quad(s,i1,i0,it0,it1);s=quad(s,ot0,ot1,it1,it0);s=quad(s,o1,o0,i0,i1);
+  }
+  return s+`endsolid ${name}
+`;
+}
+function outerContourMm(n,wallW){
+  const px=Math.max(1,Math.ceil(wallW/n.scale));
+  const expanded=dilate(cutMask,px,canvas.width,canvas.height);
+  let op=simplifyRadial(traceMoore(expanded,canvas.width,canvas.height),Math.max(1,+els.simplify.value));
+  if(op.length<3)throw new Error('No se pudo crear el contorno exterior.');
+  return op.map(([x,y])=>[(x-n.minX)*n.scale,(n.maxY-y)*n.scale]);
+}
+function topAnchorMm(poly){let maxY=-Infinity,c=[];for(const p of poly)maxY=Math.max(maxY,p[1]);for(const p of poly)if(p[1]>=maxY-Math.max(1,+els.wallWidth.value*1.4))c.push(p);return[c.length?c.reduce((s,p)=>s+p[0],0)/c.length:+els.widthMm.value/2,maxY];}
+els.stl.onclick=()=>{try{
+  const n=normalizedContour(),base=+els.baseDepth.value,wallH=+els.wallHeight.value,wallW=+els.wallWidth.value;
+  const outerPoly=outerContourMm(n,wallW);
+  let s=extrudedPolygon(outerPoly,0,base,'base_exterior_unificada');
+  s+=continuousRing(outerPoly,n.pts,base,base+wallH,'borde_continuo');
+  if(product==='keychain'){
+    const [x,top]=topAnchorMm(outerPoly),outer=+els.ringDia.value/2,inner=Math.min(+els.holeDia.value/2,outer-.8);
+    const overlap=Math.min(1.2,outer*.28),cy=top+outer-overlap;
+    s+=annulus(x,cy,outer,inner,0,base+wallH,72,'anillo_limpio');
+    const neckW=Math.max(1.6,(outer-inner)*1.25),neckTop=cy-inner-.25;
+    if(neckTop>top-.8)s+=extrudedPolygon([[x-neckW/2,top-1],[x+neckW/2,top-1],[x+neckW/2,neckTop],[x-neckW/2,neckTop]],0,base+wallH,'refuerzo_llavero');
+  }
+  download(product==='keychain'?'llavero_personalizado_v03.stl':'chapita_personalizada_v03.stl',new Blob([s],{type:'model/stl'}));
+}catch(e){alert(e.message+' Probá aumentar el suavizado o usar una imagen más limpia.')}};
+</script>
+</body>
+</html>
