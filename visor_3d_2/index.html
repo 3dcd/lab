@@ -1724,7 +1724,19 @@
 
     /* El contenedor original deja de imponer una columna propia:
        sus dos hijos pasan a ocupar directamente la grilla maestra. */
-    .viewer-card{display:contents !important}
+    /* En iPad/Safari evitamos display:contents: los paneles son hijos directos
+       de la grilla y el contenedor conserva una geometría estable. */
+    .workspace.viewer-card{
+      display:grid !important;
+      max-width:none !important;
+      margin:0 !important;
+      padding:0 !important;
+      border:0 !important;
+      border-radius:0 !important;
+      background:transparent !important;
+      box-shadow:none !important;
+      overflow:hidden !important;
+    }
     .viewer-stage{
       grid-area:viewer;min-width:0;min-height:0;height:auto !important;
       border-radius:26px;background:rgba(255,255,255,.9);
@@ -1748,7 +1760,8 @@
     .settings-backdrop{display:none !important}
     .panel-close{display:none !important}
 
-    .lab-resizer{position:relative;z-index:35;touch-action:none;user-select:none}
+    .lab-resizer{position:relative;z-index:35;touch-action:none;user-select:none;-webkit-user-select:none}
+    body.lab-is-resizing,body.lab-is-resizing *{cursor:inherit !important;user-select:none !important;-webkit-user-select:none !important}
     .lab-resizer::after{
       content:"";position:absolute;border-radius:999px;
       background:#cfd4dc;transition:.15s ease;
@@ -1767,10 +1780,30 @@
     .lab-header-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
     header .back{margin-left:0}
 
+    .lab-edge-tab,.lab-bottom-tab{
+      display:none;position:fixed;z-index:80;border:1px solid var(--line);
+      background:#fff;color:#20232a;box-shadow:var(--soft-shadow);font-weight:900;
+    }
+    .lab-edge-tab{right:0;top:50%;transform:translateY(-50%);width:32px;height:74px;border-radius:14px 0 0 14px}
+    .lab-bottom-tab{left:50%;bottom:0;transform:translateX(-50%);width:76px;height:30px;border-radius:14px 14px 0 0}
+
     body.lab-settings-collapsed .workspace{grid-template-columns:minmax(0,1fr) 0 0}
     body.lab-settings-collapsed .panel,body.lab-settings-collapsed .lab-resizer-v{display:none !important}
+    body.lab-settings-collapsed .lab-edge-tab{display:none}
     body.lab-timeline-collapsed .workspace{grid-template-rows:minmax(0,1fr) 0 0}
     body.lab-timeline-collapsed .motion-dock,body.lab-timeline-collapsed .lab-resizer-h{display:none !important}
+    body.lab-timeline-collapsed .lab-bottom-tab{display:none}
+
+
+    /* Los paneles se controlan únicamente desde Línea y Ajustes. */
+    .settings-toggle-inline,.panel-close,.lab-edge-tab,.lab-bottom-tab{display:none !important}
+
+    /* El panel interno aprovecha el ancho disponible. */
+    .panel .row{
+      grid-template-columns:minmax(92px,1fr) minmax(120px,1.65fr) 42px !important;
+      width:100%;
+    }
+    .panel .row input[type="range"]{width:100%;min-width:0}
 
     @media(max-width:760px) and (orientation:portrait){
       :root{--lab-timeline-h:205px;--lab-settings-w:min(88vw,360px)}
@@ -1793,8 +1826,10 @@
       }
       body.settings-open .panel{transform:translateX(0) !important}
       body.lab-settings-collapsed .panel{display:block !important}
+      body.lab-settings-collapsed .lab-edge-tab{display:none}
       .settings-backdrop{display:block !important;opacity:0;pointer-events:none}
       body.settings-open .settings-backdrop{opacity:1;pointer-events:auto}
+      .panel-close{display:block !important}
       .motion-head{align-items:flex-start}
       .motion-controls{max-height:82px;overflow:auto}
       .top-title h1{font-size:clamp(22px,8vw,36px)}
@@ -1824,8 +1859,7 @@
 
   <main>
     <div class="settings-backdrop" id="settingsBackdrop"></div>
-    <section class="workspace">
-      <div class="viewer-card" id="dropZone">
+    <section class="workspace viewer-card" id="dropZone">
         <div class="viewer-stage">
         <div class="top-title">
           <h1>VISOR 3D</h1>
@@ -1885,6 +1919,7 @@
               <label class="motion-timebox">Duración
                 <input id="animDuration" type="number" min="2" max="60" step="1" value="10" /> s
               </label>
+              <button class="motion-btn settings-toggle-inline" id="settingsToggle" type="button">⚙ Ajustes</button>
             </div>
           </div>
 
@@ -1905,12 +1940,12 @@
             <div class="keyframe-empty">Arrancá ubicando la pieza: al soltar la cámara se guarda el keyframe automáticamente.</div>
           </div>
         </div>
-      </div>
 
       <div class="lab-resizer lab-resizer-h" id="labHResizer" aria-label="Cambiar altura de la línea de edición"></div>
       <div class="lab-resizer lab-resizer-v" id="labVResizer" aria-label="Cambiar ancho del panel de ajustes"></div>
 
       <aside class="panel" id="settingsPanel">
+        <button class="panel-close" id="settingsClose" type="button">Cerrar ajustes</button>
         <h2>Modelo</h2>
 
         <label class="button" for="fileInput">＋ Cargar / reemplazar GLB</label>
@@ -1990,6 +2025,8 @@
       </aside>
     </section>
 
+    <button class="lab-edge-tab" id="labRestoreSettings" type="button" title="Mostrar ajustes">‹</button>
+    <button class="lab-bottom-tab" id="labRestoreTimeline" type="button" title="Mostrar línea de edición">⌃</button>
     <div class="export-toast" id="exportToast">ZIP exportado</div>
     <footer>3DCD LAB © 2025 · Herramienta experimental</footer>
   </main>
@@ -2029,10 +2066,17 @@
     const projectZipInput = document.getElementById('projectZipInput');
     const publicPrologue = document.getElementById('publicPrologue');
     const exportToast = document.getElementById('exportToast');
-    window.addEventListener('resize', () => {
-      if(window.innerWidth > 820) document.body.classList.remove('settings-open');
-      requestAnimationFrame(() => renderKeyframeUI(animationPausedAt));
-    });
+    const settingsToggle = document.getElementById('settingsToggle');
+    const settingsClose = document.getElementById('settingsClose');
+    const settingsBackdrop = document.getElementById('settingsBackdrop');
+
+    function closeSettings(){ document.body.classList.remove('settings-open'); }
+    function openSettings(){ document.body.classList.add('settings-open'); }
+    settingsToggle?.addEventListener('click', openSettings);
+    settingsClose?.addEventListener('click', closeSettings);
+    settingsBackdrop?.addEventListener('click', closeSettings);
+    window.addEventListener('keydown', event => { if(event.key === 'Escape') closeSettings(); });
+    window.addEventListener('resize', () => { if(window.innerWidth > 820) closeSettings(); requestAnimationFrame(() => renderKeyframeUI(animationPausedAt)); });
 
     let currentObjectUrl = null;
     let currentModelFile = null;
@@ -4046,6 +4090,11 @@
   const hResizer = document.getElementById('labHResizer');
   const toggleSettings = document.getElementById('labToggleSettings');
   const toggleTimeline = document.getElementById('labToggleTimeline');
+  const restoreSettings = document.getElementById('labRestoreSettings');
+  const restoreTimeline = document.getElementById('labRestoreTimeline');
+  const settingsToggle = document.getElementById('settingsToggle');
+  const settingsClose = document.getElementById('settingsClose');
+  const backdrop = document.getElementById('settingsBackdrop');
 
   const isPortraitPhone = () => window.matchMedia('(max-width:760px) and (orientation:portrait)').matches;
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -4061,79 +4110,83 @@
 
   function bindResizer(handle, axis){
     if(!handle) return;
-    handle.addEventListener('pointerdown', event => {
+
+    const begin = event => {
       if(axis === 'x' && isPortraitPhone()) return;
+      if(event.pointerType === 'mouse' && event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
-      handle.setPointerCapture?.(event.pointerId);
-      handle.classList.add('dragging');
+
       const startX = event.clientX;
       const startY = event.clientY;
       const startWidth = settingsWidth;
       const startHeight = timelineHeight;
+      const pointerId = event.pointerId;
+      handle.classList.add('dragging');
+      body.classList.add('lab-is-resizing');
 
       const move = ev => {
+        if(ev.pointerId !== pointerId) return;
         ev.preventDefault();
         if(axis === 'x'){
-          settingsWidth = clamp(startWidth - (ev.clientX - startX), 240, Math.max(260, window.innerWidth * .68));
+          const mainRect = document.querySelector('main').getBoundingClientRect();
+          const minViewer = Math.min(360, Math.max(240, mainRect.width * .34));
+          const maxPanel = Math.max(260, mainRect.width - minViewer - 12);
+          settingsWidth = clamp(startWidth - (ev.clientX - startX), 240, maxPanel);
           root.style.setProperty('--lab-settings-w', settingsWidth + 'px');
         }else{
-          timelineHeight = clamp(startHeight - (ev.clientY - startY), 105, Math.max(130, window.innerHeight * .68));
+          const mainRect = document.querySelector('main').getBoundingClientRect();
+          const minViewerH = Math.min(300, Math.max(190, mainRect.height * .34));
+          const maxTimeline = Math.max(130, mainRect.height - minViewerH - 12);
+          timelineHeight = clamp(startHeight - (ev.clientY - startY), 105, maxTimeline);
           root.style.setProperty('--lab-timeline-h', timelineHeight + 'px');
         }
       };
-      const finish = () => {
+
+      const finish = ev => {
+        if(ev && ev.pointerId !== pointerId) return;
         handle.classList.remove('dragging');
-        handle.removeEventListener('pointermove', move);
-        handle.removeEventListener('pointerup', finish);
-        handle.removeEventListener('pointercancel', finish);
+        body.classList.remove('lab-is-resizing');
+        window.removeEventListener('pointermove', move, true);
+        window.removeEventListener('pointerup', finish, true);
+        window.removeEventListener('pointercancel', finish, true);
         localStorage.setItem('3dcd-lab-settings-width', String(Math.round(settingsWidth)));
         localStorage.setItem('3dcd-lab-timeline-height', String(Math.round(timelineHeight)));
       };
-      handle.addEventListener('pointermove', move);
-      handle.addEventListener('pointerup', finish);
-      handle.addEventListener('pointercancel', finish);
-    }, {passive:false});
+
+      window.addEventListener('pointermove', move, {capture:true, passive:false});
+      window.addEventListener('pointerup', finish, {capture:true, passive:false});
+      window.addEventListener('pointercancel', finish, {capture:true, passive:false});
+    };
+
+    handle.addEventListener('pointerdown', begin, {passive:false});
   }
 
   bindResizer(vResizer, 'x');
   bindResizer(hResizer, 'y');
 
+  const openSettings = () => {
+    if(isPortraitPhone()) body.classList.add('settings-open');
+    else body.classList.remove('lab-settings-collapsed');
+  };
+  const closeSettings = () => {
+    if(isPortraitPhone()) body.classList.remove('settings-open');
+    else body.classList.add('lab-settings-collapsed');
+  };
   const toggleSettingsPanel = () => {
     if(isPortraitPhone()) body.classList.toggle('settings-open');
     else body.classList.toggle('lab-settings-collapsed');
   };
 
-  const syncTopButtons = () => {
-    const settingsVisible = isPortraitPhone()
-      ? body.classList.contains('settings-open')
-      : !body.classList.contains('lab-settings-collapsed');
-    const timelineVisible = !body.classList.contains('lab-timeline-collapsed');
-    toggleSettings?.setAttribute('aria-pressed', String(settingsVisible));
-    toggleTimeline?.setAttribute('aria-pressed', String(timelineVisible));
-  };
+  toggleSettings?.addEventListener('click', toggleSettingsPanel);
 
-  toggleSettings?.addEventListener('click', () => {
-    toggleSettingsPanel();
-    syncTopButtons();
-  });
+  toggleTimeline?.addEventListener('click', () => body.classList.toggle('lab-timeline-collapsed'));
 
-  toggleTimeline?.addEventListener('click', () => {
-    body.classList.toggle('lab-timeline-collapsed');
-    syncTopButtons();
-  });
-  syncTopButtons();
-
-
-  window.addEventListener('keydown', event => {
-    if(event.key === 'Escape') body.classList.remove('settings-open');
-  });
   window.addEventListener('resize', () => {
     settingsWidth = clamp(settingsWidth, 240, Math.max(260, window.innerWidth * .68));
     timelineHeight = clamp(timelineHeight, 105, Math.max(130, window.innerHeight * .68));
     applySizes();
     if(!isPortraitPhone()) body.classList.remove('settings-open');
-    syncTopButtons();
   });
 })();
 </script>
