@@ -4059,5 +4059,119 @@
   </script>
 
 
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const body = document.body;
+  const vResizer = document.getElementById('labVResizer');
+  const hResizer = document.getElementById('labHResizer');
+  const toggleSettings = document.getElementById('labToggleSettings');
+  const toggleTimeline = document.getElementById('labToggleTimeline');
+  const restoreSettings = document.getElementById('labRestoreSettings');
+  const restoreTimeline = document.getElementById('labRestoreTimeline');
+  const settingsToggle = document.getElementById('settingsToggle');
+  const settingsClose = document.getElementById('settingsClose');
+  const backdrop = document.getElementById('settingsBackdrop');
+
+  const isPortraitPhone = () => window.matchMedia('(max-width:760px) and (orientation:portrait)').matches;
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  let settingsWidth = Number(localStorage.getItem('3dcd-lab-settings-width')) || 360;
+  let timelineHeight = Number(localStorage.getItem('3dcd-lab-timeline-height')) || 190;
+
+  const applySizes = () => {
+    root.style.setProperty('--lab-settings-w', settingsWidth + 'px');
+    root.style.setProperty('--lab-timeline-h', timelineHeight + 'px');
+  };
+  applySizes();
+
+  function bindResizer(handle, axis){
+    if(!handle) return;
+    handle.addEventListener('pointerdown', event => {
+      if(axis === 'x' && isPortraitPhone()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      handle.setPointerCapture?.(event.pointerId);
+      handle.classList.add('dragging');
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startWidth = settingsWidth;
+      const startHeight = timelineHeight;
+
+      const move = ev => {
+        ev.preventDefault();
+        if(axis === 'x'){
+          settingsWidth = clamp(startWidth - (ev.clientX - startX), 240, Math.max(260, window.innerWidth * .68));
+          root.style.setProperty('--lab-settings-w', settingsWidth + 'px');
+        }else{
+          timelineHeight = clamp(startHeight - (ev.clientY - startY), 105, Math.max(130, window.innerHeight * .68));
+          root.style.setProperty('--lab-timeline-h', timelineHeight + 'px');
+        }
+      };
+      const finish = () => {
+        handle.classList.remove('dragging');
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', finish);
+        handle.removeEventListener('pointercancel', finish);
+        localStorage.setItem('3dcd-lab-settings-width', String(Math.round(settingsWidth)));
+        localStorage.setItem('3dcd-lab-timeline-height', String(Math.round(timelineHeight)));
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', finish);
+      handle.addEventListener('pointercancel', finish);
+    }, {passive:false});
+  }
+
+  bindResizer(vResizer, 'x');
+  bindResizer(hResizer, 'y');
+
+  const openSettings = () => {
+    if(isPortraitPhone()) body.classList.add('settings-open');
+    else body.classList.remove('lab-settings-collapsed');
+  };
+  const closeSettings = () => {
+    if(isPortraitPhone()) body.classList.remove('settings-open');
+    else body.classList.add('lab-settings-collapsed');
+  };
+  const toggleSettingsPanel = () => {
+    if(isPortraitPhone()) body.classList.toggle('settings-open');
+    else body.classList.toggle('lab-settings-collapsed');
+  };
+
+  toggleSettings?.addEventListener('click', toggleSettingsPanel);
+  settingsToggle?.addEventListener('click', toggleSettingsPanel);
+  settingsClose?.addEventListener('click', closeSettings);
+  restoreSettings?.addEventListener('click', openSettings);
+  backdrop?.addEventListener('click', () => body.classList.remove('settings-open'));
+
+  toggleTimeline?.addEventListener('click', () => body.classList.toggle('lab-timeline-collapsed'));
+  restoreTimeline?.addEventListener('click', () => body.classList.remove('lab-timeline-collapsed'));
+
+  let gesture = null;
+  window.addEventListener('pointerdown', event => {
+    if(event.pointerType !== 'touch' || !isPortraitPhone()) return;
+    gesture = {x:event.clientX, y:event.clientY, edge:event.clientX >= window.innerWidth - 28};
+  }, {passive:true});
+  window.addEventListener('pointerup', event => {
+    if(!gesture || event.pointerType !== 'touch' || !isPortraitPhone()) return;
+    const dx = event.clientX - gesture.x;
+    const dy = Math.abs(event.clientY - gesture.y);
+    if(dy < 75 && gesture.edge && dx < -55) body.classList.add('settings-open');
+    if(dy < 75 && body.classList.contains('settings-open') && dx > 65) body.classList.remove('settings-open');
+    gesture = null;
+  }, {passive:true});
+
+  window.addEventListener('keydown', event => {
+    if(event.key === 'Escape') body.classList.remove('settings-open');
+  });
+  window.addEventListener('resize', () => {
+    settingsWidth = clamp(settingsWidth, 240, Math.max(260, window.innerWidth * .68));
+    timelineHeight = clamp(timelineHeight, 105, Math.max(130, window.innerHeight * .68));
+    applySizes();
+    if(!isPortraitPhone()) body.classList.remove('settings-open');
+  });
+})();
+</script>
 </body>
 </html>
