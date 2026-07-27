@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#f6f7f9">
-  <title>3DCD LAB · Template limpio v4</title>
+  <title>3DCD LAB · Template limpio v5</title>
   <style>
     :root{
       --bg:#f6f7f9;
@@ -118,6 +118,23 @@
     }
     .splitter-v{grid-area:vbar}
     .splitter-h{grid-area:hbar;cursor:row-resize}
+
+    /* Área invisible ampliada: la guía sigue siendo fina, pero el dedo puede
+       iniciar el arrastre bastante antes de acertar exactamente en el centro. */
+    .splitter::before{
+      content:"";position:absolute;z-index:0;background:transparent;
+    }
+    .splitter-v::before{
+      width:40px;height:100%;left:50%;top:0;transform:translateX(-50%);
+    }
+    .splitter-h::before{
+      width:100%;height:40px;left:0;top:50%;transform:translateY(-50%);
+    }
+    @media (pointer:coarse){
+      .splitter-v::before{width:52px}
+      .splitter-h::before{height:52px}
+    }
+
     /* El separador mantiene toda su zona táctil, pero sin una línea continua visible. */
     .splitter::after{
       content:"";position:absolute;border-radius:999px;background:#cbd0d8;
