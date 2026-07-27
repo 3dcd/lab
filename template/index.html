@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#f6f7f9">
+  <title>3DCD LAB · Template limpio</title>
+  <style>
+    :root{
+      --bg:#f6f7f9;
+      --card:rgba(255,255,255,.92);
+      --text:#101114;
+      --muted:#737b88;
+      --line:#e4e8ee;
+      --purple:#7d5cff;
+      --shadow:0 18px 45px rgba(20,25,35,.10);
+      --soft-shadow:0 10px 25px rgba(20,25,35,.07);
+      --radius:26px;
+      --header-h:66px;
+      --side-w:360px;
+      --bottom-h:190px;
+      --split:12px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;overscroll-behavior:none}
+    body{
+      margin:0;
+      overflow:hidden;
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:radial-gradient(circle at top center,#fff 0,#f7f8fa 38%,#eef1f5 100%);
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    button{font:inherit}
+    header{
+      height:var(--header-h);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding:0 max(18px,env(safe-area-inset-right)) 0 max(18px,env(safe-area-inset-left));
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.78);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+      position:relative;
+      z-index:20;
+    }
+    .brand{font-size:20px;font-weight:950;letter-spacing:.03em;white-space:nowrap}
+    .brand span{
+      color:var(--purple);font-size:12px;font-weight:900;letter-spacing:.08em;
+      text-transform:uppercase;border-left:1px solid #cfd4dc;padding-left:12px;margin-left:12px;
+    }
+    .header-actions{display:flex;align-items:center;gap:8px;min-width:0}
+    .pill{
+      border:1px solid var(--line);background:#fff;color:#20232a;border-radius:999px;
+      padding:10px 14px;box-shadow:var(--soft-shadow);font-weight:850;font-size:13px;
+      cursor:pointer;touch-action:manipulation;white-space:nowrap;
+    }
+    .pill[aria-pressed="true"]{background:#111;color:#fff;border-color:#111}
+
+    main{
+      height:calc(100dvh - var(--header-h));
+      padding:14px 18px max(14px,env(safe-area-inset-bottom));
+      overflow:hidden;
+    }
+    .workspace{
+      height:100%;min-height:0;min-width:0;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) var(--split) var(--side-w);
+      grid-template-rows:minmax(0,1fr) var(--split) var(--bottom-h);
+      grid-template-areas:
+        "stage  vbar side"
+        "hbar   vbar side"
+        "bottom vbar side";
+    }
+
+    .card{
+      min-width:0;min-height:0;
+      background:var(--card);border:1px solid rgba(255,255,255,.96);
+      border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;
+    }
+    .stage{grid-area:stage;position:relative;display:grid;place-items:center}
+    .side{grid-area:side;padding:22px;overflow:auto;-webkit-overflow-scrolling:touch}
+    .bottom{grid-area:bottom;padding:18px 22px;overflow:auto;-webkit-overflow-scrolling:touch}
+
+    .placeholder{text-align:center;padding:28px;max-width:560px;pointer-events:none;user-select:none}
+    .placeholder-icon{
+      width:82px;height:82px;border-radius:24px;background:#f0f1f3;display:grid;place-items:center;
+      margin:0 auto 18px;box-shadow:var(--soft-shadow);font-size:30px;font-weight:950;
+    }
+    .placeholder h1,.placeholder h2{margin:0 0 9px;font-weight:950;letter-spacing:-.03em}
+    .placeholder h1{font-size:clamp(28px,4vw,54px)}
+    .placeholder h2{font-size:22px}
+    .placeholder p{margin:0;color:var(--muted);line-height:1.5;font-weight:650}
+
+    .section-title{margin:0 0 14px;font-size:17px;font-weight:950}
+    .fake-control{height:42px;border-radius:13px;background:#f2f3f5;border:1px solid #eceef2;margin-bottom:10px}
+    .fake-control.dark{background:#17181b;border-color:#17181b}
+    .bottom-inner{display:flex;align-items:center;justify-content:center;height:100%;min-height:90px}
+
+    .splitter{
+      position:relative;z-index:12;touch-action:none;user-select:none;-webkit-user-select:none;
+      cursor:col-resize;
+    }
+    .splitter-v{grid-area:vbar}
+    .splitter-h{grid-area:hbar;cursor:row-resize}
+    .splitter::before{
+      content:"";position:absolute;background:#e1e5eb;pointer-events:none;
+    }
+    .splitter-v::before{width:1px;top:0;bottom:0;left:50%;transform:translateX(-50%)}
+    .splitter-h::before{height:1px;left:0;right:0;top:50%;transform:translateY(-50%)}
+    .splitter::after{
+      content:"";position:absolute;border-radius:999px;background:#cbd0d8;
+      box-shadow:0 0 0 4px rgba(246,247,249,.92);
+      transition:background .15s ease,transform .15s ease;
+    }
+    .splitter-v::after{width:3px;height:54px;left:50%;top:50%;transform:translate(-50%,-50%)}
+    .splitter-h::after{height:3px;width:54px;left:50%;top:50%;transform:translate(-50%,-50%)}
+    .splitter:is(:hover,.dragging)::after{background:#17181b}
+    .splitter-v.dragging::after{transform:translate(-50%,-50%) scaleY(1.15)}
+    .splitter-h.dragging::after{transform:translate(-50%,-50%) scaleX(1.15)}
+
+    .side-tab,.bottom-tab{
+      display:none;position:fixed;z-index:25;border:1px solid var(--line);background:#fff;
+      box-shadow:var(--soft-shadow);font-weight:900;cursor:pointer;touch-action:manipulation;
+    }
+    .side-tab{right:0;top:50%;transform:translateY(-50%);border-radius:16px 0 0 16px;padding:16px 10px;writing-mode:vertical-rl}
+    .bottom-tab{left:50%;bottom:max(0px,env(safe-area-inset-bottom));transform:translateX(-50%);border-radius:16px 16px 0 0;padding:10px 18px}
+
+    body.side-hidden .workspace{
+      grid-template-columns:minmax(0,1fr) 0 0;
+      grid-template-areas:"stage stage stage" "hbar hbar hbar" "bottom bottom bottom";
+    }
+    body.side-hidden .side,body.side-hidden .splitter-v{display:none}
+    body.side-hidden .side-tab{display:block}
+
+    body.bottom-hidden .workspace{
+      grid-template-rows:minmax(0,1fr) 0 0;
+      grid-template-areas:"stage vbar side" "stage vbar side" "stage vbar side";
+    }
+    body.bottom-hidden .bottom,body.bottom-hidden .splitter-h{display:none}
+    body.bottom-hidden .bottom-tab{display:block}
+
+    body.side-hidden.bottom-hidden .workspace{
+      grid-template-columns:1fr;grid-template-rows:1fr;grid-template-areas:"stage";
+    }
+
+    body.is-dragging,body.is-dragging *{cursor:inherit!important}
+    body.is-dragging iframe,body.is-dragging canvas{pointer-events:none!important}
+
+    @media (max-width:1100px){
+      :root{--side-w:320px;--bottom-h:165px}
+      main{padding:10px 12px max(10px,env(safe-area-inset-bottom))}
+      .workspace{grid-template-columns:minmax(0,1fr) var(--split) minmax(260px,var(--side-w))}
+      .side{padding:17px}.bottom{padding:14px 17px}
+      .card{border-radius:22px}
+    }
+
+    @media (max-width:760px){
+      :root{--header-h:58px;--bottom-h:150px}
+      header{padding-left:12px;padding-right:12px}
+      .brand{font-size:17px}.brand span{display:none}
+      .pill{padding:9px 11px;font-size:12px}
+      .workspace{
+        grid-template-columns:1fr;
+        grid-template-rows:minmax(0,1fr) var(--split) var(--bottom-h);
+        grid-template-areas:"stage" "hbar" "bottom";
+      }
+      .splitter-v{display:none}
+      .side{
+        display:block;position:fixed;z-index:30;right:10px;top:calc(var(--header-h) + 10px);
+        bottom:10px;width:min(88vw,350px);transform:translateX(calc(100% + 24px));
+        transition:transform .22s ease;
+      }
+      body.mobile-side-open .side{transform:translateX(0)}
+      body.side-hidden .side{display:none}
+      body.side-hidden .workspace{grid-template-columns:1fr;grid-template-areas:"stage" "hbar" "bottom"}
+      body.bottom-hidden .workspace{grid-template-rows:1fr;grid-template-areas:"stage"}
+      .placeholder{padding:20px}.placeholder-icon{width:68px;height:68px;border-radius:20px}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">3DCD LAB <span>Template de trabajo</span></div>
+    <div class="header-actions">
+      <button class="pill" id="bottomToggle" type="button" aria-pressed="true">Línea</button>
+      <button class="pill" id="sideToggle" type="button" aria-pressed="true">Ajustes</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="workspace" id="workspace">
+      <section class="card stage" id="stage">
+        <div class="placeholder">
+          <div class="placeholder-icon">＋</div>
+          <h1>Espacio principal</h1>
+          <p>Este sector quedó vacío. Acá iremos incorporando cada herramienta, una función por vez.</p>
+        </div>
+      </section>
+
+      <div class="splitter splitter-v" id="splitterV" role="separator" aria-orientation="vertical" aria-label="Cambiar ancho del panel"></div>
+
+      <aside class="card side" id="sidePanel">
+        <h2 class="section-title">Panel lateral</h2>
+        <div class="fake-control dark"></div>
+        <div class="fake-control"></div>
+        <div class="fake-control"></div>
+        <div class="fake-control"></div>
+      </aside>
+
+      <div class="splitter splitter-h" id="splitterH" role="separator" aria-orientation="horizontal" aria-label="Cambiar altura del panel inferior"></div>
+
+      <section class="card bottom" id="bottomPanel">
+        <div class="bottom-inner">
+          <div class="placeholder">
+            <h2>Espacio inferior</h2>
+            <p>Zona reservada para una futura línea de tiempo, controles o herramientas auxiliares.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <button class="side-tab" id="sideTab" type="button">Abrir ajustes</button>
+  <button class="bottom-tab" id="bottomTab" type="button">Abrir línea</button>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const root = document.documentElement;
+      const body = document.body;
+      const workspace = document.getElementById('workspace');
+      const splitterV = document.getElementById('splitterV');
+      const splitterH = document.getElementById('splitterH');
+      const sideToggle = document.getElementById('sideToggle');
+      const bottomToggle = document.getElementById('bottomToggle');
+      const sideTab = document.getElementById('sideTab');
+      const bottomTab = document.getElementById('bottomTab');
+
+      const clamp = (n,min,max) => Math.max(min,Math.min(max,n));
+      const isPhone = () => matchMedia('(max-width:760px)').matches;
+
+      function setSide(open){
+        if(isPhone()){
+          body.classList.remove('side-hidden');
+          body.classList.toggle('mobile-side-open',open);
+        }else{
+          body.classList.remove('mobile-side-open');
+          body.classList.toggle('side-hidden',!open);
+        }
+        sideToggle.setAttribute('aria-pressed',String(open));
+      }
+
+      function setBottom(open){
+        body.classList.toggle('bottom-hidden',!open);
+        bottomToggle.setAttribute('aria-pressed',String(open));
+      }
+
+      sideToggle.addEventListener('click',()=>{
+        const open = isPhone() ? !body.classList.contains('mobile-side-open') : body.classList.contains('side-hidden');
+        setSide(open);
+      });
+      bottomToggle.addEventListener('click',()=>setBottom(body.classList.contains('bottom-hidden')));
+      sideTab.addEventListener('click',()=>setSide(true));
+      bottomTab.addEventListener('click',()=>setBottom(true));
+
+      function beginDrag(event,axis){
+        if(event.button !== undefined && event.button !== 0) return;
+        if(axis === 'x' && isPhone()) return;
+        event.preventDefault();
+
+        const splitter = axis === 'x' ? splitterV : splitterH;
+        const rect = workspace.getBoundingClientRect();
+        splitter.classList.add('dragging');
+        body.classList.add('is-dragging');
+        body.style.cursor = axis === 'x' ? 'col-resize' : 'row-resize';
+
+        try{ splitter.setPointerCapture(event.pointerId); }catch(_){ }
+
+        const move = e => {
+          e.preventDefault();
+          if(axis === 'x'){
+            const value = clamp(rect.right - e.clientX,260,Math.min(520,rect.width * .55));
+            root.style.setProperty('--side-w',value + 'px');
+          }else{
+            const value = clamp(rect.bottom - e.clientY,105,Math.min(360,rect.height * .55));
+            root.style.setProperty('--bottom-h',value + 'px');
+          }
+        };
+
+        const end = () => {
+          splitter.classList.remove('dragging');
+          body.classList.remove('is-dragging');
+          body.style.cursor = '';
+          window.removeEventListener('pointermove',move,true);
+          window.removeEventListener('pointerup',end,true);
+          window.removeEventListener('pointercancel',end,true);
+        };
+
+        window.addEventListener('pointermove',move,{capture:true,passive:false});
+        window.addEventListener('pointerup',end,{capture:true,once:true});
+        window.addEventListener('pointercancel',end,{capture:true,once:true});
+      }
+
+      splitterV.addEventListener('pointerdown',e=>beginDrag(e,'x'),{passive:false});
+      splitterH.addEventListener('pointerdown',e=>beginDrag(e,'y'),{passive:false});
+
+      window.addEventListener('resize',()=>{
+        if(!isPhone()) body.classList.remove('mobile-side-open');
+      },{passive:true});
+    })();
+  </script>
+</body>
+</html>
