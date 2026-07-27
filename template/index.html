@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#f6f7f9">
-  <title>3DCD LAB · Template limpio</title>
+  <title>3DCD LAB · Template limpio v4</title>
   <style>
     :root{
       --bg:#f6f7f9;
@@ -92,6 +92,11 @@
     .side{grid-area:side;padding:22px;overflow:auto;-webkit-overflow-scrolling:touch}
     .bottom{grid-area:bottom;padding:18px 22px;overflow:auto;-webkit-overflow-scrolling:touch}
 
+    /* El contenido conserva el desplazamiento, pero sin la barra nativa que se
+       superpone a las esquinas redondeadas de macOS, iPadOS o Android. */
+    .side,.bottom{scrollbar-width:none;-ms-overflow-style:none}
+    .side::-webkit-scrollbar,.bottom::-webkit-scrollbar{width:0;height:0;display:none}
+
     .placeholder{text-align:center;padding:28px;max-width:560px;pointer-events:none;user-select:none}
     .placeholder-icon{
       width:82px;height:82px;border-radius:24px;background:#f0f1f3;display:grid;place-items:center;
@@ -113,11 +118,7 @@
     }
     .splitter-v{grid-area:vbar}
     .splitter-h{grid-area:hbar;cursor:row-resize}
-    .splitter::before{
-      content:"";position:absolute;background:#e1e5eb;pointer-events:none;
-    }
-    .splitter-v::before{width:1px;top:0;bottom:0;left:50%;transform:translateX(-50%)}
-    .splitter-h::before{height:1px;left:0;right:0;top:50%;transform:translateY(-50%)}
+    /* El separador mantiene toda su zona táctil, pero sin una línea continua visible. */
     .splitter::after{
       content:"";position:absolute;border-radius:999px;background:#cbd0d8;
       box-shadow:0 0 0 4px rgba(246,247,249,.92);
