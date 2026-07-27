@@ -33,7 +33,11 @@
       -webkit-tap-highlight-color:transparent;
     }
 
-    button{font:inherit}
+    button{
+      font:inherit;appearance:none;-webkit-appearance:none;
+      color:inherit;-webkit-text-fill-color:currentColor;
+      -webkit-tap-highlight-color:transparent;
+    }
     header{
       height:var(--header-h);
       display:flex;
@@ -58,8 +62,10 @@
       border:1px solid var(--line);background:#fff;color:#20232a;border-radius:999px;
       padding:10px 14px;box-shadow:var(--soft-shadow);font-weight:850;font-size:13px;
       cursor:pointer;touch-action:manipulation;white-space:nowrap;
+      color:#20232a;-webkit-text-fill-color:#20232a;
     }
-    .pill[aria-pressed="true"]{background:#111;color:#fff;border-color:#111}
+    .pill[aria-pressed="true"]{background:#111;color:#fff;-webkit-text-fill-color:#fff;border-color:#111}
+    .pill:focus,.pill:active,.side-tab:focus,.side-tab:active,.bottom-tab:focus,.bottom-tab:active{color:inherit}
 
     main{
       height:calc(100dvh - var(--header-h));
@@ -126,6 +132,7 @@
     .side-tab,.bottom-tab{
       display:none;position:fixed;z-index:25;border:1px solid var(--line);background:#fff;
       box-shadow:var(--soft-shadow);font-weight:900;cursor:pointer;touch-action:manipulation;
+      color:#20232a;-webkit-text-fill-color:#20232a;
     }
     .side-tab{right:0;top:50%;transform:translateY(-50%);border-radius:16px 0 0 16px;padding:16px 10px;writing-mode:vertical-rl}
     .bottom-tab{left:50%;bottom:max(0px,env(safe-area-inset-bottom));transform:translateX(-50%);border-radius:16px 16px 0 0;padding:10px 18px}
@@ -310,9 +317,24 @@
       splitterV.addEventListener('pointerdown',e=>beginDrag(e,'x'),{passive:false});
       splitterH.addEventListener('pointerdown',e=>beginDrag(e,'y'),{passive:false});
 
-      window.addEventListener('resize',()=>{
-        if(!isPhone()) body.classList.remove('mobile-side-open');
-      },{passive:true});
+      let phoneMode = isPhone();
+
+      function syncResponsiveState(){
+        const nowPhone = isPhone();
+        if(nowPhone === phoneMode) return;
+        phoneMode = nowPhone;
+
+        if(nowPhone){
+          body.classList.remove('side-hidden','mobile-side-open');
+          sideToggle.setAttribute('aria-pressed','false');
+        }else{
+          body.classList.remove('mobile-side-open','side-hidden');
+          sideToggle.setAttribute('aria-pressed','true');
+        }
+      }
+
+      window.addEventListener('resize',syncResponsiveState,{passive:true});
+      window.addEventListener('orientationchange',()=>setTimeout(syncResponsiveState,80),{passive:true});
     })();
   </script>
 </body>
