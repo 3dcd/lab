@@ -1691,7 +1691,7 @@
     :root{
       --lab-settings-w:360px;
       --lab-timeline-h:190px;
-      --lab-handle:12px;
+      --lab-handle:8px;
       --lab-gap:12px;
       --safe-top:env(safe-area-inset-top,0px);
       --safe-right:env(safe-area-inset-right,0px);
@@ -1748,16 +1748,24 @@
     .settings-backdrop{display:none !important}
     .panel-close{display:none !important}
 
-    .lab-resizer{position:relative;z-index:35;touch-action:none;user-select:none}
+    .lab-resizer{position:relative;z-index:35;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overflow:visible}
+    .lab-resizer::before{content:"";position:absolute;z-index:2}
+    .lab-resizer-v::before{left:50%;top:0;width:28px;height:100%;transform:translateX(-50%)}
+    .lab-resizer-h::before{left:0;top:50%;width:100%;height:28px;transform:translateY(-50%)}
     .lab-resizer::after{
-      content:"";position:absolute;border-radius:999px;
+      content:"";position:absolute;z-index:3;border-radius:999px;pointer-events:none;
       background:#cfd4dc;transition:.15s ease;
     }
     .lab-resizer:hover::after,.lab-resizer.dragging::after{background:var(--purple)}
-    .lab-resizer-v{grid-area:vhandle;cursor:col-resize}
+    .lab-resizer-v{grid-area:vhandle;cursor:col-resize;min-width:0;width:var(--lab-handle)}
     .lab-resizer-v::after{width:3px;height:58px;left:50%;top:50%;transform:translate(-50%,-50%)}
-    .lab-resizer-h{grid-area:hhandle;cursor:row-resize}
+    .lab-resizer-h{grid-area:hhandle;cursor:row-resize;min-height:0;height:var(--lab-handle)}
     .lab-resizer-h::after{width:58px;height:3px;left:50%;top:50%;transform:translate(-50%,-50%)}
+
+
+    body.lab-resizing-v,body.lab-resizing-v *{cursor:col-resize !important}
+    body.lab-resizing-h,body.lab-resizing-h *{cursor:row-resize !important}
+    body.lab-resizing-v,body.lab-resizing-h{user-select:none !important;-webkit-user-select:none !important}
 
     .lab-header-btn{
       border:1px solid var(--line);background:#fff;color:#20232a;
@@ -4088,38 +4096,82 @@
 
   function bindResizer(handle, axis){
     if(!handle) return;
+
+    let drag = null;
+    let lastTapAt = 0;
+    let ignoreTapUntil = 0;
+
+    const move = event => {
+      if(!drag) return;
+      event.preventDefault();
+      drag.moved = drag.moved || Math.abs(event.clientX-drag.startX) > 5 || Math.abs(event.clientY-drag.startY) > 5;
+      if(axis === 'x'){
+        const delta = event.clientX - drag.startX;
+        const maxWidth = Math.max(280, Math.min(window.innerWidth * .72, window.innerWidth - 260));
+        settingsWidth = clamp(drag.startWidth - delta, 230, maxWidth);
+        root.style.setProperty('--lab-settings-w', settingsWidth + 'px');
+      }else{
+        const delta = event.clientY - drag.startY;
+        const maxHeight = Math.max(135, Math.min(window.innerHeight * .70, window.innerHeight - 180));
+        timelineHeight = clamp(drag.startHeight - delta, 100, maxHeight);
+        root.style.setProperty('--lab-timeline-h', timelineHeight + 'px');
+      }
+    };
+
+    const finish = event => {
+      if(!drag) return;
+      event?.preventDefault?.();
+      document.removeEventListener('pointermove', move, {capture:true});
+      document.removeEventListener('pointerup', finish, {capture:true});
+      document.removeEventListener('pointercancel', finish, {capture:true});
+      handle.classList.remove('dragging');
+      body.classList.remove(axis === 'x' ? 'lab-resizing-v' : 'lab-resizing-h');
+      localStorage.setItem('3dcd-lab-settings-width', String(Math.round(settingsWidth)));
+      localStorage.setItem('3dcd-lab-timeline-height', String(Math.round(timelineHeight)));
+      if(drag.moved) ignoreTapUntil = Date.now() + 450;
+      drag = null;
+    };
+
     handle.addEventListener('pointerdown', event => {
       if(axis === 'x' && isPortraitPhone()) return;
+      if(event.pointerType === 'mouse' && event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
-      handle.setPointerCapture?.(event.pointerId);
+      drag = {
+        startX:event.clientX,
+        startY:event.clientY,
+        startWidth:settingsWidth,
+        startHeight:timelineHeight,
+        moved:false
+      };
       handle.classList.add('dragging');
-      const startX = event.clientX;
-      const startY = event.clientY;
-      const startWidth = settingsWidth;
-      const startHeight = timelineHeight;
+      body.classList.add(axis === 'x' ? 'lab-resizing-v' : 'lab-resizing-h');
+      document.addEventListener('pointermove', move, {capture:true, passive:false});
+      document.addEventListener('pointerup', finish, {capture:true, passive:false});
+      document.addEventListener('pointercancel', finish, {capture:true, passive:false});
+    }, {passive:false});
 
-      const move = ev => {
-        ev.preventDefault();
-        if(axis === 'x'){
-          settingsWidth = clamp(startWidth - (ev.clientX - startX), 240, Math.max(260, window.innerWidth * .68));
-          root.style.setProperty('--lab-settings-w', settingsWidth + 'px');
-        }else{
-          timelineHeight = clamp(startHeight - (ev.clientY - startY), 105, Math.max(130, window.innerHeight * .68));
-          root.style.setProperty('--lab-timeline-h', timelineHeight + 'px');
-        }
-      };
-      const finish = () => {
-        handle.classList.remove('dragging');
-        handle.removeEventListener('pointermove', move);
-        handle.removeEventListener('pointerup', finish);
-        handle.removeEventListener('pointercancel', finish);
-        localStorage.setItem('3dcd-lab-settings-width', String(Math.round(settingsWidth)));
-        localStorage.setItem('3dcd-lab-timeline-height', String(Math.round(timelineHeight)));
-      };
-      handle.addEventListener('pointermove', move);
-      handle.addEventListener('pointerup', finish);
-      handle.addEventListener('pointercancel', finish);
+    // Doble clic o doble toque sobre la división: cierra el panel correspondiente.
+    const collapseFromHandle = () => {
+      if(axis === 'x') closeSettings();
+      else body.classList.add('lab-timeline-collapsed');
+    };
+    handle.addEventListener('dblclick', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      collapseFromHandle();
+    });
+    handle.addEventListener('pointerup', event => {
+      if(event.pointerType !== 'touch' || drag) return;
+      const now = Date.now();
+      if(now < ignoreTapUntil) return;
+      if(now - lastTapAt < 360){
+        event.preventDefault();
+        collapseFromHandle();
+        lastTapAt = 0;
+      }else{
+        lastTapAt = now;
+      }
     }, {passive:false});
   }
 
@@ -4166,8 +4218,8 @@
     if(event.key === 'Escape') body.classList.remove('settings-open');
   });
   window.addEventListener('resize', () => {
-    settingsWidth = clamp(settingsWidth, 240, Math.max(260, window.innerWidth * .68));
-    timelineHeight = clamp(timelineHeight, 105, Math.max(130, window.innerHeight * .68));
+    settingsWidth = clamp(settingsWidth, 230, Math.max(280, Math.min(window.innerWidth * .72, window.innerWidth - 260)));
+    timelineHeight = clamp(timelineHeight, 100, Math.max(135, Math.min(window.innerHeight * .70, window.innerHeight - 180)));
     applySizes();
     if(!isPortraitPhone()) body.classList.remove('settings-open');
   });
