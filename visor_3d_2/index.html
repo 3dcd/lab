@@ -1724,19 +1724,7 @@
 
     /* El contenedor original deja de imponer una columna propia:
        sus dos hijos pasan a ocupar directamente la grilla maestra. */
-    /* En iPad/Safari evitamos display:contents: los paneles son hijos directos
-       de la grilla y el contenedor conserva una geometría estable. */
-    .workspace.viewer-card{
-      display:grid !important;
-      max-width:none !important;
-      margin:0 !important;
-      padding:0 !important;
-      border:0 !important;
-      border-radius:0 !important;
-      background:transparent !important;
-      box-shadow:none !important;
-      overflow:hidden !important;
-    }
+    .viewer-card{display:contents !important}
     .viewer-stage{
       grid-area:viewer;min-width:0;min-height:0;height:auto !important;
       border-radius:26px;background:rgba(255,255,255,.9);
@@ -1761,12 +1749,14 @@
     .panel-close{display:none !important}
 
     .lab-resizer{position:relative;z-index:35;touch-action:none;user-select:none;-webkit-user-select:none}
-    body.lab-is-resizing,body.lab-is-resizing *{cursor:inherit !important;user-select:none !important;-webkit-user-select:none !important}
+    .lab-resizer::before{content:"";position:absolute;inset:-10px;z-index:0}
     .lab-resizer::after{
       content:"";position:absolute;border-radius:999px;
       background:#cfd4dc;transition:.15s ease;
     }
     .lab-resizer:hover::after,.lab-resizer.dragging::after{background:var(--purple)}
+    body.lab-resizing{cursor:grabbing;user-select:none;-webkit-user-select:none;touch-action:none}
+    body.lab-resizing *{user-select:none;-webkit-user-select:none}
     .lab-resizer-v{grid-area:vhandle;cursor:col-resize}
     .lab-resizer-v::after{width:3px;height:58px;left:50%;top:50%;transform:translate(-50%,-50%)}
     .lab-resizer-h{grid-area:hhandle;cursor:row-resize}
@@ -1789,21 +1779,10 @@
 
     body.lab-settings-collapsed .workspace{grid-template-columns:minmax(0,1fr) 0 0}
     body.lab-settings-collapsed .panel,body.lab-settings-collapsed .lab-resizer-v{display:none !important}
-    body.lab-settings-collapsed .lab-edge-tab{display:none}
+    body.lab-settings-collapsed .lab-edge-tab{display:block}
     body.lab-timeline-collapsed .workspace{grid-template-rows:minmax(0,1fr) 0 0}
     body.lab-timeline-collapsed .motion-dock,body.lab-timeline-collapsed .lab-resizer-h{display:none !important}
-    body.lab-timeline-collapsed .lab-bottom-tab{display:none}
-
-
-    /* Los paneles se controlan únicamente desde Línea y Ajustes. */
-    .settings-toggle-inline,.panel-close,.lab-edge-tab,.lab-bottom-tab{display:none !important}
-
-    /* El panel interno aprovecha el ancho disponible. */
-    .panel .row{
-      grid-template-columns:minmax(92px,1fr) minmax(120px,1.65fr) 42px !important;
-      width:100%;
-    }
-    .panel .row input[type="range"]{width:100%;min-width:0}
+    body.lab-timeline-collapsed .lab-bottom-tab{display:block}
 
     @media(max-width:760px) and (orientation:portrait){
       :root{--lab-timeline-h:205px;--lab-settings-w:min(88vw,360px)}
@@ -1859,7 +1838,8 @@
 
   <main>
     <div class="settings-backdrop" id="settingsBackdrop"></div>
-    <section class="workspace viewer-card" id="dropZone">
+    <section class="workspace">
+      <div class="viewer-card" id="dropZone">
         <div class="viewer-stage">
         <div class="top-title">
           <h1>VISOR 3D</h1>
@@ -1940,6 +1920,7 @@
             <div class="keyframe-empty">Arrancá ubicando la pieza: al soltar la cámara se guarda el keyframe automáticamente.</div>
           </div>
         </div>
+      </div>
 
       <div class="lab-resizer lab-resizer-h" id="labHResizer" aria-label="Cambiar altura de la línea de edición"></div>
       <div class="lab-resizer lab-resizer-v" id="labVResizer" aria-label="Cambiar ancho del panel de ajustes"></div>
@@ -2355,70 +2336,12 @@
 
     shadow.addEventListener('input', () => {
       viewer.shadowIntensity = Number(shadow.value);
-  
-    function isTabletLandscape(){
-      return window.matchMedia('(hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:760px)').matches;
-    }
-
-    function applyTabletScrollLock(){
-      const locked = isTabletLandscape();
-      document.documentElement.classList.toggle('tablet-landscape-lock', locked);
-      document.body.classList.toggle('tablet-landscape-lock', locked);
-      if(locked){
-        window.scrollTo(0, 0);
-      }
-    }
-
-    window.addEventListener('resize', applyTabletScrollLock);
-    window.addEventListener('orientationchange', () => setTimeout(applyTabletScrollLock, 350));
-    applyTabletScrollLock();
-
-    document.addEventListener('touchmove', event => {
-      if(!isTabletLandscape()) return;
-      if(event.target.closest('.panel')) return;
-      event.preventDefault();
-    }, {passive:false});
-
-    viewer.addEventListener('touchmove', event => {
-      if(isTabletLandscape()){
-        event.preventDefault();
-      }
-    }, {passive:false});
 
     setValueLabels();
     });
 
     exposure.addEventListener('input', () => {
       viewer.exposure = Number(exposure.value);
-  
-    function isTabletLandscape(){
-      return window.matchMedia('(hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:760px)').matches;
-    }
-
-    function applyTabletScrollLock(){
-      const locked = isTabletLandscape();
-      document.documentElement.classList.toggle('tablet-landscape-lock', locked);
-      document.body.classList.toggle('tablet-landscape-lock', locked);
-      if(locked){
-        window.scrollTo(0, 0);
-      }
-    }
-
-    window.addEventListener('resize', applyTabletScrollLock);
-    window.addEventListener('orientationchange', () => setTimeout(applyTabletScrollLock, 350));
-    applyTabletScrollLock();
-
-    document.addEventListener('touchmove', event => {
-      if(!isTabletLandscape()) return;
-      if(event.target.closest('.panel')) return;
-      event.preventDefault();
-    }, {passive:false});
-
-    viewer.addEventListener('touchmove', event => {
-      if(isTabletLandscape()){
-        event.preventDefault();
-      }
-    }, {passive:false});
 
     setValueLabels();
     });
@@ -2428,70 +2351,12 @@
 
 
     metalBoost.addEventListener('input', () => {
-  
-    function isTabletLandscape(){
-      return window.matchMedia('(hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:760px)').matches;
-    }
-
-    function applyTabletScrollLock(){
-      const locked = isTabletLandscape();
-      document.documentElement.classList.toggle('tablet-landscape-lock', locked);
-      document.body.classList.toggle('tablet-landscape-lock', locked);
-      if(locked){
-        window.scrollTo(0, 0);
-      }
-    }
-
-    window.addEventListener('resize', applyTabletScrollLock);
-    window.addEventListener('orientationchange', () => setTimeout(applyTabletScrollLock, 350));
-    applyTabletScrollLock();
-
-    document.addEventListener('touchmove', event => {
-      if(!isTabletLandscape()) return;
-      if(event.target.closest('.panel')) return;
-      event.preventDefault();
-    }, {passive:false});
-
-    viewer.addEventListener('touchmove', event => {
-      if(isTabletLandscape()){
-        event.preventDefault();
-      }
-    }, {passive:false});
 
     setValueLabels();
       applyMaterialBoost();
     });
 
     roughnessBoost.addEventListener('input', () => {
-  
-    function isTabletLandscape(){
-      return window.matchMedia('(hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:760px)').matches;
-    }
-
-    function applyTabletScrollLock(){
-      const locked = isTabletLandscape();
-      document.documentElement.classList.toggle('tablet-landscape-lock', locked);
-      document.body.classList.toggle('tablet-landscape-lock', locked);
-      if(locked){
-        window.scrollTo(0, 0);
-      }
-    }
-
-    window.addEventListener('resize', applyTabletScrollLock);
-    window.addEventListener('orientationchange', () => setTimeout(applyTabletScrollLock, 350));
-    applyTabletScrollLock();
-
-    document.addEventListener('touchmove', event => {
-      if(!isTabletLandscape()) return;
-      if(event.target.closest('.panel')) return;
-      event.preventDefault();
-    }, {passive:false});
-
-    viewer.addEventListener('touchmove', event => {
-      if(isTabletLandscape()){
-        event.preventDefault();
-      }
-    }, {passive:false});
 
     setValueLabels();
       applyMaterialBoost();
@@ -2506,38 +2371,6 @@
       autoRotate.checked = !autoRotate.checked;
       viewer.autoRotate = autoRotate.checked;
     });
-
-
-
-
-    function isTabletLandscape(){
-      return window.matchMedia('(hover:none) and (pointer:coarse) and (orientation:landscape) and (min-width:760px)').matches;
-    }
-
-    function applyTabletScrollLock(){
-      const locked = isTabletLandscape();
-      document.documentElement.classList.toggle('tablet-landscape-lock', locked);
-      document.body.classList.toggle('tablet-landscape-lock', locked);
-      if(locked){
-        window.scrollTo(0, 0);
-      }
-    }
-
-    window.addEventListener('resize', applyTabletScrollLock);
-    window.addEventListener('orientationchange', () => setTimeout(applyTabletScrollLock, 350));
-    applyTabletScrollLock();
-
-    document.addEventListener('touchmove', event => {
-      if(!isTabletLandscape()) return;
-      if(event.target.closest('.panel')) return;
-      event.preventDefault();
-    }, {passive:false});
-
-    viewer.addEventListener('touchmove', event => {
-      if(isTabletLandscape()){
-        event.preventDefault();
-      }
-    }, {passive:false});
 
     setValueLabels();
     updateViewFilter();
@@ -4111,55 +3944,58 @@
   function bindResizer(handle, axis){
     if(!handle) return;
 
-    const begin = event => {
+    let activePointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let startWidth = 0;
+    let startHeight = 0;
+
+    const move = event => {
+      if(activePointerId === null || event.pointerId !== activePointerId) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if(axis === 'x'){
+        settingsWidth = clamp(startWidth - (event.clientX - startX), 240, Math.max(260, window.innerWidth * .68));
+        root.style.setProperty('--lab-settings-w', settingsWidth + 'px');
+      }else{
+        timelineHeight = clamp(startHeight - (event.clientY - startY), 105, Math.max(130, window.innerHeight * .68));
+        root.style.setProperty('--lab-timeline-h', timelineHeight + 'px');
+      }
+    };
+
+    const finish = event => {
+      if(activePointerId === null) return;
+      if(event && event.pointerId !== undefined && event.pointerId !== activePointerId) return;
+      handle.classList.remove('dragging');
+      body.classList.remove('lab-resizing');
+      try{ handle.releasePointerCapture?.(activePointerId); }catch(_error){}
+      activePointerId = null;
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', finish, true);
+      window.removeEventListener('pointercancel', finish, true);
+      localStorage.setItem('3dcd-lab-settings-width', String(Math.round(settingsWidth)));
+      localStorage.setItem('3dcd-lab-timeline-height', String(Math.round(timelineHeight)));
+    };
+
+    handle.addEventListener('pointerdown', event => {
       if(axis === 'x' && isPortraitPhone()) return;
       if(event.pointerType === 'mouse' && event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
-
-      const startX = event.clientX;
-      const startY = event.clientY;
-      const startWidth = settingsWidth;
-      const startHeight = timelineHeight;
-      const pointerId = event.pointerId;
+      activePointerId = event.pointerId;
+      startX = event.clientX;
+      startY = event.clientY;
+      startWidth = settingsWidth;
+      startHeight = timelineHeight;
       handle.classList.add('dragging');
-      body.classList.add('lab-is-resizing');
-
-      const move = ev => {
-        if(ev.pointerId !== pointerId) return;
-        ev.preventDefault();
-        if(axis === 'x'){
-          const mainRect = document.querySelector('main').getBoundingClientRect();
-          const minViewer = Math.min(360, Math.max(240, mainRect.width * .34));
-          const maxPanel = Math.max(260, mainRect.width - minViewer - 12);
-          settingsWidth = clamp(startWidth - (ev.clientX - startX), 240, maxPanel);
-          root.style.setProperty('--lab-settings-w', settingsWidth + 'px');
-        }else{
-          const mainRect = document.querySelector('main').getBoundingClientRect();
-          const minViewerH = Math.min(300, Math.max(190, mainRect.height * .34));
-          const maxTimeline = Math.max(130, mainRect.height - minViewerH - 12);
-          timelineHeight = clamp(startHeight - (ev.clientY - startY), 105, maxTimeline);
-          root.style.setProperty('--lab-timeline-h', timelineHeight + 'px');
-        }
-      };
-
-      const finish = ev => {
-        if(ev && ev.pointerId !== pointerId) return;
-        handle.classList.remove('dragging');
-        body.classList.remove('lab-is-resizing');
-        window.removeEventListener('pointermove', move, true);
-        window.removeEventListener('pointerup', finish, true);
-        window.removeEventListener('pointercancel', finish, true);
-        localStorage.setItem('3dcd-lab-settings-width', String(Math.round(settingsWidth)));
-        localStorage.setItem('3dcd-lab-timeline-height', String(Math.round(timelineHeight)));
-      };
-
+      body.classList.add('lab-resizing');
+      try{ handle.setPointerCapture?.(event.pointerId); }catch(_error){}
+      // Los listeners van en window y en fase de captura: Safari/iPadOS puede
+      // dejar de enviar movimientos al elemento cuando el dedo sale del divisor.
       window.addEventListener('pointermove', move, {capture:true, passive:false});
       window.addEventListener('pointerup', finish, {capture:true, passive:false});
       window.addEventListener('pointercancel', finish, {capture:true, passive:false});
-    };
-
-    handle.addEventListener('pointerdown', begin, {passive:false});
+    }, {passive:false});
   }
 
   bindResizer(vResizer, 'x');
@@ -4179,9 +4015,31 @@
   };
 
   toggleSettings?.addEventListener('click', toggleSettingsPanel);
+  settingsToggle?.addEventListener('click', toggleSettingsPanel);
+  settingsClose?.addEventListener('click', closeSettings);
+  restoreSettings?.addEventListener('click', openSettings);
+  backdrop?.addEventListener('click', () => body.classList.remove('settings-open'));
 
   toggleTimeline?.addEventListener('click', () => body.classList.toggle('lab-timeline-collapsed'));
+  restoreTimeline?.addEventListener('click', () => body.classList.remove('lab-timeline-collapsed'));
 
+  let gesture = null;
+  window.addEventListener('pointerdown', event => {
+    if(event.pointerType !== 'touch' || !isPortraitPhone()) return;
+    gesture = {x:event.clientX, y:event.clientY, edge:event.clientX >= window.innerWidth - 28};
+  }, {passive:true});
+  window.addEventListener('pointerup', event => {
+    if(!gesture || event.pointerType !== 'touch' || !isPortraitPhone()) return;
+    const dx = event.clientX - gesture.x;
+    const dy = Math.abs(event.clientY - gesture.y);
+    if(dy < 75 && gesture.edge && dx < -55) body.classList.add('settings-open');
+    if(dy < 75 && body.classList.contains('settings-open') && dx > 65) body.classList.remove('settings-open');
+    gesture = null;
+  }, {passive:true});
+
+  window.addEventListener('keydown', event => {
+    if(event.key === 'Escape') body.classList.remove('settings-open');
+  });
   window.addEventListener('resize', () => {
     settingsWidth = clamp(settingsWidth, 240, Math.max(260, window.innerWidth * .68));
     timelineHeight = clamp(timelineHeight, 105, Math.max(130, window.innerHeight * .68));
