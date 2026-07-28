@@ -218,6 +218,7 @@
       display:block;width:100%;height:100%;min-width:0;min-height:0;
       background:transparent;--poster-color:transparent;touch-action:none;
       -webkit-user-select:none;user-select:none;
+      filter:brightness(var(--viewer-brightness,1)) contrast(var(--viewer-contrast,1));
     }
     .viewer-label{
       position:absolute;left:50%;top:20px;transform:translateX(-50%);z-index:2;
@@ -321,6 +322,21 @@
           <div class="control-group">
             <div class="control-head"><label for="shadow">Sombra</label><output class="control-value" id="shadowValue">1.00</output></div>
             <input id="shadow" type="range" min="0" max="2" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="shadowSoftness">Suavidad de sombra</label><output class="control-value" id="shadowSoftnessValue">0.65</output></div>
+            <input id="shadowSoftness" type="range" min="0" max="1" step="0.05" value="0.65">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="brightness">Brillo visual</label><output class="control-value" id="brightnessValue">1.00</output></div>
+            <input id="brightness" type="range" min="0.55" max="1.55" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="contrast">Contraste</label><output class="control-value" id="contrastValue">1.00</output></div>
+            <input id="contrast" type="range" min="0.60" max="1.60" step="0.05" value="1">
           </div>
         </div>
       </aside>
@@ -447,15 +463,30 @@
       const modelSize = document.getElementById('modelSize');
       const exposure = document.getElementById('exposure');
       const shadow = document.getElementById('shadow');
+      const shadowSoftness = document.getElementById('shadowSoftness');
+      const brightness = document.getElementById('brightness');
+      const contrast = document.getElementById('contrast');
       const modelSizeValue = document.getElementById('modelSizeValue');
       const exposureValue = document.getElementById('exposureValue');
       const shadowValue = document.getElementById('shadowValue');
+      const shadowSoftnessValue = document.getElementById('shadowSoftnessValue');
+      const brightnessValue = document.getElementById('brightnessValue');
+      const contrastValue = document.getElementById('contrastValue');
 
       const initialCamera = '0deg 75deg 105%';
+      function refreshViewer(){
+        try{ viewer.requestUpdate?.(); }catch(_){ }
+        requestAnimationFrame(()=>{
+          try{ viewer.jumpCameraToGoal?.(); }catch(_){ }
+        });
+      }
       function applyModelSize(){
         const value = Number(modelSize.value) / 100;
-        viewer.setAttribute('scale', `${value} ${value} ${value}`);
+        const scaleValue = `${value} ${value} ${value}`;
+        viewer.scale = scaleValue;
+        viewer.setAttribute('scale', scaleValue);
         modelSizeValue.value = `${modelSize.value}%`;
+        refreshViewer();
       }
       function applyExposure(){
         viewer.exposure = Number(exposure.value);
@@ -464,18 +495,36 @@
       function applyShadow(){
         viewer.shadowIntensity = Number(shadow.value);
         shadowValue.value = Number(shadow.value).toFixed(2);
+        refreshViewer();
+      }
+      function applyShadowSoftness(){
+        viewer.shadowSoftness = Number(shadowSoftness.value);
+        shadowSoftnessValue.value = Number(shadowSoftness.value).toFixed(2);
+        refreshViewer();
+      }
+      function applyVisualFilter(){
+        const b = Number(brightness.value);
+        const c = Number(contrast.value);
+        viewer.style.setProperty('--viewer-brightness', b);
+        viewer.style.setProperty('--viewer-contrast', c);
+        brightnessValue.value = b.toFixed(2);
+        contrastValue.value = c.toFixed(2);
       }
       modelSize.addEventListener('input',applyModelSize,{passive:true});
       exposure.addEventListener('input',applyExposure,{passive:true});
       shadow.addEventListener('input',applyShadow,{passive:true});
+      shadowSoftness.addEventListener('input',applyShadowSoftness,{passive:true});
+      brightness.addEventListener('input',applyVisualFilter,{passive:true});
+      contrast.addEventListener('input',applyVisualFilter,{passive:true});
       resetCamera.addEventListener('click',()=>{
         modelSize.value='100'; exposure.value='1'; shadow.value='1';
-        applyModelSize(); applyExposure(); applyShadow();
+        shadowSoftness.value='0.65'; brightness.value='1'; contrast.value='1';
+        applyModelSize(); applyExposure(); applyShadow(); applyShadowSoftness(); applyVisualFilter(); applyShadowSoftness(); applyVisualFilter();
         viewer.setAttribute('camera-orbit',initialCamera);
         viewer.setAttribute('camera-target','auto auto auto');
         try{ viewer.jumpCameraToGoal(); }catch(_){ }
       });
-      applyModelSize(); applyExposure(); applyShadow();
+      applyModelSize(); applyExposure(); applyShadow(); applyShadowSoftness(); applyVisualFilter();
     })();
   </script>
 
