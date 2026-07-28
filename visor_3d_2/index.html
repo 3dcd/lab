@@ -798,7 +798,29 @@
       body.mobile-side-open::before{content:"";position:fixed;inset:var(--header-h) 0 0;z-index:27;background:rgba(255,255,255,.05);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px);pointer-events:none}
       body.mobile-side-open .side{background:rgba(255,255,255,.38)!important;border-color:rgba(255,255,255,.45)!important;backdrop-filter:blur(12px) saturate(1.05)!important;-webkit-backdrop-filter:blur(12px) saturate(1.05)!important;box-shadow:0 20px 55px rgba(20,25,35,.12)!important}
       body.mobile-side-open .model-file,body.mobile-side-open .control-group,body.mobile-side-open .settings-button{background:rgba(255,255,255,.48)}
-      .keyframe-ui{gap:5px}.keyframe-head{align-items:flex-start}.keyframe-title{min-width:112px}.keyframe-title strong{font-size:11px}.keyframe-title span{font-size:9px}.keyframe-actions{overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;max-width:67vw;padding-bottom:2px}.kf-btn,.kf-duration{flex:0 0 auto;min-height:29px}.kf-btn{padding:0 8px;font-size:9px}.kf-step-row{height:29px;gap:8px}.kf-arrow{width:42px;height:28px}.kf-timeline-row{grid-template-columns:38px minmax(0,1fr) 38px;gap:5px}.kf-clock{font-size:8px;padding:6px 3px}.kf-track{height:34px}.kf-track::before,.kf-dot{top:20px}.kf-scale{top:3px}.kf-tick-label{display:none}.kf-playhead{top:2px;bottom:2px}
+      .keyframe-ui{gap:5px}.keyframe-head{align-items:flex-start}.keyframe-title{min-width:112px}.keyframe-title strong{font-size:11px}.keyframe-title span{font-size:9px}.keyframe-actions{overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;max-width:none;width:100%;padding-bottom:2px}.kf-btn,.kf-duration{flex:0 0 auto;min-height:29px}.kf-btn{padding:0 8px;font-size:9px}.kf-step-row{height:29px;gap:8px}.kf-arrow{width:42px;height:28px}.kf-timeline-row{grid-template-columns:38px minmax(0,1fr) 38px;gap:5px}.kf-clock{font-size:8px;padding:6px 3px}.kf-track{height:34px}.kf-track::before,.kf-dot{top:20px}.kf-scale{top:3px}.kf-tick-label{display:none}.kf-playhead{top:2px;bottom:2px}
+    }
+
+    @media(max-width:760px){
+      .motion-head{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:5px!important}
+      .motion-title{width:100%!important;min-width:0!important}
+      .motion-controls{width:100%!important;max-width:none!important;display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:flex-start!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;padding:1px 0 4px!important}
+      .motion-btn,.motion-timebox{flex:0 0 auto!important}
+    }
+
+    /* Línea compacta: sin tarjeta interior ni textos auxiliares */
+    .bottom{padding:6px 8px;overflow:hidden}
+    .motion-dock{width:100%;height:100%;background:transparent;border:0;box-shadow:none;padding:0;display:flex;flex-direction:column;justify-content:center;min-width:0}
+    .motion-head{display:block;margin:0 0 5px;min-width:0}
+    .motion-controls{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:6px;width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;padding:2px 1px 5px;touch-action:pan-x}
+    .motion-controls::-webkit-scrollbar{display:none}
+    .motion-btn,.motion-timebox{flex:0 0 auto;white-space:nowrap}
+    .timeline-panel{background:transparent;border:0;box-shadow:none}
+    .control-note{display:none!important}
+    @media(max-width:760px){
+      .bottom{padding:4px 5px;background:rgba(255,255,255,.16);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+      .motion-controls{gap:5px;padding-bottom:4px}
+      .motion-btn,.motion-timebox{min-height:29px!important;font-size:10px!important;border-radius:10px!important}
     }
 
   </style>
@@ -849,7 +871,6 @@
           <div class="control-group">
             <div class="control-head"><label for="modelSize">Tamaño del modelo</label><output class="control-value" id="modelSizeValue">100%</output></div>
             <input id="modelSize" type="range" min="65" max="145" step="1" value="100">
-            <p class="control-note">Modifica el tamaño sin desplazar el modelo del centro.</p>
           </div>
 
           <div class="control-group">
@@ -885,13 +906,11 @@
           <div class="control-group">
             <div class="control-head"><label for="metalExtra">Metal extra</label><output class="control-value" id="metalExtraValue">0.00</output></div>
             <input id="metalExtra" type="range" min="0" max="1" step="0.05" value="0">
-            <p class="control-note">Refuerza gradualmente el carácter metálico respetando el material original.</p>
           </div>
 
           <div class="control-group">
             <div class="control-head"><label for="polishExtra">Pulido extra</label><output class="control-value" id="polishExtraValue">0.00</output></div>
             <input id="polishExtra" type="range" min="0" max="1" step="0.05" value="0">
-            <p class="control-note">Reduce la rugosidad original para producir reflejos más definidos.</p>
           </div>
         </div>
       </aside>
@@ -901,10 +920,7 @@
       <section class="card bottom" id="bottomPanel">
         <div class="motion-dock" id="motionDock">
           <div class="motion-head">
-            <div class="motion-title">
-              <strong>Recorrido por keyframes <span class="mode-badge">PASO A PASO</span></strong>
-              <span id="animState">0 keyframes · 00.0s</span>
-            </div>
+            <span id="animState" hidden></span>
             <div class="motion-controls">
               <button class="motion-btn primary is-hidden" id="playAnim">▶ Play</button>
               <button class="motion-btn is-hidden" id="pauseAnim">Ⅱ Pausa</button>
@@ -935,9 +951,7 @@
             </div>
             <div class="timeline-clock" id="durationClock">10.0s</div>
           </div>
-          <div class="keyframe-list" id="keyframeList">
-            <div class="keyframe-empty">Arrancá ubicando la pieza: al soltar la cámara se guarda el keyframe automáticamente.</div>
-          </div>
+          <div class="keyframe-list" id="keyframeList"></div>
         </div>
         </div>
       </section>
@@ -1187,7 +1201,7 @@
       viewer.addEventListener('viewer-materials-ready',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
       viewer.addEventListener('load',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
 
-      // Keyframes y globitos: misma estructura del visor original.
+      // Keyframes y globitos: comportamiento trasladado del visor original.
       const addKeyframe = document.getElementById('addKeyframe');
       const addBubble = document.getElementById('addBubble');
       const undoAction = document.getElementById('undoAction');
@@ -1206,109 +1220,172 @@
       const durationClock = document.getElementById('durationClock');
       const bubbleLayer = document.getElementById('bubbleLayer');
       const pointerOrder = ['bottom','top','left','right','none'];
-      let pointerIndex = 0;
       let keyframes = [];
       let activeKeyframe = -1;
+      let selectedBubbleId = null;
       let timelineLocked = false;
       let undoStack = [];
+      let animationPausedAt = 0;
+      let cameraCommitTimer = 0;
+      let internalCameraChangeUntil = 0;
+      let lastViewerInteractionUntil = 0;
+      let isScrubbingTimeline = false;
+      let suppressTimelineClickUntil = 0;
 
       const durationValue=()=>Math.max(2,Math.min(60,Number(animDuration.value)||10));
+      const clampTime=t=>Math.max(0,Math.min(durationValue(),Number(t)||0));
       const fmt=t=>`${Math.max(0,t).toFixed(1).padStart(4,'0')}s`;
+      const sortKeyframes=()=>keyframes.sort((a,b)=>a.time-b.time);
       function cameraState(){
         const o=viewer.getCameraOrbit?.(), t=viewer.getCameraTarget?.();
         return {orbit:{theta:Number(o?.theta)||0,phi:Number(o?.phi)||1.3,radius:Number(o?.radius)||2},
           target:{x:Number(t?.x)||0,y:Number(t?.y)||0,z:Number(t?.z)||0},
           fov:Number(viewer.getFieldOfView?.())||30};
       }
-      function applyCameraState(s){
+      function applyCameraState(s, jump=true){
         if(!s)return;
+        internalCameraChangeUntil=Date.now()+500;
         viewer.cameraOrbit=`${s.orbit.theta}rad ${s.orbit.phi}rad ${s.orbit.radius}m`;
         viewer.cameraTarget=`${s.target.x}m ${s.target.y}m ${s.target.z}m`;
         viewer.fieldOfView=`${s.fov}deg`;
-        viewer.jumpCameraToGoal?.();
+        if(jump) viewer.jumpCameraToGoal?.();
       }
-      function snapshot(){return JSON.stringify({keyframes,activeKeyframe,pointerIndex});}
-      function pushUndo(){undoStack.push(snapshot()); if(undoStack.length>30)undoStack.shift();}
+      function snapshot(){return JSON.stringify({keyframes,activeKeyframe,selectedBubbleId,animationPausedAt});}
+      function pushUndo(){undoStack.push(snapshot()); if(undoStack.length>40)undoStack.shift();}
       function restoreUndo(){
         if(!undoStack.length)return;
-        const s=JSON.parse(undoStack.pop()); keyframes=s.keyframes||[]; activeKeyframe=s.activeKeyframe??-1; pointerIndex=s.pointerIndex||0;
-        renderAll(activeKeyframe>=0?keyframes[activeKeyframe]?.time||0:0);
+        const s=JSON.parse(undoStack.pop());
+        keyframes=s.keyframes||[]; activeKeyframe=s.activeKeyframe??-1;
+        selectedBubbleId=s.selectedBubbleId??null; animationPausedAt=clampTime(s.animationPausedAt||0);
+        if(activeKeyframe>=0&&keyframes[activeKeyframe]) applyCameraState(keyframes[activeKeyframe].camera,true);
+        renderAll(animationPausedAt);
       }
-      function selected(){return activeKeyframe>=0?keyframes[activeKeyframe]:null}
-      function ensureCurrent(){
-        if(activeKeyframe<0){
-          pushUndo();
-          keyframes.push({id:Date.now()+Math.random(),time:keyframes.length?durationValue():0,camera:cameraState(),bubbles:[]});
-          activeKeyframe=keyframes.length-1;
-          distribute();
-        }
-        keyframes[activeKeyframe].bubbles ||= [];
-        return keyframes[activeKeyframe];
+      function findKeyframeNear(time){
+        const tolerance=Math.max(.12,durationValue()*.018); let best=-1,dist=Infinity;
+        keyframes.forEach((kf,i)=>{const d=Math.abs(kf.time-time);if(d<=tolerance&&d<dist){best=i;dist=d;}});
+        return best;
       }
-      function distribute(){
-        const d=durationValue();
-        keyframes.forEach((k,i)=>k.time=keyframes.length<=1?0:d*i/(keyframes.length-1));
+      function selected(){sortKeyframes();return activeKeyframe>=0?keyframes[activeKeyframe]:null;}
+      function selectedBubble(k=selected()){
+        if(!k?.bubbles?.length)return null;
+        let b=k.bubbles.find(x=>x.id===selectedBubbleId);
+        if(!b){b=k.bubbles[0];selectedBubbleId=b.id;}
+        return b;
       }
       function setTime(t){
-        const d=durationValue(), x=Math.max(0,Math.min(d,t));
-        playhead.style.left=`${d?x/d*100:0}%`;
-        timelineClock.textContent=fmt(x); durationClock.textContent=fmt(d);
-        animState.textContent=`${keyframes.length} keyframe${keyframes.length===1?'':'s'} · ${activeKeyframe>=0?'paso '+(activeKeyframe+1):'paso libre'} · ${fmt(x)}`;
+        animationPausedAt=clampTime(t); const d=durationValue();
+        playhead.style.left=`${d?animationPausedAt/d*100:0}%`;
+        timelineClock.textContent=fmt(animationPausedAt); durationClock.textContent=fmt(d);
+        animState.textContent=`${keyframes.length} keyframe${keyframes.length===1?'':'s'} · ${activeKeyframe>=0?'paso '+(activeKeyframe+1):'paso libre'} · ${fmt(animationPausedAt)}`;
       }
       function renderScale(){
-        timelineScale.innerHTML='';
-        const d=durationValue();
-        for(let i=0;i<=10;i++){
-          const tick=document.createElement('span'); tick.className='tick'+(i%5===0?' major':''); tick.style.left=`${i*10}%`; timelineScale.appendChild(tick);
-          if(i%5===0){const label=document.createElement('span');label.className='tick-label';label.style.left=tick.style.left;label.textContent=`${Math.round(d*i/10)}s`;timelineScale.appendChild(label);}
+        timelineScale.innerHTML=''; const d=durationValue(); const divisions=Math.min(20,Math.max(2,Math.round(d)));
+        for(let i=0;i<=divisions;i++){
+          const pct=i/divisions*100; const tick=document.createElement('span');
+          tick.className='tick'+(i===0||i===divisions||i%5===0?' major':'');tick.style.left=`${pct}%`;timelineScale.appendChild(tick);
+          if(i===0||i===divisions||i%5===0){const label=document.createElement('span');label.className='tick-label';label.style.left=`${pct}%`;label.textContent=`${Math.round(d*i/divisions)}s`;timelineScale.appendChild(label);}
         }
       }
       function renderBubbles(){
-        bubbleLayer.innerHTML='';
-        const k=selected(); if(!k)return;
-        (k.bubbles||[]).forEach((b,idx)=>{
+        bubbleLayer.innerHTML=''; const k=selected(); if(!k)return;
+        (k.bubbles||[]).forEach(b=>{
           const el=document.createElement('div');
-          el.className=`info-bubble pointer-${b.pointer||'bottom'}`;
-          el.textContent=b.text||'Texto del globito';
-          el.style.left=`${b.x??50}%`; el.style.top=`${b.y??35}%`;
-          el.contentEditable='true';
-          el.addEventListener('input',()=>b.text=el.textContent);
+          el.className=`info-bubble pointer-${b.pointer||'bottom'}${b.id===selectedBubbleId?' selected':''}`;
+          el.textContent=b.text||'Doble clic para editar este texto';
+          el.style.left=`${b.x??50}%`; el.style.top=`${b.y??35}%`; el.tabIndex=0;
+          el.addEventListener('click',ev=>{ev.stopPropagation();selectedBubbleId=b.id;renderBubbles();updatePointerButton();});
+          el.addEventListener('dblclick',ev=>{ev.stopPropagation();selectedBubbleId=b.id;el.contentEditable='true';el.focus();document.execCommand?.('selectAll',false,null);});
+          el.addEventListener('blur',()=>{if(el.isContentEditable){b.text=el.textContent.trim()||'Doble clic para editar este texto';el.contentEditable='false';}});
+          el.addEventListener('input',()=>{b.text=el.textContent;});
           el.addEventListener('pointerdown',ev=>{
-            if(el.isContentEditable && document.activeElement===el)return;
-            ev.preventDefault(); el.setPointerCapture(ev.pointerId);
+            selectedBubbleId=b.id; renderBubbles();
+            const live=[...bubbleLayer.children].find(x=>x.textContent===b.text&&x.classList.contains('selected'))||el;
+            if(live.isContentEditable)return;
+            ev.preventDefault(); ev.stopPropagation(); pushUndo();
             const rect=bubbleLayer.getBoundingClientRect();
-            const move=e=>{b.x=Math.max(0,Math.min(100,(e.clientX-rect.left)/rect.width*100));b.y=Math.max(0,Math.min(100,(e.clientY-rect.top)/rect.height*100));el.style.left=b.x+'%';el.style.top=b.y+'%';};
-            el.addEventListener('pointermove',move);
-            el.addEventListener('pointerup',()=>el.removeEventListener('pointermove',move),{once:true});
+            const move=e=>{b.x=Math.max(0,Math.min(100,(e.clientX-rect.left)/rect.width*100));b.y=Math.max(0,Math.min(100,(e.clientY-rect.top)/rect.height*100));live.style.left=b.x+'%';live.style.top=b.y+'%';};
+            const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);};
+            window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
           });
           bubbleLayer.appendChild(el);
         });
       }
-      function gotoKeyframe(i){
-        if(i<0||i>=keyframes.length)return;
-        activeKeyframe=i; applyCameraState(keyframes[i].camera); renderAll(keyframes[i].time);
-      }
-      function renderAll(time=0){
-        distribute(); renderScale();
-        miniTimeline.querySelectorAll('.kf-dot').forEach(n=>n.remove());
+      function pointerLabel(p){return {bottom:'Punta ↓',top:'Punta ↑',left:'Punta ←',right:'Punta →',none:'Sin punta'}[p||'bottom'];}
+      function updatePointerButton(){bubblePointer.textContent=pointerLabel(selectedBubble()?.pointer||'bottom');}
+      function renderDots(){
+        miniTimeline.querySelectorAll('.kf-dot').forEach(n=>n.remove()); sortKeyframes();
         keyframes.forEach((k,i)=>{
-          const dot=document.createElement('button');dot.className='kf-dot'+(i===activeKeyframe?' active':'');dot.dataset.label=String(i+1);dot.style.left=`${durationValue()?k.time/durationValue()*100:0}%`;
-          dot.addEventListener('click',e=>{e.stopPropagation();gotoKeyframe(i)});miniTimeline.appendChild(dot);
+          const dot=document.createElement('button'); dot.type='button';
+          dot.className='kf-dot'+(i===activeKeyframe?' active':''); dot.dataset.label=`${k.time.toFixed(1)}s`;
+          dot.style.left=`${durationValue()?k.time/durationValue()*100:0}%`; dot.title=`Keyframe ${i+1} · arrastrar para mover`;
+          dot.addEventListener('click',e=>{e.stopPropagation();if(Date.now()<suppressTimelineClickUntil)return;gotoKeyframe(keyframes.findIndex(x=>x.id===k.id));});
+          dot.addEventListener('pointerdown',e=>startKeyframeDrag(e,k.id)); miniTimeline.appendChild(dot);
         });
-        keyframeList.innerHTML=keyframes.length?'':'<div class="keyframe-empty">Arrancá ubicando la pieza: al soltar la cámara se guarda el keyframe automáticamente.</div>';
-        stepPrev.disabled=stepNext.disabled=!keyframes.length;
-        setTime(time); renderBubbles();
       }
-      addKeyframe.addEventListener('click',()=>{pushUndo();keyframes.push({id:Date.now()+Math.random(),time:0,camera:cameraState(),bubbles:[]});activeKeyframe=keyframes.length-1;renderAll(durationValue())});
-      addBubble.addEventListener('click',()=>{const k=ensureCurrent();pushUndo();k.bubbles.push({id:Date.now()+Math.random(),text:'Texto del globito',x:50,y:35,pointer:pointerOrder[pointerIndex]});renderBubbles()});
-      bubblePointer.addEventListener('click',()=>{pointerIndex=(pointerIndex+1)%pointerOrder.length;bubblePointer.textContent={'bottom':'Punta ↓','top':'Punta ↑','left':'Punta ←','right':'Punta →','none':'Sin punta'}[pointerOrder[pointerIndex]];const k=selected();if(k?.bubbles?.length){k.bubbles[k.bubbles.length-1].pointer=pointerOrder[pointerIndex];renderBubbles()}});
+      function renderAll(time=animationPausedAt){
+        sortKeyframes(); renderScale(); renderDots(); setTime(time);
+        keyframeList.innerHTML='';
+        stepPrev.disabled=!keyframes.length||activeKeyframe<=0; stepNext.disabled=!keyframes.length||activeKeyframe>=keyframes.length-1;
+        miniTimeline.classList.toggle('timeline-locked',timelineLocked); lockTimeline.classList.toggle('locked',timelineLocked);
+        lockTimeline.textContent=timelineLocked?'🔒 Bloqueado':'🔓 Editar'; renderBubbles(); updatePointerButton();
+      }
+      function setKeyframeAtCurrentTime(forceUpdate=false){
+        if(timelineLocked)return; const time=clampTime(animationPausedAt); const camera=cameraState(); let i=findKeyframeNear(time);
+        pushUndo();
+        if(i>=0){keyframes[i].time=time;keyframes[i].camera=camera;activeKeyframe=i;}
+        else {const id=Date.now()+Math.random();keyframes.push({id,time,camera,bubbles:[]});sortKeyframes();activeKeyframe=keyframes.findIndex(k=>k.id===id);}
+        selectedBubbleId=null; renderAll(time);
+      }
+      function commitCameraInteractionAsKeyframe(){
+        if(timelineLocked||isScrubbingTimeline)return; setKeyframeAtCurrentTime(false);
+      }
+      function scheduleAutoKeyframeFromCamera(event){
+        if(timelineLocked||isScrubbingTimeline||Date.now()<internalCameraChangeUntil)return;
+        const source=event?.detail?.source||'';
+        if(source&&source!=='user-interaction')return;
+        if(!source&&Date.now()>lastViewerInteractionUntil)return;
+        clearTimeout(cameraCommitTimer); cameraCommitTimer=setTimeout(commitCameraInteractionAsKeyframe,560);
+      }
+      function gotoKeyframe(i){
+        sortKeyframes(); if(i<0||i>=keyframes.length)return;
+        activeKeyframe=i; selectedBubbleId=null; animationPausedAt=keyframes[i].time;
+        applyCameraState(keyframes[i].camera,true); renderAll(animationPausedAt);
+      }
+      function timeFromClientX(x){const r=miniTimeline.getBoundingClientRect();const pad=14;return clampTime((Math.max(r.left+pad,Math.min(r.right-pad,x))-(r.left+pad))/Math.max(1,r.width-pad*2)*durationValue());}
+      function startTimelineScrub(event){
+        if(timelineLocked||event.target.closest('.kf-dot'))return;
+        isScrubbingTimeline=true; event.preventDefault();
+        const move=e=>{const t=timeFromClientX(e.clientX);activeKeyframe=findKeyframeNear(t);setTime(t);const k=activeKeyframe>=0?keyframes[activeKeyframe]:null;if(k)applyCameraState(k.camera,true);renderDots();renderBubbles();};
+        const up=e=>{move(e);isScrubbingTimeline=false;suppressTimelineClickUntil=Date.now()+250;window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);};
+        move(event);window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
+      }
+      function startKeyframeDrag(event,id){
+        if(timelineLocked)return;event.preventDefault();event.stopPropagation();pushUndo();
+        const dot=event.currentTarget;const rect=miniTimeline.getBoundingClientRect();let moved=false,remove=false;
+        const move=e=>{const k=keyframes.find(x=>x.id===id);if(!k)return;moved=true;remove=e.clientY<rect.top-28||e.clientY>rect.bottom+36;k.time=timeFromClientX(e.clientX);animationPausedAt=k.time;activeKeyframe=keyframes.findIndex(x=>x.id===id);dot.style.left=`${k.time/durationValue()*100}%`;dot.classList.toggle('removing',remove);setTime(k.time);};
+        const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);suppressTimelineClickUntil=Date.now()+(moved?300:0);const i=keyframes.findIndex(x=>x.id===id);if(remove&&i>=0){keyframes.splice(i,1);activeKeyframe=-1;}else{sortKeyframes();activeKeyframe=keyframes.findIndex(x=>x.id===id);}renderAll(animationPausedAt);};
+        window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
+      }
+      function ensureCurrent(){
+        let k=selected(); if(k)return k;
+        setKeyframeAtCurrentTime(false); return selected();
+      }
+      addKeyframe.addEventListener('click',()=>setKeyframeAtCurrentTime(true));
+      addBubble.addEventListener('click',()=>{const k=ensureCurrent();if(!k)return;pushUndo();const b={id:Date.now()+Math.random(),text:'Doble clic para editar este texto',x:62,y:30,pointer:'bottom'};k.bubbles||=[];k.bubbles.push(b);selectedBubbleId=b.id;renderBubbles();updatePointerButton();});
+      bubblePointer.addEventListener('click',()=>{const b=selectedBubble();if(!b)return;pushUndo();const i=pointerOrder.indexOf(b.pointer||'bottom');b.pointer=pointerOrder[(i+1)%pointerOrder.length];renderBubbles();updatePointerButton();});
       undoAction.addEventListener('click',restoreUndo);
-      clearKeyframes.addEventListener('click',()=>{pushUndo();keyframes=[];activeKeyframe=-1;renderAll(0)});
-      lockTimeline.addEventListener('click',()=>{timelineLocked=!timelineLocked;lockTimeline.textContent=timelineLocked?'🔒 Bloqueado':'🔓 Editar';lockTimeline.classList.toggle('locked',timelineLocked);miniTimeline.classList.toggle('timeline-locked',timelineLocked)});
-      stepPrev.addEventListener('click',()=>gotoKeyframe(activeKeyframe<=0?keyframes.length-1:activeKeyframe-1));
-      stepNext.addEventListener('click',()=>gotoKeyframe(activeKeyframe<0||activeKeyframe>=keyframes.length-1?0:activeKeyframe+1));
-      animDuration.addEventListener('input',()=>renderAll(activeKeyframe>=0?keyframes[activeKeyframe]?.time||0:0));
-      miniTimeline.addEventListener('click',e=>{if(timelineLocked||e.target.closest('.kf-dot'))return;const r=miniTimeline.getBoundingClientRect();setTime((e.clientX-r.left)/r.width*durationValue())});
+      clearKeyframes.addEventListener('click',()=>{pushUndo();keyframes=[];activeKeyframe=-1;selectedBubbleId=null;animationPausedAt=0;renderAll(0);});
+      lockTimeline.addEventListener('click',()=>{timelineLocked=!timelineLocked;renderAll(animationPausedAt);});
+      stepPrev.addEventListener('click',()=>gotoKeyframe(activeKeyframe-1));
+      stepNext.addEventListener('click',()=>gotoKeyframe(activeKeyframe+1));
+      animDuration.addEventListener('change',()=>{pushUndo();const d=durationValue();keyframes.forEach(k=>k.time=Math.min(k.time,d));animationPausedAt=Math.min(animationPausedAt,d);renderAll(animationPausedAt);});
+      miniTimeline.addEventListener('pointerdown',startTimelineScrub);
+      miniTimeline.addEventListener('click',e=>{if(timelineLocked||Date.now()<suppressTimelineClickUntil||e.target.closest('.kf-dot'))return;setTime(timeFromClientX(e.clientX));activeKeyframe=findKeyframeNear(animationPausedAt);renderAll(animationPausedAt);});
+      viewer.addEventListener('pointerdown',()=>{lastViewerInteractionUntil=Date.now()+1600;});
+      viewer.addEventListener('pointerup',()=>{lastViewerInteractionUntil=Date.now()+900;});
+      viewer.addEventListener('touchstart',()=>{lastViewerInteractionUntil=Date.now()+1600;},{passive:true});
+      viewer.addEventListener('touchend',()=>{lastViewerInteractionUntil=Date.now()+900;},{passive:true});
+      viewer.addEventListener('camera-change',scheduleAutoKeyframeFromCamera);
       renderAll(0);
 
       resetCamera.addEventListener('click',()=>{
