@@ -239,6 +239,30 @@
     @media (max-width:760px){
       .viewer-label{top:15px}.viewer-label span{white-space:normal;max-width:75vw}
     }
+
+    /* Ajustes básicos del visor: módulo aislado dentro del panel lateral. */
+    .settings-stack{display:grid;gap:14px}
+    .model-file{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:13px 14px;border:1px solid #e7e9ee;border-radius:15px;background:#f7f8fa;
+      font-size:13px;font-weight:850;color:#343941;
+    }
+    .model-file small{color:#7b828d;font-weight:750;white-space:nowrap}
+    .settings-button{
+      width:100%;min-height:44px;border:1px solid #17181b;border-radius:14px;
+      background:#17181b;color:#fff;-webkit-text-fill-color:#fff;font-weight:900;
+      cursor:pointer;touch-action:manipulation;padding:11px 14px;
+    }
+    .settings-button:active{transform:translateY(1px)}
+    .control-group{padding:14px;border:1px solid #e8eaf0;border-radius:16px;background:rgba(248,249,251,.92)}
+    .control-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+    .control-head label{font-size:13px;font-weight:900;color:#25282e}
+    .control-value{min-width:48px;text-align:right;color:#747b86;font-size:12px;font-weight:850;font-variant-numeric:tabular-nums}
+    .control-group input[type="range"]{
+      display:block;width:100%;margin:0;accent-color:#17181b;touch-action:pan-y;
+    }
+    .control-note{margin:8px 0 0;color:#8a909a;font-size:11px;line-height:1.4;font-weight:650}
+
   </style>
 </head>
 <body>
@@ -279,9 +303,25 @@
 
       <aside class="card side" id="sidePanel">
         <h2 class="section-title">Ajustes</h2>
-        <div class="empty-panel">
-          <strong>Sector reservado</strong>
-          <span>Los controles del visor se incorporarán uno por uno.</span>
+        <div class="settings-stack">
+          <div class="model-file"><span>demo.glb</span><small>Modelo activo</small></div>
+          <button class="settings-button" id="resetCamera" type="button">Restablecer cámara</button>
+
+          <div class="control-group">
+            <div class="control-head"><label for="modelSize">Tamaño del modelo</label><output class="control-value" id="modelSizeValue">100%</output></div>
+            <input id="modelSize" type="range" min="65" max="145" step="1" value="100">
+            <p class="control-note">Modifica el tamaño sin desplazar el modelo del centro.</p>
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="exposure">Iluminación</label><output class="control-value" id="exposureValue">1.00</output></div>
+            <input id="exposure" type="range" min="0.45" max="1.80" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="shadow">Sombra</label><output class="control-value" id="shadowValue">1.00</output></div>
+            <input id="shadow" type="range" min="0" max="2" step="0.05" value="1">
+          </div>
         </div>
       </aside>
 
@@ -401,6 +441,41 @@
 
       window.addEventListener('resize',syncResponsiveState,{passive:true});
       window.addEventListener('orientationchange',()=>setTimeout(syncResponsiveState,80),{passive:true});
+
+      const viewer = document.getElementById('viewer');
+      const resetCamera = document.getElementById('resetCamera');
+      const modelSize = document.getElementById('modelSize');
+      const exposure = document.getElementById('exposure');
+      const shadow = document.getElementById('shadow');
+      const modelSizeValue = document.getElementById('modelSizeValue');
+      const exposureValue = document.getElementById('exposureValue');
+      const shadowValue = document.getElementById('shadowValue');
+
+      const initialCamera = '0deg 75deg 105%';
+      function applyModelSize(){
+        const value = Number(modelSize.value) / 100;
+        viewer.setAttribute('scale', `${value} ${value} ${value}`);
+        modelSizeValue.value = `${modelSize.value}%`;
+      }
+      function applyExposure(){
+        viewer.exposure = Number(exposure.value);
+        exposureValue.value = Number(exposure.value).toFixed(2);
+      }
+      function applyShadow(){
+        viewer.shadowIntensity = Number(shadow.value);
+        shadowValue.value = Number(shadow.value).toFixed(2);
+      }
+      modelSize.addEventListener('input',applyModelSize,{passive:true});
+      exposure.addEventListener('input',applyExposure,{passive:true});
+      shadow.addEventListener('input',applyShadow,{passive:true});
+      resetCamera.addEventListener('click',()=>{
+        modelSize.value='100'; exposure.value='1'; shadow.value='1';
+        applyModelSize(); applyExposure(); applyShadow();
+        viewer.setAttribute('camera-orbit',initialCamera);
+        viewer.setAttribute('camera-target','auto auto auto');
+        try{ viewer.jumpCameraToGoal(); }catch(_){ }
+      });
+      applyModelSize(); applyExposure(); applyShadow();
     })();
   </script>
 
