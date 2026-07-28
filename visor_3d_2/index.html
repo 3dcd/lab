@@ -218,7 +218,7 @@
       display:block;width:100%;height:100%;min-width:0;min-height:0;
       background:transparent;--poster-color:transparent;touch-action:none;
       -webkit-user-select:none;user-select:none;
-      filter:brightness(var(--viewer-brightness,1)) contrast(var(--viewer-contrast,1));
+      filter:brightness(var(--viewer-brightness,1)) contrast(var(--viewer-contrast,1)) saturate(var(--viewer-saturation,1));
     }
     .viewer-label{
       position:absolute;left:50%;top:20px;transform:translateX(-50%);z-index:2;
@@ -337,6 +337,23 @@
           <div class="control-group">
             <div class="control-head"><label for="contrast">Contraste</label><output class="control-value" id="contrastValue">1.00</output></div>
             <input id="contrast" type="range" min="0.60" max="1.60" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="saturation">Saturación visual</label><output class="control-value" id="saturationValue">1.00</output></div>
+            <input id="saturation" type="range" min="0" max="2" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="metalExtra">Metal extra</label><output class="control-value" id="metalExtraValue">0.00</output></div>
+            <input id="metalExtra" type="range" min="0" max="1" step="0.05" value="0">
+            <p class="control-note">Refuerza gradualmente el carácter metálico respetando el material original.</p>
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="polishExtra">Pulido extra</label><output class="control-value" id="polishExtraValue">0.00</output></div>
+            <input id="polishExtra" type="range" min="0" max="1" step="0.05" value="0">
+            <p class="control-note">Reduce la rugosidad original para producir reflejos más definidos.</p>
           </div>
         </div>
       </aside>
@@ -466,12 +483,19 @@
       const shadowSoftness = document.getElementById('shadowSoftness');
       const brightness = document.getElementById('brightness');
       const contrast = document.getElementById('contrast');
+      const saturation = document.getElementById('saturation');
+      const metalExtra = document.getElementById('metalExtra');
+      const polishExtra = document.getElementById('polishExtra');
       const modelSizeValue = document.getElementById('modelSizeValue');
       const exposureValue = document.getElementById('exposureValue');
       const shadowValue = document.getElementById('shadowValue');
       const shadowSoftnessValue = document.getElementById('shadowSoftnessValue');
       const brightnessValue = document.getElementById('brightnessValue');
       const contrastValue = document.getElementById('contrastValue');
+      const saturationValue = document.getElementById('saturationValue');
+      const metalExtraValue = document.getElementById('metalExtraValue');
+      const polishExtraValue = document.getElementById('polishExtraValue');
+      let originalMaterials = [];
 
       const initialCamera = '0deg 75deg 105%';
       function refreshViewer(){
@@ -505,21 +529,57 @@
       function applyVisualFilter(){
         const b = Number(brightness.value);
         const c = Number(contrast.value);
+        const sat = Number(saturation.value);
         viewer.style.setProperty('--viewer-brightness', b);
         viewer.style.setProperty('--viewer-contrast', c);
+        viewer.style.setProperty('--viewer-saturation', sat);
         brightnessValue.value = b.toFixed(2);
         contrastValue.value = c.toFixed(2);
+        saturationValue.value = sat.toFixed(2);
       }
+
+      function captureOriginalMaterials(){
+        try{
+          originalMaterials = (viewer.model?.materials || []).map(material => ({
+            material,
+            metalness:Number(material.pbrMetallicRoughness.metallicFactor ?? 0),
+            roughness:Number(material.pbrMetallicRoughness.roughnessFactor ?? 1)
+          }));
+        }catch(_){ originalMaterials = []; }
+      }
+      function applyMaterialFinish(){
+        const metal = Number(metalExtra.value);
+        const polish = Number(polishExtra.value);
+        metalExtraValue.value = metal.toFixed(2);
+        polishExtraValue.value = polish.toFixed(2);
+        for(const item of originalMaterials){
+          try{
+            const targetMetal = item.metalness + (1 - item.metalness) * metal;
+            const targetRoughness = Math.max(0.02, item.roughness * (1 - polish * .92));
+            item.material.pbrMetallicRoughness.setMetallicFactor(targetMetal);
+            item.material.pbrMetallicRoughness.setRoughnessFactor(targetRoughness);
+          }catch(_){ }
+        }
+        refreshViewer();
+      }
+
       modelSize.addEventListener('input',applyModelSize,{passive:true});
       exposure.addEventListener('input',applyExposure,{passive:true});
       shadow.addEventListener('input',applyShadow,{passive:true});
       shadowSoftness.addEventListener('input',applyShadowSoftness,{passive:true});
       brightness.addEventListener('input',applyVisualFilter,{passive:true});
       contrast.addEventListener('input',applyVisualFilter,{passive:true});
+      saturation.addEventListener('input',applyVisualFilter,{passive:true});
+      metalExtra.addEventListener('input',applyMaterialFinish,{passive:true});
+      polishExtra.addEventListener('input',applyMaterialFinish,{passive:true});
+      viewer.addEventListener('viewer-materials-ready',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
+      viewer.addEventListener('load',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
+
       resetCamera.addEventListener('click',()=>{
         modelSize.value='100'; exposure.value='1'; shadow.value='1';
-        shadowSoftness.value='0.65'; brightness.value='1'; contrast.value='1';
-        applyModelSize(); applyExposure(); applyShadow(); applyShadowSoftness(); applyVisualFilter(); applyShadowSoftness(); applyVisualFilter();
+        shadowSoftness.value='0.65'; brightness.value='1'; contrast.value='1'; saturation.value='1';
+        metalExtra.value='0'; polishExtra.value='0';
+        applyModelSize(); applyExposure(); applyShadow(); applyShadowSoftness(); applyVisualFilter(); applyMaterialFinish();
         viewer.setAttribute('camera-orbit',initialCamera);
         viewer.setAttribute('camera-target','auto auto auto');
         try{ viewer.jumpCameraToGoal(); }catch(_){ }
@@ -535,6 +595,10 @@
       viewer.addEventListener('load', () => {
         requestAnimationFrame(() => {
           try { viewer.jumpCameraToGoal(); } catch (_) {}
+          try {
+            const event = new CustomEvent('viewer-materials-ready');
+            viewer.dispatchEvent(event);
+          } catch (_) {}
         });
       }, {once:true});
     })();
