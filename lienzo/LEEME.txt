@@ -1,0 +1,17 @@
+LIENZO INFINITO — PROTOTIPO 1
+
+Abrir index.html.
+
+Incluye:
+- Lienzo infinito con desplazamiento.
+- Zoom con rueda, trackpad o pellizco.
+- Texto editable.
+- Imágenes arrastrables PNG/JPG/WebP.
+- Modelos GLB arrastrables o cargados desde botón.
+- Panel contextual según el objeto seleccionado.
+- Posición, escala, rotación, transparencia, saturación, desaturación, brillo, contraste y fusión.
+- Duplicar, ordenar y eliminar.
+- Guardar y abrir proyectos JSON.
+- Interfaz adaptable para Mac, iPad y celular.
+
+Nota: el visor GLB usa Three.js desde internet, por lo que necesita conexión para cargar esa biblioteca.
