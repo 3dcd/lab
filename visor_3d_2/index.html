@@ -320,38 +320,479 @@
     .control-note{margin:8px 0 0;color:#8a909a;font-size:11px;line-height:1.4;font-weight:650}
 
 
-    /* Línea de tiempo de keyframes: estructura compacta y estable. */
-    .keyframe-ui{width:100%;height:100%;display:flex;flex-direction:column;justify-content:flex-start;gap:7px;min-height:0;padding:2px 0}
-    .keyframe-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
-    .keyframe-title{display:flex;flex-direction:column;gap:2px;min-width:180px}
-    .keyframe-title strong{font-size:14px;font-weight:950;line-height:1.1}
-    .keyframe-title span{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap}
-    .keyframe-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;min-width:0}
-    .kf-btn{border:1px solid #dfe3e9;background:rgba(255,255,255,.84);color:#111;border-radius:12px;min-height:32px;padding:0 10px;font-size:11px;font-weight:900;box-shadow:0 6px 16px rgba(20,25,35,.06);cursor:pointer;white-space:nowrap}
-    .kf-btn.primary{background:#111;color:#fff;border-color:#111}
-    .kf-btn:disabled{opacity:.4;cursor:not-allowed}
-    .kf-duration{display:flex;align-items:center;gap:4px;min-height:32px;padding:0 8px;border:1px solid #dfe3e9;border-radius:12px;background:rgba(255,255,255,.84);font-size:10px;font-weight:850;color:#6f7785}
-    .kf-duration input{width:38px;border:0;outline:0;background:transparent;text-align:center;font-size:12px;font-weight:950;color:#111}
-    .kf-step-row{display:flex;justify-content:center;align-items:center;gap:12px;height:34px}
-    .kf-arrow{width:48px;height:32px;border:1px solid #dfe3e9;border-radius:999px;background:rgba(255,255,255,.86);box-shadow:0 7px 18px rgba(20,25,35,.08);display:grid;place-items:center;cursor:pointer;color:#111}
-    .kf-arrow:disabled{opacity:.38;cursor:not-allowed}
-    .kf-arrow::before{content:"";width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent}
-    .kf-arrow.prev::before{border-right:13px solid currentColor;margin-left:-2px}
-    .kf-arrow.next::before{border-left:13px solid currentColor;margin-right:-2px}
-    .kf-timeline-row{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;align-items:center;gap:8px;min-height:0}
-    .kf-clock{padding:7px 5px;border:1px solid #e2e5eb;border-radius:10px;background:rgba(255,255,255,.76);font-size:10px;font-weight:950;text-align:center;font-variant-numeric:tabular-nums;color:#343943}
-    .kf-track{--track-pad:16px;position:relative;height:46px;border:1px solid #dfe3e9;border-radius:14px;background:rgba(255,255,255,.72);overflow:hidden;touch-action:none;user-select:none}
-    .kf-track::before{content:"";position:absolute;left:var(--track-pad);right:var(--track-pad);top:27px;height:4px;border-radius:999px;background:#d9dee7}
-    .kf-scale{position:absolute;left:var(--track-pad);right:var(--track-pad);top:6px;height:13px;pointer-events:none}
-    .kf-tick{position:absolute;top:0;width:1px;height:7px;background:#b9c0cb;transform:translateX(-.5px)}
-    .kf-tick.major{height:10px;background:#8992a1}
-    .kf-tick-label{position:absolute;top:11px;transform:translateX(-50%);font-size:8px;font-weight:800;color:#818a99}
-    .kf-playhead{position:absolute;top:3px;bottom:3px;width:2px;left:var(--track-pad);background:#111;transform:translateX(-1px);z-index:3;pointer-events:none}
-    .kf-playhead::before{content:"";position:absolute;top:0;left:50%;width:10px;height:10px;border-radius:50%;background:#111;transform:translateX(-50%);box-shadow:0 3px 8px rgba(0,0,0,.2)}
-    .kf-dots{position:absolute;inset:0 var(--track-pad);z-index:4}
-    .kf-dot{position:absolute;top:27px;width:18px;height:18px;transform:translate(-50%,-50%) rotate(45deg);border-radius:5px;background:#111;border:3px solid #fff;box-shadow:0 5px 12px rgba(0,0,0,.22);cursor:pointer;touch-action:none}
-    .kf-dot.active{background:var(--purple);width:21px;height:21px}
-    .kf-empty{position:absolute;left:0;right:0;top:20px;text-align:center;color:#838a95;font-size:10px;font-weight:750;pointer-events:none}
+    .timeline-panel{
+      background:#f6f7f9;
+      border:1px solid #e7e9ee;
+      border-radius:18px;
+      padding:13px;
+      margin-top:12px;
+    }
+
+    .motion-dock{
+      flex:0 0 auto;
+      border-top:1px solid #e7e9ee;
+      background:rgba(255,255,255,.97);
+      padding:8px 12px 12px;
+      box-shadow:0 -10px 30px rgba(20,25,35,.06);
+    }
+
+    .motion-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:6px;
+    }
+
+    .motion-title{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      min-width:220px;
+    }
+
+    .motion-title strong{
+      font-size:14px;
+      font-weight:950;
+      letter-spacing:.02em;
+    }
+
+    .motion-title span,
+    .motion-hint{
+      color:#6f7785;
+      font-size:12px;
+      line-height:1.35;
+      font-weight:650;
+    }
+
+    .motion-controls{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+
+    .motion-btn{
+      border:1px solid #dfe3eb;
+      background:#fff;
+      color:#111;
+      border-radius:12px;
+      min-height:34px;
+      padding:0 11px;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow:0 6px 16px rgba(20,25,35,.06);
+    }
+
+    .motion-btn.primary{
+      background:#111;
+      border-color:#111;
+      color:#fff;
+    }
+
+    .motion-btn:hover{transform:translateY(-1px)}
+
+    .motion-timebox{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid #dfe3eb;
+      background:#fff;
+      border-radius:12px;
+      min-height:34px;
+      padding:0 9px;
+      color:#6f7785;
+      font-size:12px;
+      font-weight:850;
+    }
+
+    .motion-timebox input{
+      width:58px;
+      border:0;
+      outline:0;
+      background:transparent;
+      color:#111;
+      text-align:center;
+      font-size:14px;
+      font-weight:950;
+    }
+
+    .timeline-row{
+      display:grid;
+      grid-template-columns:76px minmax(0,1fr) 66px;
+      align-items:center;
+      gap:10px;
+    }
+
+    .timeline-clock{
+      color:#343943;
+      font-variant-numeric:tabular-nums;
+      font-size:12px;
+      font-weight:950;
+      text-align:center;
+      background:#f6f7f9;
+      border:1px solid #e6e9ef;
+      border-radius:12px;
+      padding:8px 6px;
+    }
+
+    .mini-timeline{
+      --track-pad:14px;
+      position:relative;
+      height:62px;
+      border-radius:15px;
+      background:linear-gradient(180deg,#fff 0,#f6f7f9 100%);
+      border:1px solid #dfe3eb;
+      overflow:hidden;
+      cursor:pointer;
+      user-select:none;
+      touch-action:none;
+    }
+
+    .mini-timeline::before{
+      content:'';
+      position:absolute;
+      left:var(--track-pad);
+      right:var(--track-pad);
+      top:36px;
+      height:4px;
+      border-radius:999px;
+      background:#d9dee7;
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.05);
+    }
+
+    .timeline-scale{
+      position:absolute;
+      inset:0 var(--track-pad) auto var(--track-pad);
+      top:8px;
+      height:18px;
+      pointer-events:none;
+    }
+
+    .tick{
+      position:absolute;
+      top:0;
+      width:1px;
+      height:9px;
+      background:#bfc6d2;
+      transform:translateX(-.5px);
+    }
+
+    .tick.major{height:13px;background:#8d96a6}
+
+    .tick-label{
+      position:absolute;
+      top:16px;
+      transform:translateX(-50%);
+      color:#818a99;
+      font-size:10px;
+      font-weight:800;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .playhead{
+      position:absolute;
+      top:4px;
+      bottom:4px;
+      width:2px;
+      left:0%;
+      background:#111;
+      opacity:.95;
+      pointer-events:auto;
+      cursor:ew-resize;
+      transform:translateX(-1px);
+      z-index:3;
+    }
+
+    .playhead::before{
+      content:'';
+      position:absolute;
+      top:-1px;
+      left:50%;
+      width:12px;
+      height:12px;
+      background:#111;
+      border-radius:50%;
+      transform:translateX(-50%);
+      box-shadow:0 4px 12px rgba(0,0,0,.22);
+    }
+
+    .kf-dot{
+      position:absolute;
+      top:36px;
+      width:18px;
+      height:18px;
+      border-radius:6px;
+      background:#111;
+      border:3px solid #fff;
+      box-shadow:0 5px 12px rgba(0,0,0,.22);
+      transform:translate(-50%,-50%) rotate(45deg);
+      z-index:4;
+      cursor:grab;
+      touch-action:none;
+    }
+
+    .kf-dot:active{cursor:grabbing}
+
+    .kf-dot.removing{
+      background:#d33;
+      opacity:.55;
+      transform:translate(-50%,-50%) rotate(45deg) scale(.86);
+    }
+
+    .kf-dot.active{
+      background:var(--purple);
+      width:21px;
+      height:21px;
+    }
+
+    .kf-dot::after{
+      content:attr(data-label);
+      position:absolute;
+      left:50%;
+      top:24px;
+      transform:translateX(-50%) rotate(-45deg);
+      color:#343943;
+      font-size:10px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .keyframe-list{
+      display:none;
+      flex-wrap:wrap;
+      gap:7px;
+      margin-top:8px;
+    }
+
+    .keyframe-chip{
+      border:1px solid #dde2ea;
+      background:#fff;
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:12px;
+      font-weight:850;
+      color:#343943;
+      cursor:pointer;
+      box-shadow:0 5px 14px rgba(20,25,35,.05);
+    }
+
+    .keyframe-chip.active{
+      background:#111;
+      color:#fff;
+      border-color:#111;
+    }
+
+    .keyframe-empty{
+      width:100%;
+      color:#7c8490;
+      font-size:12px;
+      line-height:1.35;
+      font-weight:650;
+    }
+
+
+    .step-arrows{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      margin:6px 0 8px;
+      pointer-events:auto;
+    }
+
+    .step-arrow{
+      width:58px;
+      height:42px;
+      border:1px solid rgba(17,17,17,.12);
+      border-radius:999px;
+      background:#fff;
+      color:#111;
+      box-shadow:0 10px 24px rgba(20,25,35,.10);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      transition:transform .18s ease, background .18s ease;
+    }
+
+    .step-arrow::before{
+      content:'';
+      width:0;
+      height:0;
+      border-top:11px solid transparent;
+      border-bottom:11px solid transparent;
+    }
+
+    .step-arrow.prev::before{border-right:17px solid currentColor;margin-left:-3px}
+    .step-arrow.next::before{border-left:17px solid currentColor;margin-right:-3px}
+
+    .step-arrow:hover:not(:disabled){
+      transform:translateY(-1px) scale(1.03);
+      background:#f8f9fb;
+    }
+
+    .step-arrow:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+      transform:none;
+    }
+
+    .motion-btn.locked{
+      background:#111;
+      border-color:#111;
+      color:#fff;
+    }
+
+    .mini-timeline.timeline-locked{
+      opacity:.64;
+      cursor:not-allowed;
+    }
+
+    .mini-timeline.timeline-locked .kf-dot,
+    .mini-timeline.timeline-locked .playhead{
+      pointer-events:none;
+    }
+
+    .motion-btn.is-hidden{
+      display:none;
+    }
+
+    .motion-title strong .mode-badge{
+      display:inline-block;
+      margin-left:8px;
+      padding:3px 7px;
+      border-radius:999px;
+      background:#111;
+      color:#fff;
+      font-size:10px;
+      letter-spacing:.07em;
+      vertical-align:middle;
+    }
+
+    .bubble-layer{
+      position:absolute;
+      inset:0;
+      z-index:5;
+      pointer-events:none;
+    }
+
+    .info-bubble{
+      position:absolute;
+      min-width:160px;
+      max-width:min(320px, 42vw);
+      min-height:44px;
+      padding:12px 14px;
+      border:0;
+      background:#fff;
+      backdrop-filter:none;
+      border-radius:18px;
+      color:#111;
+      font-size:14px;
+      font-weight:760;
+      line-height:1.32;
+      box-shadow:0 12px 28px rgba(20,25,35,.10);
+      pointer-events:auto;
+      cursor:grab;
+      user-select:none;
+      -webkit-user-select:none;
+      touch-action:none;
+      outline:none;
+      opacity:1;
+      --bubble-anchor-transform:translate(-50%, -50%);
+      transform:var(--bubble-anchor-transform) translateY(0) scale(1);
+      transition:box-shadow .14s ease;
+      will-change:transform, opacity;
+    }
+
+    .info-bubble.bubble-enter{
+      animation:bubbleEnter .56s cubic-bezier(.2,.9,.2,1) both;
+    }
+
+    .bubble-layer.bubble-hiding .info-bubble{
+      animation:bubbleExit .30s cubic-bezier(.5,0,.25,1) both;
+    }
+
+    @keyframes bubbleEnter{
+      from{opacity:0; transform:var(--bubble-anchor-transform) translateY(8px) scale(.965)}
+      to{opacity:1; transform:var(--bubble-anchor-transform) translateY(0) scale(1)}
+    }
+
+    @keyframes bubbleExit{
+      from{opacity:1; transform:var(--bubble-anchor-transform) translateY(0) scale(1)}
+      to{opacity:0; transform:var(--bubble-anchor-transform) translateY(-8px) scale(.96)}
+    }
+
+    .info-bubble:active{cursor:grabbing}
+
+    .info-bubble.selected{
+      box-shadow:0 0 0 4px rgba(17,17,17,.08), 0 12px 28px rgba(20,25,35,.12);
+    }
+
+    .info-bubble[contenteditable="true"]{
+      cursor:text;
+      user-select:text;
+      background:#fff;
+      box-shadow:0 0 0 4px rgba(125,92,255,.14), 0 12px 28px rgba(20,25,35,.10);
+    }
+
+    .info-bubble::after{
+      content:'';
+      position:absolute;
+      width:0;
+      height:0;
+      background:transparent;
+    }
+
+    .info-bubble.pointer-bottom{--bubble-anchor-transform:translate(-50%, calc(-100% - 11px));}
+    .info-bubble.pointer-top{--bubble-anchor-transform:translate(-50%, 11px);}
+    .info-bubble.pointer-left{--bubble-anchor-transform:translate(11px, -50%);}
+    .info-bubble.pointer-right{--bubble-anchor-transform:translate(calc(-100% - 11px), -50%);}
+    .info-bubble.pointer-none{--bubble-anchor-transform:translate(-50%, -50%);}
+
+    .info-bubble.pointer-bottom::after{
+      left:50%;
+      bottom:-11px;
+      transform:translateX(-50%);
+      border-left:11px solid transparent;
+      border-right:11px solid transparent;
+      border-top:11px solid #fff;
+      filter:none;
+    }
+    .info-bubble.pointer-top::after{
+      left:50%;
+      top:-11px;
+      transform:translateX(-50%);
+      border-left:11px solid transparent;
+      border-right:11px solid transparent;
+      border-bottom:11px solid #fff;
+      filter:none;
+    }
+    .info-bubble.pointer-left::after{
+      left:-11px;
+      top:50%;
+      transform:translateY(-50%);
+      border-top:11px solid transparent;
+      border-bottom:11px solid transparent;
+      border-right:11px solid #fff;
+      filter:none;
+    }
+    .info-bubble.pointer-right::after{
+      right:-11px;
+      top:50%;
+      transform:translateY(-50%);
+      border-top:11px solid transparent;
+      border-bottom:11px solid transparent;
+      border-left:11px solid #fff;
+      filter:none;
+    }
+    .info-bubble.pointer-none::after{display:none}
+
+    .viewer-stage.viewer-locked .info-bubble{
+      pointer-events:auto;
+    }
+
 
     @media(max-width:760px){
       body.mobile-side-open::before{content:"";position:fixed;inset:var(--header-h) 0 0;z-index:27;background:rgba(255,255,255,.05);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px);pointer-events:none}
@@ -390,6 +831,7 @@
           <div class="model-loading" slot="poster">Cargando modelo 3D…</div>
           <div class="model-error" slot="error">No se pudo cargar el modelo 3D.</div>
         </model-viewer>
+        <div class="bubble-layer" id="bubbleLayer"></div>
         <div class="viewer-label" aria-hidden="true">
           <strong>VISOR 3D</strong>
           <span>Arrastrá para girar · pellizcá para acercar</span>
@@ -457,34 +899,46 @@
       <div class="splitter splitter-h" id="splitterH" role="separator" aria-orientation="horizontal" aria-label="Cambiar altura del panel inferior"></div>
 
       <section class="card bottom" id="bottomPanel">
-        <div class="keyframe-ui">
-          <div class="keyframe-head">
-            <div class="keyframe-title">
-              <strong>Recorrido por keyframes</strong>
-              <span id="kfStatus">0 keyframes · paso libre · 00.0s</span>
+        <div class="motion-dock" id="motionDock">
+          <div class="motion-head">
+            <div class="motion-title">
+              <strong>Recorrido por keyframes <span class="mode-badge">PASO A PASO</span></strong>
+              <span id="animState">0 keyframes · 00.0s</span>
             </div>
-            <div class="keyframe-actions">
-              <button class="kf-btn primary" id="addKeyframe" type="button">+ Posición</button>
-              <button class="kf-btn" id="playKeyframes" type="button">▶ Reproducir</button>
-              <button class="kf-btn" id="deleteKeyframe" type="button">Eliminar</button>
-              <button class="kf-btn" id="clearKeyframes" type="button">Limpiar</button>
-              <label class="kf-duration">Duración <input id="kfDuration" type="number" min="2" max="60" step="1" value="10"> s</label>
+            <div class="motion-controls">
+              <button class="motion-btn primary is-hidden" id="playAnim">▶ Play</button>
+              <button class="motion-btn is-hidden" id="pauseAnim">Ⅱ Pausa</button>
+              <button class="motion-btn is-hidden" id="stopAnim">■ Stop</button>
+              <button class="motion-btn is-hidden" id="addKeyframe" title="Keyframe manual de respaldo">＋ Keyframe</button>
+              <button class="motion-btn" id="addBubble">＋ Globito</button>
+              <button class="motion-btn" id="undoAction" title="Volver a la interacción anterior">↶ Retroceder</button>
+              <button class="motion-btn" id="bubblePointer" title="Cambiar lado de la puntita del globito">Punta ↓</button>
+              <button class="motion-btn" id="clearKeyframes">× Limpiar</button>
+              <button class="motion-btn" id="lockTimeline" type="button" title="Bloquear edición de keyframes">🔓 Editar</button>
+              <label class="motion-timebox">Duración
+                <input id="animDuration" type="number" min="2" max="60" step="1" value="10" /> s
+              </label>
+              <button class="motion-btn settings-toggle-inline" id="settingsToggle" type="button">⚙ Ajustes</button>
             </div>
           </div>
-          <div class="kf-step-row" aria-label="Recorrer posiciones">
-            <button class="kf-arrow prev" id="prevKeyframe" type="button" aria-label="Posición anterior"></button>
-            <button class="kf-arrow next" id="nextKeyframe" type="button" aria-label="Posición siguiente"></button>
+
+          <div class="step-arrows" aria-label="Recorrido por keyframes">
+            <button class="step-arrow prev" id="stepPrev" type="button" title="Keyframe anterior" aria-label="Keyframe anterior"></button>
+            <button class="step-arrow next" id="stepNext" type="button" title="Keyframe siguiente" aria-label="Keyframe siguiente"></button>
           </div>
-          <div class="kf-timeline-row">
-            <div class="kf-clock" id="kfClock">00.0s</div>
-            <div class="kf-track" id="kfTrack" title="Tocá la línea para mover el cabezal">
-              <div class="kf-scale" id="kfScale"></div>
-              <div class="kf-playhead" id="kfPlayhead"></div>
-              <div class="kf-dots" id="kfDots"></div>
-              <div class="kf-empty" id="kfEmpty">Mové la cámara y tocá “+ Posición”.</div>
+
+          <div class="timeline-row">
+            <div class="timeline-clock" id="timelineClock">00.0s</div>
+            <div class="mini-timeline" id="miniTimeline" title="Clic: mover cabezal · al mover la cámara se guarda el keyframe">
+              <div class="timeline-scale" id="timelineScale"></div>
+              <div class="playhead" id="playhead"></div>
             </div>
-            <div class="kf-clock" id="kfDurationClock">10.0s</div>
+            <div class="timeline-clock" id="durationClock">10.0s</div>
           </div>
+          <div class="keyframe-list" id="keyframeList">
+            <div class="keyframe-empty">Arrancá ubicando la pieza: al soltar la cámara se guarda el keyframe automáticamente.</div>
+          </div>
+        </div>
         </div>
       </section>
     </div>
@@ -733,153 +1187,129 @@
       viewer.addEventListener('viewer-materials-ready',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
       viewer.addEventListener('load',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
 
-      // Keyframes: recorrido temporal compacto, separado del sistema de paneles.
+      // Keyframes y globitos: misma estructura del visor original.
       const addKeyframe = document.getElementById('addKeyframe');
-      const prevKeyframe = document.getElementById('prevKeyframe');
-      const nextKeyframe = document.getElementById('nextKeyframe');
-      const playKeyframes = document.getElementById('playKeyframes');
-      const deleteKeyframe = document.getElementById('deleteKeyframe');
+      const addBubble = document.getElementById('addBubble');
+      const undoAction = document.getElementById('undoAction');
+      const bubblePointer = document.getElementById('bubblePointer');
       const clearKeyframes = document.getElementById('clearKeyframes');
-      const kfDuration = document.getElementById('kfDuration');
-      const kfTrack = document.getElementById('kfTrack');
-      const kfScale = document.getElementById('kfScale');
-      const kfPlayhead = document.getElementById('kfPlayhead');
-      const kfDots = document.getElementById('kfDots');
-      const kfEmpty = document.getElementById('kfEmpty');
-      const kfStatus = document.getElementById('kfStatus');
-      const kfClock = document.getElementById('kfClock');
-      const kfDurationClock = document.getElementById('kfDurationClock');
+      const lockTimeline = document.getElementById('lockTimeline');
+      const animDuration = document.getElementById('animDuration');
+      const stepPrev = document.getElementById('stepPrev');
+      const stepNext = document.getElementById('stepNext');
+      const miniTimeline = document.getElementById('miniTimeline');
+      const timelineScale = document.getElementById('timelineScale');
+      const playhead = document.getElementById('playhead');
+      const keyframeList = document.getElementById('keyframeList');
+      const animState = document.getElementById('animState');
+      const timelineClock = document.getElementById('timelineClock');
+      const durationClock = document.getElementById('durationClock');
+      const bubbleLayer = document.getElementById('bubbleLayer');
+      const pointerOrder = ['bottom','top','left','right','none'];
+      let pointerIndex = 0;
       let keyframes = [];
       let activeKeyframe = -1;
-      let currentTimelineTime = 0;
-      let playingKeyframes = false;
-      let playbackToken = 0;
+      let timelineLocked = false;
+      let undoStack = [];
 
-      const readDuration = () => Math.max(2,Math.min(60,Number(kfDuration.value)||10));
-      const formatTime = value => `${Math.max(0,value).toFixed(1).padStart(4,'0')}s`;
-      const currentCamera = () => ({
-        orbit: viewer.getCameraOrbit ? viewer.getCameraOrbit().toString() : viewer.getAttribute('camera-orbit'),
-        target: viewer.getCameraTarget ? viewer.getCameraTarget().toString() : (viewer.getAttribute('camera-target') || 'auto auto auto'),
-        fov: viewer.getFieldOfView ? viewer.getFieldOfView() + 'deg' : (viewer.getAttribute('field-of-view') || '30deg')
-      });
-      function applyCamera(camera){
-        if(!camera) return;
-        viewer.setAttribute('camera-orbit',camera.orbit);
-        viewer.setAttribute('camera-target',camera.target);
-        viewer.setAttribute('field-of-view',camera.fov);
+      const durationValue=()=>Math.max(2,Math.min(60,Number(animDuration.value)||10));
+      const fmt=t=>`${Math.max(0,t).toFixed(1).padStart(4,'0')}s`;
+      function cameraState(){
+        const o=viewer.getCameraOrbit?.(), t=viewer.getCameraTarget?.();
+        return {orbit:{theta:Number(o?.theta)||0,phi:Number(o?.phi)||1.3,radius:Number(o?.radius)||2},
+          target:{x:Number(t?.x)||0,y:Number(t?.y)||0,z:Number(t?.z)||0},
+          fov:Number(viewer.getFieldOfView?.())||30};
       }
-      function timeForIndex(index){
-        if(keyframes.length<=1) return 0;
-        return readDuration()*(index/(keyframes.length-1));
+      function applyCameraState(s){
+        if(!s)return;
+        viewer.cameraOrbit=`${s.orbit.theta}rad ${s.orbit.phi}rad ${s.orbit.radius}m`;
+        viewer.cameraTarget=`${s.target.x}m ${s.target.y}m ${s.target.z}m`;
+        viewer.fieldOfView=`${s.fov}deg`;
+        viewer.jumpCameraToGoal?.();
       }
-      function setPlayhead(time){
-        const duration=readDuration();
-        currentTimelineTime=Math.max(0,Math.min(duration,time));
-        const percent=duration?currentTimelineTime/duration:0;
-        const pad=16;
-        const rect=kfTrack.getBoundingClientRect();
-        const usable=Math.max(0,rect.width-pad*2);
-        kfPlayhead.style.left=`${pad+usable*percent}px`;
-        kfClock.textContent=formatTime(currentTimelineTime);
-        kfDurationClock.textContent=formatTime(duration);
-        const step=activeKeyframe>=0?activeKeyframe+1:'libre';
-        kfStatus.textContent=`${keyframes.length} keyframe${keyframes.length===1?'':'s'} · paso ${step} · ${formatTime(currentTimelineTime)}`;
+      function snapshot(){return JSON.stringify({keyframes,activeKeyframe,pointerIndex});}
+      function pushUndo(){undoStack.push(snapshot()); if(undoStack.length>30)undoStack.shift();}
+      function restoreUndo(){
+        if(!undoStack.length)return;
+        const s=JSON.parse(undoStack.pop()); keyframes=s.keyframes||[]; activeKeyframe=s.activeKeyframe??-1; pointerIndex=s.pointerIndex||0;
+        renderAll(activeKeyframe>=0?keyframes[activeKeyframe]?.time||0:0);
+      }
+      function selected(){return activeKeyframe>=0?keyframes[activeKeyframe]:null}
+      function ensureCurrent(){
+        if(activeKeyframe<0){
+          pushUndo();
+          keyframes.push({id:Date.now()+Math.random(),time:keyframes.length?durationValue():0,camera:cameraState(),bubbles:[]});
+          activeKeyframe=keyframes.length-1;
+          distribute();
+        }
+        keyframes[activeKeyframe].bubbles ||= [];
+        return keyframes[activeKeyframe];
+      }
+      function distribute(){
+        const d=durationValue();
+        keyframes.forEach((k,i)=>k.time=keyframes.length<=1?0:d*i/(keyframes.length-1));
+      }
+      function setTime(t){
+        const d=durationValue(), x=Math.max(0,Math.min(d,t));
+        playhead.style.left=`${d?x/d*100:0}%`;
+        timelineClock.textContent=fmt(x); durationClock.textContent=fmt(d);
+        animState.textContent=`${keyframes.length} keyframe${keyframes.length===1?'':'s'} · ${activeKeyframe>=0?'paso '+(activeKeyframe+1):'paso libre'} · ${fmt(x)}`;
       }
       function renderScale(){
-        kfScale.innerHTML='';
-        const duration=readDuration();
-        const divisions=5;
-        for(let i=0;i<=divisions;i++){
-          const tick=document.createElement('span');
-          tick.className='kf-tick'+(i===0||i===divisions?' major':'');
-          tick.style.left=`${(i/divisions)*100}%`;
-          kfScale.appendChild(tick);
-          if(i===0||i===Math.ceil(divisions/2)||i===divisions){
-            const label=document.createElement('span');
-            label.className='kf-tick-label';
-            label.style.left=tick.style.left;
-            label.textContent=`${(duration*i/divisions).toFixed(0)}s`;
-            kfScale.appendChild(label);
-          }
+        timelineScale.innerHTML='';
+        const d=durationValue();
+        for(let i=0;i<=10;i++){
+          const tick=document.createElement('span'); tick.className='tick'+(i%5===0?' major':''); tick.style.left=`${i*10}%`; timelineScale.appendChild(tick);
+          if(i%5===0){const label=document.createElement('span');label.className='tick-label';label.style.left=tick.style.left;label.textContent=`${Math.round(d*i/10)}s`;timelineScale.appendChild(label);}
         }
       }
-      function goToKeyframe(index){
-        if(index<0||index>=keyframes.length)return;
-        activeKeyframe=index;
-        applyCamera(keyframes[index].camera);
-        setPlayhead(keyframes[index].time);
-        renderKeyframes();
-      }
-      function renderKeyframes(){
-        const duration=readDuration();
-        kfDots.innerHTML='';
-        kfEmpty.hidden=keyframes.length>0;
-        keyframes.forEach((kf,i)=>{
-          const dot=document.createElement('button');
-          dot.type='button';
-          dot.className='kf-dot'+(i===activeKeyframe?' active':'');
-          dot.style.left=`${duration?(kf.time/duration)*100:0}%`;
-          dot.setAttribute('aria-label',`Ir a posición ${i+1}`);
-          dot.addEventListener('click',event=>{event.stopPropagation();goToKeyframe(i)});
-          kfDots.appendChild(dot);
+      function renderBubbles(){
+        bubbleLayer.innerHTML='';
+        const k=selected(); if(!k)return;
+        (k.bubbles||[]).forEach((b,idx)=>{
+          const el=document.createElement('div');
+          el.className=`info-bubble pointer-${b.pointer||'bottom'}`;
+          el.textContent=b.text||'Texto del globito';
+          el.style.left=`${b.x??50}%`; el.style.top=`${b.y??35}%`;
+          el.contentEditable='true';
+          el.addEventListener('input',()=>b.text=el.textContent);
+          el.addEventListener('pointerdown',ev=>{
+            if(el.isContentEditable && document.activeElement===el)return;
+            ev.preventDefault(); el.setPointerCapture(ev.pointerId);
+            const rect=bubbleLayer.getBoundingClientRect();
+            const move=e=>{b.x=Math.max(0,Math.min(100,(e.clientX-rect.left)/rect.width*100));b.y=Math.max(0,Math.min(100,(e.clientY-rect.top)/rect.height*100));el.style.left=b.x+'%';el.style.top=b.y+'%';};
+            el.addEventListener('pointermove',move);
+            el.addEventListener('pointerup',()=>el.removeEventListener('pointermove',move),{once:true});
+          });
+          bubbleLayer.appendChild(el);
         });
-        const empty=keyframes.length===0;
-        [prevKeyframe,nextKeyframe,playKeyframes,deleteKeyframe,clearKeyframes].forEach(b=>b.disabled=empty);
-        renderScale();
-        setPlayhead(currentTimelineTime);
       }
-      function redistributeTimes(){
-        keyframes.forEach((kf,i)=>kf.time=timeForIndex(i));
-        if(activeKeyframe>=0&&keyframes[activeKeyframe])currentTimelineTime=keyframes[activeKeyframe].time;
-        renderKeyframes();
+      function gotoKeyframe(i){
+        if(i<0||i>=keyframes.length)return;
+        activeKeyframe=i; applyCameraState(keyframes[i].camera); renderAll(keyframes[i].time);
       }
-      addKeyframe.addEventListener('click',()=>{
-        const camera=currentCamera();
-        keyframes.push({camera,time:0});
-        activeKeyframe=keyframes.length-1;
-        redistributeTimes();
-      });
-      prevKeyframe.addEventListener('click',()=>{if(!keyframes.length)return;goToKeyframe(activeKeyframe<=0?keyframes.length-1:activeKeyframe-1)});
-      nextKeyframe.addEventListener('click',()=>{if(!keyframes.length)return;goToKeyframe(activeKeyframe<0||activeKeyframe>=keyframes.length-1?0:activeKeyframe+1)});
-      deleteKeyframe.addEventListener('click',()=>{
-        if(activeKeyframe<0)return;
-        keyframes.splice(activeKeyframe,1);
-        activeKeyframe=Math.min(activeKeyframe,keyframes.length-1);
-        redistributeTimes();
-        if(activeKeyframe>=0)goToKeyframe(activeKeyframe);else setPlayhead(0);
-      });
-      clearKeyframes.addEventListener('click',()=>{playbackToken++;playingKeyframes=false;keyframes=[];activeKeyframe=-1;currentTimelineTime=0;playKeyframes.textContent='▶ Reproducir';renderKeyframes()});
-      kfDuration.addEventListener('change',redistributeTimes);
-      kfDuration.addEventListener('input',()=>{renderScale();setPlayhead(Math.min(currentTimelineTime,readDuration()))});
-      kfTrack.addEventListener('pointerdown',event=>{
-        if(event.target.closest('.kf-dot'))return;
-        const rect=kfTrack.getBoundingClientRect();
-        const pad=16;
-        const percent=Math.max(0,Math.min(1,(event.clientX-rect.left-pad)/Math.max(1,rect.width-pad*2)));
-        activeKeyframe=-1;
-        setPlayhead(percent*readDuration());
-        renderKeyframes();
-      });
-      playKeyframes.addEventListener('click',async()=>{
-        if(!keyframes.length)return;
-        if(playingKeyframes){playbackToken++;playingKeyframes=false;playKeyframes.textContent='▶ Reproducir';return;}
-        playingKeyframes=true;
-        const token=++playbackToken;
-        playKeyframes.textContent='■ Detener';
-        for(let i=0;i<keyframes.length&&token===playbackToken;i++){
-          goToKeyframe(i);
-          const wait=i<keyframes.length-1?Math.max(250,(keyframes[i+1].time-keyframes[i].time)*1000):500;
-          const started=performance.now();
-          while(token===playbackToken&&performance.now()-started<wait){
-            const elapsed=(performance.now()-started)/1000;
-            setPlayhead(Math.min(readDuration(),keyframes[i].time+elapsed));
-            await new Promise(requestAnimationFrame);
-          }
-        }
-        if(token===playbackToken){playingKeyframes=false;playKeyframes.textContent='▶ Reproducir';}
-      });
-      window.addEventListener('resize',()=>setPlayhead(currentTimelineTime));
-      renderKeyframes();
+      function renderAll(time=0){
+        distribute(); renderScale();
+        miniTimeline.querySelectorAll('.kf-dot').forEach(n=>n.remove());
+        keyframes.forEach((k,i)=>{
+          const dot=document.createElement('button');dot.className='kf-dot'+(i===activeKeyframe?' active':'');dot.dataset.label=String(i+1);dot.style.left=`${durationValue()?k.time/durationValue()*100:0}%`;
+          dot.addEventListener('click',e=>{e.stopPropagation();gotoKeyframe(i)});miniTimeline.appendChild(dot);
+        });
+        keyframeList.innerHTML=keyframes.length?'':'<div class="keyframe-empty">Arrancá ubicando la pieza: al soltar la cámara se guarda el keyframe automáticamente.</div>';
+        stepPrev.disabled=stepNext.disabled=!keyframes.length;
+        setTime(time); renderBubbles();
+      }
+      addKeyframe.addEventListener('click',()=>{pushUndo();keyframes.push({id:Date.now()+Math.random(),time:0,camera:cameraState(),bubbles:[]});activeKeyframe=keyframes.length-1;renderAll(durationValue())});
+      addBubble.addEventListener('click',()=>{const k=ensureCurrent();pushUndo();k.bubbles.push({id:Date.now()+Math.random(),text:'Texto del globito',x:50,y:35,pointer:pointerOrder[pointerIndex]});renderBubbles()});
+      bubblePointer.addEventListener('click',()=>{pointerIndex=(pointerIndex+1)%pointerOrder.length;bubblePointer.textContent={'bottom':'Punta ↓','top':'Punta ↑','left':'Punta ←','right':'Punta →','none':'Sin punta'}[pointerOrder[pointerIndex]];const k=selected();if(k?.bubbles?.length){k.bubbles[k.bubbles.length-1].pointer=pointerOrder[pointerIndex];renderBubbles()}});
+      undoAction.addEventListener('click',restoreUndo);
+      clearKeyframes.addEventListener('click',()=>{pushUndo();keyframes=[];activeKeyframe=-1;renderAll(0)});
+      lockTimeline.addEventListener('click',()=>{timelineLocked=!timelineLocked;lockTimeline.textContent=timelineLocked?'🔒 Bloqueado':'🔓 Editar';lockTimeline.classList.toggle('locked',timelineLocked);miniTimeline.classList.toggle('timeline-locked',timelineLocked)});
+      stepPrev.addEventListener('click',()=>gotoKeyframe(activeKeyframe<=0?keyframes.length-1:activeKeyframe-1));
+      stepNext.addEventListener('click',()=>gotoKeyframe(activeKeyframe<0||activeKeyframe>=keyframes.length-1?0:activeKeyframe+1));
+      animDuration.addEventListener('input',()=>renderAll(activeKeyframe>=0?keyframes[activeKeyframe]?.time||0:0));
+      miniTimeline.addEventListener('click',e=>{if(timelineLocked||e.target.closest('.kf-dot'))return;const r=miniTimeline.getBoundingClientRect();setTime((e.clientX-r.left)/r.width*durationValue())});
+      renderAll(0);
 
       resetCamera.addEventListener('click',()=>{
         modelSize.value='100'; exposure.value='1'; shadow.value='1';
