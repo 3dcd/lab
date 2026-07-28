@@ -319,6 +319,30 @@
     }
     .control-note{margin:8px 0 0;color:#8a909a;font-size:11px;line-height:1.4;font-weight:650}
 
+
+    /* Línea de tiempo básica de keyframes. */
+    .keyframe-ui{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;gap:10px;min-height:96px}
+    .keyframe-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .keyframe-title{display:flex;flex-direction:column;gap:2px}
+    .keyframe-title strong{font-size:14px;font-weight:950}
+    .keyframe-title span{font-size:11px;color:var(--muted);font-weight:700}
+    .keyframe-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .kf-btn{border:1px solid #dfe3e9;background:rgba(255,255,255,.82);color:#111;border-radius:12px;min-height:34px;padding:0 11px;font-size:12px;font-weight:900;box-shadow:0 6px 16px rgba(20,25,35,.06);cursor:pointer}
+    .kf-btn.primary{background:#111;color:#fff;border-color:#111}
+    .kf-btn:disabled{opacity:.42;cursor:not-allowed}
+    .kf-track{position:relative;height:58px;border:1px solid #dfe3e9;border-radius:15px;background:rgba(255,255,255,.72);overflow:hidden;touch-action:pan-y}
+    .kf-track::before{content:"";position:absolute;left:18px;right:18px;top:50%;height:4px;transform:translateY(-50%);border-radius:999px;background:#d9dee7}
+    .kf-dots{position:absolute;inset:0 18px}
+    .kf-dot{position:absolute;left:0;top:50%;width:20px;height:20px;transform:translate(-50%,-50%) rotate(45deg);border-radius:6px;background:#111;border:3px solid #fff;box-shadow:0 5px 12px rgba(0,0,0,.22);cursor:pointer}
+    .kf-dot.active{background:var(--purple);width:23px;height:23px}
+    .kf-empty{position:absolute;inset:0;display:grid;place-items:center;color:#838a95;font-size:12px;font-weight:750;pointer-events:none}
+    @media(max-width:760px){
+      body.mobile-side-open::before{content:"";position:fixed;inset:var(--header-h) 0 0;z-index:27;background:rgba(255,255,255,.05);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px);pointer-events:none}
+      body.mobile-side-open .side{background:rgba(255,255,255,.38)!important;border-color:rgba(255,255,255,.45)!important;backdrop-filter:blur(12px) saturate(1.05)!important;-webkit-backdrop-filter:blur(12px) saturate(1.05)!important;box-shadow:0 20px 55px rgba(20,25,35,.12)!important}
+      body.mobile-side-open .model-file,body.mobile-side-open .control-group,body.mobile-side-open .settings-button{background:rgba(255,255,255,.48)}
+      .keyframe-ui{gap:7px}.keyframe-head{flex-wrap:nowrap;align-items:flex-start}.keyframe-actions{overflow-x:auto;flex-wrap:nowrap;max-width:68vw;padding-bottom:2px}.kf-btn{flex:0 0 auto;min-height:31px;padding:0 9px;font-size:10px}.kf-track{height:44px}
+    }
+
   </style>
 </head>
 <body>
@@ -416,11 +440,19 @@
       <div class="splitter splitter-h" id="splitterH" role="separator" aria-orientation="horizontal" aria-label="Cambiar altura del panel inferior"></div>
 
       <section class="card bottom" id="bottomPanel">
-        <div class="bottom-inner">
-          <div class="placeholder">
-            <h2>Espacio inferior</h2>
-            <p>Zona reservada para los keyframes y la futura línea de tiempo.</p>
+        <div class="keyframe-ui">
+          <div class="keyframe-head">
+            <div class="keyframe-title"><strong>Recorrido por keyframes</strong><span id="kfStatus">0 posiciones guardadas</span></div>
+            <div class="keyframe-actions">
+              <button class="kf-btn primary" id="addKeyframe" type="button">+ Posición</button>
+              <button class="kf-btn" id="prevKeyframe" type="button">Anterior</button>
+              <button class="kf-btn" id="nextKeyframe" type="button">Siguiente</button>
+              <button class="kf-btn" id="playKeyframes" type="button">Reproducir</button>
+              <button class="kf-btn" id="deleteKeyframe" type="button">Eliminar</button>
+              <button class="kf-btn" id="clearKeyframes" type="button">Limpiar</button>
+            </div>
           </div>
+          <div class="kf-track" id="kfTrack"><div class="kf-dots" id="kfDots"></div><div class="kf-empty" id="kfEmpty">Mové la cámara y tocá “+ Posición”.</div></div>
         </div>
       </section>
     </div>
@@ -510,6 +542,10 @@
 
       splitterV.addEventListener('pointerdown',e=>beginDrag(e,'x'),{passive:false});
       splitterH.addEventListener('pointerdown',e=>beginDrag(e,'y'),{passive:false});
+
+      // Doble clic o doble toque sobre el agarre: cierra el panel asociado.
+      splitterV.addEventListener('dblclick',e=>{e.preventDefault();setSide(false)});
+      splitterH.addEventListener('dblclick',e=>{e.preventDefault();setBottom(false)});
 
       let phoneMode = isPhone();
 
@@ -664,6 +700,63 @@
       polishExtra.addEventListener('input',applyMaterialFinish,{passive:true});
       viewer.addEventListener('viewer-materials-ready',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
       viewer.addEventListener('load',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
+
+      // Keyframes básicos: guardan la cámara actual sin importar el tamaño del dispositivo.
+      const addKeyframe = document.getElementById('addKeyframe');
+      const prevKeyframe = document.getElementById('prevKeyframe');
+      const nextKeyframe = document.getElementById('nextKeyframe');
+      const playKeyframes = document.getElementById('playKeyframes');
+      const deleteKeyframe = document.getElementById('deleteKeyframe');
+      const clearKeyframes = document.getElementById('clearKeyframes');
+      const kfDots = document.getElementById('kfDots');
+      const kfEmpty = document.getElementById('kfEmpty');
+      const kfStatus = document.getElementById('kfStatus');
+      let keyframes = [];
+      let activeKeyframe = -1;
+      let playingKeyframes = false;
+
+      const currentCamera = () => ({
+        orbit: viewer.getCameraOrbit ? viewer.getCameraOrbit().toString() : viewer.getAttribute('camera-orbit'),
+        target: viewer.getCameraTarget ? viewer.getCameraTarget().toString() : (viewer.getAttribute('camera-target') || 'auto auto auto'),
+        fov: viewer.getFieldOfView ? viewer.getFieldOfView() + 'deg' : (viewer.getAttribute('field-of-view') || '30deg')
+      });
+      function goToKeyframe(index){
+        if(index < 0 || index >= keyframes.length) return;
+        activeKeyframe = index;
+        const k = keyframes[index];
+        viewer.setAttribute('camera-orbit',k.orbit);
+        viewer.setAttribute('camera-target',k.target);
+        viewer.setAttribute('field-of-view',k.fov);
+        try{ viewer.jumpCameraToGoal(); }catch(_){ }
+        renderKeyframes();
+      }
+      function renderKeyframes(){
+        kfDots.innerHTML='';
+        const n=keyframes.length;
+        kfEmpty.hidden=n>0;
+        kfStatus.textContent=n===1?'1 posición guardada':`${n} posiciones guardadas`;
+        keyframes.forEach((_,i)=>{
+          const dot=document.createElement('button');
+          dot.type='button';dot.className='kf-dot'+(i===activeKeyframe?' active':'');
+          dot.style.left=(n===1?50:(i/(n-1))*100)+'%';
+          dot.setAttribute('aria-label',`Ir a posición ${i+1}`);
+          dot.addEventListener('click',()=>goToKeyframe(i));
+          kfDots.appendChild(dot);
+        });
+        const disabled=n===0;
+        [prevKeyframe,nextKeyframe,playKeyframes,deleteKeyframe,clearKeyframes].forEach(b=>b.disabled=disabled);
+      }
+      addKeyframe.addEventListener('click',()=>{keyframes.push(currentCamera());activeKeyframe=keyframes.length-1;renderKeyframes()});
+      prevKeyframe.addEventListener('click',()=>goToKeyframe((activeKeyframe<=0?keyframes.length:activeKeyframe)-1));
+      nextKeyframe.addEventListener('click',()=>goToKeyframe((activeKeyframe+1)%keyframes.length));
+      deleteKeyframe.addEventListener('click',()=>{if(activeKeyframe<0)return;keyframes.splice(activeKeyframe,1);activeKeyframe=Math.min(activeKeyframe,keyframes.length-1);renderKeyframes();if(activeKeyframe>=0)goToKeyframe(activeKeyframe)});
+      clearKeyframes.addEventListener('click',()=>{keyframes=[];activeKeyframe=-1;renderKeyframes()});
+      playKeyframes.addEventListener('click',async()=>{
+        if(playingKeyframes||!keyframes.length)return;playingKeyframes=true;playKeyframes.textContent='Reproduciendo…';
+        for(let i=0;i<keyframes.length&&playingKeyframes;i++){goToKeyframe(i);await new Promise(r=>setTimeout(r,1100))}
+        playingKeyframes=false;playKeyframes.textContent='Reproducir';
+      });
+      renderKeyframes();
 
       resetCamera.addEventListener('click',()=>{
         modelSize.value='100'; exposure.value='1'; shadow.value='1';
