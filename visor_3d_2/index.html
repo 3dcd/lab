@@ -320,27 +320,44 @@
     .control-note{margin:8px 0 0;color:#8a909a;font-size:11px;line-height:1.4;font-weight:650}
 
 
-    /* Línea de tiempo básica de keyframes. */
-    .keyframe-ui{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;gap:10px;min-height:96px}
-    .keyframe-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-    .keyframe-title{display:flex;flex-direction:column;gap:2px}
-    .keyframe-title strong{font-size:14px;font-weight:950}
-    .keyframe-title span{font-size:11px;color:var(--muted);font-weight:700}
-    .keyframe-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-    .kf-btn{border:1px solid #dfe3e9;background:rgba(255,255,255,.82);color:#111;border-radius:12px;min-height:34px;padding:0 11px;font-size:12px;font-weight:900;box-shadow:0 6px 16px rgba(20,25,35,.06);cursor:pointer}
+    /* Línea de tiempo de keyframes: estructura compacta y estable. */
+    .keyframe-ui{width:100%;height:100%;display:flex;flex-direction:column;justify-content:flex-start;gap:7px;min-height:0;padding:2px 0}
+    .keyframe-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+    .keyframe-title{display:flex;flex-direction:column;gap:2px;min-width:180px}
+    .keyframe-title strong{font-size:14px;font-weight:950;line-height:1.1}
+    .keyframe-title span{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap}
+    .keyframe-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;min-width:0}
+    .kf-btn{border:1px solid #dfe3e9;background:rgba(255,255,255,.84);color:#111;border-radius:12px;min-height:32px;padding:0 10px;font-size:11px;font-weight:900;box-shadow:0 6px 16px rgba(20,25,35,.06);cursor:pointer;white-space:nowrap}
     .kf-btn.primary{background:#111;color:#fff;border-color:#111}
-    .kf-btn:disabled{opacity:.42;cursor:not-allowed}
-    .kf-track{position:relative;height:58px;border:1px solid #dfe3e9;border-radius:15px;background:rgba(255,255,255,.72);overflow:hidden;touch-action:pan-y}
-    .kf-track::before{content:"";position:absolute;left:18px;right:18px;top:50%;height:4px;transform:translateY(-50%);border-radius:999px;background:#d9dee7}
-    .kf-dots{position:absolute;inset:0 18px}
-    .kf-dot{position:absolute;left:0;top:50%;width:20px;height:20px;transform:translate(-50%,-50%) rotate(45deg);border-radius:6px;background:#111;border:3px solid #fff;box-shadow:0 5px 12px rgba(0,0,0,.22);cursor:pointer}
-    .kf-dot.active{background:var(--purple);width:23px;height:23px}
-    .kf-empty{position:absolute;inset:0;display:grid;place-items:center;color:#838a95;font-size:12px;font-weight:750;pointer-events:none}
+    .kf-btn:disabled{opacity:.4;cursor:not-allowed}
+    .kf-duration{display:flex;align-items:center;gap:4px;min-height:32px;padding:0 8px;border:1px solid #dfe3e9;border-radius:12px;background:rgba(255,255,255,.84);font-size:10px;font-weight:850;color:#6f7785}
+    .kf-duration input{width:38px;border:0;outline:0;background:transparent;text-align:center;font-size:12px;font-weight:950;color:#111}
+    .kf-step-row{display:flex;justify-content:center;align-items:center;gap:12px;height:34px}
+    .kf-arrow{width:48px;height:32px;border:1px solid #dfe3e9;border-radius:999px;background:rgba(255,255,255,.86);box-shadow:0 7px 18px rgba(20,25,35,.08);display:grid;place-items:center;cursor:pointer;color:#111}
+    .kf-arrow:disabled{opacity:.38;cursor:not-allowed}
+    .kf-arrow::before{content:"";width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent}
+    .kf-arrow.prev::before{border-right:13px solid currentColor;margin-left:-2px}
+    .kf-arrow.next::before{border-left:13px solid currentColor;margin-right:-2px}
+    .kf-timeline-row{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;align-items:center;gap:8px;min-height:0}
+    .kf-clock{padding:7px 5px;border:1px solid #e2e5eb;border-radius:10px;background:rgba(255,255,255,.76);font-size:10px;font-weight:950;text-align:center;font-variant-numeric:tabular-nums;color:#343943}
+    .kf-track{--track-pad:16px;position:relative;height:46px;border:1px solid #dfe3e9;border-radius:14px;background:rgba(255,255,255,.72);overflow:hidden;touch-action:none;user-select:none}
+    .kf-track::before{content:"";position:absolute;left:var(--track-pad);right:var(--track-pad);top:27px;height:4px;border-radius:999px;background:#d9dee7}
+    .kf-scale{position:absolute;left:var(--track-pad);right:var(--track-pad);top:6px;height:13px;pointer-events:none}
+    .kf-tick{position:absolute;top:0;width:1px;height:7px;background:#b9c0cb;transform:translateX(-.5px)}
+    .kf-tick.major{height:10px;background:#8992a1}
+    .kf-tick-label{position:absolute;top:11px;transform:translateX(-50%);font-size:8px;font-weight:800;color:#818a99}
+    .kf-playhead{position:absolute;top:3px;bottom:3px;width:2px;left:var(--track-pad);background:#111;transform:translateX(-1px);z-index:3;pointer-events:none}
+    .kf-playhead::before{content:"";position:absolute;top:0;left:50%;width:10px;height:10px;border-radius:50%;background:#111;transform:translateX(-50%);box-shadow:0 3px 8px rgba(0,0,0,.2)}
+    .kf-dots{position:absolute;inset:0 var(--track-pad);z-index:4}
+    .kf-dot{position:absolute;top:27px;width:18px;height:18px;transform:translate(-50%,-50%) rotate(45deg);border-radius:5px;background:#111;border:3px solid #fff;box-shadow:0 5px 12px rgba(0,0,0,.22);cursor:pointer;touch-action:none}
+    .kf-dot.active{background:var(--purple);width:21px;height:21px}
+    .kf-empty{position:absolute;left:0;right:0;top:20px;text-align:center;color:#838a95;font-size:10px;font-weight:750;pointer-events:none}
+
     @media(max-width:760px){
       body.mobile-side-open::before{content:"";position:fixed;inset:var(--header-h) 0 0;z-index:27;background:rgba(255,255,255,.05);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px);pointer-events:none}
       body.mobile-side-open .side{background:rgba(255,255,255,.38)!important;border-color:rgba(255,255,255,.45)!important;backdrop-filter:blur(12px) saturate(1.05)!important;-webkit-backdrop-filter:blur(12px) saturate(1.05)!important;box-shadow:0 20px 55px rgba(20,25,35,.12)!important}
       body.mobile-side-open .model-file,body.mobile-side-open .control-group,body.mobile-side-open .settings-button{background:rgba(255,255,255,.48)}
-      .keyframe-ui{gap:7px}.keyframe-head{flex-wrap:nowrap;align-items:flex-start}.keyframe-actions{overflow-x:auto;flex-wrap:nowrap;max-width:68vw;padding-bottom:2px}.kf-btn{flex:0 0 auto;min-height:31px;padding:0 9px;font-size:10px}.kf-track{height:44px}
+      .keyframe-ui{gap:5px}.keyframe-head{align-items:flex-start}.keyframe-title{min-width:112px}.keyframe-title strong{font-size:11px}.keyframe-title span{font-size:9px}.keyframe-actions{overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;max-width:67vw;padding-bottom:2px}.kf-btn,.kf-duration{flex:0 0 auto;min-height:29px}.kf-btn{padding:0 8px;font-size:9px}.kf-step-row{height:29px;gap:8px}.kf-arrow{width:42px;height:28px}.kf-timeline-row{grid-template-columns:38px minmax(0,1fr) 38px;gap:5px}.kf-clock{font-size:8px;padding:6px 3px}.kf-track{height:34px}.kf-track::before,.kf-dot{top:20px}.kf-scale{top:3px}.kf-tick-label{display:none}.kf-playhead{top:2px;bottom:2px}
     }
 
   </style>
@@ -442,17 +459,32 @@
       <section class="card bottom" id="bottomPanel">
         <div class="keyframe-ui">
           <div class="keyframe-head">
-            <div class="keyframe-title"><strong>Recorrido por keyframes</strong><span id="kfStatus">0 posiciones guardadas</span></div>
+            <div class="keyframe-title">
+              <strong>Recorrido por keyframes</strong>
+              <span id="kfStatus">0 keyframes · paso libre · 00.0s</span>
+            </div>
             <div class="keyframe-actions">
               <button class="kf-btn primary" id="addKeyframe" type="button">+ Posición</button>
-              <button class="kf-btn" id="prevKeyframe" type="button">Anterior</button>
-              <button class="kf-btn" id="nextKeyframe" type="button">Siguiente</button>
-              <button class="kf-btn" id="playKeyframes" type="button">Reproducir</button>
+              <button class="kf-btn" id="playKeyframes" type="button">▶ Reproducir</button>
               <button class="kf-btn" id="deleteKeyframe" type="button">Eliminar</button>
               <button class="kf-btn" id="clearKeyframes" type="button">Limpiar</button>
+              <label class="kf-duration">Duración <input id="kfDuration" type="number" min="2" max="60" step="1" value="10"> s</label>
             </div>
           </div>
-          <div class="kf-track" id="kfTrack"><div class="kf-dots" id="kfDots"></div><div class="kf-empty" id="kfEmpty">Mové la cámara y tocá “+ Posición”.</div></div>
+          <div class="kf-step-row" aria-label="Recorrer posiciones">
+            <button class="kf-arrow prev" id="prevKeyframe" type="button" aria-label="Posición anterior"></button>
+            <button class="kf-arrow next" id="nextKeyframe" type="button" aria-label="Posición siguiente"></button>
+          </div>
+          <div class="kf-timeline-row">
+            <div class="kf-clock" id="kfClock">00.0s</div>
+            <div class="kf-track" id="kfTrack" title="Tocá la línea para mover el cabezal">
+              <div class="kf-scale" id="kfScale"></div>
+              <div class="kf-playhead" id="kfPlayhead"></div>
+              <div class="kf-dots" id="kfDots"></div>
+              <div class="kf-empty" id="kfEmpty">Mové la cámara y tocá “+ Posición”.</div>
+            </div>
+            <div class="kf-clock" id="kfDurationClock">10.0s</div>
+          </div>
         </div>
       </section>
     </div>
@@ -701,61 +733,152 @@
       viewer.addEventListener('viewer-materials-ready',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
       viewer.addEventListener('load',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
 
-      // Keyframes básicos: guardan la cámara actual sin importar el tamaño del dispositivo.
+      // Keyframes: recorrido temporal compacto, separado del sistema de paneles.
       const addKeyframe = document.getElementById('addKeyframe');
       const prevKeyframe = document.getElementById('prevKeyframe');
       const nextKeyframe = document.getElementById('nextKeyframe');
       const playKeyframes = document.getElementById('playKeyframes');
       const deleteKeyframe = document.getElementById('deleteKeyframe');
       const clearKeyframes = document.getElementById('clearKeyframes');
+      const kfDuration = document.getElementById('kfDuration');
+      const kfTrack = document.getElementById('kfTrack');
+      const kfScale = document.getElementById('kfScale');
+      const kfPlayhead = document.getElementById('kfPlayhead');
       const kfDots = document.getElementById('kfDots');
       const kfEmpty = document.getElementById('kfEmpty');
       const kfStatus = document.getElementById('kfStatus');
+      const kfClock = document.getElementById('kfClock');
+      const kfDurationClock = document.getElementById('kfDurationClock');
       let keyframes = [];
       let activeKeyframe = -1;
+      let currentTimelineTime = 0;
       let playingKeyframes = false;
+      let playbackToken = 0;
 
+      const readDuration = () => Math.max(2,Math.min(60,Number(kfDuration.value)||10));
+      const formatTime = value => `${Math.max(0,value).toFixed(1).padStart(4,'0')}s`;
       const currentCamera = () => ({
         orbit: viewer.getCameraOrbit ? viewer.getCameraOrbit().toString() : viewer.getAttribute('camera-orbit'),
         target: viewer.getCameraTarget ? viewer.getCameraTarget().toString() : (viewer.getAttribute('camera-target') || 'auto auto auto'),
         fov: viewer.getFieldOfView ? viewer.getFieldOfView() + 'deg' : (viewer.getAttribute('field-of-view') || '30deg')
       });
+      function applyCamera(camera){
+        if(!camera) return;
+        viewer.setAttribute('camera-orbit',camera.orbit);
+        viewer.setAttribute('camera-target',camera.target);
+        viewer.setAttribute('field-of-view',camera.fov);
+      }
+      function timeForIndex(index){
+        if(keyframes.length<=1) return 0;
+        return readDuration()*(index/(keyframes.length-1));
+      }
+      function setPlayhead(time){
+        const duration=readDuration();
+        currentTimelineTime=Math.max(0,Math.min(duration,time));
+        const percent=duration?currentTimelineTime/duration:0;
+        const pad=16;
+        const rect=kfTrack.getBoundingClientRect();
+        const usable=Math.max(0,rect.width-pad*2);
+        kfPlayhead.style.left=`${pad+usable*percent}px`;
+        kfClock.textContent=formatTime(currentTimelineTime);
+        kfDurationClock.textContent=formatTime(duration);
+        const step=activeKeyframe>=0?activeKeyframe+1:'libre';
+        kfStatus.textContent=`${keyframes.length} keyframe${keyframes.length===1?'':'s'} · paso ${step} · ${formatTime(currentTimelineTime)}`;
+      }
+      function renderScale(){
+        kfScale.innerHTML='';
+        const duration=readDuration();
+        const divisions=5;
+        for(let i=0;i<=divisions;i++){
+          const tick=document.createElement('span');
+          tick.className='kf-tick'+(i===0||i===divisions?' major':'');
+          tick.style.left=`${(i/divisions)*100}%`;
+          kfScale.appendChild(tick);
+          if(i===0||i===Math.ceil(divisions/2)||i===divisions){
+            const label=document.createElement('span');
+            label.className='kf-tick-label';
+            label.style.left=tick.style.left;
+            label.textContent=`${(duration*i/divisions).toFixed(0)}s`;
+            kfScale.appendChild(label);
+          }
+        }
+      }
       function goToKeyframe(index){
-        if(index < 0 || index >= keyframes.length) return;
-        activeKeyframe = index;
-        const k = keyframes[index];
-        viewer.setAttribute('camera-orbit',k.orbit);
-        viewer.setAttribute('camera-target',k.target);
-        viewer.setAttribute('field-of-view',k.fov);
-        try{ viewer.jumpCameraToGoal(); }catch(_){ }
+        if(index<0||index>=keyframes.length)return;
+        activeKeyframe=index;
+        applyCamera(keyframes[index].camera);
+        setPlayhead(keyframes[index].time);
         renderKeyframes();
       }
       function renderKeyframes(){
+        const duration=readDuration();
         kfDots.innerHTML='';
-        const n=keyframes.length;
-        kfEmpty.hidden=n>0;
-        kfStatus.textContent=n===1?'1 posición guardada':`${n} posiciones guardadas`;
-        keyframes.forEach((_,i)=>{
+        kfEmpty.hidden=keyframes.length>0;
+        keyframes.forEach((kf,i)=>{
           const dot=document.createElement('button');
-          dot.type='button';dot.className='kf-dot'+(i===activeKeyframe?' active':'');
-          dot.style.left=(n===1?50:(i/(n-1))*100)+'%';
+          dot.type='button';
+          dot.className='kf-dot'+(i===activeKeyframe?' active':'');
+          dot.style.left=`${duration?(kf.time/duration)*100:0}%`;
           dot.setAttribute('aria-label',`Ir a posición ${i+1}`);
-          dot.addEventListener('click',()=>goToKeyframe(i));
+          dot.addEventListener('click',event=>{event.stopPropagation();goToKeyframe(i)});
           kfDots.appendChild(dot);
         });
-        const disabled=n===0;
-        [prevKeyframe,nextKeyframe,playKeyframes,deleteKeyframe,clearKeyframes].forEach(b=>b.disabled=disabled);
+        const empty=keyframes.length===0;
+        [prevKeyframe,nextKeyframe,playKeyframes,deleteKeyframe,clearKeyframes].forEach(b=>b.disabled=empty);
+        renderScale();
+        setPlayhead(currentTimelineTime);
       }
-      addKeyframe.addEventListener('click',()=>{keyframes.push(currentCamera());activeKeyframe=keyframes.length-1;renderKeyframes()});
-      prevKeyframe.addEventListener('click',()=>goToKeyframe((activeKeyframe<=0?keyframes.length:activeKeyframe)-1));
-      nextKeyframe.addEventListener('click',()=>goToKeyframe((activeKeyframe+1)%keyframes.length));
-      deleteKeyframe.addEventListener('click',()=>{if(activeKeyframe<0)return;keyframes.splice(activeKeyframe,1);activeKeyframe=Math.min(activeKeyframe,keyframes.length-1);renderKeyframes();if(activeKeyframe>=0)goToKeyframe(activeKeyframe)});
-      clearKeyframes.addEventListener('click',()=>{keyframes=[];activeKeyframe=-1;renderKeyframes()});
-      playKeyframes.addEventListener('click',async()=>{
-        if(playingKeyframes||!keyframes.length)return;playingKeyframes=true;playKeyframes.textContent='Reproduciendo…';
-        for(let i=0;i<keyframes.length&&playingKeyframes;i++){goToKeyframe(i);await new Promise(r=>setTimeout(r,1100))}
-        playingKeyframes=false;playKeyframes.textContent='Reproducir';
+      function redistributeTimes(){
+        keyframes.forEach((kf,i)=>kf.time=timeForIndex(i));
+        if(activeKeyframe>=0&&keyframes[activeKeyframe])currentTimelineTime=keyframes[activeKeyframe].time;
+        renderKeyframes();
+      }
+      addKeyframe.addEventListener('click',()=>{
+        const camera=currentCamera();
+        keyframes.push({camera,time:0});
+        activeKeyframe=keyframes.length-1;
+        redistributeTimes();
       });
+      prevKeyframe.addEventListener('click',()=>{if(!keyframes.length)return;goToKeyframe(activeKeyframe<=0?keyframes.length-1:activeKeyframe-1)});
+      nextKeyframe.addEventListener('click',()=>{if(!keyframes.length)return;goToKeyframe(activeKeyframe<0||activeKeyframe>=keyframes.length-1?0:activeKeyframe+1)});
+      deleteKeyframe.addEventListener('click',()=>{
+        if(activeKeyframe<0)return;
+        keyframes.splice(activeKeyframe,1);
+        activeKeyframe=Math.min(activeKeyframe,keyframes.length-1);
+        redistributeTimes();
+        if(activeKeyframe>=0)goToKeyframe(activeKeyframe);else setPlayhead(0);
+      });
+      clearKeyframes.addEventListener('click',()=>{playbackToken++;playingKeyframes=false;keyframes=[];activeKeyframe=-1;currentTimelineTime=0;playKeyframes.textContent='▶ Reproducir';renderKeyframes()});
+      kfDuration.addEventListener('change',redistributeTimes);
+      kfDuration.addEventListener('input',()=>{renderScale();setPlayhead(Math.min(currentTimelineTime,readDuration()))});
+      kfTrack.addEventListener('pointerdown',event=>{
+        if(event.target.closest('.kf-dot'))return;
+        const rect=kfTrack.getBoundingClientRect();
+        const pad=16;
+        const percent=Math.max(0,Math.min(1,(event.clientX-rect.left-pad)/Math.max(1,rect.width-pad*2)));
+        activeKeyframe=-1;
+        setPlayhead(percent*readDuration());
+        renderKeyframes();
+      });
+      playKeyframes.addEventListener('click',async()=>{
+        if(!keyframes.length)return;
+        if(playingKeyframes){playbackToken++;playingKeyframes=false;playKeyframes.textContent='▶ Reproducir';return;}
+        playingKeyframes=true;
+        const token=++playbackToken;
+        playKeyframes.textContent='■ Detener';
+        for(let i=0;i<keyframes.length&&token===playbackToken;i++){
+          goToKeyframe(i);
+          const wait=i<keyframes.length-1?Math.max(250,(keyframes[i+1].time-keyframes[i].time)*1000):500;
+          const started=performance.now();
+          while(token===playbackToken&&performance.now()-started<wait){
+            const elapsed=(performance.now()-started)/1000;
+            setPlayhead(Math.min(readDuration(),keyframes[i].time+elapsed));
+            await new Promise(requestAnimationFrame);
+          }
+        }
+        if(token===playbackToken){playingKeyframes=false;playKeyframes.textContent='▶ Reproducir';}
+      });
+      window.addEventListener('resize',()=>setPlayhead(currentTimelineTime));
       renderKeyframes();
 
       resetCamera.addEventListener('click',()=>{
