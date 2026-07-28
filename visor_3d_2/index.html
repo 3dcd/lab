@@ -707,7 +707,7 @@
     }
 
     .info-bubble.bubble-enter{
-      animation:bubbleEnter .56s cubic-bezier(.2,.9,.2,1) both;
+      animation:bubbleEnter .72s cubic-bezier(.2,.9,.2,1) both;
     }
 
     .bubble-layer.bubble-hiding .info-bubble{
@@ -814,6 +814,9 @@
     .motion-head{display:block;margin:0 0 5px;min-width:0}
     .motion-controls{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:6px;width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;padding:2px 1px 5px;touch-action:pan-x}
     .motion-controls::-webkit-scrollbar{display:none}
+
+    /* Controles visibles mínimos del sector keyframe */
+    #clearKeyframes, .motion-timebox, #settingsToggle{display:none!important}
     .motion-btn,.motion-timebox{flex:0 0 auto;white-space:nowrap}
     .timeline-panel{background:transparent;border:0;box-shadow:none}
     .control-note{display:none!important}
@@ -1228,6 +1231,8 @@
       let animationPausedAt = 0;
       let cameraCommitTimer = 0;
       let internalCameraChangeUntil = 0;
+      let stepAnimationFrame = null;
+      let isStepAnimating = false;
       let lastViewerInteractionUntil = 0;
       let isScrubbingTimeline = false;
       let suppressTimelineClickUntil = 0;
@@ -1286,14 +1291,16 @@
           if(i===0||i===divisions||i%5===0){const label=document.createElement('span');label.className='tick-label';label.style.left=`${pct}%`;label.textContent=`${Math.round(d*i/divisions)}s`;timelineScale.appendChild(label);}
         }
       }
-      function renderBubbles(){
+      function renderBubbles(animate=false, stagger=false){
         bubbleLayer.innerHTML=''; const k=selected(); if(!k)return;
-        (k.bubbles||[]).forEach(b=>{
+        (k.bubbles||[]).forEach((b,orderIndex)=>{
           const el=document.createElement('div');
-          el.className=`info-bubble pointer-${b.pointer||'bottom'}${b.id===selectedBubbleId?' selected':''}`;
+          el.className=`info-bubble pointer-${b.pointer||'bottom'}${b.id===selectedBubbleId?' selected':''}${animate?' bubble-enter':''}`;
           el.textContent=b.text||'Doble clic para editar este texto';
           el.style.left=`${b.x??50}%`; el.style.top=`${b.y??35}%`; el.tabIndex=0;
-          el.addEventListener('click',ev=>{ev.stopPropagation();selectedBubbleId=b.id;renderBubbles();updatePointerButton();});
+          if(animate && stagger) el.style.animationDelay=`${orderIndex*130}ms`;
+          if(animate) el.addEventListener('animationend',()=>el.classList.remove('bubble-enter'),{once:true});
+          el.addEventListener('click',ev=>{ev.stopPropagation();selectedBubbleId=b.id;renderBubbles(true,false);updatePointerButton();});
           el.addEventListener('dblclick',ev=>{ev.stopPropagation();selectedBubbleId=b.id;el.contentEditable='true';el.focus();document.execCommand?.('selectAll',false,null);});
           el.addEventListener('blur',()=>{if(el.isContentEditable){b.text=el.textContent.trim()||'Doble clic para editar este texto';el.contentEditable='false';}});
           el.addEventListener('input',()=>{b.text=el.textContent;});
@@ -1318,7 +1325,7 @@
           const dot=document.createElement('button'); dot.type='button';
           dot.className='kf-dot'+(i===activeKeyframe?' active':''); dot.dataset.label=`${k.time.toFixed(1)}s`;
           dot.style.left=`${durationValue()?k.time/durationValue()*100:0}%`; dot.title=`Keyframe ${i+1} · arrastrar para mover`;
-          dot.addEventListener('click',e=>{e.stopPropagation();if(Date.now()<suppressTimelineClickUntil)return;gotoKeyframe(keyframes.findIndex(x=>x.id===k.id));});
+          dot.addEventListener('click',e=>{e.stopPropagation();if(Date.now()<suppressTimelineClickUntil)return;gotoKeyframe(keyframes.findIndex(x=>x.id===k.id),false);});
           dot.addEventListener('pointerdown',e=>startKeyframeDrag(e,k.id)); miniTimeline.appendChild(dot);
         });
       }
@@ -1340,16 +1347,54 @@
         if(timelineLocked||isScrubbingTimeline)return; setKeyframeAtCurrentTime(false);
       }
       function scheduleAutoKeyframeFromCamera(event){
-        if(timelineLocked||isScrubbingTimeline||Date.now()<internalCameraChangeUntil)return;
+        if(timelineLocked||isScrubbingTimeline||isStepAnimating||Date.now()<internalCameraChangeUntil)return;
         const source=event?.detail?.source||'';
         if(source&&source!=='user-interaction')return;
         if(!source&&Date.now()>lastViewerInteractionUntil)return;
         clearTimeout(cameraCommitTimer); cameraCommitTimer=setTimeout(commitCameraInteractionAsKeyframe,560);
       }
-      function gotoKeyframe(i){
+      function lerp(a,b,t){return a+(b-a)*t;}
+      function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+      function lerpAngle(a,b,t){
+        let d=(b-a)%(Math.PI*2);
+        if(d>Math.PI)d-=Math.PI*2;
+        if(d<-Math.PI)d+=Math.PI*2;
+        return a+d*t;
+      }
+      function interpolateCamera(a,b,t){
+        const e=easeInOut(t);
+        return {
+          orbit:{theta:lerpAngle(a.orbit.theta,b.orbit.theta,e),phi:lerp(a.orbit.phi,b.orbit.phi,e),radius:lerp(a.orbit.radius,b.orbit.radius,e)},
+          target:{x:lerp(a.target.x,b.target.x,e),y:lerp(a.target.y,b.target.y,e),z:lerp(a.target.z,b.target.z,e)},
+          fov:lerp(a.fov,b.fov,e)
+        };
+      }
+      function gotoKeyframe(i, animate=true){
         sortKeyframes(); if(i<0||i>=keyframes.length)return;
-        activeKeyframe=i; selectedBubbleId=null; animationPausedAt=keyframes[i].time;
-        applyCameraState(keyframes[i].camera,true); renderAll(animationPausedAt);
+        if(stepAnimationFrame){cancelAnimationFrame(stepAnimationFrame);stepAnimationFrame=null;}
+        const target=keyframes[i];
+        if(!animate){
+          activeKeyframe=i; selectedBubbleId=null; animationPausedAt=target.time;
+          applyCameraState(target.camera,true); renderAll(animationPausedAt); return;
+        }
+        const startCamera=cameraState();
+        const startTime=animationPausedAt;
+        const distance=Math.abs(target.time-startTime);
+        const durationMs=Math.max(650,Math.min(2200,distance*760));
+        const started=performance.now();
+        isStepAnimating=true;
+        selectedBubbleId=null;
+        bubbleLayer.style.opacity='0';
+        const tick=now=>{
+          const raw=Math.min(1,(now-started)/durationMs);
+          applyCameraState(interpolateCamera(startCamera,target.camera,raw),false);
+          animationPausedAt=lerp(startTime,target.time,easeInOut(raw));
+          setTime(animationPausedAt);
+          if(raw<1){stepAnimationFrame=requestAnimationFrame(tick);return;}
+          stepAnimationFrame=null;isStepAnimating=false;activeKeyframe=i;animationPausedAt=target.time;
+          applyCameraState(target.camera,false);bubbleLayer.style.opacity='';renderAll(animationPausedAt);renderBubbles(true,true);
+        };
+        stepAnimationFrame=requestAnimationFrame(tick);
       }
       function timeFromClientX(x){const r=miniTimeline.getBoundingClientRect();const pad=14;return clampTime((Math.max(r.left+pad,Math.min(r.right-pad,x))-(r.left+pad))/Math.max(1,r.width-pad*2)*durationValue());}
       function startTimelineScrub(event){
@@ -1371,7 +1416,7 @@
         setKeyframeAtCurrentTime(false); return selected();
       }
       addKeyframe.addEventListener('click',()=>setKeyframeAtCurrentTime(true));
-      addBubble.addEventListener('click',()=>{const k=ensureCurrent();if(!k)return;pushUndo();const b={id:Date.now()+Math.random(),text:'Doble clic para editar este texto',x:62,y:30,pointer:'bottom'};k.bubbles||=[];k.bubbles.push(b);selectedBubbleId=b.id;renderBubbles();updatePointerButton();});
+      addBubble.addEventListener('click',()=>{const k=ensureCurrent();if(!k)return;pushUndo();const b={id:Date.now()+Math.random(),text:'Doble clic para editar este texto',x:62,y:30,pointer:'bottom'};k.bubbles||=[];k.bubbles.push(b);selectedBubbleId=b.id;renderBubbles(true,false);updatePointerButton();});
       bubblePointer.addEventListener('click',()=>{const b=selectedBubble();if(!b)return;pushUndo();const i=pointerOrder.indexOf(b.pointer||'bottom');b.pointer=pointerOrder[(i+1)%pointerOrder.length];renderBubbles();updatePointerButton();});
       undoAction.addEventListener('click',restoreUndo);
       clearKeyframes.addEventListener('click',()=>{pushUndo();keyframes=[];activeKeyframe=-1;selectedBubbleId=null;animationPausedAt=0;renderAll(0);});
