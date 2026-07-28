@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#f6f7f9">
+  <title>3DCD LAB · Visor 3D · Base limpia</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    :root{
+      --bg:#f6f7f9;
+      --card:rgba(255,255,255,.92);
+      --text:#101114;
+      --muted:#737b88;
+      --line:#e4e8ee;
+      --purple:#7d5cff;
+      --shadow:0 18px 45px rgba(20,25,35,.10);
+      --soft-shadow:0 10px 25px rgba(20,25,35,.07);
+      --radius:26px;
+      --header-h:66px;
+      --side-w:360px;
+      --bottom-h:190px;
+      --split:12px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;overscroll-behavior:none}
+    body{
+      margin:0;
+      overflow:hidden;
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:radial-gradient(circle at top center,#fff 0,#f7f8fa 38%,#eef1f5 100%);
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    button{
+      font:inherit;appearance:none;-webkit-appearance:none;
+      color:inherit;-webkit-text-fill-color:currentColor;
+      -webkit-tap-highlight-color:transparent;
+    }
+    header{
+      height:var(--header-h);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding:0 max(18px,env(safe-area-inset-right)) 0 max(18px,env(safe-area-inset-left));
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.78);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+      position:relative;
+      z-index:20;
+    }
+    .brand{font-size:20px;font-weight:950;letter-spacing:.03em;white-space:nowrap}
+    .brand span{
+      color:var(--purple);font-size:12px;font-weight:900;letter-spacing:.08em;
+      text-transform:uppercase;border-left:1px solid #cfd4dc;padding-left:12px;margin-left:12px;
+    }
+    .header-actions{display:flex;align-items:center;gap:8px;min-width:0}
+    .pill{
+      border:1px solid var(--line);background:#fff;color:#20232a;border-radius:999px;
+      padding:10px 14px;box-shadow:var(--soft-shadow);font-weight:850;font-size:13px;
+      cursor:pointer;touch-action:manipulation;white-space:nowrap;
+      color:#20232a;-webkit-text-fill-color:#20232a;
+    }
+    .pill[aria-pressed="true"]{background:#111;color:#fff;-webkit-text-fill-color:#fff;border-color:#111}
+    .pill:focus,.pill:active,.side-tab:focus,.side-tab:active,.bottom-tab:focus,.bottom-tab:active{color:inherit}
+
+    main{
+      height:calc(100dvh - var(--header-h));
+      padding:14px 18px max(14px,env(safe-area-inset-bottom));
+      overflow:hidden;
+    }
+    .workspace{
+      height:100%;min-height:0;min-width:0;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) var(--split) var(--side-w);
+      grid-template-rows:minmax(0,1fr) var(--split) var(--bottom-h);
+      grid-template-areas:
+        "stage  vbar side"
+        "hbar   vbar side"
+        "bottom vbar side";
+    }
+
+    .card{
+      min-width:0;min-height:0;
+      background:var(--card);border:1px solid rgba(255,255,255,.96);
+      border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;
+    }
+    .stage{grid-area:stage;position:relative;display:grid;place-items:center}
+    .side{grid-area:side;padding:22px;overflow:auto;-webkit-overflow-scrolling:touch}
+    .bottom{grid-area:bottom;padding:18px 22px;overflow:auto;-webkit-overflow-scrolling:touch}
+
+    /* El contenido conserva el desplazamiento, pero sin la barra nativa que se
+       superpone a las esquinas redondeadas de macOS, iPadOS o Android. */
+    .side,.bottom{scrollbar-width:none;-ms-overflow-style:none}
+    .side::-webkit-scrollbar,.bottom::-webkit-scrollbar{width:0;height:0;display:none}
+
+    .placeholder{text-align:center;padding:28px;max-width:560px;pointer-events:none;user-select:none}
+    .placeholder-icon{
+      width:82px;height:82px;border-radius:24px;background:#f0f1f3;display:grid;place-items:center;
+      margin:0 auto 18px;box-shadow:var(--soft-shadow);font-size:30px;font-weight:950;
+    }
+    .placeholder h1,.placeholder h2{margin:0 0 9px;font-weight:950;letter-spacing:-.03em}
+    .placeholder h1{font-size:clamp(28px,4vw,54px)}
+    .placeholder h2{font-size:22px}
+    .placeholder p{margin:0;color:var(--muted);line-height:1.5;font-weight:650}
+
+    .section-title{margin:0 0 14px;font-size:17px;font-weight:950}
+    .fake-control{height:42px;border-radius:13px;background:#f2f3f5;border:1px solid #eceef2;margin-bottom:10px}
+    .fake-control.dark{background:#17181b;border-color:#17181b}
+    .bottom-inner{display:flex;align-items:center;justify-content:center;height:100%;min-height:90px}
+
+    .splitter{
+      position:relative;z-index:12;touch-action:none;user-select:none;-webkit-user-select:none;
+      cursor:col-resize;
+    }
+    .splitter-v{grid-area:vbar}
+    .splitter-h{grid-area:hbar;cursor:row-resize}
+
+    /* Área invisible ampliada: la guía sigue siendo fina, pero el dedo puede
+       iniciar el arrastre bastante antes de acertar exactamente en el centro. */
+    .splitter::before{
+      content:"";position:absolute;z-index:0;background:transparent;
+    }
+    .splitter-v::before{
+      width:40px;height:100%;left:50%;top:0;transform:translateX(-50%);
+    }
+    .splitter-h::before{
+      width:100%;height:40px;left:0;top:50%;transform:translateY(-50%);
+    }
+    @media (pointer:coarse){
+      .splitter-v::before{width:52px}
+      .splitter-h::before{height:52px}
+    }
+
+    /* El separador mantiene toda su zona táctil, pero sin una línea continua visible. */
+    .splitter::after{
+      content:"";position:absolute;border-radius:999px;background:#cbd0d8;
+      box-shadow:0 0 0 4px rgba(246,247,249,.92);
+      transition:background .15s ease,transform .15s ease;
+    }
+    .splitter-v::after{width:3px;height:54px;left:50%;top:50%;transform:translate(-50%,-50%)}
+    .splitter-h::after{height:3px;width:54px;left:50%;top:50%;transform:translate(-50%,-50%)}
+    .splitter:is(:hover,.dragging)::after{background:#17181b}
+    .splitter-v.dragging::after{transform:translate(-50%,-50%) scaleY(1.15)}
+    .splitter-h.dragging::after{transform:translate(-50%,-50%) scaleX(1.15)}
+
+    .side-tab,.bottom-tab{
+      display:none;position:fixed;z-index:25;border:1px solid var(--line);background:#fff;
+      box-shadow:var(--soft-shadow);font-weight:900;cursor:pointer;touch-action:manipulation;
+      color:#20232a;-webkit-text-fill-color:#20232a;
+    }
+    .side-tab{right:0;top:50%;transform:translateY(-50%);border-radius:16px 0 0 16px;padding:16px 10px;writing-mode:vertical-rl}
+    .bottom-tab{left:50%;bottom:max(0px,env(safe-area-inset-bottom));transform:translateX(-50%);border-radius:16px 16px 0 0;padding:10px 18px}
+
+    body.side-hidden .workspace{
+      grid-template-columns:minmax(0,1fr) 0 0;
+      grid-template-areas:"stage stage stage" "hbar hbar hbar" "bottom bottom bottom";
+    }
+    body.side-hidden .side,body.side-hidden .splitter-v{display:none}
+    body.side-hidden .side-tab{display:block}
+
+    body.bottom-hidden .workspace{
+      grid-template-rows:minmax(0,1fr) 0 0;
+      grid-template-areas:"stage vbar side" "stage vbar side" "stage vbar side";
+    }
+    body.bottom-hidden .bottom,body.bottom-hidden .splitter-h{display:none}
+    body.bottom-hidden .bottom-tab{display:block}
+
+    body.side-hidden.bottom-hidden .workspace{
+      grid-template-columns:1fr;grid-template-rows:1fr;grid-template-areas:"stage";
+    }
+
+    body.is-dragging,body.is-dragging *{cursor:inherit!important}
+    body.is-dragging iframe,body.is-dragging canvas{pointer-events:none!important}
+
+    @media (max-width:1100px){
+      :root{--side-w:320px;--bottom-h:165px}
+      main{padding:10px 12px max(10px,env(safe-area-inset-bottom))}
+      .workspace{grid-template-columns:minmax(0,1fr) var(--split) minmax(260px,var(--side-w))}
+      .side{padding:17px}.bottom{padding:14px 17px}
+      .card{border-radius:22px}
+    }
+
+    @media (max-width:760px){
+      :root{--header-h:58px;--bottom-h:150px}
+      header{padding-left:12px;padding-right:12px}
+      .brand{font-size:17px}.brand span{display:none}
+      .pill{padding:9px 11px;font-size:12px}
+      .workspace{
+        grid-template-columns:1fr;
+        grid-template-rows:minmax(0,1fr) var(--split) var(--bottom-h);
+        grid-template-areas:"stage" "hbar" "bottom";
+      }
+      .splitter-v{display:none}
+      .side{
+        display:block;position:fixed;z-index:30;right:10px;top:calc(var(--header-h) + 10px);
+        bottom:10px;width:min(88vw,350px);transform:translateX(calc(100% + 24px));
+        transition:transform .22s ease;
+      }
+      body.mobile-side-open .side{transform:translateX(0)}
+      body.mobile-side-open .side{
+        background:rgba(255,255,255,.78);
+        -webkit-backdrop-filter:blur(18px) saturate(1.08);
+        backdrop-filter:blur(18px) saturate(1.08);
+        border-color:rgba(255,255,255,.72);
+        box-shadow:0 20px 55px rgba(20,25,35,.16);
+      }
+      body.side-hidden .side{display:none}
+      body.side-hidden .workspace{grid-template-columns:1fr;grid-template-areas:"stage" "hbar" "bottom"}
+      body.bottom-hidden .workspace{grid-template-rows:1fr;grid-template-areas:"stage"}
+      .placeholder{padding:20px}.placeholder-icon{width:68px;height:68px;border-radius:20px}
+    }
+
+    /* Primer módulo incorporado al template: únicamente el visor 3D. */
+    .viewer-stage{
+      display:block;
+      background:radial-gradient(circle at center,#fff 0,#fbfcfd 52%,#f0f2f5 100%);
+      isolation:isolate;
+    }
+    .viewer-stage model-viewer{
+      display:block;width:100%;height:100%;min-width:0;min-height:0;
+      background:transparent;--poster-color:transparent;touch-action:none;
+      -webkit-user-select:none;user-select:none;
+      filter:brightness(var(--viewer-brightness,1)) contrast(var(--viewer-contrast,1)) saturate(var(--viewer-saturation,1));
+    }
+    .viewer-label{
+      position:absolute;left:50%;top:20px;transform:translateX(-50%);z-index:2;
+      display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;
+      pointer-events:none;color:#15171b;text-shadow:0 1px 10px rgba(255,255,255,.95);
+    }
+    .viewer-label strong{font-size:clamp(24px,3.3vw,46px);font-weight:950;letter-spacing:.025em;line-height:.95}
+    .viewer-label span{font-size:clamp(11px,1.2vw,14px);font-weight:750;color:#727985;white-space:nowrap}
+    .model-loading,.model-error{
+      position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;
+      color:var(--muted);font-weight:850;background:radial-gradient(circle at center,#fff,#f0f2f5);
+    }
+    .model-error{color:#8f3131}
+    .empty-panel{
+      min-height:130px;border:1px dashed #d9dde4;border-radius:18px;padding:18px;
+      display:flex;flex-direction:column;justify-content:center;gap:7px;color:var(--muted);line-height:1.45;
+    }
+    .empty-panel strong{color:var(--text);font-size:15px}
+    @media (max-width:760px){
+      .viewer-label{top:15px}.viewer-label span{white-space:normal;max-width:75vw}
+    }
+
+    /* Ajustes básicos del visor: módulo aislado dentro del panel lateral. */
+    .settings-stack{display:grid;gap:14px}
+    .model-file{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:13px 14px;border:1px solid #e7e9ee;border-radius:15px;background:#f7f8fa;
+      font-size:13px;font-weight:850;color:#343941;
+    }
+    .model-file small{color:#7b828d;font-weight:750;white-space:nowrap}
+    .settings-button{
+      width:100%;min-height:44px;border:1px solid #17181b;border-radius:14px;
+      background:#17181b;color:#fff;-webkit-text-fill-color:#fff;font-weight:900;
+      cursor:pointer;touch-action:manipulation;padding:11px 14px;
+    }
+    .settings-button:active{transform:translateY(1px)}
+    .control-group{padding:14px;border:1px solid #e8eaf0;border-radius:16px;background:rgba(248,249,251,.92)}
+    .control-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+    .control-head label{font-size:13px;font-weight:900;color:#25282e}
+    .control-value{min-width:48px;text-align:right;color:#747b86;font-size:12px;font-weight:850;font-variant-numeric:tabular-nums}
+    .control-group input[type="range"]{
+      display:block;
+      width:100%;
+      height:44px;
+      margin:-10px 0;
+      padding:10px 0;
+      border:0;
+      border-radius:999px;
+      background:transparent;
+      appearance:none;
+      -webkit-appearance:none;
+      cursor:pointer;
+      touch-action:pan-y;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .control-group input[type="range"]:focus{outline:none}
+    .control-group input[type="range"]::-webkit-slider-runnable-track{
+      width:100%;height:4px;border-radius:999px;background:#d9dde4;
+    }
+    .control-group input[type="range"]::-webkit-slider-thumb{
+      appearance:none;-webkit-appearance:none;
+      width:20px;height:26px;margin-top:-11px;
+      border:2px solid #17181b;border-radius:999px;
+      background:#fff;
+      box-shadow:0 3px 10px rgba(20,24,32,.22);
+    }
+    .control-group input[type="range"]::-moz-range-track{
+      width:100%;height:4px;border:0;border-radius:999px;background:#d9dde4;
+    }
+    .control-group input[type="range"]::-moz-range-progress{
+      height:4px;border-radius:999px;background:#17181b;
+    }
+    .control-group input[type="range"]::-moz-range-thumb{
+      width:20px;height:26px;
+      border:2px solid #17181b;border-radius:999px;
+      background:#fff;
+      box-shadow:0 3px 10px rgba(20,24,32,.22);
+    }
+    @media (pointer:coarse){
+      .control-group input[type="range"]{
+        height:54px;
+        margin:-15px 0;
+        padding:15px 0;
+      }
+      .control-group input[type="range"]::-webkit-slider-thumb{
+        width:22px;height:28px;margin-top:-12px;
+      }
+      .control-group input[type="range"]::-moz-range-thumb{
+        width:22px;height:28px;
+      }
+    }
+    .control-note{margin:8px 0 0;color:#8a909a;font-size:11px;line-height:1.4;font-weight:650}
+
+
+    /* Línea de tiempo de keyframes: estructura compacta y estable. */
+    .keyframe-ui{width:100%;height:100%;display:flex;flex-direction:column;justify-content:flex-start;gap:7px;min-height:0;padding:2px 0}
+    .keyframe-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+    .keyframe-title{display:flex;flex-direction:column;gap:2px;min-width:180px}
+    .keyframe-title strong{font-size:14px;font-weight:950;line-height:1.1}
+    .keyframe-title span{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap}
+    .keyframe-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;min-width:0}
+    .kf-btn{border:1px solid #dfe3e9;background:rgba(255,255,255,.84);color:#111;border-radius:12px;min-height:32px;padding:0 10px;font-size:11px;font-weight:900;box-shadow:0 6px 16px rgba(20,25,35,.06);cursor:pointer;white-space:nowrap}
+    .kf-btn.primary{background:#111;color:#fff;border-color:#111}
+    .kf-btn:disabled{opacity:.4;cursor:not-allowed}
+    .kf-duration{display:flex;align-items:center;gap:4px;min-height:32px;padding:0 8px;border:1px solid #dfe3e9;border-radius:12px;background:rgba(255,255,255,.84);font-size:10px;font-weight:850;color:#6f7785}
+    .kf-duration input{width:38px;border:0;outline:0;background:transparent;text-align:center;font-size:12px;font-weight:950;color:#111}
+    .kf-step-row{display:flex;justify-content:center;align-items:center;gap:12px;height:34px}
+    .kf-arrow{width:48px;height:32px;border:1px solid #dfe3e9;border-radius:999px;background:rgba(255,255,255,.86);box-shadow:0 7px 18px rgba(20,25,35,.08);display:grid;place-items:center;cursor:pointer;color:#111}
+    .kf-arrow:disabled{opacity:.38;cursor:not-allowed}
+    .kf-arrow::before{content:"";width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent}
+    .kf-arrow.prev::before{border-right:13px solid currentColor;margin-left:-2px}
+    .kf-arrow.next::before{border-left:13px solid currentColor;margin-right:-2px}
+    .kf-timeline-row{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;align-items:center;gap:8px;min-height:0}
+    .kf-clock{padding:7px 5px;border:1px solid #e2e5eb;border-radius:10px;background:rgba(255,255,255,.76);font-size:10px;font-weight:950;text-align:center;font-variant-numeric:tabular-nums;color:#343943}
+    .kf-track{--track-pad:16px;position:relative;height:46px;border:1px solid #dfe3e9;border-radius:14px;background:rgba(255,255,255,.72);overflow:hidden;touch-action:none;user-select:none}
+    .kf-track::before{content:"";position:absolute;left:var(--track-pad);right:var(--track-pad);top:27px;height:4px;border-radius:999px;background:#d9dee7}
+    .kf-scale{position:absolute;left:var(--track-pad);right:var(--track-pad);top:6px;height:13px;pointer-events:none}
+    .kf-tick{position:absolute;top:0;width:1px;height:7px;background:#b9c0cb;transform:translateX(-.5px)}
+    .kf-tick.major{height:10px;background:#8992a1}
+    .kf-tick-label{position:absolute;top:11px;transform:translateX(-50%);font-size:8px;font-weight:800;color:#818a99}
+    .kf-playhead{position:absolute;top:3px;bottom:3px;width:2px;left:var(--track-pad);background:#111;transform:translateX(-1px);z-index:3;pointer-events:none}
+    .kf-playhead::before{content:"";position:absolute;top:0;left:50%;width:10px;height:10px;border-radius:50%;background:#111;transform:translateX(-50%);box-shadow:0 3px 8px rgba(0,0,0,.2)}
+    .kf-dots{position:absolute;inset:0 var(--track-pad);z-index:4}
+    .kf-dot{position:absolute;top:27px;width:18px;height:18px;transform:translate(-50%,-50%) rotate(45deg);border-radius:5px;background:#111;border:3px solid #fff;box-shadow:0 5px 12px rgba(0,0,0,.22);cursor:pointer;touch-action:none}
+    .kf-dot.active{background:var(--purple);width:21px;height:21px}
+    .kf-empty{position:absolute;left:0;right:0;top:20px;text-align:center;color:#838a95;font-size:10px;font-weight:750;pointer-events:none}
+
+    @media(max-width:760px){
+      body.mobile-side-open::before{content:"";position:fixed;inset:var(--header-h) 0 0;z-index:27;background:rgba(255,255,255,.05);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px);pointer-events:none}
+      body.mobile-side-open .side{background:rgba(255,255,255,.38)!important;border-color:rgba(255,255,255,.45)!important;backdrop-filter:blur(12px) saturate(1.05)!important;-webkit-backdrop-filter:blur(12px) saturate(1.05)!important;box-shadow:0 20px 55px rgba(20,25,35,.12)!important}
+      body.mobile-side-open .model-file,body.mobile-side-open .control-group,body.mobile-side-open .settings-button{background:rgba(255,255,255,.48)}
+      .keyframe-ui{gap:5px}.keyframe-head{align-items:flex-start}.keyframe-title{min-width:112px}.keyframe-title strong{font-size:11px}.keyframe-title span{font-size:9px}.keyframe-actions{overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;max-width:67vw;padding-bottom:2px}.kf-btn,.kf-duration{flex:0 0 auto;min-height:29px}.kf-btn{padding:0 8px;font-size:9px}.kf-step-row{height:29px;gap:8px}.kf-arrow{width:42px;height:28px}.kf-timeline-row{grid-template-columns:38px minmax(0,1fr) 38px;gap:5px}.kf-clock{font-size:8px;padding:6px 3px}.kf-track{height:34px}.kf-track::before,.kf-dot{top:20px}.kf-scale{top:3px}.kf-tick-label{display:none}.kf-playhead{top:2px;bottom:2px}
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">3DCD LAB <span>Visor 3D</span></div>
+    <div class="header-actions">
+      <button class="pill" id="bottomToggle" type="button" aria-pressed="true">Línea</button>
+      <button class="pill" id="sideToggle" type="button" aria-pressed="true">Ajustes</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="workspace" id="workspace">
+      <section class="card stage viewer-stage" id="stage">
+        <model-viewer
+          id="viewer"
+          src="./demo.glb"
+          alt="Modelo 3D de demostración"
+          camera-controls
+          touch-action="none"
+          interaction-prompt="none"
+          shadow-intensity="1"
+          shadow-softness="0.65"
+          exposure="1"
+          environment-image="neutral"
+          camera-orbit="0deg 75deg 105%"
+          field-of-view="30deg">
+          <div class="model-loading" slot="poster">Cargando modelo 3D…</div>
+          <div class="model-error" slot="error">No se pudo cargar el modelo 3D.</div>
+        </model-viewer>
+        <div class="viewer-label" aria-hidden="true">
+          <strong>VISOR 3D</strong>
+          <span>Arrastrá para girar · pellizcá para acercar</span>
+        </div>
+      </section>
+
+      <div class="splitter splitter-v" id="splitterV" role="separator" aria-orientation="vertical" aria-label="Cambiar ancho del panel"></div>
+
+      <aside class="card side" id="sidePanel">
+        <h2 class="section-title">Ajustes</h2>
+        <div class="settings-stack">
+          <div class="model-file"><span>demo.glb</span><small>Modelo activo</small></div>
+          <button class="settings-button" id="resetCamera" type="button">Restablecer cámara</button>
+
+          <div class="control-group">
+            <div class="control-head"><label for="modelSize">Tamaño del modelo</label><output class="control-value" id="modelSizeValue">100%</output></div>
+            <input id="modelSize" type="range" min="65" max="145" step="1" value="100">
+            <p class="control-note">Modifica el tamaño sin desplazar el modelo del centro.</p>
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="exposure">Iluminación</label><output class="control-value" id="exposureValue">1.00</output></div>
+            <input id="exposure" type="range" min="0.45" max="1.80" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="shadow">Sombra</label><output class="control-value" id="shadowValue">1.00</output></div>
+            <input id="shadow" type="range" min="0" max="2" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="shadowSoftness">Suavidad de sombra</label><output class="control-value" id="shadowSoftnessValue">0.65</output></div>
+            <input id="shadowSoftness" type="range" min="0" max="1" step="0.05" value="0.65">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="brightness">Brillo visual</label><output class="control-value" id="brightnessValue">1.00</output></div>
+            <input id="brightness" type="range" min="0.55" max="1.55" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="contrast">Contraste</label><output class="control-value" id="contrastValue">1.00</output></div>
+            <input id="contrast" type="range" min="0.60" max="1.60" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="saturation">Saturación visual</label><output class="control-value" id="saturationValue">1.00</output></div>
+            <input id="saturation" type="range" min="0" max="2" step="0.05" value="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="metalExtra">Metal extra</label><output class="control-value" id="metalExtraValue">0.00</output></div>
+            <input id="metalExtra" type="range" min="0" max="1" step="0.05" value="0">
+            <p class="control-note">Refuerza gradualmente el carácter metálico respetando el material original.</p>
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><label for="polishExtra">Pulido extra</label><output class="control-value" id="polishExtraValue">0.00</output></div>
+            <input id="polishExtra" type="range" min="0" max="1" step="0.05" value="0">
+            <p class="control-note">Reduce la rugosidad original para producir reflejos más definidos.</p>
+          </div>
+        </div>
+      </aside>
+
+      <div class="splitter splitter-h" id="splitterH" role="separator" aria-orientation="horizontal" aria-label="Cambiar altura del panel inferior"></div>
+
+      <section class="card bottom" id="bottomPanel">
+        <div class="keyframe-ui">
+          <div class="keyframe-head">
+            <div class="keyframe-title">
+              <strong>Recorrido por keyframes</strong>
+              <span id="kfStatus">0 keyframes · paso libre · 00.0s</span>
+            </div>
+            <div class="keyframe-actions">
+              <button class="kf-btn primary" id="addKeyframe" type="button">+ Posición</button>
+              <button class="kf-btn" id="playKeyframes" type="button">▶ Reproducir</button>
+              <button class="kf-btn" id="deleteKeyframe" type="button">Eliminar</button>
+              <button class="kf-btn" id="clearKeyframes" type="button">Limpiar</button>
+              <label class="kf-duration">Duración <input id="kfDuration" type="number" min="2" max="60" step="1" value="10"> s</label>
+            </div>
+          </div>
+          <div class="kf-step-row" aria-label="Recorrer posiciones">
+            <button class="kf-arrow prev" id="prevKeyframe" type="button" aria-label="Posición anterior"></button>
+            <button class="kf-arrow next" id="nextKeyframe" type="button" aria-label="Posición siguiente"></button>
+          </div>
+          <div class="kf-timeline-row">
+            <div class="kf-clock" id="kfClock">00.0s</div>
+            <div class="kf-track" id="kfTrack" title="Tocá la línea para mover el cabezal">
+              <div class="kf-scale" id="kfScale"></div>
+              <div class="kf-playhead" id="kfPlayhead"></div>
+              <div class="kf-dots" id="kfDots"></div>
+              <div class="kf-empty" id="kfEmpty">Mové la cámara y tocá “+ Posición”.</div>
+            </div>
+            <div class="kf-clock" id="kfDurationClock">10.0s</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <button class="side-tab" id="sideTab" type="button">Abrir ajustes</button>
+  <button class="bottom-tab" id="bottomTab" type="button">Abrir línea</button>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const root = document.documentElement;
+      const body = document.body;
+      const workspace = document.getElementById('workspace');
+      const splitterV = document.getElementById('splitterV');
+      const splitterH = document.getElementById('splitterH');
+      const sideToggle = document.getElementById('sideToggle');
+      const bottomToggle = document.getElementById('bottomToggle');
+      const sideTab = document.getElementById('sideTab');
+      const bottomTab = document.getElementById('bottomTab');
+
+      const clamp = (n,min,max) => Math.max(min,Math.min(max,n));
+      const isPhone = () => matchMedia('(max-width:760px)').matches;
+
+      function setSide(open){
+        if(isPhone()){
+          body.classList.remove('side-hidden');
+          body.classList.toggle('mobile-side-open',open);
+        }else{
+          body.classList.remove('mobile-side-open');
+          body.classList.toggle('side-hidden',!open);
+        }
+        sideToggle.setAttribute('aria-pressed',String(open));
+      }
+
+      function setBottom(open){
+        body.classList.toggle('bottom-hidden',!open);
+        bottomToggle.setAttribute('aria-pressed',String(open));
+      }
+
+      sideToggle.addEventListener('click',()=>{
+        const open = isPhone() ? !body.classList.contains('mobile-side-open') : body.classList.contains('side-hidden');
+        setSide(open);
+      });
+      bottomToggle.addEventListener('click',()=>setBottom(body.classList.contains('bottom-hidden')));
+      sideTab.addEventListener('click',()=>setSide(true));
+      bottomTab.addEventListener('click',()=>setBottom(true));
+
+      function beginDrag(event,axis){
+        if(event.button !== undefined && event.button !== 0) return;
+        if(axis === 'x' && isPhone()) return;
+        event.preventDefault();
+
+        const splitter = axis === 'x' ? splitterV : splitterH;
+        const rect = workspace.getBoundingClientRect();
+        splitter.classList.add('dragging');
+        body.classList.add('is-dragging');
+        body.style.cursor = axis === 'x' ? 'col-resize' : 'row-resize';
+
+        try{ splitter.setPointerCapture(event.pointerId); }catch(_){ }
+
+        const move = e => {
+          e.preventDefault();
+          if(axis === 'x'){
+            const value = clamp(rect.right - e.clientX,260,Math.min(520,rect.width * .55));
+            root.style.setProperty('--side-w',value + 'px');
+          }else{
+            const value = clamp(rect.bottom - e.clientY,105,Math.min(360,rect.height * .55));
+            root.style.setProperty('--bottom-h',value + 'px');
+          }
+        };
+
+        const end = () => {
+          splitter.classList.remove('dragging');
+          body.classList.remove('is-dragging');
+          body.style.cursor = '';
+          window.removeEventListener('pointermove',move,true);
+          window.removeEventListener('pointerup',end,true);
+          window.removeEventListener('pointercancel',end,true);
+        };
+
+        window.addEventListener('pointermove',move,{capture:true,passive:false});
+        window.addEventListener('pointerup',end,{capture:true,once:true});
+        window.addEventListener('pointercancel',end,{capture:true,once:true});
+      }
+
+      splitterV.addEventListener('pointerdown',e=>beginDrag(e,'x'),{passive:false});
+      splitterH.addEventListener('pointerdown',e=>beginDrag(e,'y'),{passive:false});
+
+      // Doble clic o doble toque sobre el agarre: cierra el panel asociado.
+      splitterV.addEventListener('dblclick',e=>{e.preventDefault();setSide(false)});
+      splitterH.addEventListener('dblclick',e=>{e.preventDefault();setBottom(false)});
+
+      let phoneMode = isPhone();
+
+      function syncResponsiveState(){
+        const nowPhone = isPhone();
+        if(nowPhone === phoneMode) return;
+        phoneMode = nowPhone;
+
+        if(nowPhone){
+          body.classList.remove('side-hidden','mobile-side-open');
+          sideToggle.setAttribute('aria-pressed','false');
+        }else{
+          body.classList.remove('mobile-side-open','side-hidden');
+          sideToggle.setAttribute('aria-pressed','true');
+        }
+      }
+
+      window.addEventListener('resize',syncResponsiveState,{passive:true});
+      window.addEventListener('orientationchange',()=>setTimeout(syncResponsiveState,80),{passive:true});
+
+      const viewer = document.getElementById('viewer');
+      const resetCamera = document.getElementById('resetCamera');
+      const modelSize = document.getElementById('modelSize');
+      const exposure = document.getElementById('exposure');
+      const shadow = document.getElementById('shadow');
+      const shadowSoftness = document.getElementById('shadowSoftness');
+      const brightness = document.getElementById('brightness');
+      const contrast = document.getElementById('contrast');
+      const saturation = document.getElementById('saturation');
+      const metalExtra = document.getElementById('metalExtra');
+      const polishExtra = document.getElementById('polishExtra');
+      const modelSizeValue = document.getElementById('modelSizeValue');
+      const exposureValue = document.getElementById('exposureValue');
+      const shadowValue = document.getElementById('shadowValue');
+      const shadowSoftnessValue = document.getElementById('shadowSoftnessValue');
+      const brightnessValue = document.getElementById('brightnessValue');
+      const contrastValue = document.getElementById('contrastValue');
+      const saturationValue = document.getElementById('saturationValue');
+      const metalExtraValue = document.getElementById('metalExtraValue');
+      const polishExtraValue = document.getElementById('polishExtraValue');
+      let originalMaterials = [];
+
+      const initialCamera = '0deg 75deg 105%';
+      function refreshViewer(){
+        try{ viewer.requestUpdate?.(); }catch(_){ }
+        requestAnimationFrame(()=>{
+          try{ viewer.jumpCameraToGoal?.(); }catch(_){ }
+        });
+      }
+      function applyModelSize(){
+        const value = Number(modelSize.value) / 100;
+        const scaleValue = `${value} ${value} ${value}`;
+        viewer.scale = scaleValue;
+        viewer.setAttribute('scale', scaleValue);
+        modelSizeValue.value = `${modelSize.value}%`;
+        refreshViewer();
+      }
+      function applyExposure(){
+        viewer.exposure = Number(exposure.value);
+        exposureValue.value = Number(exposure.value).toFixed(2);
+      }
+      function applyShadow(){
+        viewer.shadowIntensity = Number(shadow.value);
+        shadowValue.value = Number(shadow.value).toFixed(2);
+        refreshViewer();
+      }
+      function applyShadowSoftness(){
+        viewer.shadowSoftness = Number(shadowSoftness.value);
+        shadowSoftnessValue.value = Number(shadowSoftness.value).toFixed(2);
+        refreshViewer();
+      }
+      function applyVisualFilter(){
+        const b = Number(brightness.value);
+        const c = Number(contrast.value);
+        const sat = Number(saturation.value);
+        viewer.style.setProperty('--viewer-brightness', b);
+        viewer.style.setProperty('--viewer-contrast', c);
+        viewer.style.setProperty('--viewer-saturation', sat);
+        brightnessValue.value = b.toFixed(2);
+        contrastValue.value = c.toFixed(2);
+        saturationValue.value = sat.toFixed(2);
+      }
+
+      function captureOriginalMaterials(){
+        try{
+          originalMaterials = (viewer.model?.materials || []).map(material => ({
+            material,
+            metalness:Number(material.pbrMetallicRoughness.metallicFactor ?? 0),
+            roughness:Number(material.pbrMetallicRoughness.roughnessFactor ?? 1)
+          }));
+        }catch(_){ originalMaterials = []; }
+      }
+      function applyMaterialFinish(){
+        const metal = Number(metalExtra.value);
+        const polish = Number(polishExtra.value);
+        metalExtraValue.value = metal.toFixed(2);
+        polishExtraValue.value = polish.toFixed(2);
+        for(const item of originalMaterials){
+          try{
+            const targetMetal = item.metalness + (1 - item.metalness) * metal;
+            const targetRoughness = Math.max(0.02, item.roughness * (1 - polish * .92));
+            item.material.pbrMetallicRoughness.setMetallicFactor(targetMetal);
+            item.material.pbrMetallicRoughness.setRoughnessFactor(targetRoughness);
+          }catch(_){ }
+        }
+        refreshViewer();
+      }
+
+      // En pantallas táctiles, el deslizador solo responde cuando el dedo empieza
+      // cerca de la cápsula. Si se arrastra sobre la línea, el panel conserva el scroll vertical.
+      const settingRanges = [...document.querySelectorAll('.control-group input[type="range"]')];
+      const rangeGesture = new WeakMap();
+      const thumbCenterX = (range) => {
+        const rect = range.getBoundingClientRect();
+        const min = Number(range.min || 0);
+        const max = Number(range.max || 100);
+        const value = Number(range.value || min);
+        const ratio = max === min ? 0 : (value - min) / (max - min);
+        const thumbHalf = 11;
+        return rect.left + thumbHalf + ratio * Math.max(0, rect.width - thumbHalf * 2);
+      };
+      settingRanges.forEach((range) => {
+        range.addEventListener('pointerdown', (event) => {
+          const coarse = matchMedia('(pointer:coarse)').matches || event.pointerType === 'touch';
+          if (!coarse) return;
+          const allowed = Math.abs(event.clientX - thumbCenterX(range)) <= 34;
+          rangeGesture.set(range, {allowed, value:range.value, pointerId:event.pointerId});
+          if (!allowed) range.dataset.scrollGesture = 'true';
+        }, true);
+        range.addEventListener('input', () => {
+          const state = rangeGesture.get(range);
+          if (state && !state.allowed) range.value = state.value;
+        }, true);
+        const finish = (event) => {
+          const state = rangeGesture.get(range);
+          if (!state || state.pointerId !== event.pointerId) return;
+          rangeGesture.delete(range);
+          delete range.dataset.scrollGesture;
+        };
+        range.addEventListener('pointerup', finish, true);
+        range.addEventListener('pointercancel', finish, true);
+      });
+
+      modelSize.addEventListener('input',applyModelSize,{passive:true});
+      exposure.addEventListener('input',applyExposure,{passive:true});
+      shadow.addEventListener('input',applyShadow,{passive:true});
+      shadowSoftness.addEventListener('input',applyShadowSoftness,{passive:true});
+      brightness.addEventListener('input',applyVisualFilter,{passive:true});
+      contrast.addEventListener('input',applyVisualFilter,{passive:true});
+      saturation.addEventListener('input',applyVisualFilter,{passive:true});
+      metalExtra.addEventListener('input',applyMaterialFinish,{passive:true});
+      polishExtra.addEventListener('input',applyMaterialFinish,{passive:true});
+      viewer.addEventListener('viewer-materials-ready',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
+      viewer.addEventListener('load',()=>{ captureOriginalMaterials(); applyMaterialFinish(); },{once:true});
+
+      // Keyframes: recorrido temporal compacto, separado del sistema de paneles.
+      const addKeyframe = document.getElementById('addKeyframe');
+      const prevKeyframe = document.getElementById('prevKeyframe');
+      const nextKeyframe = document.getElementById('nextKeyframe');
+      const playKeyframes = document.getElementById('playKeyframes');
+      const deleteKeyframe = document.getElementById('deleteKeyframe');
+      const clearKeyframes = document.getElementById('clearKeyframes');
+      const kfDuration = document.getElementById('kfDuration');
+      const kfTrack = document.getElementById('kfTrack');
+      const kfScale = document.getElementById('kfScale');
+      const kfPlayhead = document.getElementById('kfPlayhead');
+      const kfDots = document.getElementById('kfDots');
+      const kfEmpty = document.getElementById('kfEmpty');
+      const kfStatus = document.getElementById('kfStatus');
+      const kfClock = document.getElementById('kfClock');
+      const kfDurationClock = document.getElementById('kfDurationClock');
+      let keyframes = [];
+      let activeKeyframe = -1;
+      let currentTimelineTime = 0;
+      let playingKeyframes = false;
+      let playbackToken = 0;
+
+      const readDuration = () => Math.max(2,Math.min(60,Number(kfDuration.value)||10));
+      const formatTime = value => `${Math.max(0,value).toFixed(1).padStart(4,'0')}s`;
+      const currentCamera = () => ({
+        orbit: viewer.getCameraOrbit ? viewer.getCameraOrbit().toString() : viewer.getAttribute('camera-orbit'),
+        target: viewer.getCameraTarget ? viewer.getCameraTarget().toString() : (viewer.getAttribute('camera-target') || 'auto auto auto'),
+        fov: viewer.getFieldOfView ? viewer.getFieldOfView() + 'deg' : (viewer.getAttribute('field-of-view') || '30deg')
+      });
+      function applyCamera(camera){
+        if(!camera) return;
+        viewer.setAttribute('camera-orbit',camera.orbit);
+        viewer.setAttribute('camera-target',camera.target);
+        viewer.setAttribute('field-of-view',camera.fov);
+      }
+      function timeForIndex(index){
+        if(keyframes.length<=1) return 0;
+        return readDuration()*(index/(keyframes.length-1));
+      }
+      function setPlayhead(time){
+        const duration=readDuration();
+        currentTimelineTime=Math.max(0,Math.min(duration,time));
+        const percent=duration?currentTimelineTime/duration:0;
+        const pad=16;
+        const rect=kfTrack.getBoundingClientRect();
+        const usable=Math.max(0,rect.width-pad*2);
+        kfPlayhead.style.left=`${pad+usable*percent}px`;
+        kfClock.textContent=formatTime(currentTimelineTime);
+        kfDurationClock.textContent=formatTime(duration);
+        const step=activeKeyframe>=0?activeKeyframe+1:'libre';
+        kfStatus.textContent=`${keyframes.length} keyframe${keyframes.length===1?'':'s'} · paso ${step} · ${formatTime(currentTimelineTime)}`;
+      }
+      function renderScale(){
+        kfScale.innerHTML='';
+        const duration=readDuration();
+        const divisions=5;
+        for(let i=0;i<=divisions;i++){
+          const tick=document.createElement('span');
+          tick.className='kf-tick'+(i===0||i===divisions?' major':'');
+          tick.style.left=`${(i/divisions)*100}%`;
+          kfScale.appendChild(tick);
+          if(i===0||i===Math.ceil(divisions/2)||i===divisions){
+            const label=document.createElement('span');
+            label.className='kf-tick-label';
+            label.style.left=tick.style.left;
+            label.textContent=`${(duration*i/divisions).toFixed(0)}s`;
+            kfScale.appendChild(label);
+          }
+        }
+      }
+      function goToKeyframe(index){
+        if(index<0||index>=keyframes.length)return;
+        activeKeyframe=index;
+        applyCamera(keyframes[index].camera);
+        setPlayhead(keyframes[index].time);
+        renderKeyframes();
+      }
+      function renderKeyframes(){
+        const duration=readDuration();
+        kfDots.innerHTML='';
+        kfEmpty.hidden=keyframes.length>0;
+        keyframes.forEach((kf,i)=>{
+          const dot=document.createElement('button');
+          dot.type='button';
+          dot.className='kf-dot'+(i===activeKeyframe?' active':'');
+          dot.style.left=`${duration?(kf.time/duration)*100:0}%`;
+          dot.setAttribute('aria-label',`Ir a posición ${i+1}`);
+          dot.addEventListener('click',event=>{event.stopPropagation();goToKeyframe(i)});
+          kfDots.appendChild(dot);
+        });
+        const empty=keyframes.length===0;
+        [prevKeyframe,nextKeyframe,playKeyframes,deleteKeyframe,clearKeyframes].forEach(b=>b.disabled=empty);
+        renderScale();
+        setPlayhead(currentTimelineTime);
+      }
+      function redistributeTimes(){
+        keyframes.forEach((kf,i)=>kf.time=timeForIndex(i));
+        if(activeKeyframe>=0&&keyframes[activeKeyframe])currentTimelineTime=keyframes[activeKeyframe].time;
+        renderKeyframes();
+      }
+      addKeyframe.addEventListener('click',()=>{
+        const camera=currentCamera();
+        keyframes.push({camera,time:0});
+        activeKeyframe=keyframes.length-1;
+        redistributeTimes();
+      });
+      prevKeyframe.addEventListener('click',()=>{if(!keyframes.length)return;goToKeyframe(activeKeyframe<=0?keyframes.length-1:activeKeyframe-1)});
+      nextKeyframe.addEventListener('click',()=>{if(!keyframes.length)return;goToKeyframe(activeKeyframe<0||activeKeyframe>=keyframes.length-1?0:activeKeyframe+1)});
+      deleteKeyframe.addEventListener('click',()=>{
+        if(activeKeyframe<0)return;
+        keyframes.splice(activeKeyframe,1);
+        activeKeyframe=Math.min(activeKeyframe,keyframes.length-1);
+        redistributeTimes();
+        if(activeKeyframe>=0)goToKeyframe(activeKeyframe);else setPlayhead(0);
+      });
+      clearKeyframes.addEventListener('click',()=>{playbackToken++;playingKeyframes=false;keyframes=[];activeKeyframe=-1;currentTimelineTime=0;playKeyframes.textContent='▶ Reproducir';renderKeyframes()});
+      kfDuration.addEventListener('change',redistributeTimes);
+      kfDuration.addEventListener('input',()=>{renderScale();setPlayhead(Math.min(currentTimelineTime,readDuration()))});
+      kfTrack.addEventListener('pointerdown',event=>{
+        if(event.target.closest('.kf-dot'))return;
+        const rect=kfTrack.getBoundingClientRect();
+        const pad=16;
+        const percent=Math.max(0,Math.min(1,(event.clientX-rect.left-pad)/Math.max(1,rect.width-pad*2)));
+        activeKeyframe=-1;
+        setPlayhead(percent*readDuration());
+        renderKeyframes();
+      });
+      playKeyframes.addEventListener('click',async()=>{
+        if(!keyframes.length)return;
+        if(playingKeyframes){playbackToken++;playingKeyframes=false;playKeyframes.textContent='▶ Reproducir';return;}
+        playingKeyframes=true;
+        const token=++playbackToken;
+        playKeyframes.textContent='■ Detener';
+        for(let i=0;i<keyframes.length&&token===playbackToken;i++){
+          goToKeyframe(i);
+          const wait=i<keyframes.length-1?Math.max(250,(keyframes[i+1].time-keyframes[i].time)*1000):500;
+          const started=performance.now();
+          while(token===playbackToken&&performance.now()-started<wait){
+            const elapsed=(performance.now()-started)/1000;
+            setPlayhead(Math.min(readDuration(),keyframes[i].time+elapsed));
+            await new Promise(requestAnimationFrame);
+          }
+        }
+        if(token===playbackToken){playingKeyframes=false;playKeyframes.textContent='▶ Reproducir';}
+      });
+      window.addEventListener('resize',()=>setPlayhead(currentTimelineTime));
+      renderKeyframes();
+
+      resetCamera.addEventListener('click',()=>{
+        modelSize.value='100'; exposure.value='1'; shadow.value='1';
+        shadowSoftness.value='0.65'; brightness.value='1'; contrast.value='1'; saturation.value='1';
+        metalExtra.value='0'; polishExtra.value='0';
+        applyModelSize(); applyExposure(); applyShadow(); applyShadowSoftness(); applyVisualFilter(); applyMaterialFinish();
+        viewer.setAttribute('camera-orbit',initialCamera);
+        viewer.setAttribute('camera-target','auto auto auto');
+        try{ viewer.jumpCameraToGoal(); }catch(_){ }
+      });
+      applyModelSize(); applyExposure(); applyShadow(); applyShadowSoftness(); applyVisualFilter();
+    })();
+  </script>
+
+  <script>
+    (() => {
+      const viewer = document.getElementById('viewer');
+      if (!viewer) return;
+      viewer.addEventListener('load', () => {
+        requestAnimationFrame(() => {
+          try { viewer.jumpCameraToGoal(); } catch (_) {}
+          try {
+            const event = new CustomEvent('viewer-materials-ready');
+            viewer.dispatchEvent(event);
+          } catch (_) {}
+        });
+      }, {once:true});
+    })();
+  </script>
+</body>
+</html>
