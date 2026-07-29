@@ -677,23 +677,23 @@
     // Algunos móviles tardan unos instantes en activar el codificador; este
     // pequeño preroll evita que Instagram reciba el video sin sus primeros frames.
     drawFrame(0);
-    recorder.start(250);
-    await new Promise(r=>setTimeout(r,700));
+    // Graba en un único bloque. En varios navegadores móviles, usar fragmentos
+    // periódicos puede producir MP4 con duración incorrecta o que se reinician.
+    recorder.start();
+    await new Promise(r=>setTimeout(r,350));
 
     const total=totalDuration();
     const fps=30;
     const totalFrames=Math.ceil(total*fps);
     const frameMs=1000/fps;
     const exportStart=performance.now();
-    const videoTrack=canvasStream.getVideoTracks()[0];
     for(let f=0;f<totalFrames;f++){
       const t=Math.min(total-.001,f/fps);
       drawFrame(t);
-      if(videoTrack && typeof videoTrack.requestFrame==='function') videoTrack.requestFrame();
       const p=Math.round((f+1)/totalFrames*100);
       exportText.textContent=`${p}% · ${fmt(t)} / ${fmt(total)} s`;
-      // Espera hasta el instante exacto de cada cuadro, evitando acumular
-      // el retraso de setTimeout y reduciendo pequeños tirones.
+      // captureStream(30) ya genera los cuadros. No se fuerza requestFrame a la vez,
+      // porque algunos móviles duplican marcas de tiempo y dañan la duración.
       const target=exportStart+(f+1)*frameMs;
       const wait=Math.max(0,target-performance.now());
       await new Promise(r=>setTimeout(r,wait));
@@ -701,7 +701,6 @@
     // Mantiene también el último cuadro para que el contenedor termine limpio
     // y las aplicaciones no corten el final al indexar el archivo.
     drawFrame(total-.001);
-    if(videoTrack && typeof videoTrack.requestFrame==='function') videoTrack.requestFrame();
     exportText.textContent='Finalizando archivo…';
     await new Promise(r=>setTimeout(r,500));
     recorder.stop();
