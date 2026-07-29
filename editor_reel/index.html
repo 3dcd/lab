@@ -72,11 +72,24 @@
   .exporting.show{display:grid}
   .spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.18);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
   @keyframes spin{to{transform:rotate(360deg)}}
-  @media(max-width:900px){
+  /* En iPad y tabletas, el visor permanece visible y el panel de edición
+     tiene su propio desplazamiento vertical. */
+  @media(min-width:700px) and (max-width:1100px){
+    html,body{height:100%;overflow:hidden}
+    body{padding:10px}
+    .app{max-width:none;height:calc(100dvh - 20px);grid-template-columns:minmax(300px,42%) minmax(360px,58%);gap:12px;align-items:stretch}
+    .app > .panel:first-child{height:100%;display:flex;flex-direction:column;min-height:0}
+    .app > .panel:first-child .panelHead{flex:0 0 auto}
+    .app > .panel:first-child .body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:28px}
+    .stagePanel{height:100%;min-height:0;padding:10px;position:sticky;top:10px;align-self:start}
+    .stageWrap{width:min(100%,calc((100dvh - 40px)*9/16));max-height:calc(100dvh - 40px)}
+    .panel{border-radius:18px}
+  }
+  @media(max-width:699px){
     body{padding:10px}
     .app{grid-template-columns:1fr;gap:12px}
     .stagePanel{min-height:auto;order:-1;padding:10px}
-    .stageWrap{width:min(66vw,390px)}
+    .stageWrap{width:min(88vw,390px)}
     .panel{border-radius:18px}
   }
   @media(max-width:520px){
@@ -134,7 +147,7 @@
           </select>
         </div>
         <div class="field">
-          <label>Resolución de exportación</label>
+          <label>Resolución del video</label>
           <select id="resolution">
             <option value="540">540 × 960 — rápido</option>
             <option value="720">720 × 1280 — liviano</option>
@@ -639,7 +652,7 @@
     stop();
     // En celular/tableta, lleva el visor a pantalla antes de comenzar para que
     // el usuario vea el reloj y el porcentaje de exportación.
-    if(window.matchMedia('(max-width: 900px)').matches){
+    if(window.matchMedia('(max-width: 699px)').matches){
       document.querySelector('.stagePanel').scrollIntoView({behavior:'smooth',block:'start'});
       await new Promise(r=>setTimeout(r,380));
     }
@@ -841,7 +854,7 @@
   ['dragleave','drop'].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.remove('drag')}));
   dropZone.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
   playBtn.addEventListener('click',()=>{
-    if(window.matchMedia('(max-width: 900px)').matches){
+    if(window.matchMedia('(max-width: 699px)').matches){
       document.querySelector('.stagePanel').scrollIntoView({behavior:'smooth',block:'start'});
     }
     play();
@@ -858,7 +871,7 @@
   backgroundShade.addEventListener('input',()=>{backgroundShadeValue.value=`${backgroundShade.value}%`;drawFrame(0)});
   ['secondsPerImage','transitionDuration','fitMode'].forEach(id=>$('#'+id).addEventListener('change',updateUI));
   $('#pastelFrames').addEventListener('change',()=>drawFrame(0));
-  $('#resolution').addEventListener('change',()=>status.textContent='La resolución elegida se aplicará al exportar. La previsualización se mantiene liviana.');
+  $('#resolution').addEventListener('change',()=>status.textContent='La resolución elegida se aplicará al video exportado. La previsualización se mantiene liviana.');
   window.addEventListener('beforeunload',()=>items.forEach(i=>URL.revokeObjectURL(i.url)));
   updateUI();
 })();
