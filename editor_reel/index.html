@@ -637,7 +637,14 @@
       alert('Este navegador no permite grabar video desde el canvas. Probá con Chrome, Edge o Safari actualizado.');return;
     }
     stop();
+    // En celular/tableta, lleva el visor a pantalla antes de comenzar para que
+    // el usuario vea el reloj y el porcentaje de exportación.
+    if(window.matchMedia('(max-width: 900px)').matches){
+      document.querySelector('.stagePanel').scrollIntoView({behavior:'smooth',block:'start'});
+      await new Promise(r=>setTimeout(r,380));
+    }
     exportBtn.disabled=true;playBtn.disabled=true;exporting.classList.add('show');
+    exportText.textContent='Preparando…';
     const oldW=canvas.width;
     const width=settings().width;
     resizeCanvasForExport(width);
@@ -666,15 +673,23 @@
     const chunks=[];
     recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
     const done=new Promise(resolve=>recorder.onstop=resolve);
+    // Dibuja y sostiene el primer cuadro antes de iniciar el movimiento.
+    // Algunos móviles tardan unos instantes en activar el codificador; este
+    // pequeño preroll evita que Instagram reciba el video sin sus primeros frames.
+    drawFrame(0);
     recorder.start(250);
+    await new Promise(r=>setTimeout(r,700));
+
     const total=totalDuration();
     const fps=30;
     const totalFrames=Math.ceil(total*fps);
     const frameMs=1000/fps;
     const exportStart=performance.now();
+    const videoTrack=canvasStream.getVideoTracks()[0];
     for(let f=0;f<totalFrames;f++){
       const t=Math.min(total-.001,f/fps);
       drawFrame(t);
+      if(videoTrack && typeof videoTrack.requestFrame==='function') videoTrack.requestFrame();
       const p=Math.round((f+1)/totalFrames*100);
       exportText.textContent=`${p}% · ${fmt(t)} / ${fmt(total)} s`;
       // Espera hasta el instante exacto de cada cuadro, evitando acumular
@@ -683,6 +698,12 @@
       const wait=Math.max(0,target-performance.now());
       await new Promise(r=>setTimeout(r,wait));
     }
+    // Mantiene también el último cuadro para que el contenedor termine limpio
+    // y las aplicaciones no corten el final al indexar el archivo.
+    drawFrame(total-.001);
+    if(videoTrack && typeof videoTrack.requestFrame==='function') videoTrack.requestFrame();
+    exportText.textContent='Finalizando archivo…';
+    await new Promise(r=>setTimeout(r,500));
     recorder.stop();
     await done;
     try{silentOscillator?.stop()}catch(_){ }
