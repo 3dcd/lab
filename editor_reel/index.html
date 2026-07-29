@@ -511,43 +511,55 @@
     const scale=lerp(.72,1,appear);
 
     ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);ctx.scale(scale,scale);ctx.globalAlpha=appear;
-    ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=W*.025;ctx.shadowOffsetY=W*.012;
-    roundedRectPath(-bw/2,-bh/2,bw,bh,W*.035);ctx.fillStyle=color;ctx.fill();ctx.shadowColor='transparent';
 
-    // Conector dirigido hacia la foto.
+    // Cuerpo y cola comparten transformación, opacidad y color. La cola se
+    // superpone dentro del cuerpo para evitar huecos o uniones recortadas.
     const localAngle=angle-rot;
-    const edgeX=Math.cos(localAngle)*(bw/2);
-    const edgeY=Math.sin(localAngle)*(bh/2);
+    const rr=Math.min(W*.035,bw/2,bh/2);
+
+    ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=W*.025;ctx.shadowOffsetY=W*.012;
+    ctx.fillStyle=color;
+    roundedRectPath(-bw/2,-bh/2,bw,bh,rr);
+    ctx.fill();
+    ctx.shadowColor='transparent';
+
     if(item.bubbleType==='speech'){
-      // Cola corta y curva, integrada al globo en vez de un triángulo pegado.
       const dirX=Math.cos(localAngle), dirY=Math.sin(localAngle);
       const tanX=-dirY, tanY=dirX;
       const ex=Math.abs(dirX)>.72 ? Math.sign(dirX)*bw/2 : dirX*bw*.34;
       const ey=Math.abs(dirY)>.72 ? Math.sign(dirY)*bh/2 : dirY*bh*.34;
-      const inset=W*.010;
+      const overlap=W*.026;
       const halfBase=W*.020;
-      const length=W*.047;
-      const baseX=ex-dirX*inset, baseY=ey-dirY*inset;
+      const length=W*.034;
+      const baseX=ex-dirX*overlap, baseY=ey-dirY*overlap;
       const x1=baseX+tanX*halfBase, y1=baseY+tanY*halfBase;
       const x2=baseX-tanX*halfBase, y2=baseY-tanY*halfBase;
       const tipX=ex+dirX*length, tipY=ey+dirY*length;
       ctx.beginPath();
       ctx.moveTo(x1,y1);
       ctx.bezierCurveTo(
-        x1+dirX*length*.28, y1+dirY*length*.28,
-        tipX-tanX*halfBase*.20-dirX*length*.10, tipY-tanY*halfBase*.20-dirY*length*.10,
+        x1+dirX*length*.35,y1+dirY*length*.35,
+        tipX-tanX*halfBase*.10-dirX*length*.08,tipY-tanY*halfBase*.10-dirY*length*.08,
         tipX,tipY
       );
       ctx.bezierCurveTo(
-        tipX+tanX*halfBase*.12-dirX*length*.08, tipY+tanY*halfBase*.12-dirY*length*.08,
-        x2+dirX*length*.20, y2+dirY*length*.20,
+        tipX+tanX*halfBase*.10-dirX*length*.08,tipY+tanY*halfBase*.10-dirY*length*.08,
+        x2+dirX*length*.35,y2+dirY*length*.35,
         x2,y2
       );
       ctx.quadraticCurveTo(baseX-dirX*W*.010,baseY-dirY*W*.010,x1,y1);
-      ctx.closePath();ctx.fillStyle=color;ctx.fill();
-    }else if(item.bubbleType==='thought'){
+      ctx.closePath();
+      ctx.fillStyle=color;
+      ctx.fill();
+      // Repasa el cuerpo sin sombra para borrar cualquier microcostura.
+      roundedRectPath(-bw/2,-bh/2,bw,bh,rr);
+      ctx.fill();
+    }
+
+    if(item.bubbleType==='thought'){
       const baseX=Math.cos(localAngle)*(Math.abs(Math.cos(localAngle))>.72?bw/2:bw*.34);
       const baseY=Math.sin(localAngle)*(Math.abs(Math.sin(localAngle))>.72?bh/2:bh*.34);
+      // Los puntos siguen separados por diseño, pero usan la misma opacidad y escala del globo.
       [[.025,.020],[.065,.014],[.100,.009]].forEach(([dist,r])=>{
         ctx.beginPath();ctx.arc(baseX+Math.cos(localAngle)*W*dist,baseY+Math.sin(localAngle)*W*dist,W*r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
       });
@@ -572,7 +584,7 @@
     const local=safeTime>=base ? 1 : (sequenceTime-current*per)/per;
 
     // Fondo: foto actual ampliada y desenfocada con viñeta.
-    drawCover(items[current].img,-W*.08,-H*.05,W*1.16,H*1.10,W*(.006+blurAmount*.060),.48);
+    drawCover(items[current].img,-W*.08,-H*.05,W*1.16,H*1.10,W*(blurAmount*.066),.48);
     const g=ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0,`rgba(5,7,12,${.08+shadeAmount*.62})`);g.addColorStop(.5,`rgba(5,7,12,${.03+shadeAmount*.18})`);g.addColorStop(1,`rgba(5,7,12,${.12+shadeAmount*.72})`);
     ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
@@ -637,7 +649,22 @@
     const oldW=canvas.width;
     const width=settings().width;
     resizeCanvasForExport(width);
-    const stream=canvas.captureStream(30);
+    const canvasStream=canvas.captureStream(30);
+    let audioContext=null;
+    let silentOscillator=null;
+    let stream=canvasStream;
+    // Agrega una pista de audio silenciosa. Instagram y WhatsApp suelen
+    // interpretar mejor los MP4 H.264 cuando el contenedor también incluye audio.
+    try{
+      audioContext=new (window.AudioContext||window.webkitAudioContext)();
+      const destination=audioContext.createMediaStreamDestination();
+      const gain=audioContext.createGain();
+      gain.gain.value=0;
+      silentOscillator=audioContext.createOscillator();
+      silentOscillator.connect(gain).connect(destination);
+      silentOscillator.start();
+      stream=new MediaStream([...canvasStream.getVideoTracks(),...destination.stream.getAudioTracks()]);
+    }catch(err){console.warn('No se pudo agregar audio silencioso',err)}
     const mime=chooseMime();
     let recorder;
     try{recorder=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:width>=1080?12_000_000:width>=720?7_000_000:4_000_000}:{videoBitsPerSecond:7_000_000})}
@@ -652,15 +679,23 @@
     const fps=30;
     const totalFrames=Math.ceil(total*fps);
     const frameMs=1000/fps;
+    const exportStart=performance.now();
     for(let f=0;f<totalFrames;f++){
       const t=Math.min(total-.001,f/fps);
       drawFrame(t);
       const p=Math.round((f+1)/totalFrames*100);
       exportText.textContent=`${p}% · ${fmt(t)} / ${fmt(total)} s`;
-      await new Promise(r=>setTimeout(r,frameMs));
+      // Espera hasta el instante exacto de cada cuadro, evitando acumular
+      // el retraso de setTimeout y reduciendo pequeños tirones.
+      const target=exportStart+(f+1)*frameMs;
+      const wait=Math.max(0,target-performance.now());
+      await new Promise(r=>setTimeout(r,wait));
     }
     recorder.stop();
     await done;
+    try{silentOscillator?.stop()}catch(_){ }
+    try{await audioContext?.close()}catch(_){ }
+    canvasStream.getTracks().forEach(track=>track.stop());
     const actualType=recorder.mimeType || mime || 'video/webm';
     const ext=actualType.includes('mp4')?'mp4':'webm';
     const blob=new Blob(chunks,{type:actualType});
