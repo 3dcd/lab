@@ -39,6 +39,10 @@
   .thumb img{width:132px;height:100%;min-height:218px;object-fit:cover;display:block}
   .thumb .num{position:absolute;left:7px;top:7px;width:25px;height:25px;display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.72);font-size:12px;font-weight:800}
   .thumb .remove{position:absolute;right:7px;top:7px;width:27px;height:27px;border:0;border-radius:50%;background:rgba(0,0,0,.72);color:white;cursor:pointer}
+  .orderControls{position:absolute;left:7px;top:40px;display:grid;gap:6px;z-index:3}
+  .orderBtn{width:30px;height:30px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:rgba(0,0,0,.70);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:900;line-height:1;cursor:pointer;backdrop-filter:blur(7px);box-shadow:0 5px 16px rgba(0,0,0,.25)}
+  .orderBtn:hover{background:rgba(124,92,255,.88);transform:translateY(-1px)}
+  .orderBtn:disabled{opacity:.26;cursor:default;transform:none;background:rgba(0,0,0,.55)}
   .thumb .name{position:absolute;left:0;width:132px;bottom:0;padding:24px 8px 8px;background:linear-gradient(transparent,rgba(0,0,0,.88));font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bubbleEdit{padding:12px;display:grid;grid-template-columns:1fr 120px;gap:9px;background:#111722;align-content:start}.bubbleEdit textarea,.bubbleEdit select{min-width:0;width:100%;background:#080c13;border:1px solid #46516a;color:#fff;border-radius:11px;padding:10px;font-size:13px;outline:none}.bubbleEdit textarea{grid-column:1/-1;min-height:88px;resize:vertical;line-height:1.35;font-weight:650;box-shadow:inset 0 0 0 1px rgba(255,255,255,.025)}.bubbleEdit textarea:focus,.bubbleEdit select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(54,209,220,.10)}.bubbleEdit .bubbleToggle{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px}.bubbleEdit .bubbleToggle input{width:auto}.bubbleHint{grid-column:1/-1;color:#8d98ad;font-size:10px;line-height:1.35}
   .settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:17px}
   .field{display:flex;flex-direction:column;gap:6px}
@@ -270,7 +274,7 @@
     counter.textContent = `${n} ${n === 1 ? 'imagen' : 'imágenes'}`;
     durationPill.textContent = `${fmt(totalDuration())} s`;
     if(n){
-      status.textContent = `Duración estimada: ${fmt(totalDuration())} s, incluyendo ${fmt(FINAL_HOLD)} s de cierre en la última imagen. Arrastrá las miniaturas para cambiar el orden.`;
+      status.textContent = `Duración estimada: ${fmt(totalDuration())} s, incluyendo ${fmt(FINAL_HOLD)} s de cierre en la última imagen. Cambiá el orden arrastrando las miniaturas o usando las flechas sobre cada foto.`;
     } else {
       status.textContent = 'Agregá imágenes para comenzar. Con 10 fotos y 4 segundos por imagen, más el cierre final, el reel dura aproximadamente 42,5 segundos. Podés cargar hasta 20.';
     }
@@ -287,11 +291,17 @@
       d.className='thumb';
       d.draggable=true;
       d.dataset.index=i;
-      d.innerHTML=`<img src="${item.url}" alt=""><div class="num">${i+1}</div><button class="remove" title="Quitar">×</button><div class="name"></div><div class="bubbleEdit"><textarea class="bubbleText" maxlength="140" placeholder="Escribí acá el texto que aparecerá junto a esta foto">${escapeHtml(item.bubbleText||'')}</textarea><select class="bubbleType"><option value="speech" ${item.bubbleType==='speech'?'selected':''}>Diálogo</option><option value="thought" ${item.bubbleType==='thought'?'selected':''}>Pensamiento</option><option value="label" ${item.bubbleType==='label'?'selected':''}>Cartel</option></select><label class="bubbleToggle"><input class="bubbleEnabled" type="checkbox" ${item.bubbleEnabled!==false?'checked':''}> Mostrar globito cuando tenga texto</label><div class="bubbleHint">Cada foto conserva su texto, tipo y ubicación automática.</div></div>`;
+      d.innerHTML=`<img src="${item.url}" alt=""><div class="num">${i+1}</div><div class="orderControls"><button class="orderBtn moveUp" type="button" title="Subir esta imagen" aria-label="Subir esta imagen" ${i===0?'disabled':''}>↑</button><button class="orderBtn moveDown" type="button" title="Bajar esta imagen" aria-label="Bajar esta imagen" ${i===items.length-1?'disabled':''}>↓</button></div><button class="remove" title="Quitar">×</button><div class="name"></div><div class="bubbleEdit"><textarea class="bubbleText" maxlength="140" placeholder="Escribí acá el texto que aparecerá junto a esta foto">${escapeHtml(item.bubbleText||'')}</textarea><select class="bubbleType"><option value="speech" ${item.bubbleType==='speech'?'selected':''}>Diálogo</option><option value="thought" ${item.bubbleType==='thought'?'selected':''}>Pensamiento</option><option value="label" ${item.bubbleType==='label'?'selected':''}>Cartel</option></select><label class="bubbleToggle"><input class="bubbleEnabled" type="checkbox" ${item.bubbleEnabled!==false?'checked':''}> Mostrar globito cuando tenga texto</label><div class="bubbleHint">Cada foto conserva su texto, tipo y ubicación automática.</div></div>`;
       d.querySelector('.name').textContent=item.name;
       d.querySelector('.bubbleText').addEventListener('input',e=>{item.bubbleText=e.target.value;drawFrame(0)});
       d.querySelector('.bubbleType').addEventListener('change',e=>{item.bubbleType=e.target.value;drawFrame(0)});
       d.querySelector('.bubbleEnabled').addEventListener('change',e=>{item.bubbleEnabled=e.target.checked;drawFrame(0)});
+      d.querySelector('.moveUp').addEventListener('click',e=>{e.stopPropagation();moveItem(i,i-1)});
+      d.querySelector('.moveDown').addEventListener('click',e=>{e.stopPropagation();moveItem(i,i+1)});
+      d.querySelectorAll('.orderBtn').forEach(btn=>{
+        btn.addEventListener('pointerdown',e=>e.stopPropagation());
+        btn.addEventListener('dragstart',e=>e.preventDefault());
+      });
       d.querySelector('.remove').addEventListener('click',e=>{e.stopPropagation();removeItem(i)});
       d.addEventListener('dragstart',()=>{dragIndex=i;d.classList.add('dragging')});
       d.addEventListener('dragend',()=>{dragIndex=null;d.classList.remove('dragging')});
@@ -328,6 +338,15 @@
       img.onerror=reject;
       img.src=src;
     });
+  }
+
+  function moveItem(from,to){
+    if(from<0 || from>=items.length || to<0 || to>=items.length || from===to) return;
+    const [moved]=items.splice(from,1);
+    items.splice(to,0,moved);
+    updateUI();
+    const target=thumbs.children[to];
+    if(target) target.scrollIntoView({block:'nearest',behavior:'smooth'});
   }
 
   function removeItem(i){
@@ -463,10 +482,32 @@
     const edgeX=Math.cos(localAngle)*(bw/2);
     const edgeY=Math.sin(localAngle)*(bh/2);
     if(item.bubbleType==='speech'){
-      const ex=Math.abs(Math.cos(localAngle))>.72 ? Math.sign(Math.cos(localAngle))*bw/2 : Math.cos(localAngle)*bw*.34;
-      const ey=Math.abs(Math.sin(localAngle))>.72 ? Math.sign(Math.sin(localAngle))*bh/2 : Math.sin(localAngle)*bh*.34;
-      const px=-Math.sin(localAngle)*W*.030, py=Math.cos(localAngle)*W*.030;
-      ctx.beginPath();ctx.moveTo(ex+px,ey+py);ctx.lineTo(ex+Math.cos(localAngle)*W*.075,ey+Math.sin(localAngle)*W*.075);ctx.lineTo(ex-px,ey-py);ctx.closePath();ctx.fillStyle=color;ctx.fill();
+      // Cola corta y curva, integrada al globo en vez de un triángulo pegado.
+      const dirX=Math.cos(localAngle), dirY=Math.sin(localAngle);
+      const tanX=-dirY, tanY=dirX;
+      const ex=Math.abs(dirX)>.72 ? Math.sign(dirX)*bw/2 : dirX*bw*.34;
+      const ey=Math.abs(dirY)>.72 ? Math.sign(dirY)*bh/2 : dirY*bh*.34;
+      const inset=W*.010;
+      const halfBase=W*.020;
+      const length=W*.047;
+      const baseX=ex-dirX*inset, baseY=ey-dirY*inset;
+      const x1=baseX+tanX*halfBase, y1=baseY+tanY*halfBase;
+      const x2=baseX-tanX*halfBase, y2=baseY-tanY*halfBase;
+      const tipX=ex+dirX*length, tipY=ey+dirY*length;
+      ctx.beginPath();
+      ctx.moveTo(x1,y1);
+      ctx.bezierCurveTo(
+        x1+dirX*length*.28, y1+dirY*length*.28,
+        tipX-tanX*halfBase*.20-dirX*length*.10, tipY-tanY*halfBase*.20-dirY*length*.10,
+        tipX,tipY
+      );
+      ctx.bezierCurveTo(
+        tipX+tanX*halfBase*.12-dirX*length*.08, tipY+tanY*halfBase*.12-dirY*length*.08,
+        x2+dirX*length*.20, y2+dirY*length*.20,
+        x2,y2
+      );
+      ctx.quadraticCurveTo(baseX-dirX*W*.010,baseY-dirY*W*.010,x1,y1);
+      ctx.closePath();ctx.fillStyle=color;ctx.fill();
     }else if(item.bubbleType==='thought'){
       const baseX=Math.cos(localAngle)*(Math.abs(Math.cos(localAngle))>.72?bw/2:bw*.34);
       const baseY=Math.sin(localAngle)*(Math.abs(Math.sin(localAngle))>.72?bh/2:bh*.34);
