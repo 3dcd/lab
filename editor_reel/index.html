@@ -20,7 +20,7 @@
   *{box-sizing:border-box}
   html,body{margin:0;min-height:100%;background:radial-gradient(circle at top,#1a2031 0,#0b0d12 48%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
   body{padding:18px;overflow-x:hidden}
-  button,input,select{font:inherit}
+  button,input,select,textarea{font:inherit}
   .app{max-width:1480px;margin:auto;display:grid;grid-template-columns:minmax(320px,430px) minmax(340px,1fr);gap:20px;align-items:start}
   .panel{background:rgba(20,24,35,.94);border:1px solid rgba(255,255,255,.08);border-radius:22px;box-shadow:0 20px 70px rgba(0,0,0,.35);overflow:hidden;backdrop-filter:blur(18px)}
   .panelHead{padding:20px 20px 14px;border-bottom:1px solid var(--line)}
@@ -33,13 +33,13 @@
   .drop span{color:var(--muted);font-size:13px}
   .drop .big{font-size:30px;margin-bottom:8px}
   input[type=file]{display:none}
-  .thumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;max-height:310px;overflow:auto;padding-right:3px}
-  .thumb{position:relative;min-height:178px;border-radius:13px;overflow:hidden;border:1px solid var(--line);background:#0d1017;cursor:grab;user-select:none}
+  .thumbs{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px;max-height:560px;overflow:auto;padding-right:4px}
+  .thumb{position:relative;min-height:218px;border-radius:15px;overflow:hidden;border:1px solid var(--line);background:#0d1017;cursor:grab;user-select:none;display:grid;grid-template-columns:132px 1fr}
   .thumb.dragging{opacity:.35}
-  .thumb img{width:100%;height:96px;object-fit:cover;display:block}
+  .thumb img{width:132px;height:100%;min-height:218px;object-fit:cover;display:block}
   .thumb .num{position:absolute;left:7px;top:7px;width:25px;height:25px;display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.72);font-size:12px;font-weight:800}
   .thumb .remove{position:absolute;right:7px;top:7px;width:27px;height:27px;border:0;border-radius:50%;background:rgba(0,0,0,.72);color:white;cursor:pointer}
-  .thumb .name{position:absolute;left:0;right:0;top:68px;padding:18px 7px 6px;background:linear-gradient(transparent,rgba(0,0,0,.82));font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bubbleEdit{padding:8px;display:grid;grid-template-columns:1fr 105px;gap:7px;background:#111722}.bubbleEdit input,.bubbleEdit select{min-width:0;width:100%;background:#0b0f17;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:8px;font-size:12px}.bubbleEdit .bubbleToggle{grid-column:1/-1;display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px}.bubbleEdit .bubbleToggle input{width:auto}.bubbleHint{grid-column:1/-1;color:#7f899c;font-size:10px;line-height:1.25}
+  .thumb .name{position:absolute;left:0;width:132px;bottom:0;padding:24px 8px 8px;background:linear-gradient(transparent,rgba(0,0,0,.88));font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bubbleEdit{padding:12px;display:grid;grid-template-columns:1fr 120px;gap:9px;background:#111722;align-content:start}.bubbleEdit textarea,.bubbleEdit select{min-width:0;width:100%;background:#080c13;border:1px solid #46516a;color:#fff;border-radius:11px;padding:10px;font-size:13px;outline:none}.bubbleEdit textarea{grid-column:1/-1;min-height:88px;resize:vertical;line-height:1.35;font-weight:650;box-shadow:inset 0 0 0 1px rgba(255,255,255,.025)}.bubbleEdit textarea:focus,.bubbleEdit select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(54,209,220,.10)}.bubbleEdit .bubbleToggle{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px}.bubbleEdit .bubbleToggle input{width:auto}.bubbleHint{grid-column:1/-1;color:#8d98ad;font-size:10px;line-height:1.35}
   .settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:17px}
   .field{display:flex;flex-direction:column;gap:6px}
   .field label{font-size:12px;color:var(--muted)}
@@ -79,6 +79,11 @@
     .stageWrap{width:min(88vw,390px)}
     .settings{grid-template-columns:1fr}
     .full{grid-column:auto}
+    .thumb{grid-template-columns:104px 1fr;min-height:230px}
+    .thumb img{width:104px;min-height:230px}
+    .thumb .name{width:104px}
+    .bubbleEdit{grid-template-columns:1fr;padding:10px}
+    .bubbleEdit textarea{grid-column:auto;min-height:96px}
   }
 </style>
 </head>
@@ -131,6 +136,20 @@
             <option value="720">720 × 1280 — liviano</option>
             <option value="1080" selected>1080 × 1920 — calidad óptima</option>
           </select>
+        </div>
+        <div class="field full">
+          <label>Desenfoque del fondo</label>
+          <div class="rangeRow">
+            <input id="backgroundBlur" type="range" min="0" max="100" value="58" />
+            <input id="backgroundBlurValue" type="text" value="58%" readonly />
+          </div>
+        </div>
+        <div class="field full">
+          <label>Oscurecimiento arriba y abajo</label>
+          <div class="rangeRow">
+            <input id="backgroundShade" type="range" min="0" max="100" value="42" />
+            <input id="backgroundShadeValue" type="text" value="42%" readonly />
+          </div>
         </div>
         <div class="field full">
           <label>Movimiento y profundidad</label>
@@ -198,6 +217,10 @@
   const exportText = $('#exportText');
   const motionInput = $('#motion');
   const motionValue = $('#motionValue');
+  const backgroundBlur = $('#backgroundBlur');
+  const backgroundBlurValue = $('#backgroundBlurValue');
+  const backgroundShade = $('#backgroundShade');
+  const backgroundShadeValue = $('#backgroundShadeValue');
   let items = [];
   let animationId = null;
   let playing = false;
@@ -222,6 +245,8 @@
       fit: $('#fitMode').value,
       motion: +motionInput.value / 100,
       width: +$('#resolution').value,
+      backgroundBlur: +backgroundBlur.value / 100,
+      backgroundShade: +backgroundShade.value / 100,
     };
   }
 
@@ -256,7 +281,7 @@
       d.className='thumb';
       d.draggable=true;
       d.dataset.index=i;
-      d.innerHTML=`<img src="${item.url}" alt=""><div class="num">${i+1}</div><button class="remove" title="Quitar">×</button><div class="name"></div><div class="bubbleEdit"><input class="bubbleText" type="text" maxlength="90" placeholder="Texto del globito (opcional)" value="${escapeHtml(item.bubbleText||'')}"><select class="bubbleType"><option value="speech" ${item.bubbleType==='speech'?'selected':''}>Diálogo</option><option value="thought" ${item.bubbleType==='thought'?'selected':''}>Pensamiento</option><option value="label" ${item.bubbleType==='label'?'selected':''}>Cartel</option></select><label class="bubbleToggle"><input class="bubbleEnabled" type="checkbox" ${item.bubbleEnabled!==false?'checked':''}> Mostrar globito cuando tenga texto</label><div class="bubbleHint">Cada foto conserva su texto, tipo y ubicación automática.</div></div>`;
+      d.innerHTML=`<img src="${item.url}" alt=""><div class="num">${i+1}</div><button class="remove" title="Quitar">×</button><div class="name"></div><div class="bubbleEdit"><textarea class="bubbleText" maxlength="140" placeholder="Escribí acá el texto que aparecerá junto a esta foto">${escapeHtml(item.bubbleText||'')}</textarea><select class="bubbleType"><option value="speech" ${item.bubbleType==='speech'?'selected':''}>Diálogo</option><option value="thought" ${item.bubbleType==='thought'?'selected':''}>Pensamiento</option><option value="label" ${item.bubbleType==='label'?'selected':''}>Cartel</option></select><label class="bubbleToggle"><input class="bubbleEnabled" type="checkbox" ${item.bubbleEnabled!==false?'checked':''}> Mostrar globito cuando tenga texto</label><div class="bubbleHint">Cada foto conserva su texto, tipo y ubicación automática.</div></div>`;
       d.querySelector('.name').textContent=item.name;
       d.querySelector('.bubbleText').addEventListener('input',e=>{item.bubbleText=e.target.value;drawFrame(0)});
       d.querySelector('.bubbleType').addEventListener('change',e=>{item.bubbleType=e.target.value;drawFrame(0)});
@@ -332,7 +357,8 @@
     ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
   }
 
-  function drawPhoto(item,index,t,overall){
+
+  function photoLayout(item,index,t){
     const {fit,motion}=settings();
     const W=canvas.width,H=canvas.height;
     const randX=(hashRand(index,2)-.5)*2;
@@ -342,28 +368,34 @@
     let cardW=W*.78, cardH=cardW/aspect;
     const maxH=H*.70;
     if(cardH>maxH){cardH=maxH;cardW=cardH*aspect}
-    if(fit==='cover'){
-      cardW=W*.84; cardH=H*.63;
-    }
-    const pad=fit==='contain'?Math.max(8,W*.012):0;
+    if(fit==='cover'){cardW=W*.84;cardH=H*.63}
     const enter=easeOutCubic(clamp(t/.26,0,1));
     const drift=easeInOutCubic(clamp((t-.18)/.82,0,1));
-    const scale=lerp(1.30+motion*.18,1,enter) * lerp(1,0.965-motion*.025,drift);
-    const alpha=clamp(t/.18,0,1);
-    const x= W/2 + randX*W*.11*motion*(1-enter) + randX*W*.025*drift;
-    const y= H/2 + randY*H*.10*motion*(1-enter) + randY*H*.018*drift;
-    const rot=(randR*.095*motion)*(1-enter) + randR*.028*motion;
+    return {
+      cardW,cardH,
+      pad:fit==='contain'?Math.max(8,W*.012):0,
+      scale:lerp(1.30+motion*.18,1,enter)*lerp(1,0.965-motion*.025,drift),
+      alpha:clamp(t/.18,0,1),
+      x:W/2+randX*W*.11*motion*(1-enter)+randX*W*.025*drift,
+      y:H/2+randY*H*.10*motion*(1-enter)+randY*H*.018*drift,
+      rot:(randR*.095*motion)*(1-enter)+randR*.028*motion,
+      fit
+    };
+  }
 
+  function drawPhoto(item,index,t,overall){
+    const W=canvas.width;
+    const L=photoLayout(item,index,t);
     ctx.save();
-    ctx.translate(x,y);ctx.rotate(rot);ctx.scale(scale,scale);ctx.globalAlpha=alpha;
+    ctx.translate(L.x,L.y);ctx.rotate(L.rot);ctx.scale(L.scale,L.scale);ctx.globalAlpha=L.alpha;
     ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=W*.055;ctx.shadowOffsetY=W*.025;
-    roundedRectPath(-cardW/2,-cardH/2,cardW,cardH,W*.025);
-    ctx.fillStyle=fit==='contain'?'#f8f8f5':'#111';ctx.fill();
+    roundedRectPath(-L.cardW/2,-L.cardH/2,L.cardW,L.cardH,W*.025);
+    ctx.fillStyle=L.fit==='contain'?'#f8f8f5':'#111';ctx.fill();
     ctx.shadowColor='transparent';
-    roundedRectPath(-cardW/2+pad,-cardH/2+pad,cardW-pad*2,cardH-pad*2,W*.018);
+    roundedRectPath(-L.cardW/2+L.pad,-L.cardH/2+L.pad,L.cardW-L.pad*2,L.cardH-L.pad*2,W*.018);
     ctx.clip();
-    if(fit==='cover') drawCover(item.img,-cardW/2,-cardH/2,cardW,cardH,0,1);
-    else ctx.drawImage(item.img,-cardW/2+pad,-cardH/2+pad,cardW-pad*2,cardH-pad*2);
+    if(L.fit==='cover') drawCover(item.img,-L.cardW/2,-L.cardH/2,L.cardW,L.cardH,0,1);
+    else ctx.drawImage(item.img,-L.cardW/2+L.pad,-L.cardH/2+L.pad,L.cardW-L.pad*2,L.cardH-L.pad*2);
     ctx.restore();
   }
 
@@ -378,42 +410,65 @@
     return lines.slice(0,4);
   }
 
+
   function drawBubble(item,index,t){
     if(!item.bubbleText?.trim() || item.bubbleEnabled===false) return;
     const W=canvas.width,H=canvas.height;
     const appear=easeOutCubic(clamp((t-.24)/.22,0,1));
     if(appear<=0) return;
-    const side=hashRand(index,21)>.5?1:-1;
-    const upper=hashRand(index,22)>.46;
+    const L=photoLayout(item,index,Math.max(t,.32));
     const palette=['#F9D9E2','#DCEBFF','#DFF3E3','#FFF0C9','#E9DDF8','#DDF3F0','#FBE2CF'];
     const color=palette[Math.floor(hashRand(index,23)*palette.length)%palette.length];
-    const fontSize=Math.round(W*.040);
+    const fontSize=Math.round(W*.041);
     const font=`700 ${fontSize}px Inter,system-ui,sans-serif`;
-    const maxTextW=W*.46;
+    const maxTextW=W*.50;
     const lines=wrapLines(item.bubbleText,maxTextW,font);
-    const lineH=fontSize*1.22,padX=W*.037,padY=W*.026;
+    const lineH=fontSize*1.22,padX=W*.040,padY=W*.029;
     ctx.font=font;
     const textW=Math.max(...lines.map(l=>ctx.measureText(l).width),fontSize*3);
-    const bw=Math.min(W*.60,textW+padX*2), bh=lines.length*lineH+padY*2;
-    let x=side>0?W*.68-bw/2:W*.32-bw/2;
-    let y=upper?H*.18:H*.70;
-    x+= (hashRand(index,24)-.5)*W*.08;
-    y+= (hashRand(index,25)-.5)*H*.07;
-    x=clamp(x,W*.04,W-bw-W*.04); y=clamp(y,H*.06,H-bh-H*.08);
-    const rot=(hashRand(index,26)-.5)*.09;
+    const bw=Math.min(W*.64,textW+padX*2), bh=lines.length*lineH+padY*2;
+
+    // Cuatro zonas alrededor de la foto. La ubicación se mantiene aleatoria,
+    // pero siempre cerca de la tarjeta y orientada hacia su centro.
+    const zone=Math.floor(hashRand(index,31)*4); // 0 arriba izq, 1 arriba der, 2 abajo izq, 3 abajo der
+    const isTop=zone<2, isLeft=zone%2===0;
+    const halfW=L.cardW*L.scale/2, halfH=L.cardH*L.scale/2;
+    const gap=W*.018;
+    let cx=L.x+(isLeft?-1:1)*Math.min(halfW*.56,W*.25);
+    let cy=L.y+(isTop?-1:1)*(halfH+bh*.34-gap);
+    cx+=(hashRand(index,32)-.5)*W*.055;
+    cy+=(hashRand(index,33)-.5)*H*.025;
+    cx=clamp(cx,bw/2+W*.025,W-bw/2-W*.025);
+    cy=clamp(cy,bh/2+H*.025,H-bh/2-H*.035);
+    const targetX=L.x,targetY=L.y;
+    const dx=targetX-cx,dy=targetY-cy;
+    const angle=Math.atan2(dy,dx);
+    const rot=(hashRand(index,26)-.5)*.10 + L.rot*.25;
     const scale=lerp(.72,1,appear);
-    ctx.save();ctx.translate(x+bw/2,y+bh/2);ctx.rotate(rot);ctx.scale(scale,scale);ctx.globalAlpha=appear;
+
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);ctx.scale(scale,scale);ctx.globalAlpha=appear;
     ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=W*.025;ctx.shadowOffsetY=W*.012;
     roundedRectPath(-bw/2,-bh/2,bw,bh,W*.035);ctx.fillStyle=color;ctx.fill();ctx.shadowColor='transparent';
+
+    // Conector dirigido hacia la foto.
+    const localAngle=angle-rot;
+    const edgeX=Math.cos(localAngle)*(bw/2);
+    const edgeY=Math.sin(localAngle)*(bh/2);
+    if(item.bubbleType==='speech'){
+      const ex=Math.abs(Math.cos(localAngle))>.72 ? Math.sign(Math.cos(localAngle))*bw/2 : Math.cos(localAngle)*bw*.34;
+      const ey=Math.abs(Math.sin(localAngle))>.72 ? Math.sign(Math.sin(localAngle))*bh/2 : Math.sin(localAngle)*bh*.34;
+      const px=-Math.sin(localAngle)*W*.030, py=Math.cos(localAngle)*W*.030;
+      ctx.beginPath();ctx.moveTo(ex+px,ey+py);ctx.lineTo(ex+Math.cos(localAngle)*W*.075,ey+Math.sin(localAngle)*W*.075);ctx.lineTo(ex-px,ey-py);ctx.closePath();ctx.fillStyle=color;ctx.fill();
+    }else if(item.bubbleType==='thought'){
+      const baseX=Math.cos(localAngle)*(Math.abs(Math.cos(localAngle))>.72?bw/2:bw*.34);
+      const baseY=Math.sin(localAngle)*(Math.abs(Math.sin(localAngle))>.72?bh/2:bh*.34);
+      [[.025,.020],[.065,.014],[.100,.009]].forEach(([dist,r])=>{
+        ctx.beginPath();ctx.arc(baseX+Math.cos(localAngle)*W*dist,baseY+Math.sin(localAngle)*W*dist,W*r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+      });
+    }
+
     ctx.fillStyle='#20232b';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=font;
     lines.forEach((line,i)=>ctx.fillText(line,0,(i-(lines.length-1)/2)*lineH));
-    if(item.bubbleType==='speech'){
-      const tailX=side>0?-bw*.23:bw*.23;
-      ctx.beginPath();ctx.moveTo(tailX,bh/2-W*.004);ctx.lineTo(tailX-side*W*.055,bh/2+W*.065);ctx.lineTo(tailX+side*W*.055,bh/2-W*.004);ctx.closePath();ctx.fillStyle=color;ctx.fill();
-    }else if(item.bubbleType==='thought'){
-      ctx.beginPath();ctx.arc(side>0?-bw*.28:bw*.28,bh/2+W*.035,W*.020,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
-      ctx.beginPath();ctx.arc(side>0?-bw*.34:bw*.34,bh/2+W*.075,W*.011,0,Math.PI*2);ctx.fill();
-    }
     ctx.restore();
   }
 
@@ -422,16 +477,16 @@
     ctx.save();
     ctx.fillStyle='#050609';ctx.fillRect(0,0,W,H);
     if(!items.length){ctx.restore();return}
-    const {per,trans}=settings();
+    const {per,trans,backgroundBlur:blurAmount,backgroundShade:shadeAmount}=settings();
     const total=totalDuration();
     const safeTime=clamp(timeSec,0,Math.max(0,total-.001));
     const current=Math.min(items.length-1,Math.floor(safeTime/per));
     const local=(safeTime-current*per)/per;
 
     // Fondo: foto actual ampliada y desenfocada con viñeta.
-    drawCover(items[current].img,-W*.08,-H*.05,W*1.16,H*1.10,W*.035,.44);
+    drawCover(items[current].img,-W*.08,-H*.05,W*1.16,H*1.10,W*(.006+blurAmount*.060),.48);
     const g=ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'rgba(5,7,12,.35)');g.addColorStop(.5,'rgba(5,7,12,.12)');g.addColorStop(1,'rgba(5,7,12,.58)');
+    g.addColorStop(0,`rgba(5,7,12,${.08+shadeAmount*.62})`);g.addColorStop(.5,`rgba(5,7,12,${.03+shadeAmount*.18})`);g.addColorStop(1,`rgba(5,7,12,${.12+shadeAmount*.72})`);
     ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
 
     // Mantiene algunas fotos previas apiladas para dar continuidad.
@@ -606,7 +661,7 @@
       }
       const project={
         app:'Editor de Reels',version:2,savedAt:new Date().toISOString(),compositionSeed,
-        settings:{secondsPerImage:$('#secondsPerImage').value,transitionDuration:$('#transitionDuration').value,fitMode:$('#fitMode').value,resolution:$('#resolution').value,motion:motionInput.value,randomSeed:$('#randomSeed').checked},
+        settings:{secondsPerImage:$('#secondsPerImage').value,transitionDuration:$('#transitionDuration').value,fitMode:$('#fitMode').value,resolution:$('#resolution').value,motion:motionInput.value,backgroundBlur:backgroundBlur.value,backgroundShade:backgroundShade.value,randomSeed:$('#randomSeed').checked},
         images:imageMeta
       };
       const zip=await makeZip([{name:'proyecto.json',data:textEncoder.encode(JSON.stringify(project,null,2))},...imageEntries]);
@@ -637,6 +692,8 @@
       if(s.fitMode) $('#fitMode').value=s.fitMode;
       if(s.resolution) $('#resolution').value=s.resolution;
       if(s.motion!=null){motionInput.value=s.motion;motionValue.value=`${s.motion}%`}
+      if(s.backgroundBlur!=null){backgroundBlur.value=s.backgroundBlur;backgroundBlurValue.value=`${s.backgroundBlur}%`}
+      if(s.backgroundShade!=null){backgroundShade.value=s.backgroundShade;backgroundShadeValue.value=`${s.backgroundShade}%`}
       if(s.randomSeed!=null) $('#randomSeed').checked=!!s.randomSeed;
       if(Number.isFinite(project.compositionSeed)) compositionSeed=project.compositionSeed;
       updateUI(); status.textContent=`Proyecto recuperado: ${items.length} imágenes listas para continuar.`;
@@ -656,6 +713,8 @@
   zipInput.addEventListener('change',e=>{loadProjectZip(e.target.files[0]);zipInput.value=''});
   shuffleBtn.addEventListener('click',()=>{compositionSeed=Math.random()*100000;drawFrame(0);status.textContent='Nueva composición preparada. Las posiciones y ángulos cambiaron.'});
   motionInput.addEventListener('input',()=>{motionValue.value=`${motionInput.value}%`;drawFrame(0)});
+  backgroundBlur.addEventListener('input',()=>{backgroundBlurValue.value=`${backgroundBlur.value}%`;drawFrame(0)});
+  backgroundShade.addEventListener('input',()=>{backgroundShadeValue.value=`${backgroundShade.value}%`;drawFrame(0)});
   ['secondsPerImage','transitionDuration','fitMode'].forEach(id=>$('#'+id).addEventListener('change',updateUI));
   $('#resolution').addEventListener('change',()=>status.textContent='La resolución elegida se aplicará al exportar. La previsualización se mantiene liviana.');
   window.addEventListener('beforeunload',()=>items.forEach(i=>URL.revokeObjectURL(i.url)));
