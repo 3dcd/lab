@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Creador de Reel de Imágenes 9:16</title>
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#141823;
+    --panel2:#1a2030;
+    --text:#f5f7fb;
+    --muted:#9da7ba;
+    --line:#2b3345;
+    --accent:#7c5cff;
+    --accent2:#36d1dc;
+    --danger:#ff5f6d;
+    --ok:#43d17a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:radial-gradient(circle at top,#1a2031 0,#0b0d12 48%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  body{padding:18px;overflow-x:hidden}
+  button,input,select{font:inherit}
+  .app{max-width:1480px;margin:auto;display:grid;grid-template-columns:minmax(320px,430px) minmax(340px,1fr);gap:20px;align-items:start}
+  .panel{background:rgba(20,24,35,.94);border:1px solid rgba(255,255,255,.08);border-radius:22px;box-shadow:0 20px 70px rgba(0,0,0,.35);overflow:hidden;backdrop-filter:blur(18px)}
+  .panelHead{padding:20px 20px 14px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:22px;line-height:1.2}
+  .sub{margin:7px 0 0;color:var(--muted);font-size:14px;line-height:1.45}
+  .body{padding:18px}
+  .drop{border:2px dashed #3a4560;border-radius:18px;min-height:132px;padding:20px;display:grid;place-items:center;text-align:center;background:linear-gradient(145deg,rgba(124,92,255,.10),rgba(54,209,220,.04));cursor:pointer;transition:.2s}
+  .drop.drag{border-color:var(--accent2);transform:translateY(-2px);background:rgba(54,209,220,.12)}
+  .drop strong{display:block;font-size:16px;margin-bottom:6px}
+  .drop span{color:var(--muted);font-size:13px}
+  .drop .big{font-size:30px;margin-bottom:8px}
+  input[type=file]{display:none}
+  .thumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;max-height:310px;overflow:auto;padding-right:3px}
+  .thumb{position:relative;height:96px;border-radius:13px;overflow:hidden;border:1px solid var(--line);background:#0d1017;cursor:grab;user-select:none}
+  .thumb.dragging{opacity:.35}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .num{position:absolute;left:7px;top:7px;width:25px;height:25px;display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.72);font-size:12px;font-weight:800}
+  .thumb .remove{position:absolute;right:7px;top:7px;width:27px;height:27px;border:0;border-radius:50%;background:rgba(0,0,0,.72);color:white;cursor:pointer}
+  .thumb .name{position:absolute;left:0;right:0;bottom:0;padding:18px 7px 6px;background:linear-gradient(transparent,rgba(0,0,0,.82));font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:17px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;color:var(--muted)}
+  .field input,.field select{width:100%;background:#0f131c;border:1px solid var(--line);color:var(--text);border-radius:11px;padding:10px 11px;outline:none}
+  .field input:focus,.field select:focus{border-color:var(--accent)}
+  .full{grid-column:1/-1}
+  .rangeRow{display:grid;grid-template-columns:1fr 58px;gap:8px;align-items:center}
+  input[type=range]{padding:0;border:0;accent-color:var(--accent)}
+  .buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .buttons .wide{grid-column:1/-1}
+  button.main{border:0;border-radius:13px;padding:12px 14px;font-weight:800;color:white;cursor:pointer;background:linear-gradient(135deg,var(--accent),#9c6cff);box-shadow:0 8px 24px rgba(124,92,255,.28)}
+  button.secondary{border:1px solid var(--line);border-radius:13px;padding:12px 14px;font-weight:700;color:var(--text);cursor:pointer;background:#111722}
+  button.danger{border-color:#5b2c36;color:#ff9ba5}
+  button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+  .status{margin-top:13px;padding:11px 12px;background:#0d1119;border:1px solid var(--line);border-radius:12px;color:var(--muted);font-size:12px;line-height:1.4;min-height:43px}
+  .stagePanel{padding:16px;display:grid;place-items:center;min-height:calc(100vh - 36px)}
+  .stageWrap{position:relative;width:min(56vh,100%);aspect-ratio:9/16;border-radius:24px;overflow:hidden;background:#050609;border:1px solid rgba(255,255,255,.12);box-shadow:0 25px 90px rgba(0,0,0,.5)}
+  canvas{width:100%;height:100%;display:block;background:#050609}
+  .overlayTop{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+  .pill{padding:7px 10px;border-radius:999px;background:rgba(0,0,0,.56);backdrop-filter:blur(8px);font-size:11px;color:#f1f4fa;border:1px solid rgba(255,255,255,.12)}
+  .timeline{position:absolute;left:13px;right:13px;bottom:13px;height:5px;border-radius:999px;background:rgba(255,255,255,.2);overflow:hidden}
+  .progress{height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:inherit}
+  .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:40px;color:var(--muted);pointer-events:none}
+  .empty b{display:block;color:white;font-size:18px;margin-bottom:6px}
+  .exporting{position:absolute;inset:0;background:rgba(4,5,8,.72);display:none;place-items:center;text-align:center;padding:30px;backdrop-filter:blur(8px)}
+  .exporting.show{display:grid}
+  .spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.18);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(max-width:900px){
+    body{padding:10px}
+    .app{grid-template-columns:1fr;gap:12px}
+    .stagePanel{min-height:auto;order:-1;padding:10px}
+    .stageWrap{width:min(66vw,390px)}
+    .panel{border-radius:18px}
+  }
+  @media(max-width:520px){
+    .stageWrap{width:min(88vw,390px)}
+    .settings{grid-template-columns:1fr}
+    .full{grid-column:auto}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="panel">
+    <div class="panelHead">
+      <h1>Creador de Reel de Imágenes</h1>
+      <p class="sub">Reel vertical 9:16 con entradas desde cámara, fundidos, profundidad y apilado de fotografías.</p>
+    </div>
+    <div class="body">
+      <label class="drop" id="dropZone" for="fileInput">
+        <div>
+          <div class="big">＋</div>
+          <strong>Arrastrá hasta 10 imágenes</strong>
+          <span>También podés tocar acá para elegirlas. JPG, PNG o WebP.</span>
+        </div>
+      </label>
+      <input id="fileInput" type="file" accept="image/*" multiple />
+      <div class="thumbs" id="thumbs"></div>
+
+      <div class="settings">
+        <div class="field">
+          <label>Tiempo por imagen</label>
+          <select id="secondsPerImage">
+            <option value="2.2">2,2 s — dinámico</option>
+            <option value="2.7" selected>2,7 s — equilibrado</option>
+            <option value="3.0">3 s — pausado</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Transición</label>
+          <select id="transitionDuration">
+            <option value="0.45">0,45 s — rápida</option>
+            <option value="0.65" selected>0,65 s — suave</option>
+            <option value="0.85">0,85 s — cinematográfica</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Ajuste de foto</label>
+          <select id="fitMode">
+            <option value="contain" selected>Completa con marco</option>
+            <option value="cover">Llenar y recortar</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Resolución de exportación</label>
+          <select id="resolution">
+            <option value="540">540 × 960 — rápido</option>
+            <option value="720" selected>720 × 1280 — recomendado</option>
+            <option value="1080">1080 × 1920 — alta calidad</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Movimiento y profundidad</label>
+          <div class="rangeRow">
+            <input id="motion" type="range" min="0" max="100" value="68" />
+            <input id="motionValue" type="text" value="68%" readonly />
+          </div>
+        </div>
+        <div class="field full">
+          <label><input id="randomSeed" type="checkbox" checked style="display:inline;width:auto;margin-right:7px">Variar posiciones y ángulos cada vez que se reproduce</label>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="playBtn" class="main" disabled>▶ Previsualizar</button>
+        <button id="stopBtn" class="secondary" disabled>■ Detener</button>
+        <button id="shuffleBtn" class="secondary">↻ Nueva composición</button>
+        <button id="clearBtn" class="secondary danger">Vaciar</button>
+        <button id="saveZipBtn" class="secondary" disabled>Guardar proyecto ZIP</button>
+        <button id="loadZipBtn" class="secondary">Abrir proyecto ZIP</button>
+        <input id="zipInput" type="file" accept=".zip,application/zip" />
+        <button id="exportBtn" class="main wide" disabled>Exportar video</button>
+      </div>
+      <div class="status" id="status">Agregá imágenes para comenzar. Con 10 fotos y 2,7 segundos por imagen, el reel dura aproximadamente 27 segundos.</div>
+    </div>
+  </section>
+
+  <section class="panel stagePanel">
+    <div class="stageWrap">
+      <canvas id="canvas" width="720" height="1280"></canvas>
+      <div class="overlayTop">
+        <div class="pill" id="counter">0 imágenes</div>
+        <div class="pill" id="durationPill">0,0 s</div>
+      </div>
+      <div class="timeline"><div class="progress" id="progress"></div></div>
+      <div class="empty" id="empty"><div><b>Reel 9:16</b>Las imágenes aparecerán apiladas con fundido y movimiento de cámara.</div></div>
+      <div class="exporting" id="exporting"><div><div class="spinner"></div><b>Generando video…</b><div id="exportText" style="margin-top:7px;color:#bdc5d4;font-size:13px">0%</div></div></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const canvas = $('#canvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const fileInput = $('#fileInput');
+  const dropZone = $('#dropZone');
+  const thumbs = $('#thumbs');
+  const playBtn = $('#playBtn');
+  const stopBtn = $('#stopBtn');
+  const exportBtn = $('#exportBtn');
+  const shuffleBtn = $('#shuffleBtn');
+  const clearBtn = $('#clearBtn');
+  const saveZipBtn = $('#saveZipBtn');
+  const loadZipBtn = $('#loadZipBtn');
+  const zipInput = $('#zipInput');
+  const progress = $('#progress');
+  const status = $('#status');
+  const empty = $('#empty');
+  const counter = $('#counter');
+  const durationPill = $('#durationPill');
+  const exporting = $('#exporting');
+  const exportText = $('#exportText');
+  const motionInput = $('#motion');
+  const motionValue = $('#motionValue');
+  let items = [];
+  let animationId = null;
+  let playing = false;
+  let startTime = 0;
+  let compositionSeed = Math.random() * 100000;
+  let dragIndex = null;
+
+  const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
+  const lerp = (a,b,t) => a+(b-a)*t;
+  const easeOutCubic = t => 1 - Math.pow(1-t,3);
+  const easeInOutCubic = t => t < .5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+  const fmt = n => n.toFixed(1).replace('.',',');
+  const hashRand = (index, salt=0) => {
+    const x = Math.sin((index+1)*12.9898 + (compositionSeed+salt)*78.233) * 43758.5453;
+    return x - Math.floor(x);
+  };
+
+  function settings(){
+    return {
+      per: +$('#secondsPerImage').value,
+      trans: +$('#transitionDuration').value,
+      fit: $('#fitMode').value,
+      motion: +motionInput.value / 100,
+      width: +$('#resolution').value,
+    };
+  }
+
+  function totalDuration(){
+    return items.length * settings().per;
+  }
+
+  function updateUI(){
+    const n = items.length;
+    playBtn.disabled = n === 0;
+    exportBtn.disabled = n === 0;
+    saveZipBtn.disabled = n === 0;
+    stopBtn.disabled = !playing;
+    empty.style.display = n ? 'none' : 'grid';
+    counter.textContent = `${n} ${n === 1 ? 'imagen' : 'imágenes'}`;
+    durationPill.textContent = `${fmt(totalDuration())} s`;
+    if(n){
+      status.textContent = `Duración estimada: ${fmt(totalDuration())} s. Arrastrá las miniaturas para cambiar el orden.`;
+    } else {
+      status.textContent = 'Agregá imágenes para comenzar. Con 10 fotos y 2,7 segundos por imagen, el reel dura aproximadamente 27 segundos.';
+    }
+    renderThumbs();
+    drawFrame(0);
+  }
+
+  function renderThumbs(){
+    thumbs.innerHTML='';
+    items.forEach((item,i)=>{
+      const d=document.createElement('div');
+      d.className='thumb';
+      d.draggable=true;
+      d.dataset.index=i;
+      d.innerHTML=`<img src="${item.url}" alt=""><div class="num">${i+1}</div><button class="remove" title="Quitar">×</button><div class="name"></div>`;
+      d.querySelector('.name').textContent=item.name;
+      d.querySelector('.remove').addEventListener('click',e=>{e.stopPropagation();removeItem(i)});
+      d.addEventListener('dragstart',()=>{dragIndex=i;d.classList.add('dragging')});
+      d.addEventListener('dragend',()=>{dragIndex=null;d.classList.remove('dragging')});
+      d.addEventListener('dragover',e=>e.preventDefault());
+      d.addEventListener('drop',e=>{
+        e.preventDefault();
+        const target=+d.dataset.index;
+        if(dragIndex===null || dragIndex===target) return;
+        const [moved]=items.splice(dragIndex,1);
+        items.splice(target,0,moved);
+        updateUI();
+      });
+      thumbs.appendChild(d);
+    });
+  }
+
+  async function addFiles(fileList){
+    const files=[...fileList].filter(f=>f.type.startsWith('image/')).slice(0,10-items.length);
+    if(!files.length) return;
+    for(const file of files){
+      try{
+        const url=URL.createObjectURL(file);
+        const img=await loadImage(url);
+        items.push({file,url,img,name:file.name});
+      }catch(err){console.warn('No se pudo cargar',file.name,err)}
+    }
+    updateUI();
+  }
+
+  function loadImage(src){
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>resolve(img);
+      img.onerror=reject;
+      img.src=src;
+    });
+  }
+
+  function removeItem(i){
+    URL.revokeObjectURL(items[i].url);
+    items.splice(i,1);
+    updateUI();
+  }
+
+  function clearAll(){
+    stop();
+    items.forEach(i=>URL.revokeObjectURL(i.url));
+    items=[];
+    progress.style.width='0%';
+    updateUI();
+  }
+
+  function resizeCanvasForExport(width){
+    canvas.width=width;
+    canvas.height=Math.round(width*16/9);
+  }
+
+  function drawCover(img,x,y,w,h,blur=0,alpha=1){
+    const ir=img.width/img.height, tr=w/h;
+    let sw,sh,sx,sy;
+    if(ir>tr){sh=img.height;sw=sh*tr;sx=(img.width-sw)/2;sy=0}
+    else{sw=img.width;sh=sw/tr;sx=0;sy=(img.height-sh)/2}
+    ctx.save();ctx.globalAlpha=alpha;ctx.filter=blur?`blur(${blur}px)`:'none';ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);ctx.restore();
+  }
+
+  function roundedRectPath(x,y,w,h,r){
+    const rr=Math.min(r,w/2,h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
+  }
+
+  function drawPhoto(item,index,t,overall){
+    const {fit,motion}=settings();
+    const W=canvas.width,H=canvas.height;
+    const randX=(hashRand(index,2)-.5)*2;
+    const randY=(hashRand(index,3)-.5)*2;
+    const randR=(hashRand(index,4)-.5)*2;
+    const aspect=item.img.width/item.img.height;
+    let cardW=W*.78, cardH=cardW/aspect;
+    const maxH=H*.70;
+    if(cardH>maxH){cardH=maxH;cardW=cardH*aspect}
+    if(fit==='cover'){
+      cardW=W*.84; cardH=H*.63;
+    }
+    const pad=fit==='contain'?Math.max(8,W*.012):0;
+    const enter=easeOutCubic(clamp(t/.26,0,1));
+    const drift=easeInOutCubic(clamp((t-.18)/.82,0,1));
+    const scale=lerp(1.30+motion*.18,1,enter) * lerp(1,0.965-motion*.025,drift);
+    const alpha=clamp(t/.18,0,1);
+    const x= W/2 + randX*W*.11*motion*(1-enter) + randX*W*.025*drift;
+    const y= H/2 + randY*H*.10*motion*(1-enter) + randY*H*.018*drift;
+    const rot=(randR*.095*motion)*(1-enter) + randR*.028*motion;
+
+    ctx.save();
+    ctx.translate(x,y);ctx.rotate(rot);ctx.scale(scale,scale);ctx.globalAlpha=alpha;
+    ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=W*.055;ctx.shadowOffsetY=W*.025;
+    roundedRectPath(-cardW/2,-cardH/2,cardW,cardH,W*.025);
+    ctx.fillStyle=fit==='contain'?'#f8f8f5':'#111';ctx.fill();
+    ctx.shadowColor='transparent';
+    roundedRectPath(-cardW/2+pad,-cardH/2+pad,cardW-pad*2,cardH-pad*2,W*.018);
+    ctx.clip();
+    if(fit==='cover') drawCover(item.img,-cardW/2,-cardH/2,cardW,cardH,0,1);
+    else ctx.drawImage(item.img,-cardW/2+pad,-cardH/2+pad,cardW-pad*2,cardH-pad*2);
+    ctx.restore();
+  }
+
+  function drawFrame(timeSec){
+    const W=canvas.width,H=canvas.height;
+    ctx.save();
+    ctx.fillStyle='#050609';ctx.fillRect(0,0,W,H);
+    if(!items.length){ctx.restore();return}
+    const {per,trans}=settings();
+    const total=totalDuration();
+    const safeTime=clamp(timeSec,0,Math.max(0,total-.001));
+    const current=Math.min(items.length-1,Math.floor(safeTime/per));
+    const local=(safeTime-current*per)/per;
+
+    // Fondo: foto actual ampliada y desenfocada con viñeta.
+    drawCover(items[current].img,-W*.08,-H*.05,W*1.16,H*1.10,W*.035,.44);
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'rgba(5,7,12,.35)');g.addColorStop(.5,'rgba(5,7,12,.12)');g.addColorStop(1,'rgba(5,7,12,.58)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+
+    // Mantiene algunas fotos previas apiladas para dar continuidad.
+    const first=Math.max(0,current-3);
+    for(let i=first;i<current;i++){
+      const age=current-i;
+      const pseudoT=1 + age*.18;
+      ctx.save();ctx.globalAlpha=Math.max(.18,1-age*.21);drawPhoto(items[i],i,pseudoT,safeTime/total);ctx.restore();
+    }
+    drawPhoto(items[current],current,local,safeTime/total);
+
+    // Brillo sutil de entrada.
+    if(local < trans/per){
+      const a=(1-local/(trans/per))*.14;
+      ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillRect(0,0,W,H);
+    }
+    ctx.restore();
+  }
+
+  function play(){
+    if(!items.length) return;
+    stop();
+    if($('#randomSeed').checked) compositionSeed=Math.random()*100000;
+    playing=true;startTime=performance.now();
+    playBtn.textContent='↻ Reiniciar';stopBtn.disabled=false;
+    const tick=now=>{
+      const elapsed=(now-startTime)/1000;
+      const total=totalDuration();
+      if(elapsed>=total){drawFrame(total-.001);progress.style.width='100%';playing=false;stopBtn.disabled=true;playBtn.textContent='▶ Previsualizar';return}
+      drawFrame(elapsed);progress.style.width=`${elapsed/total*100}%`;
+      animationId=requestAnimationFrame(tick);
+    };
+    animationId=requestAnimationFrame(tick);
+  }
+
+  function stop(){
+    if(animationId) cancelAnimationFrame(animationId);
+    animationId=null;playing=false;stopBtn.disabled=true;playBtn.textContent='▶ Previsualizar';
+  }
+
+  function chooseMime(){
+    const candidates=[
+      'video/mp4;codecs=h264',
+      'video/mp4;codecs=avc1.42E01E',
+      'video/mp4',
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm'
+    ];
+    return candidates.find(t=>window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+  }
+
+  async function exportVideo(){
+    if(!items.length || !window.MediaRecorder){
+      alert('Este navegador no permite grabar video desde el canvas. Probá con Chrome, Edge o Safari actualizado.');return;
+    }
+    stop();
+    exportBtn.disabled=true;playBtn.disabled=true;exporting.classList.add('show');
+    const oldW=canvas.width;
+    const width=settings().width;
+    resizeCanvasForExport(width);
+    const stream=canvas.captureStream(30);
+    const mime=chooseMime();
+    let recorder;
+    try{recorder=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:width>=1080?12_000_000:width>=720?7_000_000:4_000_000}:{videoBitsPerSecond:7_000_000})}
+    catch(err){
+      console.error(err);exporting.classList.remove('show');resizeCanvasForExport(oldW);exportBtn.disabled=false;playBtn.disabled=false;alert('No se pudo iniciar la exportación en este navegador.');return;
+    }
+    const chunks=[];
+    recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+    const done=new Promise(resolve=>recorder.onstop=resolve);
+    recorder.start(250);
+    const total=totalDuration();
+    const fps=30;
+    const totalFrames=Math.ceil(total*fps);
+    const frameMs=1000/fps;
+    for(let f=0;f<totalFrames;f++){
+      const t=Math.min(total-.001,f/fps);
+      drawFrame(t);
+      const p=Math.round((f+1)/totalFrames*100);
+      exportText.textContent=`${p}% · ${fmt(t)} / ${fmt(total)} s`;
+      await new Promise(r=>setTimeout(r,frameMs));
+    }
+    recorder.stop();
+    await done;
+    const actualType=recorder.mimeType || mime || 'video/webm';
+    const ext=actualType.includes('mp4')?'mp4':'webm';
+    const blob=new Blob(chunks,{type:actualType});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=`reel-imagenes-9x16.${ext}`;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+    resizeCanvasForExport(oldW);
+    drawFrame(0);progress.style.width='0%';
+    exporting.classList.remove('show');exportBtn.disabled=false;playBtn.disabled=false;
+    status.textContent=ext==='mp4'?'Video MP4 exportado correctamente.':'El navegador exportó WebM. Podés abrirlo o convertirlo a MP4 sin pérdida apreciable.';
+  }
+
+
+  // ZIP autónomo sin librerías externas. Guarda los archivos sin compresión
+  // para que el proyecto pueda abrirse incluso sin conexión a internet.
+  const textEncoder = new TextEncoder();
+  const textDecoder = new TextDecoder();
+  const crcTable = (()=>{
+    const table=new Uint32Array(256);
+    for(let n=0;n<256;n++){
+      let c=n;
+      for(let k=0;k<8;k++) c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);
+      table[n]=c>>>0;
+    }
+    return table;
+  })();
+  function crc32(bytes){
+    let c=0xffffffff;
+    for(const b of bytes) c=crcTable[(c^b)&255]^(c>>>8);
+    return (c^0xffffffff)>>>0;
+  }
+  function u16(v){return new Uint8Array([v&255,(v>>>8)&255])}
+  function u32(v){return new Uint8Array([v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255])}
+  function concatBytes(parts){
+    const len=parts.reduce((n,p)=>n+p.length,0), out=new Uint8Array(len);
+    let off=0; for(const p of parts){out.set(p,off);off+=p.length} return out;
+  }
+  function safeName(name,index){
+    const cleaned=(name||`imagen-${index+1}.jpg`).replace(/[\\/:*?"<>|]/g,'-');
+    return `${String(index+1).padStart(2,'0')}-${cleaned}`;
+  }
+  async function makeZip(entries){
+    const locals=[], centrals=[]; let offset=0;
+    for(const entry of entries){
+      const name=textEncoder.encode(entry.name), data=entry.data instanceof Uint8Array?entry.data:new Uint8Array(entry.data);
+      const crc=crc32(data), size=data.length;
+      const local=concatBytes([u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(crc),u32(size),u32(size),u16(name.length),u16(0),name,data]);
+      locals.push(local);
+      const central=concatBytes([u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(crc),u32(size),u32(size),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]);
+      centrals.push(central); offset+=local.length;
+    }
+    const centralBlob=concatBytes(centrals);
+    const end=concatBytes([u32(0x06054b50),u16(0),u16(0),u16(entries.length),u16(entries.length),u32(centralBlob.length),u32(offset),u16(0)]);
+    return new Blob([...locals,centralBlob,end],{type:'application/zip'});
+  }
+  function readU16(v,o){return v.getUint16(o,true)}
+  function readU32(v,o){return v.getUint32(o,true)}
+  async function parseStoredZip(file){
+    const bytes=new Uint8Array(await file.arrayBuffer()), view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength), entries=new Map();
+    let o=0;
+    while(o+30<=bytes.length && readU32(view,o)===0x04034b50){
+      const flags=readU16(view,o+6), method=readU16(view,o+8), comp=readU32(view,o+18), nameLen=readU16(view,o+26), extraLen=readU16(view,o+28);
+      if(flags&0x08) throw new Error('ZIP con descriptor de datos no compatible.');
+      if(method!==0) throw new Error('Este proyecto ZIP usa compresión no compatible.');
+      const name=textDecoder.decode(bytes.slice(o+30,o+30+nameLen));
+      const start=o+30+nameLen+extraLen, end=start+comp;
+      entries.set(name,bytes.slice(start,end)); o=end;
+    }
+    return entries;
+  }
+  function localDateStamp(){
+    const d=new Date(), y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  async function saveProjectZip(){
+    if(!items.length) return;
+    stop(); saveZipBtn.disabled=true;
+    try{
+      const imageEntries=[], imageMeta=[];
+      for(let i=0;i<items.length;i++){
+        const item=items[i], filename=`imagenes/${safeName(item.name,i)}`;
+        const data=new Uint8Array(await item.file.arrayBuffer());
+        imageEntries.push({name:filename,data});
+        imageMeta.push({filename,name:item.name,type:item.file.type||'image/jpeg'});
+      }
+      const project={
+        app:'Editor de Reels',version:1,savedAt:new Date().toISOString(),compositionSeed,
+        settings:{secondsPerImage:$('#secondsPerImage').value,transitionDuration:$('#transitionDuration').value,fitMode:$('#fitMode').value,resolution:$('#resolution').value,motion:motionInput.value,randomSeed:$('#randomSeed').checked},
+        images:imageMeta
+      };
+      const zip=await makeZip([{name:'proyecto.json',data:textEncoder.encode(JSON.stringify(project,null,2))},...imageEntries]);
+      const url=URL.createObjectURL(zip), a=document.createElement('a');
+      a.href=url;a.download=`editor-de-reels_${localDateStamp()}.zip`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
+      status.textContent='Proyecto ZIP guardado con imágenes, orden, composición y configuración.';
+    }catch(err){console.error(err);alert('No se pudo guardar el proyecto ZIP.');}
+    finally{saveZipBtn.disabled=items.length===0;}
+  }
+  async function loadProjectZip(file){
+    if(!file) return;
+    stop();
+    try{
+      const entries=await parseStoredZip(file), projectBytes=entries.get('proyecto.json');
+      if(!projectBytes) throw new Error('No contiene proyecto.json');
+      const project=JSON.parse(textDecoder.decode(projectBytes));
+      if(project.app!=='Editor de Reels' || !Array.isArray(project.images)) throw new Error('Proyecto no reconocido');
+      items.forEach(i=>URL.revokeObjectURL(i.url)); items=[];
+      for(const meta of project.images.slice(0,10)){
+        const data=entries.get(meta.filename); if(!data) continue;
+        const blob=new Blob([data],{type:meta.type||'image/jpeg'}), restoredFile=new File([blob],meta.name||meta.filename.split('/').pop(),{type:blob.type});
+        const url=URL.createObjectURL(restoredFile), img=await loadImage(url);
+        items.push({file:restoredFile,url,img,name:restoredFile.name});
+      }
+      const s=project.settings||{};
+      if(s.secondsPerImage) $('#secondsPerImage').value=s.secondsPerImage;
+      if(s.transitionDuration) $('#transitionDuration').value=s.transitionDuration;
+      if(s.fitMode) $('#fitMode').value=s.fitMode;
+      if(s.resolution) $('#resolution').value=s.resolution;
+      if(s.motion!=null){motionInput.value=s.motion;motionValue.value=`${s.motion}%`}
+      if(s.randomSeed!=null) $('#randomSeed').checked=!!s.randomSeed;
+      if(Number.isFinite(project.compositionSeed)) compositionSeed=project.compositionSeed;
+      updateUI(); status.textContent=`Proyecto recuperado: ${items.length} imágenes listas para continuar.`;
+    }catch(err){console.error(err);alert('No se pudo abrir este ZIP. Usá un proyecto guardado desde esta herramienta.');}
+  }
+
+  fileInput.addEventListener('change',e=>{addFiles(e.target.files);fileInput.value=''});
+  ['dragenter','dragover'].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.add('drag')}));
+  ['dragleave','drop'].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.remove('drag')}));
+  dropZone.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
+  playBtn.addEventListener('click',play);
+  stopBtn.addEventListener('click',stop);
+  exportBtn.addEventListener('click',exportVideo);
+  clearBtn.addEventListener('click',clearAll);
+  saveZipBtn.addEventListener('click',saveProjectZip);
+  loadZipBtn.addEventListener('click',()=>zipInput.click());
+  zipInput.addEventListener('change',e=>{loadProjectZip(e.target.files[0]);zipInput.value=''});
+  shuffleBtn.addEventListener('click',()=>{compositionSeed=Math.random()*100000;drawFrame(0);status.textContent='Nueva composición preparada. Las posiciones y ángulos cambiaron.'});
+  motionInput.addEventListener('input',()=>{motionValue.value=`${motionInput.value}%`;drawFrame(0)});
+  ['secondsPerImage','transitionDuration','fitMode'].forEach(id=>$('#'+id).addEventListener('change',updateUI));
+  $('#resolution').addEventListener('change',()=>status.textContent='La resolución elegida se aplicará al exportar. La previsualización se mantiene liviana.');
+  window.addEventListener('beforeunload',()=>items.forEach(i=>URL.revokeObjectURL(i.url)));
+  updateUI();
+})();
+</script>
+</body>
+</html>
