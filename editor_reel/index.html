@@ -59,7 +59,7 @@
   button.danger{border-color:#5b2c36;color:#ff9ba5}
   button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
   .status{margin-top:13px;padding:11px 12px;background:#0d1119;border:1px solid var(--line);border-radius:12px;color:var(--muted);font-size:12px;line-height:1.4;min-height:43px}
-  .stagePanel{padding:16px;display:grid;place-items:center;min-height:calc(100vh - 36px)}
+  .stagePanel{padding:16px;display:grid;place-items:center;min-height:calc(100vh - 36px);scroll-margin-top:10px}
   .stageWrap{position:relative;width:min(56vh,100%);aspect-ratio:9/16;border-radius:24px;overflow:hidden;background:#050609;border:1px solid rgba(255,255,255,.12);box-shadow:0 25px 90px rgba(0,0,0,.5)}
   canvas{width:100%;height:100%;display:block;background:#050609}
   .overlayTop{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
@@ -166,9 +166,6 @@
           <label><input id="pastelFrames" type="checkbox" style="display:inline;width:auto;margin-right:7px">Usar bordes pastel aleatorios en las fotografías</label>
         </div>
         <div class="field full">
-          <label><input id="wornEdges" type="checkbox" style="display:inline;width:auto;margin-right:7px">Bordes gastados en “Llenar y recortar”</label>
-        </div>
-        <div class="field full">
           <label><input id="randomSeed" type="checkbox" checked style="display:inline;width:auto;margin-right:7px">Variar posiciones y ángulos cada vez que se reproduce</label>
         </div>
       </div>
@@ -231,7 +228,6 @@
   const backgroundBlurValue = $('#backgroundBlurValue');
   const backgroundShade = $('#backgroundShade');
   const backgroundShadeValue = $('#backgroundShadeValue');
-  const wornEdges = $('#wornEdges');
   let items = [];
   let animationId = null;
   let playing = false;
@@ -259,7 +255,6 @@
       backgroundBlur: +backgroundBlur.value / 100,
       backgroundShade: +backgroundShade.value / 100,
       pastelFrames: $('#pastelFrames').checked,
-      wornEdges: wornEdges.checked,
     };
   }
 
@@ -448,15 +443,12 @@
     ctx.save();
     ctx.translate(L.x,L.y);ctx.rotate(L.rot);ctx.scale(L.scale,L.scale);ctx.globalAlpha=L.alpha;
     ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=W*.055;ctx.shadowOffsetY=W*.025;
-    const useWorn=L.fit==='cover' && settings().wornEdges;
-    if(useWorn) wornRectPath(-L.cardW/2,-L.cardH/2,L.cardW,L.cardH,index);
-    else roundedRectPath(-L.cardW/2,-L.cardH/2,L.cardW,L.cardH,W*.025);
+    roundedRectPath(-L.cardW/2,-L.cardH/2,L.cardW,L.cardH,W*.025);
     const framePalette=['#F9D9E2','#DCEBFF','#DFF3E3','#FFF0C9','#E9DDF8','#DDF3F0','#FBE2CF'];
     const frameColor=settings().pastelFrames ? framePalette[Math.floor(hashRand(index,71)*framePalette.length)%framePalette.length] : '#f8f8f5';
     ctx.fillStyle=L.fit==='contain'?frameColor:'#111';ctx.fill();
     ctx.shadowColor='transparent';
-    if(useWorn) wornRectPath(-L.cardW/2,-L.cardH/2,L.cardW,L.cardH,index);
-    else roundedRectPath(-L.cardW/2+L.pad,-L.cardH/2+L.pad,L.cardW-L.pad*2,L.cardH-L.pad*2,W*.018);
+    roundedRectPath(-L.cardW/2+L.pad,-L.cardH/2+L.pad,L.cardW-L.pad*2,L.cardH-L.pad*2,W*.018);
     ctx.clip();
     if(L.fit==='cover') drawCover(item.img,-L.cardW/2,-L.cardH/2,L.cardW,L.cardH,0,1);
     else ctx.drawImage(item.img,-L.cardW/2+L.pad,-L.cardH/2+L.pad,L.cardW-L.pad*2,L.cardH-L.pad*2);
@@ -783,8 +775,8 @@
         imageMeta.push({filename,name:item.name,type:item.file.type||'image/jpeg',bubbleText:item.bubbleText||'',bubbleType:item.bubbleType||'speech',bubbleEnabled:item.bubbleEnabled!==false});
       }
       const project={
-        app:'Editor de Reels',version:3,savedAt:new Date().toISOString(),compositionSeed,
-        settings:{secondsPerImage:$('#secondsPerImage').value,transitionDuration:$('#transitionDuration').value,fitMode:$('#fitMode').value,resolution:$('#resolution').value,motion:motionInput.value,backgroundBlur:backgroundBlur.value,backgroundShade:backgroundShade.value,pastelFrames:$('#pastelFrames').checked,wornEdges:wornEdges.checked,randomSeed:$('#randomSeed').checked},
+        app:'Editor de Reels',version:4,savedAt:new Date().toISOString(),compositionSeed,
+        settings:{secondsPerImage:$('#secondsPerImage').value,transitionDuration:$('#transitionDuration').value,fitMode:$('#fitMode').value,resolution:$('#resolution').value,motion:motionInput.value,backgroundBlur:backgroundBlur.value,backgroundShade:backgroundShade.value,pastelFrames:$('#pastelFrames').checked,randomSeed:$('#randomSeed').checked},
         images:imageMeta
       };
       const zip=await makeZip([{name:'proyecto.json',data:textEncoder.encode(JSON.stringify(project,null,2))},...imageEntries]);
@@ -818,7 +810,6 @@
       if(s.backgroundBlur!=null){backgroundBlur.value=s.backgroundBlur;backgroundBlurValue.value=`${s.backgroundBlur}%`}
       if(s.backgroundShade!=null){backgroundShade.value=s.backgroundShade;backgroundShadeValue.value=`${s.backgroundShade}%`}
       if(s.pastelFrames!=null) $('#pastelFrames').checked=!!s.pastelFrames;
-      if(s.wornEdges!=null) wornEdges.checked=!!s.wornEdges;
       if(s.randomSeed!=null) $('#randomSeed').checked=!!s.randomSeed;
       if(Number.isFinite(project.compositionSeed)) compositionSeed=project.compositionSeed;
       updateUI(); status.textContent=`Proyecto recuperado: ${items.length} imágenes listas para continuar.`;
@@ -829,7 +820,12 @@
   ['dragenter','dragover'].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.add('drag')}));
   ['dragleave','drop'].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.remove('drag')}));
   dropZone.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
-  playBtn.addEventListener('click',play);
+  playBtn.addEventListener('click',()=>{
+    if(window.matchMedia('(max-width: 900px)').matches){
+      document.querySelector('.stagePanel').scrollIntoView({behavior:'smooth',block:'start'});
+    }
+    play();
+  });
   stopBtn.addEventListener('click',stop);
   exportBtn.addEventListener('click',exportVideo);
   clearBtn.addEventListener('click',clearAll);
@@ -842,7 +838,6 @@
   backgroundShade.addEventListener('input',()=>{backgroundShadeValue.value=`${backgroundShade.value}%`;drawFrame(0)});
   ['secondsPerImage','transitionDuration','fitMode'].forEach(id=>$('#'+id).addEventListener('change',updateUI));
   $('#pastelFrames').addEventListener('change',()=>drawFrame(0));
-  wornEdges.addEventListener('change',()=>drawFrame(0));
   $('#resolution').addEventListener('change',()=>status.textContent='La resolución elegida se aplicará al exportar. La previsualización se mantiene liviana.');
   window.addEventListener('beforeunload',()=>items.forEach(i=>URL.revokeObjectURL(i.url)));
   updateUI();
