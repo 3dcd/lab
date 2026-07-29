@@ -34,12 +34,12 @@
   .drop .big{font-size:30px;margin-bottom:8px}
   input[type=file]{display:none}
   .thumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;max-height:310px;overflow:auto;padding-right:3px}
-  .thumb{position:relative;height:96px;border-radius:13px;overflow:hidden;border:1px solid var(--line);background:#0d1017;cursor:grab;user-select:none}
+  .thumb{position:relative;min-height:178px;border-radius:13px;overflow:hidden;border:1px solid var(--line);background:#0d1017;cursor:grab;user-select:none}
   .thumb.dragging{opacity:.35}
-  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb img{width:100%;height:96px;object-fit:cover;display:block}
   .thumb .num{position:absolute;left:7px;top:7px;width:25px;height:25px;display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.72);font-size:12px;font-weight:800}
   .thumb .remove{position:absolute;right:7px;top:7px;width:27px;height:27px;border:0;border-radius:50%;background:rgba(0,0,0,.72);color:white;cursor:pointer}
-  .thumb .name{position:absolute;left:0;right:0;bottom:0;padding:18px 7px 6px;background:linear-gradient(transparent,rgba(0,0,0,.82));font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .thumb .name{position:absolute;left:0;right:0;top:68px;padding:18px 7px 6px;background:linear-gradient(transparent,rgba(0,0,0,.82));font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bubbleEdit{padding:8px;display:grid;grid-template-columns:1fr 105px;gap:7px;background:#111722}.bubbleEdit input,.bubbleEdit select{min-width:0;width:100%;background:#0b0f17;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:8px;font-size:12px}.bubbleEdit .bubbleToggle{grid-column:1/-1;display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px}.bubbleEdit .bubbleToggle input{width:auto}.bubbleHint{grid-column:1/-1;color:#7f899c;font-size:10px;line-height:1.25}
   .settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:17px}
   .field{display:flex;flex-direction:column;gap:6px}
   .field label{font-size:12px;color:var(--muted)}
@@ -93,7 +93,7 @@
       <label class="drop" id="dropZone" for="fileInput">
         <div>
           <div class="big">＋</div>
-          <strong>Arrastrá hasta 10 imágenes</strong>
+          <strong>Arrastrá hasta 20 imágenes</strong>
           <span>También podés tocar acá para elegirlas. JPG, PNG o WebP.</span>
         </div>
       </label>
@@ -128,8 +128,8 @@
           <label>Resolución de exportación</label>
           <select id="resolution">
             <option value="540">540 × 960 — rápido</option>
-            <option value="720" selected>720 × 1280 — recomendado</option>
-            <option value="1080">1080 × 1920 — alta calidad</option>
+            <option value="720">720 × 1280 — liviano</option>
+            <option value="1080" selected>1080 × 1920 — calidad óptima</option>
           </select>
         </div>
         <div class="field full">
@@ -154,7 +154,7 @@
         <input id="zipInput" type="file" accept=".zip,application/zip" />
         <button id="exportBtn" class="main wide" disabled>Exportar video</button>
       </div>
-      <div class="status" id="status">Agregá imágenes para comenzar. Con 10 fotos y 2,7 segundos por imagen, el reel dura aproximadamente 27 segundos.</div>
+      <div class="status" id="status">Agregá imágenes para comenzar. Con 10 fotos y 2,7 segundos por imagen, el reel dura aproximadamente 27 segundos. Podés cargar hasta 20.</div>
     </div>
   </section>
 
@@ -241,11 +241,13 @@
     if(n){
       status.textContent = `Duración estimada: ${fmt(totalDuration())} s. Arrastrá las miniaturas para cambiar el orden.`;
     } else {
-      status.textContent = 'Agregá imágenes para comenzar. Con 10 fotos y 2,7 segundos por imagen, el reel dura aproximadamente 27 segundos.';
+      status.textContent = 'Agregá imágenes para comenzar. Con 10 fotos y 2,7 segundos por imagen, el reel dura aproximadamente 27 segundos. Podés cargar hasta 20.';
     }
     renderThumbs();
     drawFrame(0);
   }
+
+  function escapeHtml(v){return String(v).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]))}
 
   function renderThumbs(){
     thumbs.innerHTML='';
@@ -254,8 +256,11 @@
       d.className='thumb';
       d.draggable=true;
       d.dataset.index=i;
-      d.innerHTML=`<img src="${item.url}" alt=""><div class="num">${i+1}</div><button class="remove" title="Quitar">×</button><div class="name"></div>`;
+      d.innerHTML=`<img src="${item.url}" alt=""><div class="num">${i+1}</div><button class="remove" title="Quitar">×</button><div class="name"></div><div class="bubbleEdit"><input class="bubbleText" type="text" maxlength="90" placeholder="Texto del globito (opcional)" value="${escapeHtml(item.bubbleText||'')}"><select class="bubbleType"><option value="speech" ${item.bubbleType==='speech'?'selected':''}>Diálogo</option><option value="thought" ${item.bubbleType==='thought'?'selected':''}>Pensamiento</option><option value="label" ${item.bubbleType==='label'?'selected':''}>Cartel</option></select><label class="bubbleToggle"><input class="bubbleEnabled" type="checkbox" ${item.bubbleEnabled!==false?'checked':''}> Mostrar globito cuando tenga texto</label><div class="bubbleHint">Cada foto conserva su texto, tipo y ubicación automática.</div></div>`;
       d.querySelector('.name').textContent=item.name;
+      d.querySelector('.bubbleText').addEventListener('input',e=>{item.bubbleText=e.target.value;drawFrame(0)});
+      d.querySelector('.bubbleType').addEventListener('change',e=>{item.bubbleType=e.target.value;drawFrame(0)});
+      d.querySelector('.bubbleEnabled').addEventListener('change',e=>{item.bubbleEnabled=e.target.checked;drawFrame(0)});
       d.querySelector('.remove').addEventListener('click',e=>{e.stopPropagation();removeItem(i)});
       d.addEventListener('dragstart',()=>{dragIndex=i;d.classList.add('dragging')});
       d.addEventListener('dragend',()=>{dragIndex=null;d.classList.remove('dragging')});
@@ -273,13 +278,13 @@
   }
 
   async function addFiles(fileList){
-    const files=[...fileList].filter(f=>f.type.startsWith('image/')).slice(0,10-items.length);
+    const files=[...fileList].filter(f=>f.type.startsWith('image/')).slice(0,20-items.length);
     if(!files.length) return;
     for(const file of files){
       try{
         const url=URL.createObjectURL(file);
         const img=await loadImage(url);
-        items.push({file,url,img,name:file.name});
+        items.push({file,url,img,name:file.name,bubbleText:'',bubbleType:'speech',bubbleEnabled:true});
       }catch(err){console.warn('No se pudo cargar',file.name,err)}
     }
     updateUI();
@@ -362,6 +367,56 @@
     ctx.restore();
   }
 
+  function wrapLines(text,maxWidth,font){
+    ctx.font=font;
+    const words=String(text).trim().split(/\s+/), lines=[]; let line='';
+    for(const word of words){
+      const test=line?`${line} ${word}`:word;
+      if(ctx.measureText(test).width>maxWidth && line){lines.push(line);line=word}else line=test;
+    }
+    if(line) lines.push(line);
+    return lines.slice(0,4);
+  }
+
+  function drawBubble(item,index,t){
+    if(!item.bubbleText?.trim() || item.bubbleEnabled===false) return;
+    const W=canvas.width,H=canvas.height;
+    const appear=easeOutCubic(clamp((t-.24)/.22,0,1));
+    if(appear<=0) return;
+    const side=hashRand(index,21)>.5?1:-1;
+    const upper=hashRand(index,22)>.46;
+    const palette=['#F9D9E2','#DCEBFF','#DFF3E3','#FFF0C9','#E9DDF8','#DDF3F0','#FBE2CF'];
+    const color=palette[Math.floor(hashRand(index,23)*palette.length)%palette.length];
+    const fontSize=Math.round(W*.040);
+    const font=`700 ${fontSize}px Inter,system-ui,sans-serif`;
+    const maxTextW=W*.46;
+    const lines=wrapLines(item.bubbleText,maxTextW,font);
+    const lineH=fontSize*1.22,padX=W*.037,padY=W*.026;
+    ctx.font=font;
+    const textW=Math.max(...lines.map(l=>ctx.measureText(l).width),fontSize*3);
+    const bw=Math.min(W*.60,textW+padX*2), bh=lines.length*lineH+padY*2;
+    let x=side>0?W*.68-bw/2:W*.32-bw/2;
+    let y=upper?H*.18:H*.70;
+    x+= (hashRand(index,24)-.5)*W*.08;
+    y+= (hashRand(index,25)-.5)*H*.07;
+    x=clamp(x,W*.04,W-bw-W*.04); y=clamp(y,H*.06,H-bh-H*.08);
+    const rot=(hashRand(index,26)-.5)*.09;
+    const scale=lerp(.72,1,appear);
+    ctx.save();ctx.translate(x+bw/2,y+bh/2);ctx.rotate(rot);ctx.scale(scale,scale);ctx.globalAlpha=appear;
+    ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=W*.025;ctx.shadowOffsetY=W*.012;
+    roundedRectPath(-bw/2,-bh/2,bw,bh,W*.035);ctx.fillStyle=color;ctx.fill();ctx.shadowColor='transparent';
+    ctx.fillStyle='#20232b';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=font;
+    lines.forEach((line,i)=>ctx.fillText(line,0,(i-(lines.length-1)/2)*lineH));
+    if(item.bubbleType==='speech'){
+      const tailX=side>0?-bw*.23:bw*.23;
+      ctx.beginPath();ctx.moveTo(tailX,bh/2-W*.004);ctx.lineTo(tailX-side*W*.055,bh/2+W*.065);ctx.lineTo(tailX+side*W*.055,bh/2-W*.004);ctx.closePath();ctx.fillStyle=color;ctx.fill();
+    }else if(item.bubbleType==='thought'){
+      ctx.beginPath();ctx.arc(side>0?-bw*.28:bw*.28,bh/2+W*.035,W*.020,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+      ctx.beginPath();ctx.arc(side>0?-bw*.34:bw*.34,bh/2+W*.075,W*.011,0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawFrame(timeSec){
     const W=canvas.width,H=canvas.height;
     ctx.save();
@@ -387,6 +442,7 @@
       ctx.save();ctx.globalAlpha=Math.max(.18,1-age*.21);drawPhoto(items[i],i,pseudoT,safeTime/total);ctx.restore();
     }
     drawPhoto(items[current],current,local,safeTime/total);
+    drawBubble(items[current],current,local);
 
     // Brillo sutil de entrada.
     if(local < trans/per){
@@ -546,10 +602,10 @@
         const item=items[i], filename=`imagenes/${safeName(item.name,i)}`;
         const data=new Uint8Array(await item.file.arrayBuffer());
         imageEntries.push({name:filename,data});
-        imageMeta.push({filename,name:item.name,type:item.file.type||'image/jpeg'});
+        imageMeta.push({filename,name:item.name,type:item.file.type||'image/jpeg',bubbleText:item.bubbleText||'',bubbleType:item.bubbleType||'speech',bubbleEnabled:item.bubbleEnabled!==false});
       }
       const project={
-        app:'Editor de Reels',version:1,savedAt:new Date().toISOString(),compositionSeed,
+        app:'Editor de Reels',version:2,savedAt:new Date().toISOString(),compositionSeed,
         settings:{secondsPerImage:$('#secondsPerImage').value,transitionDuration:$('#transitionDuration').value,fitMode:$('#fitMode').value,resolution:$('#resolution').value,motion:motionInput.value,randomSeed:$('#randomSeed').checked},
         images:imageMeta
       };
@@ -569,11 +625,11 @@
       const project=JSON.parse(textDecoder.decode(projectBytes));
       if(project.app!=='Editor de Reels' || !Array.isArray(project.images)) throw new Error('Proyecto no reconocido');
       items.forEach(i=>URL.revokeObjectURL(i.url)); items=[];
-      for(const meta of project.images.slice(0,10)){
+      for(const meta of project.images.slice(0,20)){
         const data=entries.get(meta.filename); if(!data) continue;
         const blob=new Blob([data],{type:meta.type||'image/jpeg'}), restoredFile=new File([blob],meta.name||meta.filename.split('/').pop(),{type:blob.type});
         const url=URL.createObjectURL(restoredFile), img=await loadImage(url);
-        items.push({file:restoredFile,url,img,name:restoredFile.name});
+        items.push({file:restoredFile,url,img,name:restoredFile.name,bubbleText:meta.bubbleText||'',bubbleType:meta.bubbleType||'speech',bubbleEnabled:meta.bubbleEnabled!==false});
       }
       const s=project.settings||{};
       if(s.secondsPerImage) $('#secondsPerImage').value=s.secondsPerImage;
