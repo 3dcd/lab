@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Nube Mental - Prototipo Pablo</title>
+<style>
+  :root{
+    --bg:#101018;
+    --panel:#1b1b27;
+    --panel2:#242435;
+    --text:#f3efe7;
+    --muted:#aaa4b6;
+    --line:rgba(255,255,255,.12);
+    --accent:#f3c56b;
+    --danger:#ff5b5b;
+    --ok:#72d18b;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(circle at 30% 20%, #24243a 0%, var(--bg) 55%, #09090f 100%);
+    color:var(--text);
+    height:100vh;
+    overflow:hidden;
+  }
+  .app{
+    display:grid;
+    grid-template-columns: 1fr 340px;
+    height:100vh;
+  }
+  .cloud{
+    position:relative;
+    overflow:hidden;
+    touch-action:none;
+  }
+  .header{
+    position:absolute;
+    left:18px;
+    top:14px;
+    z-index:20;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .title{
+    font-size:15px;
+    color:var(--muted);
+    background:rgba(0,0,0,.24);
+    border:1px solid var(--line);
+    padding:8px 12px;
+    border-radius:999px;
+    backdrop-filter: blur(10px);
+  }
+  button{
+    border:none;
+    color:var(--text);
+    background:rgba(255,255,255,.1);
+    border:1px solid var(--line);
+    padding:8px 11px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:650;
+  }
+  button:hover{background:rgba(255,255,255,.16)}
+  .word{
+    position:absolute;
+    user-select:none;
+    cursor:pointer;
+    white-space:nowrap;
+    font-weight:800;
+    letter-spacing:-.03em;
+    text-shadow:0 8px 24px rgba(0,0,0,.45);
+    animation-name: floaty, breathe;
+    animation-timing-function:ease-in-out;
+    animation-iteration-count:infinite;
+    transform-origin:center;
+    transition: opacity .35s, filter .35s, transform .2s;
+  }
+  .word:hover{filter:brightness(1.25)}
+  .word.selected{
+    outline:2px solid rgba(255,255,255,.7);
+    outline-offset:8px;
+    border-radius:16px;
+  }
+  .p1{font-size:23px;color:#bfc3ca}
+  .p2{font-size:31px;color:#99c6ff}
+  .p3{font-size:42px;color:#f3c56b}
+  .p4{font-size:55px;color:#ff9b5f}
+  .p5{font-size:72px;color:#ff5b5b}
+  .soon{color:#ff5b5b !important;}
+  .today{
+    color:#ff3030 !important;
+    animation-name: floaty, breathe, pulseRed;
+  }
+  .quiet{opacity:.28}
+  @keyframes floaty{
+    0%{translate:0 0}
+    25%{translate:8px -10px}
+    50%{translate:-5px 8px}
+    75%{translate:-10px -4px}
+    100%{translate:0 0}
+  }
+  @keyframes breathe{
+    0%,100%{scale:1}
+    50%{scale:1.035}
+  }
+  @keyframes pulseRed{
+    0%,100%{filter:drop-shadow(0 0 0 rgba(255,60,60,0))}
+    50%{filter:drop-shadow(0 0 18px rgba(255,60,60,.9))}
+  }
+  .panel{
+    background:linear-gradient(180deg, rgba(35,35,52,.96), rgba(20,20,30,.98));
+    border-left:1px solid var(--line);
+    padding:18px;
+    overflow:auto;
+  }
+  h1{font-size:20px;margin:0 0 6px}
+  .sub{font-size:13px;color:var(--muted);line-height:1.35;margin-bottom:16px}
+  label{font-size:12px;color:var(--muted);display:block;margin:10px 0 5px}
+  input, textarea, select{
+    width:100%;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.08);
+    color:var(--text);
+    border-radius:12px;
+    padding:10px;
+    outline:none;
+    font-size:14px;
+  }
+  textarea{min-height:82px;resize:vertical}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+  .danger{background:rgba(255,80,80,.18);border-color:rgba(255,80,80,.35)}
+  .ok{background:rgba(80,255,150,.15);border-color:rgba(80,255,150,.3)}
+  .accent{background:rgba(243,197,107,.18);border-color:rgba(243,197,107,.35)}
+  .filters{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin:18px 0;
+  }
+  .note{
+    border:1px solid var(--line);
+    background:rgba(0,0,0,.2);
+    border-radius:15px;
+    padding:12px;
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.35;
+  }
+  .compare{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .badge{
+    display:inline-flex;
+    padding:4px 7px;
+    border-radius:999px;
+    background:rgba(255,255,255,.1);
+    color:var(--muted);
+    font-size:12px;
+    margin-top:6px;
+  }
+  @media(max-width:820px){
+    .app{grid-template-columns:1fr}
+    .panel{
+      position:absolute;
+      right:10px;
+      bottom:10px;
+      left:10px;
+      max-height:45vh;
+      border:1px solid var(--line);
+      border-radius:22px;
+      z-index:50;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="cloud" id="cloud">
+    <div class="header">
+      <div class="title">Nube Mental · palabras flotando fuera de la cabeza</div>
+      <button onclick="zoomIn()">＋ Zoom</button>
+      <button onclick="zoomOut()">－ Zoom</button>
+      <button onclick="resetZoom()">Reset</button>
+    </div>
+  </main>
+
+  <aside class="panel">
+    <h1 id="panelTitle">Seleccioná una palabra</h1>
+    <div class="sub">La palabra es la señal. El detalle aparece acá al costado. La prioridad Pablo y la prioridad ChatGPT pueden compararse.</div>
+
+    <label>Palabra / señal</label>
+    <input id="wordInput" placeholder="Ej: DDJJ, Pintura, Viaje" />
+
+    <div class="row">
+      <div>
+        <label>Prioridad Pablo</label>
+        <select id="pabloPriority">
+          <option value="1">1 baja</option>
+          <option value="2">2</option>
+          <option value="3">3 media</option>
+          <option value="4">4</option>
+          <option value="5">5 alta</option>
+        </select>
+      </div>
+      <div>
+        <label>Prioridad ChatGPT</label>
+        <select id="gptPriority">
+          <option value="1">1 baja</option>
+          <option value="2">2</option>
+          <option value="3">3 media</option>
+          <option value="4">4</option>
+          <option value="5">5 alta</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Fecha límite</label>
+    <input id="dueDate" type="date" />
+
+    <label>Detalle</label>
+    <textarea id="detail" placeholder="Qué significa esta señal, qué decisión requiere, qué miedo trae, qué acción concreta necesita..."></textarea>
+
+    <label>Opinión / recomendación ChatGPT</label>
+    <textarea id="gptOpinion" placeholder="Ej: Yo la bajaría a prioridad 3 porque no bloquea el viaje..."></textarea>
+
+    <div class="actions">
+      <button class="accent" onclick="saveTask()">Guardar</button>
+      <button onclick="newTask()">Nueva</button>
+      <button class="ok" onclick="completeTask()">Hecha</button>
+      <button class="danger" onclick="deleteTask()">Eliminar</button>
+    </div>
+
+    <div class="filters">
+      <button onclick="filterMode('all')">Todas</button>
+      <button onclick="filterMode('today')">Para hoy</button>
+      <button onclick="filterMode('week')">7 días</button>
+      <button onclick="filterMode('important')">Importantes</button>
+    </div>
+
+    <div class="actions">
+      <button onclick="exportJSON()">Backup JSON</button>
+      <button onclick="document.getElementById('importFile').click()">Importar</button>
+      <input id="importFile" type="file" accept="application/json" hidden onchange="importJSON(event)" />
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <b>Regla del prototipo:</b><br>
+      Tamaño = prioridad de Pablo. Color rojo = urgencia por fecha.  
+      La prioridad ChatGPT queda como segunda mirada para comparar miedo vs realidad.
+      <span class="badge" id="countBadge">0 señales activas</span>
+    </div>
+  </aside>
+</div>
+
+<script>
+const today = new Date();
+today.setHours(0,0,0,0);
+
+let scale = 1;
+let selectedId = null;
+let mode = 'all';
+
+let tasks = JSON.parse(localStorage.getItem('nubeMentalTasks') || 'null') || [
+  {
+    id: crypto.randomUUID(), word:'Viaje', pablo:5, gpt:4, due:'2026-07-13',
+    detail:'Preparativos generales antes de salir. Revisar pendientes reales, no cargar la cabeza.',
+    gptOpinion:'Prioridad alta porque ordena todo lo demás, pero conviene partirlo en acciones concretas.',
+    x:28, y:28, status:'active'
+  },
+  {
+    id: crypto.randomUUID(), word:'Materiales', pablo:5, gpt:5, due:'2026-07-10',
+    detail:'Comprar y dejar materiales para albañil/pintor antes del viaje.',
+    gptOpinion:'Esta sí bloquea el viaje. Prioridad real 5 hasta resolverla.',
+    x:54, y:38, status:'active'
+  },
+  {
+    id: crypto.randomUUID(), word:'Starlink', pablo:4, gpt:3, due:'2026-07-11',
+    detail:'Probar antena / modo itinerante / conectividad para ruta.',
+    gptOpinion:'Importante, pero no debería ocupar más cabeza que materiales o viaje.',
+    x:38, y:58, status:'active'
+  },
+  {
+    id: crypto.randomUUID(), word:'Casa vieja', pablo:4, gpt:3, due:'',
+    detail:'Taller, orden, herramientas, espacio para DTF y trabajos.',
+    gptOpinion:'Es un proyecto importante, pero no todo tiene que resolverse antes del viaje.',
+    x:66, y:66, status:'active'
+  },
+  {
+    id: crypto.randomUUID(), word:'CR-V', pablo:3, gpt:3, due:'',
+    detail:'Auto, mecánico, ruidos, confiabilidad y próximos pasos.',
+    gptOpinion:'Atender si afecta traslado o seguridad. Si no, mantener como prioridad media.',
+    x:18, y:68, status:'active'
+  },
+  {
+    id: crypto.randomUUID(), word:'Campo', pablo:3, gpt:2, due:'',
+    detail:'Mapa, sucesión, lotes, ideas de web familiar y registro visual.',
+    gptOpinion:'Tema de fondo importante, pero no debería competir con urgencias inmediatas.',
+    x:75, y:24, status:'active'
+  },
+  {
+    id: crypto.randomUUID(), word:'3DCD LAB', pablo:4, gpt:4, due:'',
+    detail:'Aplicaciones HTML, experiencias interactivas, kioscos, presentaciones táctiles.',
+    gptOpinion:'Proyecto madre creativo. Conviene sostenerlo, pero sin mezclarlo con urgencias domésticas.',
+    x:45, y:18, status:'active'
+  },
+  {
+    id: crypto.randomUUID(), word:'DTF', pablo:3, gpt:2, due:'',
+    detail:'Pedidos, taller, presupuestos, producción y organización.',
+    gptOpinion:'Mantener visible, pero separar tareas vendibles de preocupaciones generales.',
+    x:22, y:45, status:'active'
+  },
+  {
+    id: crypto.randomUUID(), word:'Luz & Piel', pablo:3, gpt:3, due:'',
+    detail:'Piezas para Blanca, rutinas, estética, diseño de marca.',
+    gptOpinion:'Importante como apoyo familiar y comercial, pero modular.',
+    x:62, y:50, status:'active'
+  },
+  {
+    id: crypto.randomUUID(), word:'Miedo', pablo:5, gpt:2, due:'',
+    detail:'No es una tarea: es una señal emocional que puede agrandar cosas que no son tan urgentes.',
+    gptOpinion:'Yo no la trataría como obligación. La usaría como detector: ¿esto es real o es carga mental?',
+    x:50, y:78, status:'active'
+  }
+];
+
+function saveLocal(){ localStorage.setItem('nubeMentalTasks', JSON.stringify(tasks)); }
+
+function daysToDue(due){
+  if(!due) return null;
+  const d = new Date(due + 'T00:00:00');
+  return Math.ceil((d - today)/(1000*60*60*24));
+}
+
+function render(){
+  const cloud = document.getElementById('cloud');
+  cloud.querySelectorAll('.word').forEach(el=>el.remove());
+
+  const active = tasks.filter(t=>t.status==='active');
+  document.getElementById('countBadge').textContent = active.length + ' señales activas';
+
+  active.forEach((t,i)=>{
+    const dueDays = daysToDue(t.due);
+    let visible = true;
+    if(mode === 'today') visible = dueDays === 0;
+    if(mode === 'week') visible = dueDays !== null && dueDays >= 0 && dueDays <= 7;
+    if(mode === 'important') visible = Number(t.pablo) >= 4;
+
+    const el = document.createElement('div');
+    el.className = `word p${t.pablo}`;
+    if(dueDays !== null && dueDays <= 3) el.classList.add('soon');
+    if(dueDays === 0) el.classList.add('today');
+    if(!visible) el.classList.add('quiet');
+    if(t.id === selectedId) el.classList.add('selected');
+
+    el.textContent = t.word;
+    el.style.left = `calc(${t.x}% - 40px)`;
+    el.style.top = `calc(${t.y}% - 20px)`;
+    el.style.animationDuration = `${7 + (6-Number(t.pablo))}s, ${4 + i%4}s, 1.6s`;
+    el.style.transform = `scale(${scale})`;
+
+    el.onclick = () => selectTask(t.id);
+    makeDraggable(el, t);
+    cloud.appendChild(el);
+  });
+}
+
+function selectTask(id){
+  selectedId = id;
+  const t = tasks.find(x=>x.id===id);
+  document.getElementById('panelTitle').textContent = t.word;
+  document.getElementById('wordInput').value = t.word;
+  document.getElementById('pabloPriority').value = t.pablo;
+  document.getElementById('gptPriority').value = t.gpt;
+  document.getElementById('dueDate').value = t.due || '';
+  document.getElementById('detail').value = t.detail || '';
+  document.getElementById('gptOpinion').value = t.gptOpinion || '';
+  render();
+}
+
+function saveTask(){
+  const data = {
+    word: document.getElementById('wordInput').value.trim() || 'Nueva señal',
+    pablo: Number(document.getElementById('pabloPriority').value),
+    gpt: Number(document.getElementById('gptPriority').value),
+    due: document.getElementById('dueDate').value,
+    detail: document.getElementById('detail').value,
+    gptOpinion: document.getElementById('gptOpinion').value
+  };
+  if(selectedId){
+    const t = tasks.find(x=>x.id===selectedId);
+    Object.assign(t,data);
+  } else {
+    tasks.push({id:crypto.randomUUID(), ...data, x:45+Math.random()*12, y:40+Math.random()*18, status:'active'});
+    selectedId = tasks[tasks.length-1].id;
+  }
+  saveLocal(); render();
+}
+
+function newTask(){
+  selectedId = null;
+  document.getElementById('panelTitle').textContent = 'Nueva señal';
+  document.getElementById('wordInput').value = '';
+  document.getElementById('pabloPriority').value = 3;
+  document.getElementById('gptPriority').value = 3;
+  document.getElementById('dueDate').value = '';
+  document.getElementById('detail').value = '';
+  document.getElementById('gptOpinion').value = '';
+  render();
+}
+
+function completeTask(){
+  if(!selectedId) return;
+  const t = tasks.find(x=>x.id===selectedId);
+  t.status = 'done';
+  t.completedAt = new Date().toISOString();
+  selectedId = null;
+  saveLocal(); newTask(); render();
+}
+
+function deleteTask(){
+  if(!selectedId) return;
+  const t = tasks.find(x=>x.id===selectedId);
+  t.status = 'deleted';
+  t.deletedAt = new Date().toISOString();
+  selectedId = null;
+  saveLocal(); newTask(); render();
+}
+
+function filterMode(m){ mode = m; render(); }
+function zoomIn(){ scale = Math.min(1.8, scale + .12); render(); }
+function zoomOut(){ scale = Math.max(.55, scale - .12); render(); }
+function resetZoom(){ scale = 1; render(); }
+
+function exportJSON(){
+  const data = JSON.stringify({app:'Nube Mental', exportedAt:new Date().toISOString(), tasks}, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
+  a.href = URL.createObjectURL(blob);
+  a.download = `backup_nube_mental_${stamp}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJSON(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      tasks = data.tasks || data;
+      selectedId = null;
+      saveLocal(); newTask(); render();
+    }catch(e){ alert('No pude importar el JSON.'); }
+  };
+  reader.readAsText(file);
+}
+
+function makeDraggable(el, task){
+  let dragging = false;
+  el.addEventListener('pointerdown', e=>{
+    dragging = true;
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const rect = document.getElementById('cloud').getBoundingClientRect();
+    task.x = Math.max(2, Math.min(95, ((e.clientX - rect.left)/rect.width)*100));
+    task.y = Math.max(8, Math.min(92, ((e.clientY - rect.top)/rect.height)*100));
+    el.style.left = `calc(${task.x}% - 40px)`;
+    el.style.top = `calc(${task.y}% - 20px)`;
+  });
+  el.addEventListener('pointerup', ()=>{
+    if(dragging){ dragging=false; saveLocal(); }
+  });
+}
+
+render();
+</script>
+</body>
+</html>
