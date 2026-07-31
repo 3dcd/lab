@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Cerebro Virtual de Culpas - Prototipo</title>
+<style>
+  :root{
+    --bg:#101018;
+    --panel:#1b1b27;
+    --panel2:#242435;
+    --text:#f3efe7;
+    --muted:#aaa4b6;
+    --line:rgba(255,255,255,.12);
+    --accent:#f3c56b;
+    --danger:#ff5b5b;
+    --ok:#72d18b;
+    --heaven:#ffe7a6;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(circle at 30% 20%, #282844 0%, var(--bg) 52%, #07070d 100%);
+    color:var(--text);
+    height:100vh;
+    overflow:hidden;
+  }
+  .app{
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    height:100vh;
+  }
+  .cloud{
+    position:relative;
+    overflow:hidden;
+    touch-action:none;
+  }
+  .header{
+    position:absolute;
+    left:18px;
+    top:14px;
+    z-index:20;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .title{
+    font-size:15px;
+    color:var(--muted);
+    background:rgba(0,0,0,.24);
+    border:1px solid var(--line);
+    padding:8px 12px;
+    border-radius:999px;
+    backdrop-filter: blur(10px);
+  }
+  button{
+    border:none;
+    color:var(--text);
+    background:rgba(255,255,255,.1);
+    border:1px solid var(--line);
+    padding:8px 11px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  button:hover{background:rgba(255,255,255,.16)}
+  .word{
+    position:absolute;
+    user-select:none;
+    cursor:pointer;
+    white-space:nowrap;
+    max-width:260px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-weight:900;
+    letter-spacing:-.04em;
+    text-shadow:0 8px 24px rgba(0,0,0,.45);
+    animation-name: breathe;
+    animation-timing-function:ease-in-out;
+    animation-iteration-count:infinite;
+    transform-origin:center;
+    transition: opacity .25s, filter .25s, transform .08s, font-size .25s;
+    z-index:5;
+  }
+  .word:hover{filter:brightness(1.25)}
+  .word.selected{
+    outline:2px solid rgba(255,255,255,.78);
+    outline-offset:8px;
+    border-radius:16px;
+    z-index:30;
+  }
+  .p1{font-size:23px;color:#bfc3ca}
+  .p2{font-size:31px;color:#99c6ff}
+  .p3{font-size:42px;color:#f3c56b}
+  .p4{font-size:55px;color:#ff9b5f}
+  .p5{font-size:72px;color:#ff5b5b}
+  .soon{color:#ff5b5b !important;}
+  .today{
+    color:#ff3030 !important;
+    animation-name: floaty, breathe, pulseRed, hey;
+  }
+  .expired{
+    color:#9b9b9b !important;
+    animation-name: floaty, expiredShake, hey;
+    opacity:.92;
+  }
+  .quiet{opacity:.24}
+  .vanish{animation: vanish .55s ease forwards !important;}
+  .ascend{animation: ascend .75s ease forwards !important;}
+  @keyframes floaty{
+    0%{translate:0 0}
+    25%{translate:8px -10px}
+    50%{translate:-5px 8px}
+    75%{translate:-10px -4px}
+    100%{translate:0 0}
+  }
+  @keyframes breathe{
+    0%,100%{scale:1}
+    50%{scale:1.035}
+  }
+  @keyframes pulseRed{
+    0%,100%{filter:drop-shadow(0 0 0 rgba(255,60,60,0))}
+    50%{filter:drop-shadow(0 0 20px rgba(255,60,60,.9))}
+  }
+  @keyframes hey{
+    0%,82%,100%{rotate:0deg}
+    85%{rotate:-3deg}
+    88%{rotate:3deg}
+    91%{rotate:-2deg}
+    94%{rotate:2deg}
+  }
+  @keyframes expiredShake{
+    0%,100%{scale:1}
+    50%{scale:1.055}
+  }
+  @keyframes vanish{
+    0%{opacity:1;scale:1}
+    100%{opacity:0;scale:.1;filter:blur(8px)}
+  }
+  @keyframes ascend{
+    0%{opacity:1;scale:1;translate:0 0}
+    100%{opacity:0;scale:1.8;translate:0 -120px;filter:drop-shadow(0 0 30px rgba(255,231,166,.9))}
+  }
+
+  .dropzone{
+    position:absolute;
+    z-index:15;
+    width:150px;
+    height:150px;
+    border-radius:28px;
+    border:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    background:rgba(0,0,0,.24);
+    backdrop-filter: blur(12px);
+    color:var(--muted);
+    transition:transform .25s, background .25s, border-color .25s, opacity .25s;
+    opacity:.9;
+  }
+  .dropzone .icon{font-size:46px;line-height:1}
+  .dropzone .name{font-size:13px;font-weight:800;color:var(--text)}
+  .dropzone .hint{font-size:11px;text-align:center;max-width:120px;color:var(--muted)}
+  .dropzone.hot{
+    transform:scale(1.08);
+    border-color:rgba(255,255,255,.55);
+    background:rgba(255,255,255,.13);
+  }
+  #toilet{left:20px;bottom:22px}
+  #heaven{right:20px;bottom:22px;background:rgba(255,220,120,.12)}
+  #heaven.hot{background:rgba(255,220,120,.24)}
+  .flush{
+    position:absolute;
+    z-index:60;
+    pointer-events:none;
+    font-size:34px;
+    animation: flushAnim .9s ease forwards;
+  }
+  @keyframes flushAnim{
+    0%{opacity:1;scale:1;rotate:0deg}
+    100%{opacity:0;scale:2.4;rotate:540deg;translate:0 80px}
+  }
+  .spark{
+    position:absolute;
+    z-index:60;
+    pointer-events:none;
+    font-size:32px;
+    animation: sparkAnim 1s ease forwards;
+  }
+  @keyframes sparkAnim{
+    0%{opacity:1;scale:.8;translate:0 0}
+    100%{opacity:0;scale:2;translate:0 -110px}
+  }
+
+  .panel{
+    background:linear-gradient(180deg, rgba(35,35,52,.96), rgba(20,20,30,.98));
+    border-left:1px solid var(--line);
+    padding:18px;
+    overflow:auto;
+  }
+  h1{font-size:20px;margin:0 0 6px}
+  .sub{font-size:13px;color:var(--muted);line-height:1.35;margin-bottom:16px}
+  label{font-size:12px;color:var(--muted);display:block;margin:10px 0 5px}
+  input, textarea, select{
+    width:100%;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.08);
+    color:var(--text);
+    border-radius:12px;
+    padding:10px;
+    outline:none;
+    font-size:14px;
+  }
+  textarea{min-height:78px;resize:vertical}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+  .danger{background:rgba(255,80,80,.18);border-color:rgba(255,80,80,.35)}
+  .ok{background:rgba(80,255,150,.15);border-color:rgba(80,255,150,.3)}
+  .accent{background:rgba(243,197,107,.18);border-color:rgba(243,197,107,.35)}
+  .heavenBtn{background:rgba(255,231,166,.16);border-color:rgba(255,231,166,.38)}
+  .filters{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin:18px 0;
+  }
+  .note{
+    border:1px solid var(--line);
+    background:rgba(0,0,0,.2);
+    border-radius:15px;
+    padding:12px;
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.35;
+  }
+  .badge{
+    display:inline-flex;
+    padding:4px 7px;
+    border-radius:999px;
+    background:rgba(255,255,255,.1);
+    color:var(--muted);
+    font-size:12px;
+    margin:6px 5px 0 0;
+  }
+  .drawer{
+    margin-top:12px;
+    border:1px solid var(--line);
+    border-radius:15px;
+    overflow:hidden;
+  }
+  .drawer summary{
+    cursor:pointer;
+    padding:10px 12px;
+    background:rgba(255,255,255,.07);
+    font-weight:800;
+  }
+  .log{
+    max-height:190px;
+    overflow:auto;
+    padding:8px;
+  }
+  .logItem{
+    padding:8px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    font-size:13px;
+  }
+  .logItem:last-child{border-bottom:none}
+  .logItem b{color:var(--text)}
+  .mini{font-size:12px;color:var(--muted);margin-top:2px}
+
+  .quickAddBtn{
+    position:absolute;
+    right:24px;
+    top:18px;
+    z-index:40;
+    width:58px;
+    height:58px;
+    border-radius:22px;
+    font-size:34px;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(243,197,107,.22);
+    border:1px solid rgba(243,197,107,.55);
+    box-shadow:0 14px 40px rgba(0,0,0,.35);
+  }
+  .quickAdd{
+    position:absolute;
+    top:88px;
+    right:22px;
+    width:330px;
+    z-index:90;
+    border:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(38,38,58,.97), rgba(16,16,25,.98));
+    border-radius:24px;
+    padding:14px;
+    box-shadow:0 24px 70px rgba(0,0,0,.45);
+    display:none;
+  }
+  .quickAdd.open{display:block}
+  .quickAdd h2{
+    font-size:16px;
+    margin:0 0 8px;
+  }
+  .quickLine{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .micBtn{
+    min-width:46px;
+    height:43px;
+    border-radius:14px;
+    background:rgba(153,198,255,.15);
+    border-color:rgba(153,198,255,.35);
+  }
+  .micBtn.listening{
+    background:rgba(255,80,80,.22);
+    border-color:rgba(255,80,80,.55);
+    animation: micPulse 1s ease infinite;
+  }
+  @keyframes micPulse{
+    0%,100%{scale:1}
+    50%{scale:1.07}
+  }
+  .priorityPills{
+    display:flex;
+    gap:6px;
+    margin:8px 0;
+  }
+  .pill{
+    flex:1;
+    padding:8px 0;
+    border-radius:12px;
+    font-size:13px;
+    text-align:center;
+    background:rgba(255,255,255,.08);
+    border:1px solid var(--line);
+    cursor:pointer;
+    font-weight:900;
+  }
+  .pill.active{
+    background:rgba(243,197,107,.25);
+    border-color:rgba(243,197,107,.7);
+  }
+  .quickDates{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+    margin:8px 0;
+  }
+  .quickDates button{
+    padding:8px 4px;
+    font-size:12px;
+  }
+  .postponeBox{
+    display:flex;
+    gap:7px;
+    margin-top:8px;
+  }
+  .postponeBox button{
+    flex:1;
+    font-size:12px;
+    padding:8px 4px;
+  }
+  .listeningNote{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:6px;
+    min-height:16px;
+  }
+
+  @media(max-width:860px){
+    .app{grid-template-columns:1fr}
+    .panel{
+      position:absolute;
+      right:10px;
+      bottom:10px;
+      left:10px;
+      max-height:48vh;
+      border:1px solid var(--line);
+      border-radius:22px;
+      z-index:80;
+    }
+    .dropzone{width:116px;height:116px;border-radius:22px}
+    .quickAdd{left:12px;right:12px;top:82px;width:auto}
+    .quickAddBtn{right:14px;top:12px}
+    .dropzone .icon{font-size:34px}
+    .dropzone .hint{display:none}
+    #toilet{left:12px;bottom:52vh}
+    #heaven{right:12px;bottom:52vh}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="cloud" id="cloud">
+    <div class="header">
+      <div class="title">Cerebro Virtual de Culpas · cargar, mirar, decidir, soltar</div>
+      <button onclick="zoomIn()">＋ Zoom</button>
+      <button onclick="zoomOut()">－ Zoom</button>
+      <button onclick="resetZoom()">Reset</button>
+      <button onclick="toggleSphereMode()" id="sphereBtn">🌐 Esfera</button>
+      <button onclick="focusMostUrgent()">⚠️ Urgente al frente</button>
+    </div>
+
+    <button class="quickAddBtn" onclick="toggleQuickAdd()" title="Crear tarea">+</button>
+
+    <div class="quickAdd" id="quickAdd">
+      <h2>Crear tarea rápida</h2>
+      <div class="quickLine">
+        <input id="quickWord" placeholder="Decila o escribila: DDJJ, pintura, banco..." />
+        <button class="micBtn" id="micBtn" onclick="startDictation()">🎙️</button>
+      </div>
+      <div class="listeningNote" id="listeningNote"></div>
+
+      <label>Importancia</label>
+      <div class="priorityPills" id="priorityPills">
+        <div class="pill" onclick="setQuickPriority(1)">1</div>
+        <div class="pill" onclick="setQuickPriority(2)">2</div>
+        <div class="pill active" onclick="setQuickPriority(3)">3</div>
+        <div class="pill" onclick="setQuickPriority(4)">4</div>
+        <div class="pill" onclick="setQuickPriority(5)">5</div>
+      </div>
+
+      <label>Fecha rápida</label>
+      <div class="quickDates">
+        <button onclick="setQuickDue(0)">Hoy</button>
+        <button onclick="setQuickDue(1)">Mañana</button>
+        <button onclick="setQuickDue(5)">5 días</button>
+        <button onclick="setQuickDue(7)">7 días</button>
+      </div>
+      <input id="quickDue" type="date" />
+
+      <div class="actions">
+        <button class="accent" onclick="createQuickTask()">Crear y tirar a la nube</button>
+        <button onclick="toggleQuickAdd(false)">Cerrar</button>
+      </div>
+    </div>
+
+    <div class="dropzone" id="toilet">
+      <div class="icon">🚽</div>
+      <div class="name">Inodoro</div>
+      <div class="hint">Arrastrá acá lo que ya fue</div>
+    </div>
+
+    <div class="dropzone" id="heaven">
+      <div class="icon">✨</div>
+      <div class="name">Paraíso</div>
+      <div class="hint">Arrastrá acá lo que querés celebrar</div>
+    </div>
+  </main>
+
+  <aside class="panel">
+    <h1 id="panelTitle">Seleccioná una palabra</h1>
+    <div class="sub">La palabra es la señal. Podés hacerla, tirarla al inodoro o mandarla al paraíso como logro.</div>
+
+    <label>Palabra / señal</label>
+    <input id="wordInput" placeholder="Ej: DDJJ, Pintura, Viaje" />
+
+    <div class="row">
+      <div>
+        <label>Prioridad Pablo</label>
+        <select id="pabloPriority">
+          <option value="1">1 baja</option>
+          <option value="2">2</option>
+          <option value="3">3 media</option>
+          <option value="4">4</option>
+          <option value="5">5 alta</option>
+        </select>
+      </div>
+      <div>
+        <label>Prioridad ChatGPT</label>
+        <select id="gptPriority">
+          <option value="1">1 baja</option>
+          <option value="2">2</option>
+          <option value="3">3 media</option>
+          <option value="4">4</option>
+          <option value="5">5 alta</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Fecha límite</label>
+    <input id="dueDate" type="date" />
+
+    <label>Detalle</label>
+    <textarea id="detail" placeholder="Qué significa esta señal, qué decisión requiere, qué miedo trae, qué acción concreta necesita..."></textarea>
+
+    <label>Opinión / recomendación ChatGPT</label>
+    <textarea id="gptOpinion" placeholder="Ej: Yo la bajaría a prioridad 3 porque no bloquea el viaje..."></textarea>
+
+    <div class="actions">
+      <button class="accent" onclick="saveTask()">Guardar</button>
+      <button onclick="newTask()">Nueva</button>
+      <button class="ok" onclick="completeTask()">Hecha</button>
+      <button class="danger" onclick="sendToToilet()">🚽 Inodoro</button>
+      <button class="heavenBtn" onclick="sendToHeaven()">✨ Paraíso</button>
+    </div>
+
+    <div class="postponeBox">
+      <button onclick="postponeSelected(1)">Patear 1 día</button>
+      <button onclick="postponeSelected(3)">Patear 3 días</button>
+      <button onclick="postponeSelected(7)">Patear 7 días</button>
+    </div>
+
+    <div class="filters">
+      <button onclick="filterMode('all')">Todas</button>
+      <button onclick="filterMode('today')">Para hoy</button>
+      <button onclick="filterMode('week')">7 días</button>
+      <button onclick="filterMode('important')">Importantes</button>
+      <button onclick="filterMode('expired')">Vencidas</button>
+      <button onclick="filterMode('fear')">Miedo & culpa</button>
+    </div>
+
+    <div class="actions">
+      <button onclick="exportJSON()">Backup JSON</button>
+      <button onclick="document.getElementById('importFile').click()">Importar</button>
+      <input id="importFile" type="file" accept="application/json" hidden onchange="importJSON(event)" />
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <b>Regla emocional:</b><br>
+      No vence para culparte. En tareas del día, el cierre mental es a las 20:00: ahí pide una decisión concreta.
+      <br>
+      <span class="badge" id="countBadge">0 activas</span>
+      <span class="badge" id="heavenBadge">0 logros</span>
+      <span class="badge" id="toiletBadge">0 soltadas</span>
+    </div>
+
+    <details class="drawer">
+      <summary>✨ Galería positiva</summary>
+      <div class="log" id="heavenLog"></div>
+    </details>
+
+    <details class="drawer">
+      <summary>🚽 Cosas soltadas</summary>
+      <div class="log" id="toiletLog"></div>
+    </details>
+  </aside>
+</div>
+
+<script>
+const today = new Date();
+today.setHours(0,0,0,0);
+
+let scale = 1;
+let selectedId = null;
+let mode = 'all';
+
+
+
+let sphereMode = true;
+let rotationX = -0.15;
+let rotationY = 0.25;
+let spinVX = 0;
+let spinVY = 0;
+let sphereDragging = false;
+let lastPointer = null;
+let lastSpinTime = 0;
+let quickPriority = 3;
+
+let recognition = null;
+
+function toggleQuickAdd(force){
+  const box = document.getElementById('quickAdd');
+  const shouldOpen = typeof force === 'boolean' ? force : !box.classList.contains('open');
+  box.classList.toggle('open', shouldOpen);
+  if(shouldOpen){
+    document.getElementById('quickWord').focus();
+  }
+}
+
+function setQuickPriority(n){
+  quickPriority = n;
+  document.querySelectorAll('#priorityPills .pill').forEach((p,i)=>{
+    p.classList.toggle('active', i+1 === n);
+  });
+}
+
+function isoAfter(days){
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+function setQuickDue(days){
+  document.getElementById('quickDue').value = isoAfter(days);
+}
+
+function createQuickTask(){
+  const word = document.getElementById('quickWord').value.trim();
+  if(!word) return;
+  const due = document.getElementById('quickDue').value;
+  const newT = {
+    id:crypto.randomUUID(),
+    word,
+    pablo:quickPriority,
+    gpt:3,
+    due,
+    detail:'Creada rápido para sacarla de la cabeza. Después se puede completar el detalle.',
+    gptOpinion:'Pendiente de revisar juntos. Primera carga rápida: lo importante ahora es que ya no quede flotando en la cabeza.',
+    x:35 + Math.random()*35,
+    y:25 + Math.random()*45,
+    status:'active',
+    tag:''
+  };
+  normalizeSpherePoint(newT);
+  tasks.push(newT);
+  selectedId = newT.id;
+  saveLocal();
+  document.getElementById('quickWord').value = '';
+  document.getElementById('quickDue').value = '';
+  setQuickPriority(3);
+  toggleQuickAdd(false);
+  selectTask(newT.id);
+}
+
+function startDictation(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const note = document.getElementById('listeningNote');
+  const mic = document.getElementById('micBtn');
+  if(!SR){
+    note.textContent = 'El dictado no está disponible en este navegador. Podés escribirla.';
+    return;
+  }
+  if(recognition){
+    recognition.stop();
+    recognition = null;
+    mic.classList.remove('listening');
+    return;
+  }
+  recognition = new SR();
+  recognition.lang = 'es-AR';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onstart = () => {
+    mic.classList.add('listening');
+    note.textContent = 'Te escucho... decí la tarea corta.';
+  };
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    document.getElementById('quickWord').value = text;
+    note.textContent = 'Listo. Revisá la palabra y creala.';
+  };
+  recognition.onerror = () => {
+    note.textContent = 'No pude tomar el dictado. Probá de nuevo o escribila.';
+  };
+  recognition.onend = () => {
+    mic.classList.remove('listening');
+    recognition = null;
+  };
+  recognition.start();
+}
+
+function postponeSelected(days){
+  if(!selectedId) return;
+  const t = tasks.find(x=>x.id===selectedId);
+  t.due = isoAfter(days);
+  t.detail = (t.detail || '') + `\n\nPateada ${days} día(s) el ${new Date().toLocaleString('es-AR')}.`;
+  saveLocal();
+  selectTask(t.id);
+}
+
+let tasks = JSON.parse(localStorage.getItem('cerebroVirtualTasks') || 'null') || [
+  {
+    id: crypto.randomUUID(), word:'Viaje', pablo:5, gpt:4, due:'2026-07-13',
+    detail:'Preparativos generales antes de salir. Revisar pendientes reales, no cargar la cabeza.',
+    gptOpinion:'Prioridad alta porque ordena todo lo demás, pero conviene partirlo en acciones concretas.',
+    x:28, y:28, status:'active', tag:'vida'
+  },
+  {
+    id: crypto.randomUUID(), word:'Materiales', pablo:5, gpt:5, due:'2026-07-10',
+    detail:'Comprar y dejar materiales para albañil/pintor antes del viaje.',
+    gptOpinion:'Esta sí bloquea el viaje. Prioridad real 5 hasta resolverla.',
+    x:54, y:38, status:'active', tag:'tarea'
+  },
+  {
+    id: crypto.randomUUID(), word:'Comprar arena', pablo:5, gpt:5, due:'2026-07-08',
+    detail:'Comprar arena antes de que cierren los corralones. Vence a las 20:00 como ventana real de trabajo.',
+    gptOpinion:'Es importante si bloquea el trabajo de mañana. Si no se compra hoy, hay que patearla conscientemente, no dejarla como fantasma.',
+    x:48, y:34, sx:0.15, sy:-0.2, sz:0.97, status:'active', tag:'tarea'
+  },
+  {
+    id: crypto.randomUUID(), word:'Comprar cloro para la pileta', pablo:3, gpt:2, due:'2026-07-08',
+    detail:'Comprar cloro para la pileta antes de salir de vacaciones. Si no se hace hoy, revisar si realmente pasa algo.',
+    gptOpinion:'No parece fundamental salvo que la pileta ya esté muy justa. Yo la pondría debajo de materiales, viaje y trámites que bloquean cosas.',
+    x:58, y:28, sx:-0.35, sy:0.1, sz:0.9, status:'active', tag:'tarea'
+  },
+  {
+    id: crypto.randomUUID(), word:'Starlink', pablo:4, gpt:3, due:'2026-07-11',
+    detail:'Probar antena / modo itinerante / conectividad para ruta.',
+    gptOpinion:'Importante, pero no debería ocupar más cabeza que materiales o viaje.',
+    x:38, y:58, status:'active', tag:'tarea'
+  },
+  {
+    id: crypto.randomUUID(), word:'Casa vieja', pablo:4, gpt:3, due:'',
+    detail:'Taller, orden, herramientas, espacio para DTF y trabajos.',
+    gptOpinion:'Es un proyecto importante, pero no todo tiene que resolverse antes del viaje.',
+    x:66, y:66, status:'active', tag:'proyecto'
+  },
+  {
+    id: crypto.randomUUID(), word:'CR-V', pablo:3, gpt:3, due:'',
+    detail:'Auto, mecánico, ruidos, confiabilidad y próximos pasos.',
+    gptOpinion:'Atender si afecta traslado o seguridad. Si no, mantener como prioridad media.',
+    x:18, y:68, status:'active', tag:'tarea'
+  },
+  {
+    id: crypto.randomUUID(), word:'Campo', pablo:3, gpt:2, due:'',
+    detail:'Mapa, sucesión, lotes, ideas de web familiar y registro visual.',
+    gptOpinion:'Tema de fondo importante, pero no debería competir con urgencias inmediatas.',
+    x:75, y:24, status:'active', tag:'proyecto'
+  },
+  {
+    id: crypto.randomUUID(), word:'3DCD LAB', pablo:4, gpt:4, due:'',
+    detail:'Aplicaciones HTML, experiencias interactivas, kioscos, presentaciones táctiles.',
+    gptOpinion:'Proyecto madre creativo. Conviene sostenerlo, pero sin mezclarlo con urgencias domésticas.',
+    x:45, y:18, status:'active', tag:'proyecto'
+  },
+  {
+    id: crypto.randomUUID(), word:'DTF', pablo:3, gpt:2, due:'',
+    detail:'Pedidos, taller, presupuestos, producción y organización.',
+    gptOpinion:'Mantener visible, pero separar tareas vendibles de preocupaciones generales.',
+    x:22, y:45, status:'active', tag:'trabajo'
+  },
+  {
+    id: crypto.randomUUID(), word:'Luz & Piel', pablo:3, gpt:3, due:'',
+    detail:'Piezas para Blanca, rutinas, estética, diseño de marca.',
+    gptOpinion:'Importante como apoyo familiar y comercial, pero modular.',
+    x:62, y:50, status:'active', tag:'proyecto'
+  },
+  {
+    id: crypto.randomUUID(), word:'Miedo', pablo:5, gpt:2, due:'',
+    detail:'No es una tarea: es una señal emocional que puede agrandar cosas que no son tan urgentes.',
+    gptOpinion:'Yo no la trataría como obligación. La usaría como detector: ¿esto es real o es carga mental?',
+    x:50, y:78, status:'active', tag:'fear'
+  },
+  {
+    id: crypto.randomUUID(), word:'Culpa', pablo:4, gpt:2, due:'',
+    detail:'Cuando algo queda flotando y parece obligación aunque tal vez ya no merezca atención.',
+    gptOpinion:'Conviene decidir: acción concreta, bajar prioridad o inodoro. No dejarla como fantasma.',
+    x:36, y:82, status:'active', tag:'fear'
+  }
+];
+
+function saveLocal(){ localStorage.setItem('cerebroVirtualTasks', JSON.stringify(tasks)); }
+
+
+function displayWord(full){
+  const s = String(full || '').trim();
+  if(s.length <= 22) return s;
+  const words = s.split(/\s+/);
+  if(words.length >= 3){
+    const short = words.slice(0,3).join(' ');
+    return short.length <= 24 ? short + '…' : short.slice(0,21) + '…';
+  }
+  return s.slice(0,21) + '…';
+}
+
+function normalizeSpherePoint(t){
+  if(typeof t.sx === 'number' && typeof t.sy === 'number' && typeof t.sz === 'number') return;
+  const theta = Math.random() * Math.PI * 2;
+  const z = Math.random()*2 - 1;
+  const r = Math.sqrt(1-z*z);
+  t.sx = r * Math.cos(theta);
+  t.sy = r * Math.sin(theta);
+  t.sz = z;
+}
+
+function rotatePoint(p){
+  const cosY = Math.cos(rotationY), sinY = Math.sin(rotationY);
+  const cosX = Math.cos(rotationX), sinX = Math.sin(rotationX);
+
+  let x = p.x * cosY + p.z * sinY;
+  let z = -p.x * sinY + p.z * cosY;
+  let y = p.y;
+
+  let y2 = y * cosX - z * sinX;
+  let z2 = y * sinX + z * cosX;
+
+  return {x, y:y2, z:z2};
+}
+
+function applySpherePosition(el, t, cloudRect){
+  normalizeSpherePoint(t);
+  const p = rotatePoint({x:t.sx, y:t.sy, z:t.sz});
+  const radius = Math.min(cloudRect.width, cloudRect.height) * 0.36;
+  const cx = cloudRect.width * 0.5;
+  const cy = cloudRect.height * 0.50;
+  const depth = (p.z + 1) / 2;
+  const perspective = 0.58 + depth * 0.68;
+  const x = cx + p.x * radius * perspective;
+  const y = cy + p.y * radius * perspective;
+  const alpha = 0.22 + depth * 0.78;
+  const blur = (1-depth) * 1.8;
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  el.style.opacity = alpha;
+  el.style.filter = `blur(${blur}px) brightness(${0.72 + depth*.45})`;
+  el.style.zIndex = Math.round(depth*100) + 5;
+  el.style.transform = `translate(-50%,-50%) scale(${scale * perspective})`;
+}
+
+function toggleSphereMode(){
+  sphereMode = !sphereMode;
+  document.getElementById('sphereBtn').textContent = sphereMode ? '🌐 Esfera' : '☁️ Libre';
+  render();
+}
+
+function urgencyScore(t){
+  const d = daysToDue(t.due);
+  const p = Number(t.pablo || 3);
+  if(d === null) return p;
+  if(d < 0) return 100 + p;
+  return (20 - Math.min(d,20)) * 4 + p;
+}
+
+function focusMostUrgent(){
+  const active = tasks.filter(t=>t.status==='active');
+  if(!active.length) return;
+  const urgent = active.slice().sort((a,b)=>urgencyScore(b)-urgencyScore(a))[0];
+  focusTaskOnFront(urgent);
+  selectedId = urgent.id;
+  selectTask(urgent.id);
+}
+
+function focusTaskOnFront(t){
+  normalizeSpherePoint(t);
+  // Rotate so its point is approximately at front z=1.
+  // Approximate by repeatedly nudging rotation toward a front-facing solution.
+  for(let i=0;i<80;i++){
+    const p = rotatePoint({x:t.sx,y:t.sy,z:t.sz});
+    rotationY += p.x * 0.035;
+    rotationX -= p.y * 0.035;
+  }
+  spinVX = 0; spinVY = 0;
+}
+
+function daysToDue(due){
+  if(!due) return null;
+  const d = new Date(due + 'T00:00:00');
+  return Math.ceil((d - today)/(1000*60*60*24));
+}
+
+function render(){
+  const cloud = document.getElementById('cloud');
+  cloud.querySelectorAll('.word').forEach(el=>el.remove());
+
+  const active = tasks.filter(t=>t.status==='active');
+  const heaven = tasks.filter(t=>t.status==='heaven');
+  const toilet = tasks.filter(t=>t.status==='toilet');
+  document.getElementById('countBadge').textContent = active.length + ' activas';
+  document.getElementById('heavenBadge').textContent = heaven.length + ' logros';
+  document.getElementById('toiletBadge').textContent = toilet.length + ' soltadas';
+
+  active.forEach((t,i)=>{
+    const dueDays = daysToDue(t.due);
+    let visible = true;
+    if(mode === 'today') visible = dueDays === 0;
+    if(mode === 'week') visible = dueDays !== null && dueDays >= 0 && dueDays <= 7;
+    if(mode === 'important') visible = Number(t.pablo) >= 4;
+    if(mode === 'expired') visible = dueDays !== null && dueDays < 0;
+    if(mode === 'fear') visible = t.tag === 'fear' || /miedo|culpa|fantasma|ansiedad/i.test((t.word+' '+t.detail));
+
+    const el = document.createElement('div');
+    el.className = `word p${t.pablo}`;
+    if(dueDays !== null && dueDays <= 3 && dueDays >= 0) el.classList.add('soon');
+    if(dueDays === 0) el.classList.add('today');
+    if(dueDays !== null && dueDays < 0) el.classList.add('expired');
+    if(!visible) el.classList.add('quiet');
+    if(t.id === selectedId) el.classList.add('selected');
+
+    el.textContent = displayWord(t.word);
+    el.title = t.word;
+    el.style.animationDuration = `${4 + i%4}s, 1.6s, ${8+i}s`;
+
+    if(sphereMode){
+      applySpherePosition(el, t, cloud.getBoundingClientRect());
+    } else {
+      el.style.left = `calc(${t.x || 50}% - 40px)`;
+      el.style.top = `calc(${t.y || 50}% - 20px)`;
+      el.style.transform = `scale(${scale})`;
+    }
+
+    el.onclick = () => selectTask(t.id);
+    makeDraggable(el, t);
+    cloud.appendChild(el);
+  });
+
+  renderLogs();
+}
+
+function renderLogs(){
+  const heavenLog = document.getElementById('heavenLog');
+  const toiletLog = document.getElementById('toiletLog');
+  heavenLog.innerHTML = '';
+  toiletLog.innerHTML = '';
+
+  const heaven = tasks.filter(t=>t.status==='heaven').slice().reverse();
+  const toilet = tasks.filter(t=>t.status==='toilet').slice().reverse();
+
+  heavenLog.innerHTML = heaven.length ? heaven.map(t=>`
+    <div class="logItem">
+      <b>${escapeHTML(t.word)}</b>
+      <div class="mini">${formatDate(t.heavenAt)} · orgullo / logro</div>
+      <div class="mini">${escapeHTML(t.detail || '')}</div>
+    </div>`).join('') : '<div class="logItem mini">Todavía no mandaste nada al paraíso.</div>';
+
+  toiletLog.innerHTML = toilet.length ? toilet.map(t=>`
+    <div class="logItem">
+      <b>${escapeHTML(t.word)}</b>
+      <div class="mini">${formatDate(t.toiletAt)} · soltada / ya fue</div>
+    </div>`).join('') : '<div class="logItem mini">Todavía no tiraste nada al inodoro.</div>';
+}
+
+function escapeHTML(str){
+  return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+function formatDate(iso){
+  if(!iso) return '';
+  return new Date(iso).toLocaleString('es-AR', {dateStyle:'short', timeStyle:'short'});
+}
+
+function selectTask(id){
+  selectedId = id;
+  const t = tasks.find(x=>x.id===id);
+  document.getElementById('panelTitle').textContent = t.word;
+  document.getElementById('wordInput').value = t.word;
+  document.getElementById('pabloPriority').value = t.pablo;
+  document.getElementById('gptPriority').value = t.gpt;
+  document.getElementById('dueDate').value = t.due || '';
+  document.getElementById('detail').value = t.detail || '';
+  document.getElementById('gptOpinion').value = t.gptOpinion || '';
+  render();
+}
+
+function saveTask(){
+  const data = {
+    word: document.getElementById('wordInput').value.trim() || 'Nueva señal',
+    pablo: Number(document.getElementById('pabloPriority').value),
+    gpt: Number(document.getElementById('gptPriority').value),
+    due: document.getElementById('dueDate').value,
+    detail: document.getElementById('detail').value,
+    gptOpinion: document.getElementById('gptOpinion').value
+  };
+  if(selectedId){
+    const t = tasks.find(x=>x.id===selectedId);
+    Object.assign(t,data);
+  } else {
+    tasks.push({id:crypto.randomUUID(), ...data, x:45+Math.random()*12, y:40+Math.random()*18, status:'active', tag:''});
+    selectedId = tasks[tasks.length-1].id;
+  }
+  saveLocal(); render();
+}
+
+function newTask(){
+  selectedId = null;
+  document.getElementById('panelTitle').textContent = 'Nueva señal';
+  document.getElementById('wordInput').value = '';
+  document.getElementById('pabloPriority').value = 3;
+  document.getElementById('gptPriority').value = 3;
+  document.getElementById('dueDate').value = '';
+  document.getElementById('detail').value = '';
+  document.getElementById('gptOpinion').value = '';
+  render();
+}
+
+function completeTask(){
+  if(!selectedId) return;
+  const t = tasks.find(x=>x.id===selectedId);
+  t.status = 'done';
+  t.completedAt = new Date().toISOString();
+  selectedId = null;
+  saveLocal(); newTask(); render();
+}
+
+function sendToToilet(){ moveSelectedTo('toilet'); }
+function sendToHeaven(){ moveSelectedTo('heaven'); }
+
+function moveSelectedTo(dest){
+  if(!selectedId) return;
+  const t = tasks.find(x=>x.id===selectedId);
+  const el = [...document.querySelectorAll('.word')].find(w=>w.textContent === t.word);
+  if(dest === 'toilet'){
+    if(el) el.classList.add('vanish');
+    createEffect('flush', '💧', document.getElementById('toilet'));
+    setTimeout(()=>{
+      t.status = 'toilet';
+      t.toiletAt = new Date().toISOString();
+      selectedId = null; saveLocal(); newTask(); render();
+    }, 480);
+  } else {
+    if(el) el.classList.add('ascend');
+    createEffect('spark', '✨', document.getElementById('heaven'));
+    setTimeout(()=>{
+      t.status = 'heaven';
+      t.heavenAt = new Date().toISOString();
+      selectedId = null; saveLocal(); newTask(); render();
+    }, 650);
+  }
+}
+
+function createEffect(cls, icon, zone){
+  const rect = zone.getBoundingClientRect();
+  const fx = document.createElement('div');
+  fx.className = cls;
+  fx.textContent = icon;
+  fx.style.left = (rect.left + rect.width/2 - 20) + 'px';
+  fx.style.top = (rect.top + rect.height/2 - 20) + 'px';
+  document.body.appendChild(fx);
+  setTimeout(()=>fx.remove(), 1000);
+}
+
+function filterMode(m){ mode = m; render(); }
+function zoomIn(){ scale = Math.min(1.8, scale + .12); render(); }
+function zoomOut(){ scale = Math.max(.55, scale - .12); render(); }
+function resetZoom(){ scale = 1; render(); }
+
+function exportJSON(){
+  const data = JSON.stringify({app:'Cerebro Virtual de Culpas', exportedAt:new Date().toISOString(), tasks}, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
+  a.href = URL.createObjectURL(blob);
+  a.download = `backup_cerebro_virtual_${stamp}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJSON(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      tasks = data.tasks || data;
+      selectedId = null;
+      saveLocal(); newTask(); render();
+    }catch(e){ alert('No pude importar el JSON.'); }
+  };
+  reader.readAsText(file);
+}
+
+function makeDraggable(el, task){
+  let dragging = false;
+  let moved = false;
+  el.addEventListener('pointerdown', e=>{
+    dragging = true;
+    moved = false;
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    moved = true;
+    if(!sphereMode){
+      const rect = document.getElementById('cloud').getBoundingClientRect();
+      task.x = Math.max(2, Math.min(95, ((e.clientX - rect.left)/rect.width)*100));
+      task.y = Math.max(8, Math.min(92, ((e.clientY - rect.top)/rect.height)*100));
+      el.style.left = `calc(${task.x}% - 40px)`;
+      el.style.top = `calc(${task.y}% - 20px)`;
+    }
+    highlightZones(e.clientX, e.clientY);
+  });
+  el.addEventListener('pointerup', e=>{
+    if(!dragging) return;
+    dragging=false;
+    clearZoneHighlights();
+    saveLocal();
+    const target = getDropTarget(e.clientX, e.clientY);
+    if(target === 'toilet'){ selectedId = task.id; moveSelectedTo('toilet'); return; }
+    if(target === 'heaven'){ selectedId = task.id; moveSelectedTo('heaven'); return; }
+    if(!moved) selectTask(task.id);
+  });
+}
+
+function getDropTarget(x,y){
+  for(const id of ['toilet','heaven']){
+    const r = document.getElementById(id).getBoundingClientRect();
+    if(x>=r.left && x<=r.right && y>=r.top && y<=r.bottom) return id;
+  }
+  return null;
+}
+function highlightZones(x,y){
+  clearZoneHighlights();
+  const target = getDropTarget(x,y);
+  if(target) document.getElementById(target).classList.add('hot');
+}
+function clearZoneHighlights(){
+  document.getElementById('toilet').classList.remove('hot');
+  document.getElementById('heaven').classList.remove('hot');
+}
+
+
+
+const cloudEl = document.getElementById('cloud');
+cloudEl.addEventListener('pointerdown', (e)=>{
+  if(e.target !== cloudEl) return;
+  sphereDragging = true;
+  lastPointer = {x:e.clientX, y:e.clientY};
+  lastSpinTime = performance.now();
+  cloudEl.setPointerCapture(e.pointerId);
+});
+cloudEl.addEventListener('pointermove', (e)=>{
+  if(!sphereDragging || !sphereMode || !lastPointer) return;
+  const now = performance.now();
+  const dx = e.clientX - lastPointer.x;
+  const dy = e.clientY - lastPointer.y;
+  rotationY += dx * 0.006;
+  rotationX -= dy * 0.006;
+  const dt = Math.max(16, now - lastSpinTime);
+  spinVY = dx * 0.006 * (16/dt);
+  spinVX = -dy * 0.006 * (16/dt);
+  lastPointer = {x:e.clientX, y:e.clientY};
+  lastSpinTime = now;
+  render();
+});
+cloudEl.addEventListener('pointerup', ()=>{
+  sphereDragging = false;
+  lastPointer = null;
+});
+
+function animateSphere(){
+  if(sphereMode && !sphereDragging){
+    rotationY += spinVY;
+    rotationX += spinVX;
+    spinVY *= 0.965;
+    spinVX *= 0.965;
+    if(Math.abs(spinVY) > 0.0001 || Math.abs(spinVX) > 0.0001){
+      render();
+    }
+  }
+  requestAnimationFrame(animateSphere);
+}
+
+window.addEventListener('resize', render);
+
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && document.getElementById('quickAdd').classList.contains('open') && document.activeElement.id === 'quickWord'){
+    createQuickTask();
+  }
+});
+render();
+animateSphere();
+</script>
+</body>
+</html>
