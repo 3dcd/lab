@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Proyecto de las Casas — Centro de control ZIP v2.4</title>
+<title>Proyecto Inmuebles — Centro de control ZIP v2.4</title>
 <script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"></script>
 <style>
 :root{--bg:#f4f1eb;--panel:#fffdf9;--panel2:#f9f5ee;--ink:#2e312e;--muted:#72776f;--line:#ddd6ca;--accent:#496457;--accent2:#6e8879;--soft:#e8eee9;--gold:#b78332;--danger:#a65b55;--shadow:0 12px 34px rgba(63,55,43,.09);--r:18px}
@@ -32,7 +32,7 @@ dialog{border:0;border-radius:18px;padding:0;box-shadow:0 30px 90px rgba(0,0,0,.
 </head>
 <body>
 <div class="app">
-<aside><div class="brand"><div class="eyebrow">Panel familiar</div><h1>Proyecto de las Casas</h1><p>Venta, reforma, alquiler, dinero y decisiones en un solo lugar.</p></div><div class="project-card"><small>Estado general</small><strong id="sideStatus">Ordenando información</strong></div><nav id="nav"></nav><button class="side-add" id="addSectionBtn">＋ Agregar sección</button></aside>
+<aside><div class="brand"><div class="eyebrow">Panel familiar</div><h1>Proyecto Inmuebles</h1><p>Venta, reforma, alquiler, dinero y decisiones en un solo lugar.</p></div><div class="project-card"><small>Estado general</small><strong id="sideStatus">Ordenando información</strong></div><nav id="nav"></nav><button class="side-add" id="addSectionBtn">＋ Agregar sección</button></aside>
 <main><header class="topbar"><div><h2>Todo sobre la mesa</h2><p id="saveState">Sesión nueva · todavía no hay cambios</p></div><div class="actions"><button class="btn" id="importBtn">Importar ZIP</button><button class="btn primary" id="exportBtn">Exportar ZIP</button><button class="btn" id="addSectionTop">＋ Nueva sección</button><input id="fileInput" type="file" accept=".zip,application/zip" hidden></div></header>
 <div class="content"><section class="hero"><div class="welcome"><div class="eyebrow">Objetivo</div><h3>No tener la casa en la cabeza.</h3><p>Esta herramienta comienza limpia. Para continuar un trabajo anterior, importá el último ZIP.</p><div class="backup-zone" id="backupDropZone">📦 Arrastrá acá tu último respaldo ZIP<small>También podés tocar esta zona para elegirlo.</small></div><div class="session-note">● Los cambios existen solo durante esta sesión hasta exportar el ZIP</div></div><div class="next-step"><small>Próximo movimiento</small><textarea id="nextStep" placeholder="Ej.: ordenar pagos de la arquitecta y confirmar permisos municipales."></textarea></div></section>
 <section class="summary-grid"><div class="summary"><span>Fondo disponible para la obra</span><input data-summary="available" placeholder="Ej.: USD 30.000"><small class="fund-note">Dinero que decidiste reservar y realmente podés usar.</small></div><div class="summary"><span>Gastado hasta hoy</span><input data-summary="spent" placeholder="USD / ARS"></div><div class="summary"><span>Valor de venta</span><input data-summary="sale" placeholder="USD"></div><div class="summary"><span>Presupuesto estimado</span><input data-summary="budget" placeholder="USD / ARS"></div></section><div id="sections"></div><div class="footer">La herramienta no guarda datos automáticamente en el navegador. El ZIP exportado contiene el proyecto y todos sus archivos.</div></div></main></div>
@@ -57,10 +57,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 const STORAGE_KEY='unused-zip-session';
-const defaults=[
-  ['posadas','Casa Posadas 1135','Información, decisiones y estado de esta propiedad'],
-  ['alem','Casa Alem 1374','Reforma organizada por ambientes, trabajos y costos']
-].map((s,i)=>({id:s[0],title:s[1],desc:s[2],closed:false,records:[],order:i}));
+const defaults=[];
 let state={summary:{available:'',spent:'',sale:'',budget:''},nextStep:'',sections:JSON.parse(JSON.stringify(defaults))};
 let activeSectionId=null, dirty=false, importedFileName='';
 const $=s=>document.querySelector(s);
