@@ -185,11 +185,11 @@
         <a class="card" href="./nube_mental/" data-id="nube-mental" data-tags="nube mental ideas mapa pensamientos">
           <span class="badge">Ideas</span><div class="icon blue">☁</div><h3>NUBE MENTAL</h3><p>Mapa visual para descargar pensamientos y conectar conceptos.</p><div class="arrow" style="color:#1669b2">→</div>
         </a>
-        <a class="card private" href="./los-redondos/" data-id="los-redondos" data-tags="privado musica redondos audio letras proyecto">
+        <a class="card private" href="#" data-href="./los-redondos/" data-id="los-redondos" data-tags="privado musica redondos audio letras proyecto">
           <span class="badge">Privado</span><div class="icon red">♫</div><h3>LOS REDONDOS</h3><p>Proyecto musical privado. El servidor solicitará las credenciales para ingresar.</p><div class="arrow" style="color:#d64a4a">→</div>
         </a>
 
-        <a class="card private" href="./luzypiel-hc/" data-id="luzypiel-hc" data-tags="privado luz piel estetica proyecto hc">
+        <a class="card private" href="#" data-href="./luzypiel-hc/" data-id="luzypiel-hc" data-tags="privado luz piel estetica proyecto hc">
           <span class="badge">Privado</span><div class="icon pink">✦</div><h3>LUZ Y PIEL HC</h3><p>Proyecto privado de Luz y Piel. El servidor solicitará las credenciales para ingresar.</p><div class="arrow" style="color:#ee4f91">→</div>
         </a>
 
@@ -256,7 +256,18 @@
         empty.style.display = visible ? 'none' : 'block';
       }
 
-      cards.forEach(card => card.addEventListener('click', () => {
+      cards.forEach(card => card.addEventListener('click', event => {
+        if(card.classList.contains('private')){
+          event.preventDefault();
+          const code = prompt('Ingresá el código para acceder:');
+          if(code !== '1374'){
+            if(code !== null) alert('Código incorrecto.');
+            return;
+          }
+          const target = card.dataset.href;
+          if(target) window.location.href = target;
+        }
+
         const usage = readUsage();
         usage[card.dataset.id] = Date.now();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
