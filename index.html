@@ -74,6 +74,30 @@
     .arrow{margin-top:auto;padding-top:18px;font-size:28px;font-weight:300;position:relative;z-index:1}
     .badge{position:absolute;top:14px;right:14px;z-index:2;border-radius:999px;background:#f2f4f7;color:#737c89;padding:6px 9px;font-size:10px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
     .card.recent .badge{background:#eef9f0;color:#278c43}
+    .card.private{
+      border-color:#e5d4a8;
+      background:linear-gradient(180deg,rgba(255,252,241,.96),rgba(255,255,255,.9));
+    }
+    .card.private .badge{
+      background:#fff4d7;
+      color:#8a641d;
+      border:1px solid #ead59f;
+    }
+    .card.private:after{
+      content:"🔒";
+      position:absolute;
+      left:16px;
+      top:15px;
+      z-index:2;
+      width:31px;
+      height:31px;
+      display:grid;
+      place-items:center;
+      border-radius:10px;
+      background:rgba(255,255,255,.92);
+      box-shadow:0 5px 15px rgba(80,62,20,.12);
+      font-size:15px;
+    }
     .empty{display:none;padding:48px 20px;color:var(--muted);font-weight:700}
     footer{text-align:center;color:#737b88;font-size:14px;padding:40px 0 4px}
     @media(max-width:1000px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -161,7 +185,15 @@
         <a class="card" href="./nube_mental/" data-id="nube-mental" data-tags="nube mental ideas mapa pensamientos">
           <span class="badge">Ideas</span><div class="icon blue">☁</div><h3>NUBE MENTAL</h3><p>Mapa visual para descargar pensamientos y conectar conceptos.</p><div class="arrow" style="color:#1669b2">→</div>
         </a>
-<a class="card" href="./experimentos/masa/" data-id="masa-interactiva" data-tags="experimento masa visual interactivo">
+        <a class="card private" href="./los-redondos/" data-id="los-redondos" data-tags="privado musica redondos audio letras proyecto">
+          <span class="badge">Privado</span><div class="icon red">♫</div><h3>LOS REDONDOS</h3><p>Proyecto musical privado. El servidor solicitará las credenciales para ingresar.</p><div class="arrow" style="color:#d64a4a">→</div>
+        </a>
+
+        <a class="card private" href="./luzypiel-hc/" data-id="luzypiel-hc" data-tags="privado luz piel estetica proyecto hc">
+          <span class="badge">Privado</span><div class="icon pink">✦</div><h3>LUZ Y PIEL HC</h3><p>Proyecto privado de Luz y Piel. El servidor solicitará las credenciales para ingresar.</p><div class="arrow" style="color:#ee4f91">→</div>
+        </a>
+
+        <a class="card" href="./experimentos/masa/" data-id="masa-interactiva" data-tags="experimento masa visual interactivo">
           <span class="badge">Experimento</span><div class="icon purple">⌬</div><h3>MASA INTERACTIVA</h3><p>Experimento visual e interactivo de masa dentro del laboratorio.</p><div class="arrow" style="color:#7d5cff">→</div>
         </a>
 </div>
