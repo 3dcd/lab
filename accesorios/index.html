@@ -5,26 +5,26 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>3DCD LAB · Llavero con borde y resina</title>
 <style>
-:root{--bg:#090d18;--panel:#141b2e;--txt:#f2f5ff;--muted:#9da9c8;--accent:#4dd8ff;--green:#36e3a4;--line:#2a3554}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#070b14,#11182b);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header{padding:17px 20px;background:#080c16;border-bottom:1px solid var(--line)}h1{font-size:20px;margin:0 0 5px}.sub{font-size:13px;color:var(--muted);max-width:1000px}
-main{display:grid;grid-template-columns:330px minmax(0,1fr);gap:15px;padding:15px;min-height:calc(100vh - 78px)}
-.panel{background:rgba(20,27,46,.97);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 16px 36px rgba(0,0,0,.22)}
-.controls{display:flex;flex-direction:column;gap:13px;align-self:start}.group{border-bottom:1px solid var(--line);padding-bottom:13px}.group:last-child{border:0;padding-bottom:0}
-label{display:block;margin-bottom:7px;font-size:12px;font-weight:800;color:#dce4fb}.row{display:grid;grid-template-columns:1fr 72px;gap:8px;align-items:center}
-input[type=range]{width:100%}.value{padding:8px;background:#0b1120;border:1px solid #354363;border-radius:10px;text-align:center;font-size:12px;color:var(--accent)}
-.dropzone{border:2px dashed #3d4f76;border-radius:16px;padding:28px 16px;text-align:center;background:#0b1120;cursor:pointer;transition:.2s}.dropzone.drag{border-color:var(--accent);background:#11213a}.dropzone strong{display:block;margin-bottom:6px}.dropzone span{font-size:12px;color:var(--muted)}
-.shapegrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.shapegrid button{background:#25304e;padding:10px 7px;font-size:12px}.shapegrid button.active{outline:2px solid var(--accent);background:#1c3857}.optiongrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.optiongrid button{background:#25304e;padding:10px 7px;font-size:12px}.optiongrid button.active{outline:2px solid var(--accent);background:#1c3857}
+:root{--bg:#dfe8f2;--panel:#f7f9fc;--txt:#182234;--muted:#66748a;--accent:#168ccb;--green:#168a63;--line:#c5d1df}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#eaf0f7,#dbe6f1);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+header{padding:17px 20px;background:#f5f8fc;border-bottom:1px solid var(--line)}h1{font-size:20px;margin:0 0 5px}.sub{font-size:13px;color:var(--muted);max-width:1000px}
+main{display:grid;grid-template-columns:330px minmax(0,1fr);gap:15px;padding:15px;height:calc(100vh - 78px);min-height:0;overflow:hidden}
+.panel{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 14px 30px rgba(43,67,94,.12)}
+.controls{display:flex;flex-direction:column;gap:13px;align-self:stretch;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:10px}.group{border-bottom:1px solid var(--line);padding-bottom:13px}.group:last-child{border:0;padding-bottom:0}
+label{display:block;margin-bottom:7px;font-size:12px;font-weight:800;color:#27364b}.row{display:grid;grid-template-columns:1fr 72px;gap:8px;align-items:center}
+input[type=range]{width:100%}.value{padding:8px;background:#eef3f8;border:1px solid #c5d1df;border-radius:10px;text-align:center;font-size:12px;color:var(--accent)}
+.dropzone{border:2px dashed #93a7bd;border-radius:16px;padding:28px 16px;text-align:center;background:#edf3f8;color:#334155;cursor:pointer;transition:.2s}.dropzone.drag{border-color:var(--accent);background:#dceef8}.dropzone strong{display:block;margin-bottom:6px}.dropzone span{font-size:12px;color:#64748b}
+.shapegrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.shapegrid button{background:#dce7f2;padding:10px 7px;font-size:12px}.shapegrid button.active{outline:2px solid var(--accent);background:#c9e7f7}.optiongrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.optiongrid button{background:#dce7f2;padding:10px 7px;font-size:12px}.optiongrid button.active{outline:2px solid var(--accent);background:#c9e7f7}
 .palette{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}.swatch{aspect-ratio:1;border-radius:10px;padding:0!important;border:2px solid rgba(255,255,255,.18);background:var(--sw)!important}.swatch.active{outline:3px solid var(--accent);outline-offset:2px}.presetOnly.hidden{display:none}
-button{appearance:none;border:0;border-radius:12px;padding:12px;background:linear-gradient(90deg,#00bfe9,#596cff);color:white;font-weight:900;cursor:pointer;width:100%}button.secondary{background:#25304e}button:disabled{opacity:.38;cursor:not-allowed}
-.specs{display:grid;grid-template-columns:1fr 1fr;gap:7px}.spec{background:#0b1120;border:1px solid #354363;border-radius:11px;padding:9px}.spec b{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}.spec span{font-size:13px}
-.stage{display:grid;grid-template-rows:minmax(420px,70vh) auto;gap:9px;min-width:0;align-self:start}.viewtabs{display:flex;gap:8px}.viewtabs button{width:auto;min-width:135px;background:#25304e}.viewtabs button.active{outline:2px solid var(--accent);background:#1c3857}.viewer{position:relative;min-height:420px;max-height:700px;background:#060a12;border:1px solid var(--line);border-radius:18px;overflow:hidden}.viewer canvas{display:block;width:100%;height:100%}.placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px;pointer-events:none}.hint{position:absolute;left:12px;bottom:12px;background:#07101ddd;border:1px solid #273452;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted);pointer-events:none}.status{font-size:12px;color:var(--muted);line-height:1.5}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#0b1120;border:1px solid #354363;color:var(--green);font-size:11px}
-.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.card{background:#0c1323;border:1px solid #2b3857;border-radius:12px;padding:8px 9px}.card b{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}.card span{font-size:14px}
-@media(max-width:900px){main{grid-template-columns:1fr}.stage{grid-template-rows:440px auto}.viewer{min-height:440px}.summary{grid-template-columns:1fr 1fr}}
+button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7f2;color:#334155;font-weight:900;cursor:pointer;width:100%}button.secondary{background:#dce7f2;color:#334155}.shapegrid button,.optiongrid button{color:#334155}.swatch{color:transparent}button:disabled{opacity:.38;cursor:not-allowed}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:7px}.spec{background:#eef3f8;border:1px solid #c5d1df;border-radius:11px;padding:9px}.spec b{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}.spec span{font-size:13px}
+.stage{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:9px;min-width:0;min-height:0;align-self:stretch}.viewtabs{display:flex;gap:8px}.viewtabs button{width:auto;min-width:135px;background:#dce7f2}.viewtabs button.active{outline:2px solid var(--accent);background:#c9e7f7}.viewer{position:relative;min-height:0;height:100%;background:#e8eef5;border:1px solid #b9c5d1;border-radius:18px;overflow:hidden;isolation:isolate;box-shadow:inset 0 0 0 3px #d3dbe4}.viewer canvas{display:block;width:100%;height:100%}.viewer:after{content:'';position:absolute;inset:0;border:3px solid rgba(125,139,154,.34);border-radius:17px;pointer-events:none;z-index:20}.placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px;pointer-events:none}.hint{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.88);border:1px solid #c4d0dc;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted);pointer-events:none}.status{font-size:12px;color:var(--muted);line-height:1.5}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef3f8;border:1px solid #c5d1df;color:var(--green);font-size:11px}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.card{background:#eef3f8;border:1px solid #c9d4df;border-radius:12px;padding:8px 9px}.card b{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}.card span{font-size:14px}
+@media(max-width:900px){body{overflow:auto}main{grid-template-columns:1fr;height:auto;overflow:visible}.controls{overflow:visible;padding-right:15px}.stage{grid-template-rows:440px auto}.viewer{min-height:440px}.summary{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
-<header><h1>3DCD LAB · Creador de llaveros y fichas con borde uniforme</h1><div class="sub">Recorta automáticamente el diseño, permite ubicarlo dentro de formas preestablecidas y exporta STL + PNG a tamaño real de 300 dpi.</div></header>
+<header><h1>3DCD LAB · Creador de llaveros · malla optimizada o uniforme</h1><div class="sub">Recorta automáticamente el diseño, permite ubicarlo dentro de formas preestablecidas y exporta STL + PNG a tamaño real de 300 dpi.</div></header>
 <main>
 <section class="panel controls">
   <div class="group">
@@ -62,8 +62,16 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:linea
     </div>
   </div>
   <div class="group">
-    <label>Ancho final</label>
-    <div class="row"><input id="widthMm" type="range" min="25" max="120" value="55"><div class="value" id="widthV">55 mm</div></div>
+    <label>Ancho interior de la imagen</label>
+    <div class="row"><input id="widthMm" type="range" min="25" max="120" value="55"><div class="value" id="widthV">57 mm total</div></div><div class="status" id="widthDetail" style="margin-top:7px">Interior 55 mm + borde de 1 mm por lado = 57 mm exteriores.</div>
+  </div>
+  <div class="group">
+    <label>Tipo de malla STL</label>
+    <div class="optiongrid" id="meshMode">
+      <button type="button" data-mesh="optimized" class="active">Optimizada</button>
+      <button type="button" data-mesh="uniform">Uniforme</button>
+    </div>
+    <div class="status" style="margin-top:8px">La malla uniforme subdivide todas las caras de manera regular. El STL sigue usando triángulos, pero quedan distribuidos como una cuadrícula más pareja.</div>
   </div>
   <div class="group">
     <label>Terminación</label>
@@ -79,11 +87,20 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:linea
       </div>
     </div>
   </div>
+  <div class="group">
+    <label>Tipo de pieza</label>
+    <div class="optiongrid" id="attachmentMode">
+      <button type="button" data-attachment="keychain" class="active">Con aro</button>
+      <button type="button" data-attachment="none">Sin agarre</button>
+      <button type="button" data-attachment="cake">Pinche para torta</button>
+    </div>
+    <div class="status" id="attachmentHelp" style="margin-top:8px">Aro superior para usar como llavero.</div>
+  </div>
   <div class="specs">
     <div class="spec"><b>Fondo interior</b><span>2 mm</span></div>
-    <div class="spec"><b>Altura total</b><span>3 mm</span></div>
+    <div class="spec"><b>Altura total</b><span id="specHeight">3 mm</span></div>
     <div class="spec"><b>Pared</b><span id="specWall">1 mm</span></div>
-    <div class="spec"><b>Agujero</b><span>3,2 mm</span></div>
+    <div class="spec"><b>Terminación</b><span id="specAttachment">Aro 3,2 mm</span></div>
   </div>
   <button id="download" class="secondary" disabled>Descargar ZIP · STL + PNG</button>
   <div class="status" id="status">Cargá una imagen para comenzar.</div>
@@ -91,25 +108,34 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:linea
 <section class="stage">
     <div class="viewer panel" id="viewer"><div class="placeholder" id="placeholder">Después de generar el diseño, acá vas a poder girar y acercar el STL.</div><div class="hint">Arrastrá para girar · rueda o pellizco para acercar</div></div>
   <div class="summary">
-    <div class="card"><b>Tamaño</b><span id="sumSize">—</span></div>
+    <div class="card"><b>Interior útil</b><span id="sumSize">—</span></div>
     <div class="card"><b>Base</b><span>2 mm</span></div>
-    <div class="card"><b>Borde</b><span id="sumBorder">1 mm × 3 mm</span></div>
-    <div class="card"><b>Altura total</b><span>3 mm</span></div>
+    <div class="card"><b>Medida exterior</b><span id="sumBorder">—</span></div>
+    <div class="card"><b>Espesor total</b><span id="sumHeight">3 mm</span></div>
   </div>
 </section>
 </main>
 <script>
 const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status')};
 const work=document.createElement('canvas'),ctx=work.getContext('2d',{willReadFrequently:true});
-let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,designScale=.78,bgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1;
-const CFG={threshold:35,simplify:3,base:2,total:3,hole:3.2,ring:8,marginPx:15};
+let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.78,bgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1;
+const CFG={threshold:35,simplify:3,base:2,total:3,hole:3.2,ring:8,marginPx:15,cakePinLength:30,cakePinWidth:4};
 let autoTimer=null;
 function scheduleGenerate(delay=80){
   clearTimeout(autoTimer);
   if(!sourceImg)return;
   autoTimer=setTimeout(()=>generate(),delay);
 }
-els.width.oninput=()=>{$('#widthV').textContent=els.width.value+' mm';scheduleGenerate(100)};
+function updateMeasureLabels(){
+  const inner=+els.width.value, total=inner+(hasBorder?wallWidth*2:0);
+  $('#widthV').textContent=total.toFixed(0)+' mm total';
+  $('#widthDetail').textContent=hasBorder
+    ? 'Interior '+inner.toFixed(0)+' mm + borde de '+wallWidth+' mm por lado = '+total.toFixed(0)+' mm exteriores.'
+    : 'Sin borde: la medida exterior coincide con el interior, '+inner.toFixed(0)+' mm.';
+  $('#specHeight').textContent=(hasBorder?CFG.total:CFG.base)+' mm';
+  $('#sumHeight').textContent=(hasBorder?CFG.total:CFG.base)+' mm';
+}
+els.width.oninput=()=>{updateMeasureLabels();scheduleGenerate(100)};
 els.designScale.oninput=()=>{designScale=+els.designScale.value/100;$('#designScaleV').textContent=els.designScale.value+'%';scheduleGenerate(80)};
 document.querySelectorAll('#bgPalette .swatch').forEach(b=>b.onclick=()=>{bgColor=b.dataset.color;document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x===b));scheduleGenerate(50)});
 els.drop.onclick=()=>els.file.click();
@@ -117,19 +143,33 @@ els.drop.onclick=()=>els.file.click();
 ['dragleave','drop'].forEach(ev=>els.drop.addEventListener(ev,e=>{e.preventDefault();els.drop.classList.remove('drag')}));
 els.drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f)});els.file.onchange=()=>els.file.files[0]&&loadFile(els.file.files[0]);
 
+document.querySelectorAll('#meshMode button').forEach(b=>b.onclick=()=>{
+  meshMode=b.dataset.mesh;
+  document.querySelectorAll('#meshMode button').forEach(x=>x.classList.toggle('active',x===b));
+  scheduleGenerate(40);
+});
 document.querySelectorAll('#borderMode button').forEach(b=>b.onclick=()=>{
   hasBorder=b.dataset.border==='yes';
   document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',x===b));
   $('#wallOptions').style.display=hasBorder?'block':'none';
   $('#specWall').textContent=hasBorder?wallWidth+' mm':'Sin borde';
-  $('#sumBorder').textContent=hasBorder?wallWidth+' mm × 3 mm':'Sin borde';
+  updateMeasureLabels();
   scheduleGenerate();
 });
 document.querySelectorAll('#wallWidthMode button').forEach(b=>b.onclick=()=>{
   wallWidth=+b.dataset.wall;
   document.querySelectorAll('#wallWidthMode button').forEach(x=>x.classList.toggle('active',x===b));
   $('#specWall').textContent=wallWidth+' mm';
-  $('#sumBorder').textContent=wallWidth+' mm × 3 mm';
+  updateMeasureLabels();
+  scheduleGenerate();
+});
+document.querySelectorAll('#attachmentMode button').forEach(b=>b.onclick=()=>{
+  attachmentMode=b.dataset.attachment;
+  document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x===b));
+  const texts={keychain:'Aro superior para usar como llavero.',none:'Sin aro: sirve como chapita, imán o aplique.',cake:'Pinche inferior de 30 mm para insertar en tortas o decoraciones.'};
+  const specs={keychain:'Aro 3,2 mm',none:'Sin agarre',cake:'Pinche 30 mm'};
+  $('#attachmentHelp').textContent=texts[attachmentMode];
+  $('#specAttachment').textContent=specs[attachmentMode];
   scheduleGenerate();
 });
 document.querySelectorAll('#shapegrid button').forEach(b=>b.onclick=()=>{
@@ -138,6 +178,7 @@ document.querySelectorAll('#shapegrid button').forEach(b=>b.onclick=()=>{
   $('#designControls').classList.toggle('hidden',shape==='cutout');
   scheduleGenerate();
 });
+updateMeasureLabels();
 function foregroundMaskFromImageData(data,w,h){
   const out=new Uint8Array(w*h),t=CFG.threshold;
   for(let i=0;i<w*h;i++){
@@ -186,12 +227,57 @@ function bounds(poly){let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infin
 function presetMask(kind,w,h){const out=new Uint8Array(w*h),pad=Math.max(12,Math.round(Math.min(w,h)*.055)),x0=pad,y0=pad,x1=w-pad-1,y1=h-pad-1,cx=w/2,cy=h/2;if(kind==='circle'){const rr=Math.min(x1-x0,y1-y0)/2;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if((x-cx)**2+(y-cy)**2<=rr**2)out[y*w+x]=1;return out}const r=Math.min(x1-x0,y1-y0)*.12;for(let y=0;y<h;y++)for(let x=0;x<w;x++){let inside=x>=x0&&x<=x1&&y>=y0&&y<=y1;if(inside){const dx=Math.max(x0+r-x,0,x-(x1-r),0),dy=Math.max(y0+r-y,0,y-(y1-r),0);if(dx>0&&dy>0&&dx*dx+dy*dy>r*r)inside=false}if(inside)out[y*w+x]=1}return out}
 
 function toMM(poly,b,scale){return poly.map(([x,y])=>[(x-b.minX)*scale,(b.maxY-y)*scale])}
-function generate(){try{prepareCanvas();if(shape==='cutout'){mask=largestComponent(buildMask(),work.width,work.height);innerMask=circularDilate(mask,CFG.marginPx,work.width,work.height)}else{mask=foregroundMaskFromImageData(original.data,work.width,work.height);innerMask=presetMask(shape,work.width,work.height)}innerContour=simplify(trace(innerMask,work.width,work.height),shape==='cutout'?CFG.simplify:2);if(innerContour.length<3)throw Error('No pude construir una figura cerrada');const b=bounds(innerContour),scale=(+els.width.value)/Math.max(1,b.w);if(hasBorder){const wallPx=Math.max(1,Math.round(wallWidth/scale)),outerMask=circularDilate(innerMask,wallPx,work.width,work.height);outerContour=simplify(trace(outerMask,work.width,work.height),shape==='cutout'?CFG.simplify:2);if(outerContour.length<3)throw Error('No pude construir el borde exterior')}else outerContour=innerContour.slice();const inner=toMM(innerContour,b,scale),outer=toMM(outerContour,b,scale);lastInner=inner;lastOuter=outer;lastBounds=b;lastScale=scale;lastSTL=buildUnifiedSTL(inner,outer);renderSTL(lastSTL);createPNGBlob().then(blob=>lastPNG=blob);const names={cutout:'Figura recortada',square:'Cuadrado',portrait:'Rectángulo vertical',circle:'Círculo'};$('#sumSize').textContent=(+els.width.value).toFixed(0)+' × '+(b.h*scale).toFixed(1)+' mm';$('#sumBorder').textContent=hasBorder?wallWidth+' mm × 3 mm':'Sin borde';els.download.disabled=false;els.status.innerHTML='<span class="badge">Diseño generado</span> '+names[shape]+' · '+(hasBorder?'borde uniforme de '+wallWidth+' mm.':'base plana sin borde.');}catch(e){els.status.textContent=e.message+'. Probá con otra imagen o formato.'}}
+function fitOuterToExactSize(poly,innerW,innerH,wall){
+  if(!wall)return poly.slice();
+  const b=bounds(poly),targetW=innerW+wall*2,targetH=innerH+wall*2;
+  return poly.map(([x,y])=>[
+    -wall+(x-b.minX)/Math.max(1e-9,b.w)*targetW,
+    -wall+(y-b.minY)/Math.max(1e-9,b.h)*targetH
+  ]);
+}
+function generate(){try{
+  prepareCanvas();
+  if(shape==='cutout'){
+    mask=largestComponent(buildMask(),work.width,work.height);
+    innerMask=circularDilate(mask,CFG.marginPx,work.width,work.height);
+  }else{
+    mask=foregroundMaskFromImageData(original.data,work.width,work.height);
+    innerMask=presetMask(shape,work.width,work.height);
+  }
+  innerContour=simplify(trace(innerMask,work.width,work.height),shape==='cutout'?CFG.simplify:2);
+  if(innerContour.length<3)throw Error('No pude construir una figura cerrada');
+  const b=bounds(innerContour),innerW=+els.width.value,scale=innerW/Math.max(1,b.w),innerH=b.h*scale;
+  let inner=toMM(innerContour,b,scale),outer;
+  if(hasBorder){
+    const wallPx=Math.max(1,Math.round(wallWidth/scale)),outerMask=circularDilate(innerMask,wallPx,work.width,work.height);
+    outerContour=simplify(trace(outerMask,work.width,work.height),shape==='cutout'?CFG.simplify:2);
+    if(outerContour.length<3)throw Error('No pude construir el borde exterior');
+    outer=fitOuterToExactSize(toMM(outerContour,b,scale),innerW,innerH,wallWidth);
+  }else{
+    outerContour=innerContour.slice();outer=inner.slice();
+  }
+  lastInner=inner;lastOuter=outer;lastBounds=b;lastScale=scale;
+  lastSTL=buildUnifiedSTL(inner,outer);renderSTL(lastSTL);createPNGBlob().then(blob=>lastPNG=blob);
+  const names={cutout:'Figura recortada',square:'Cuadrado',portrait:'Rectángulo vertical',circle:'Círculo'};
+  const extW=innerW+(hasBorder?wallWidth*2:0),extH=innerH+(hasBorder?wallWidth*2:0);
+  $('#sumSize').textContent=innerW.toFixed(1)+' × '+innerH.toFixed(1)+' mm';
+  $('#sumBorder').textContent=extW.toFixed(1)+' × '+extH.toFixed(1)+' mm';
+  updateMeasureLabels();
+  els.download.disabled=false;
+  els.status.innerHTML='<span class="badge">Diseño generado</span> '+names[shape]+' · interior '+innerW.toFixed(1)+' mm · exterior '+extW.toFixed(1)+' mm · PNG interior a 300 dpi.';
+}catch(e){els.status.textContent=e.message+'. Probá con otra imagen o formato.'}}
 function area(poly){let a=0;for(let i=0,j=poly.length-1;i<poly.length;j=i++)a+=poly[j][0]*poly[i][1]-poly[i][0]*poly[j][1];return a/2}
 function pointInTri(p,a,b,c){const s=(p1,p2,p3)=>(p1[0]-p3[0])*(p2[1]-p3[1])-(p2[0]-p3[0])*(p1[1]-p3[1]);const b1=s(p,a,b)<0,b2=s(p,b,c)<0,b3=s(p,c,a)<0;return b1===b2&&b2===b3}
 function triangulate(poly){const p=area(poly)<0?poly.slice().reverse():poly.slice(),idx=p.map((_,i)=>i),tris=[];let guard=0;while(idx.length>3&&guard++<30000){let ear=false;for(let k=0;k<idx.length;k++){const ia=idx[(k-1+idx.length)%idx.length],ib=idx[k],ic=idx[(k+1)%idx.length],a=p[ia],b=p[ib],c=p[ic],cross=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);if(cross<=0)continue;let inside=false;for(const ii of idx)if(ii!==ia&&ii!==ib&&ii!==ic&&pointInTri(p[ii],a,b,c)){inside=true;break}if(!inside){tris.push([ia,ib,ic]);idx.splice(k,1);ear=true;break}}if(!ear)break}if(idx.length===3)tris.push([idx[0],idx[1],idx[2]]);return{poly:p,tris}}
 function normal(a,b,c){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1;return n.map(x=>x/l)}
-function facet(a,b,c){const n=normal(a,b,c);return`facet normal ${n.join(' ')}\n outer loop\n  vertex ${a.join(' ')}\n  vertex ${b.join(' ')}\n  vertex ${c.join(' ')}\n endloop\nendfacet\n`}
+function rawFacet(a,b,c){const n=normal(a,b,c);return`facet normal ${n.join(' ')}\n outer loop\n  vertex ${a.join(' ')}\n  vertex ${b.join(' ')}\n  vertex ${c.join(' ')}\n endloop\nendfacet\n`}
+function midpoint(a,b){return[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2]}
+function subdivideFacet(a,b,c,level){
+  if(level<=0)return rawFacet(a,b,c);
+  const ab=midpoint(a,b),bc=midpoint(b,c),ca=midpoint(c,a),n=level-1;
+  return subdivideFacet(a,ab,ca,n)+subdivideFacet(ab,b,bc,n)+subdivideFacet(ca,bc,c,n)+subdivideFacet(ab,bc,ca,n);
+}
+function facet(a,b,c){return meshMode==='uniform'?subdivideFacet(a,b,c,1):rawFacet(a,b,c)}
 function extrude(poly,z0,z1){const{poly:p,tris}=triangulate(poly);if(!tris.length)throw Error('No se pudo triangular la base');let s='';for(const[a,b,c]of tris){s+=facet([p[a][0],p[a][1],z0],[p[c][0],p[c][1],z0],[p[b][0],p[b][1],z0]);s+=facet([p[a][0],p[a][1],z1],[p[b][0],p[b][1],z1],[p[c][0],p[c][1],z1])}for(let i=0;i<p.length;i++){const j=(i+1)%p.length,a=p[i],b=p[j];s+=facet([a[0],a[1],z0],[b[0],b[1],z0],[b[0],b[1],z1]);s+=facet([a[0],a[1],z0],[b[0],b[1],z1],[a[0],a[1],z1])}return s}
 function pathLength(poly){let L=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];L+=Math.hypot(b[0]-a[0],b[1]-a[1])}return L}
 function resample(poly,count){const seg=[],cum=[0];let total=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length],l=Math.hypot(b[0]-a[0],b[1]-a[1]);seg.push(l);total+=l;cum.push(total)}const out=[];for(let k=0;k<count;k++){const target=total*k/count;let i=0;while(i<seg.length-1&&cum[i+1]<target)i++;const a=poly[i],b=poly[(i+1)%poly.length],t=seg[i]?((target-cum[i])/seg[i]):0;out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}return out}
@@ -231,15 +317,29 @@ function topAnchor(poly){
   }
   return[chosen[0],maxY];
 }
+function bottomAnchor(poly){
+  let minY=Infinity;for(const p of poly)minY=Math.min(minY,p[1]);
+  const tolerance=Math.max(.8,wallWidth*1.2),cands=poly.filter(p=>p[1]<=minY+tolerance);
+  const center=cands.length?cands.reduce((s,p)=>s+p[0],0)/cands.length:(bounds(poly).minX+bounds(poly).maxX)/2;
+  const chosen=(cands.length?cands:poly).reduce((best,p)=>Math.abs(p[0]-center)<Math.abs(best[0]-center)?p:best,(cands[0]||poly[0]));
+  return[chosen[0],minY];
+}
 function buildUnifiedSTL(inner,outer){
-  const anchor=hasBorder?outer:inner,[x,top]=topAnchor(anchor),ro=CFG.ring/2,ri=CFG.hole/2;
-  const overlap=.8,cy=top+ro-overlap;
-  const neckW=Math.max(2.2,(ro-ri)*1.45),neckBottom=top-.9,neckTop=cy-ro+.55;
-  const baseBody=extrude(hasBorder?outer:inner,0,CFG.base);
+  const body=hasBorder?outer:inner;
+  const pieceHeight=hasBorder?CFG.total:CFG.base;
+  const baseBody=extrude(body,0,CFG.base);
   const wallBody=hasBorder?ringWall(outer,inner,0,CFG.total):'';
-  let attachment=annulus(x,cy,ro,ri,0,CFG.total);
-  if(neckTop>neckBottom)attachment+=extrude([[x-neckW/2,neckBottom],[x+neckW/2,neckBottom],[x+neckW/2,neckTop],[x-neckW/2,neckTop]],0,CFG.total);
-  return 'solid llavero_unificado\n'+baseBody+wallBody+attachment+'endsolid llavero_unificado\n';
+  let attachment='';
+  if(attachmentMode==='keychain'){
+    const [x,top]=topAnchor(body),ro=CFG.ring/2,ri=CFG.hole/2,overlap=.8,cy=top+ro-overlap;
+    const neckW=Math.max(2.2,(ro-ri)*1.45),neckBottom=top-.9,neckTop=cy-ro+.55;
+    attachment=annulus(x,cy,ro,ri,0,pieceHeight);
+    if(neckTop>neckBottom)attachment+=extrude([[x-neckW/2,neckBottom],[x+neckW/2,neckBottom],[x+neckW/2,neckTop],[x-neckW/2,neckTop]],0,pieceHeight);
+  }else if(attachmentMode==='cake'){
+    const [x,bottom]=bottomAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength,overlap=1.4;
+    attachment=extrude([[x-w/2,bottom+overlap],[x+w/2,bottom+overlap],[x+w/2,bottom-L+4],[x,bottom-L],[x-w/2,bottom-L+4]],0,pieceHeight);
+  }
+  return 'solid pieza_unificada\n'+baseBody+wallBody+attachment+'endsolid pieza_unificada\n';
 }
 function injectPngDpi(blob,dpi=300){return blob.arrayBuffer().then(buf=>{
   const bytes=new Uint8Array(buf),ppm=Math.round(dpi/0.0254),data=new Uint8Array(9),dv=new DataView(data.buffer);dv.setUint32(0,ppm);dv.setUint32(4,ppm);data[8]=1;
@@ -272,9 +372,9 @@ function init3D(){
 }
 function rotate3(p){const cz=Math.cos(rotZ),sz=Math.sin(rotZ),cx=Math.cos(rotX),sx=Math.sin(rotX),x=p[0]*cz-p[1]*sz,y=p[0]*sz+p[1]*cz,z=p[2],y2=y*cx-z*sx,z2=y*sx+z*cx;return[x,y2,z2]}
 function transformedBounds(){let mn=[Infinity,Infinity,Infinity],mx=[-Infinity,-Infinity,-Infinity];for(const t of mesh)for(const p of t){const q=rotate3(p);for(let k=0;k<3;k++){mn[k]=Math.min(mn[k],q[k]);mx[k]=Math.max(mx[k],q[k])}}return{mn,mx}}
-function shadeFor(tri){const a=rotate3(tri[0]),b=rotate3(tri[1]),c=rotate3(tri[2]),u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],nz=u[0]*v[1]-u[1]*v[0],len=Math.hypot(u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],nz)||1,light=Math.max(.12,Math.min(1,.35+.65*Math.abs(nz/len)));return `rgb(${Math.round(45*light)},${Math.round(195*light)},${Math.round(225*light)})`}
+function shadeFor(){return '#9aa3ad'}
 function proj(p,cx,cy,sc){const q=rotate3(p),f=cameraDistance/Math.max(20,cameraDistance-q[2]);return[cx+q[0]*sc*f,cy-q[1]*sc*f,q[2]]}
-function drawMesh(cx,cy,sc){const faces=mesh.map(t=>{const q=t.map(p=>proj(p,cx,cy,sc));return{t,q,z:(q[0][2]+q[1][2]+q[2][2])/3}}).sort((a,b)=>a.z-b.z);for(const f of faces){pctx.beginPath();pctx.moveTo(f.q[0][0],f.q[0][1]);pctx.lineTo(f.q[1][0],f.q[1][1]);pctx.lineTo(f.q[2][0],f.q[2][1]);pctx.closePath();pctx.fillStyle=shadeFor(f.t);pctx.fill();pctx.strokeStyle='rgba(4,31,42,.3)';pctx.lineWidth=.55;pctx.stroke()}}
+function drawMesh(cx,cy,sc){const faces=mesh.map(t=>{const q=t.map(p=>proj(p,cx,cy,sc));return{t,q,z:(q[0][2]+q[1][2]+q[2][2])/3}}).sort((a,b)=>a.z-b.z);for(const f of faces){pctx.beginPath();pctx.moveTo(f.q[0][0],f.q[0][1]);pctx.lineTo(f.q[1][0],f.q[1][1]);pctx.lineTo(f.q[2][0],f.q[2][1]);pctx.closePath();pctx.fillStyle=shadeFor(f.t);pctx.fill();/* sin filetes entre triángulos: evita marcas o píxeles residuales */}}
 function pointInsideMask(px,py){const x=Math.round(px),y=Math.round(py);return x>=0&&y>=0&&x<work.width&&y<work.height&&innerMask[y*work.width+x]}
 function affineTriangle(ctx2,src,dst){
   const [s0,s1,s2]=src,[d0,d1,d2]=dst;
@@ -293,9 +393,9 @@ function drawDesignSurface(cx,cy,sc){
     affineTriangle(pctx,src,dst);
   }
   const clipPts=innerContour.map(([x,y])=>proj([(x-b.minX)*lastScale,(b.maxY-y)*lastScale,CFG.base+.04],cx,cy,sc));
-  pctx.save();pctx.beginPath();pctx.moveTo(clipPts[0][0],clipPts[0][1]);for(let k=1;k<clipPts.length;k++)pctx.lineTo(clipPts[k][0],clipPts[k][1]);pctx.closePath();pctx.strokeStyle='rgba(255,255,255,.3)';pctx.lineWidth=.7;pctx.stroke();pctx.restore();
+  pctx.save();pctx.beginPath();pctx.moveTo(clipPts[0][0],clipPts[0][1]);for(let k=1;k<clipPts.length;k++)pctx.lineTo(clipPts[k][0],clipPts[k][1]);pctx.closePath();/* contorno auxiliar oculto para una vista más limpia */pctx.restore();
 }
-function drawPreview(){if(!pctx||!mesh.length)return;const host=$('#viewer'),W=host.clientWidth,H=host.clientHeight;pctx.clearRect(0,0,W,H);const bb=transformedBounds(),spanX=Math.max(1,bb.mx[0]-bb.mn[0]),spanY=Math.max(1,bb.mx[1]-bb.mn[1]);cameraDistance=Math.max(100,Math.max(spanX,spanY)*4.2);const sc=Math.min(W/(spanX+20),H/(spanY+20))*previewZoom,cx=W/2-(bb.mn[0]+bb.mx[0])*sc/2,cy=H/2+(bb.mn[1]+bb.mx[1])*sc/2;pctx.fillStyle='#060a12';pctx.fillRect(0,0,W,H);drawMesh(cx,cy,sc);drawDesignSurface(cx,cy,sc)}
+function drawPreview(){if(!pctx||!mesh.length)return;const host=$('#viewer'),W=host.clientWidth,H=host.clientHeight;pctx.save();pctx.setTransform(1,0,0,1,0,0);pctx.clearRect(-4,-4,previewCanvas.width+8,previewCanvas.height+8);pctx.restore();const bb=transformedBounds(),spanX=Math.max(1,bb.mx[0]-bb.mn[0]),spanY=Math.max(1,bb.mx[1]-bb.mn[1]);cameraDistance=Math.max(100,Math.max(spanX,spanY)*4.2);const sc=Math.min(W/(spanX+20),H/(spanY+20))*previewZoom,cx=W/2-(bb.mn[0]+bb.mx[0])*sc/2,cy=H/2+(bb.mn[1]+bb.mx[1])*sc/2;pctx.fillStyle='#e8eef5';pctx.fillRect(0,0,W,H);drawMesh(cx,cy,sc);drawDesignSurface(cx,cy,sc)}
 function renderSTL(stl){if(!previewCanvas)init3D();mesh=parseASCIISTL(stl);previewZoom=1;rotX=-0.72;rotZ=-0.35;drawPreview();$('#placeholder').style.display='none'}
 function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
 function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
@@ -308,18 +408,21 @@ async function downloadZip(){
     const names={cutout:'figura_recortada',square:'cuadrado',portrait:'rectangulo_vertical',circle:'circulo'};
     const txt='Formato: '+names[shape]+'\n'+
       'STL único y unido\n'+
+      'Malla: '+(meshMode==='uniform'?'uniforme experimental (subdivisión regular)':'optimizada')+'\n'+
       'Base: 2 mm\n'+
+      'Espesor de accesorios: '+(hasBorder?'3 mm':'2 mm')+'\n'+
       'Terminación: '+(hasBorder?'borde de '+wallWidth+' mm hacia afuera y 3 mm de altura total':'sin borde, base plana de 2 mm')+'\n'+
-      'PNG: 300 dpi · ancho físico '+(+els.width.value).toFixed(1)+' mm\n'+
+      'PNG: 300 dpi · ancho interior físico exacto '+(+els.width.value).toFixed(1)+' mm\n'+
+      'Ancho exterior del STL: '+((+els.width.value)+(hasBorder?wallWidth*2:0)).toFixed(1)+' mm\n'+
       (shape==='cutout'?'':'Diseño interior: '+Math.round(designScale*100)+'% · fondo '+bgColor+'\n')+
-      'Agujero: 3,2 mm\n'+
-      'El aro se apoya en el punto más alto real del contorno.\n';
+      'Tipo de pieza: '+({keychain:'llavero con aro de 3,2 mm',none:'chapita / imán sin agarre',cake:'topper con pinche inferior de 30 mm'}[attachmentMode])+'\n'+
+      (attachmentMode==='keychain'?'El aro se apoya en el punto más alto real del contorno.\n':attachmentMode==='cake'?'El pinche se apoya en el punto más bajo de la figura.\n':'');
     const blob=makeZip([
       {name:names[shape]+'_unificado.stl',data:lastSTL},
       {name:(hasBorder?'diseno_con_linea_de_corte_300dpi.png':'diseno_DTF_UV_transparente_300dpi.png'),data:png},
       {name:'MEDIDAS.txt',data:txt}
     ]),a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);a.download='llavero_'+names[shape]+'.zip';a.click();
+    a.href=URL.createObjectURL(blob);a.download=({keychain:'llavero_',none:'chapita_',cake:'topper_'}[attachmentMode])+names[shape]+'.zip';a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),1500);
     els.status.innerHTML='<span class="badge">ZIP generado</span> Incluye STL, PNG a 300 dpi y medidas.';
   }catch(e){els.status.textContent='No se pudo crear el ZIP: '+e.message}
