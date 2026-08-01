@@ -3,36 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>3DCD LAB · Creador de piezas · vista superior</title>
+<title>3DCD LAB · Creador de llaveros</title>
 <style>
 :root{--bg:#dfe8f2;--panel:#f7f9fc;--txt:#182234;--muted:#66748a;--accent:#168ccb;--green:#168a63;--line:#c5d1df}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#eaf0f7,#dbe6f1);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
 header{padding:17px 20px;background:#f5f8fc;border-bottom:1px solid var(--line)}h1{font-size:20px;margin:0 0 5px}.sub{font-size:13px;color:var(--muted);max-width:1000px}
-main{display:grid;grid-template-columns:330px minmax(0,1fr);gap:15px;padding:15px;height:calc(100vh - 78px);min-height:0;overflow:hidden}
+main{display:grid;grid-template-columns:330px minmax(0,1fr);grid-template-areas:'controls stage';gap:15px;padding:15px;height:calc(100vh - 78px);min-height:0;overflow:hidden}
 .panel{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 14px 30px rgba(43,67,94,.12)}
-.controls{display:flex;flex-direction:column;gap:13px;align-self:stretch;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:10px}.group{border-bottom:1px solid var(--line);padding-bottom:13px}.group:last-child{border:0;padding-bottom:0}
+.controls{grid-area:controls;display:flex;flex-direction:column;gap:13px;align-self:stretch;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:10px}.group{border-bottom:1px solid var(--line);padding-bottom:13px}.group:last-child{border:0;padding-bottom:0}
 label{display:block;margin-bottom:7px;font-size:12px;font-weight:800;color:#27364b}.row{display:grid;grid-template-columns:1fr 72px;gap:8px;align-items:center}
 input[type=range]{width:100%}.value{padding:8px;background:#eef3f8;border:1px solid #c5d1df;border-radius:10px;text-align:center;font-size:12px;color:var(--accent)}
-.dropzone{border:2px dashed #93a7bd;border-radius:16px;padding:28px 16px;text-align:center;background:#edf3f8;color:#334155;cursor:pointer;transition:.2s}.dropzone.drag{border-color:var(--accent);background:#dceef8}.dropzone strong{display:block;margin-bottom:6px}.dropzone span{font-size:12px;color:#64748b}
-.shapegrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.shapegrid button{background:#dce7f2;padding:10px 7px;font-size:12px}.shapegrid button.active{outline:2px solid var(--accent);background:#c9e7f7}.optiongrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.optiongrid button{background:#dce7f2;padding:10px 7px;font-size:12px}.optiongrid button.active{outline:2px solid var(--accent);background:#c9e7f7}
-.palette{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}.swatch{aspect-ratio:1;border-radius:10px;padding:0!important;border:2px solid rgba(255,255,255,.18);background:var(--sw)!important}.swatch.active{outline:3px solid var(--accent);outline-offset:2px}.presetOnly.hidden{display:none}
+.dropzone{position:absolute;inset:12px;z-index:30;border:2px dashed #93a7bd;border-radius:14px;padding:24px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(237,243,248,.94);color:#334155;cursor:pointer;transition:.2s}.dropzone.drag{border-color:var(--accent);background:#dceef8}.dropzone strong{display:block;margin-bottom:6px}.dropzone span{font-size:12px;color:#64748b}.dropzone.loaded{inset:12px 12px auto auto;width:auto;max-width:180px;min-height:0;padding:8px 11px;border:1px solid #aebdcb;border-radius:999px;display:block;background:rgba(255,255,255,.92);box-shadow:0 3px 10px rgba(44,62,80,.12)}.dropzone.loaded strong{margin:0;font-size:11px}.dropzone.loaded span{display:none}
+.shapegrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.shapegrid button{background:#dce7f2;padding:9px 4px;font-size:11px;line-height:1.15;min-height:42px}.shapegrid button.active{outline:2px solid var(--accent);background:#c9e7f7}.optiongrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.optiongrid button{background:#dce7f2;padding:10px 7px;font-size:12px}.optiongrid button.active{outline:2px solid var(--accent);background:#c9e7f7}
+.autoBgRow{display:grid;grid-template-columns:1fr 42px;gap:8px;align-items:center;margin-bottom:10px}.autoBgBtn{padding:10px 9px}.autoBgChip{display:block;width:42px;height:38px;border-radius:10px;background:#fff;border:1px solid #b9c7d5;box-shadow:inset 0 0 0 2px rgba(255,255,255,.65)}.palette{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}.swatch{aspect-ratio:1;border-radius:10px;padding:0!important;border:2px solid rgba(255,255,255,.18);background:var(--sw)!important}.swatch.active{outline:3px solid var(--accent);outline-offset:2px}.presetOnly.hidden{display:none}
 button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7f2;color:#334155;font-weight:900;cursor:pointer;width:100%}button.secondary{background:#dce7f2;color:#334155}.shapegrid button,.optiongrid button{color:#334155}.swatch{color:transparent}button:disabled{opacity:.38;cursor:not-allowed}
 .specs{display:grid;grid-template-columns:1fr 1fr;gap:7px}.spec{background:#eef3f8;border:1px solid #c5d1df;border-radius:11px;padding:9px}.spec b{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}.spec span{font-size:13px}
-.stage{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:9px;min-width:0;min-height:0;align-self:stretch}.viewtabs{display:flex;gap:8px}.viewtabs button{width:auto;min-width:135px;background:#dce7f2}.viewtabs button.active{outline:2px solid var(--accent);background:#c9e7f7}.viewer{position:relative;min-height:0;height:100%;background:#e8eef5;border:1px solid #b9c5d1;border-radius:18px;overflow:hidden;isolation:isolate;box-shadow:inset 0 0 0 3px #d3dbe4}.viewer canvas{display:block;width:100%;height:100%}.viewer:after{content:'';position:absolute;inset:0;border:3px solid rgba(125,139,154,.34);border-radius:17px;pointer-events:none;z-index:20}.placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px;pointer-events:none}.hint{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.88);border:1px solid #c4d0dc;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted);pointer-events:none}.status{font-size:12px;color:var(--muted);line-height:1.5}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef3f8;border:1px solid #c5d1df;color:var(--green);font-size:11px}
-.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.card{background:#eef3f8;border:1px solid #c9d4df;border-radius:12px;padding:8px 9px}.card b{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}.card span{font-size:14px}
-@media(max-width:900px){body{overflow:auto}main{grid-template-columns:1fr;height:auto;overflow:visible}.controls{overflow:visible;padding-right:15px}.stage{grid-template-rows:min(58vh,520px) auto}.viewer{min-height:360px}.summary{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){header{padding:13px 14px}main{padding:10px;gap:10px}.panel{border-radius:14px;padding:12px}.stage{grid-template-rows:400px auto}.hint{font-size:11px}.summary{grid-template-columns:1fr 1fr}}
+.stage{grid-area:stage;display:grid;grid-template-rows:minmax(0,1fr);gap:0;min-width:0;min-height:0;align-self:stretch}.viewtabs{display:flex;gap:8px}.viewtabs button{width:auto;min-width:135px;background:#dce7f2}.viewtabs button.active{outline:2px solid var(--accent);background:#c9e7f7}.viewer{position:relative;min-height:0;height:100%;background:#e8eef5;border:1px solid #b9c5d1;border-radius:18px;overflow:hidden;isolation:isolate;box-shadow:inset 0 0 0 3px #d3dbe4}.viewer canvas{display:block;width:100%;height:100%;pointer-events:none}.viewer:after{content:'';position:absolute;inset:0;border:3px solid rgba(125,139,154,.34);border-radius:17px;pointer-events:none;z-index:20}.placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px;pointer-events:none}.hint{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.88);border:1px solid #c4d0dc;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted);pointer-events:none}.status{font-size:12px;color:var(--muted);line-height:1.5}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef3f8;border:1px solid #c5d1df;color:var(--green);font-size:11px}
+.summary,.specs,.hint{display:none!important}
+@media(max-width:900px){body{overflow:hidden}main{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(260px,42vh) minmax(0,1fr);grid-template-areas:'stage' 'controls';height:calc(100dvh - 66px);overflow:hidden}.stage{min-height:0;height:auto}.controls{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-right:10px}.viewer{min-height:0;height:100%}}
+@media(max-width:600px){header{padding:10px 12px;height:48px;display:flex;align-items:center}header .sub{display:none}h1{font-size:16px;margin:0}main{height:calc(100dvh - 48px);grid-template-rows:minmax(230px,40vh) minmax(0,1fr);padding:7px;gap:7px}.panel{border-radius:13px;padding:9px}.shapegrid{gap:4px}.shapegrid button{padding:7px 2px;font-size:9.5px;min-height:38px}.controls{padding-right:7px}.dropzone{inset:9px}.dropzone.loaded{inset:9px 9px auto auto;max-width:145px;padding:7px 9px}}
 </style>
 </head>
 <body>
-<header><h1>3DCD LAB · Creador de llaveros</h1><div class="sub">Recorta el diseño, muestra una previa liviana y exporta STL + PNG a tamaño real de 300 dpi.</div></header>
+<header><h1>3DCD LAB · Creador de llaveros</h1><div class="sub">Prepará la pieza y descargá el STL junto con el diseño a tamaño real.</div></header>
 <main>
+<section class="stage">
+    <div class="viewer panel" id="viewer">
+      <div class="dropzone" id="dropzone"><strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span></div>
+    </div>
+  <div hidden><span id="sumSize"></span><span id="sumBorder"></span><span id="sumHeight"></span></div>
+</section>
 <section class="panel controls">
-  <div class="group">
-    <label>Cargar imagen</label>
-    <div class="dropzone" id="dropzone"><strong>Arrastrá PNG, JPG o WebP</strong><span>o hacé clic para elegirlo</span></div>
-    <input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
-  </div>
+  <input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" hidden>
   <div class="group">
     <label>Formato de la pieza</label>
     <div class="shapegrid" id="shapegrid">
@@ -47,6 +49,10 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
     <div class="row"><input id="designScale" type="range" min="45" max="96" value="78"><div class="value" id="designScaleV">78%</div></div>
     <div style="height:10px"></div>
     <label>Color de fondo</label>
+    <div class="autoBgRow">
+      <button id="autoBg" type="button" class="secondary autoBgBtn">Tomar fondo de la imagen</button>
+      <span id="autoBgChip" class="autoBgChip" title="Color detectado"></span>
+    </div>
     <div class="palette" id="bgPalette">
       <button class="swatch active" type="button" data-color="#ffffff" title="Blanco" style="--sw:#ffffff"></button>
       <button class="swatch" type="button" data-color="#111111" title="Negro" style="--sw:#111111"></button>
@@ -89,29 +95,16 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
     </div>
     <div class="status" id="attachmentHelp" style="margin-top:8px">Aro superior para usar como llavero.</div>
   </div>
-  <div class="specs">
-    <div class="spec"><b>Fondo interior</b><span>2 mm</span></div>
-    <div class="spec"><b>Altura total</b><span id="specHeight">3 mm</span></div>
-    <div class="spec"><b>Pared</b><span id="specWall">1 mm</span></div>
-    <div class="spec"><b>Terminación</b><span id="specAttachment">Aro 3,2 mm</span></div>
-  </div>
+  <div hidden><span id="specHeight"></span><span id="specWall"></span><span id="specAttachment"></span></div>
   <button id="download" class="secondary" disabled>Descargar ZIP · STL + PNG</button>
   <div class="status" id="status">Cargá una imagen para comenzar.</div>
 </section>
-<section class="stage">
-    <div class="viewer panel" id="viewer"><div class="placeholder" id="placeholder">Después de cargar una imagen, acá vas a ver la pieza desde arriba.</div><div class="hint">Vista superior del diseño · el STL conserva el volumen real al exportar</div></div>
-  <div class="summary">
-    <div class="card"><b>Interior útil</b><span id="sumSize">—</span></div>
-    <div class="card"><b>Base</b><span>2 mm</span></div>
-    <div class="card"><b>Medida exterior</b><span id="sumBorder">—</span></div>
-    <div class="card"><b>Espesor total</b><span id="sumHeight">3 mm</span></div>
-  </div>
-</section>
+
 </main>
 <script>
-const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status')};
+const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status'),autoBg:$('#autoBg'),autoBgChip:$('#autoBgChip')};
 const work=document.createElement('canvas'),ctx=work.getContext('2d',{willReadFrequently:true});
-let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.78,bgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1;
+let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.78,bgColor='#ffffff',detectedBgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1;
 const CFG={threshold:35,simplify:3,base:2,total:3,hole:3.2,ring:8,marginPx:15,cakePinLength:30,cakePinWidth:4};
 let autoTimer=null;
 function scheduleGenerate(delay=80){
@@ -130,8 +123,9 @@ function updateMeasureLabels(){
 }
 els.width.oninput=()=>{updateMeasureLabels();scheduleGenerate(100)};
 els.designScale.oninput=()=>{designScale=+els.designScale.value/100;$('#designScaleV').textContent=els.designScale.value+'%';scheduleGenerate(80)};
-document.querySelectorAll('#bgPalette .swatch').forEach(b=>b.onclick=()=>{bgColor=b.dataset.color;document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x===b));scheduleGenerate(50)});
-els.drop.onclick=()=>els.file.click();
+document.querySelectorAll('#bgPalette .swatch').forEach(b=>b.onclick=()=>{bgColor=b.dataset.color;document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x===b));els.autoBgChip.style.background=bgColor;scheduleGenerate(50)});
+els.autoBg.onclick=()=>{if(!sourceImg)return;bgColor=detectedBgColor;document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x.dataset.color.toLowerCase()===bgColor.toLowerCase()));els.autoBgChip.style.background=bgColor;els.status.innerHTML='<span class="badge">Fondo detectado</span> '+bgColor+' · aplicado a la forma.';scheduleGenerate(30)};
+els.drop.setAttribute('role','button');els.drop.setAttribute('aria-label','Cargar o cambiar imagen');els.drop.onclick=()=>els.file.click();
 ['dragenter','dragover'].forEach(ev=>els.drop.addEventListener(ev,e=>{e.preventDefault();els.drop.classList.add('drag')}));
 ['dragleave','drop'].forEach(ev=>els.drop.addEventListener(ev,e=>{e.preventDefault();els.drop.classList.remove('drag')}));
 els.drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f)});els.file.onchange=()=>els.file.files[0]&&loadFile(els.file.files[0]);
@@ -175,6 +169,16 @@ function foregroundMaskFromImageData(data,w,h){
   }
   return largestComponent(out,w,h);
 }
+function rgbToHex(r,g,b){return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('')}
+function detectEdgeBackground(){
+  const max=420,sc=Math.min(1,max/Math.max(sourceImg.width,sourceImg.height)),w=Math.max(2,Math.round(sourceImg.width*sc)),h=Math.max(2,Math.round(sourceImg.height*sc));
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.clearRect(0,0,w,h);x.drawImage(sourceImg,0,0,w,h);
+  const d=x.getImageData(0,0,w,h).data,bins=new Map(),step=Math.max(1,Math.floor(Math.min(w,h)/110));
+  function add(px,py){const i=(py*w+px)*4,a=d[i+3];if(a<24)return;const r=Math.round(d[i]/16)*16,g=Math.round(d[i+1]/16)*16,b=Math.round(d[i+2]/16)*16,key=r+','+g+','+b;bins.set(key,(bins.get(key)||0)+1)}
+  for(let xx=0;xx<w;xx+=step){add(xx,0);add(xx,h-1)}for(let yy=step;yy<h-1;yy+=step){add(0,yy);add(w-1,yy)}
+  if(!bins.size)return '#ffffff';
+  const [key]=[...bins.entries()].sort((a,b)=>b[1]-a[1])[0],rgb=key.split(',').map(Number);return rgbToHex(...rgb)
+}
 function extractSubject(){
   const max=900,sc=Math.min(1,max/Math.max(sourceImg.width,sourceImg.height)),w=Math.max(1,Math.round(sourceImg.width*sc)),h=Math.max(1,Math.round(sourceImg.height*sc));
   const t=document.createElement('canvas');t.width=w;t.height=h;const tx=t.getContext('2d',{willReadFrequently:true});tx.clearRect(0,0,w,h);tx.drawImage(sourceImg,0,0,w,h);
@@ -195,7 +199,7 @@ function prepareCanvas(){
     const max=900,s=Math.min(1,max/Math.max(sourceImg.width,sourceImg.height));work.width=Math.max(1,Math.round(sourceImg.width*s));work.height=Math.max(1,Math.round(sourceImg.height*s));ctx.clearRect(0,0,work.width,work.height);ctx.drawImage(sourceImg,0,0,work.width,work.height);original=ctx.getImageData(0,0,work.width,work.height);
   }else if(shape==='portrait')composePreset(600,800);else composePreset(700,700);
 }
-function loadFile(f){if(!/^image\/(png|jpeg|webp)$/.test(f.type)){els.status.textContent='Usá PNG, JPG o WebP.';return}const url=URL.createObjectURL(f),img=new Image();img.onload=()=>{sourceImg=img;extractSubject();prepareCanvas();mask=innerMask=innerContour=outerContour=null;lastSTL='';lastPNG=null;els.download.disabled=true;els.status.innerHTML='<span class="badge">Imagen cargada</span> '+sourceImg.width+' × '+sourceImg.height+' px · generando automáticamente…';URL.revokeObjectURL(url);scheduleGenerate(20)};img.src=url}
+function loadFile(f){const ok=/^image\/(png|jpeg|webp|svg\+xml)$/.test(f.type)||/\.svg$/i.test(f.name);if(!ok){els.status.textContent='Usá PNG, JPG, WebP o SVG.';return}const url=URL.createObjectURL(f),img=new Image();img.onload=()=>{sourceImg=img;els.drop.classList.add('loaded');els.drop.innerHTML='<strong>Cambiar imagen</strong><span></span>';detectedBgColor=detectEdgeBackground();els.autoBgChip.style.background=detectedBgColor;extractSubject();prepareCanvas();mask=innerMask=innerContour=outerContour=null;lastSTL='';lastPNG=null;els.download.disabled=true;els.status.innerHTML='<span class="badge">Imagen cargada</span> '+sourceImg.width+' × '+sourceImg.height+' px · fondo detectado '+detectedBgColor+' · generando automáticamente…';URL.revokeObjectURL(url);scheduleGenerate(20)};img.onerror=()=>{URL.revokeObjectURL(url);els.status.textContent='No pude abrir ese archivo. En SVG, verificá que sea un SVG válido y autónomo.'};img.src=url}
 function buildMask(){const d=original.data,w=work.width,h=work.height,out=new Uint8Array(w*h),t=CFG.threshold;for(let i=0;i<w*h;i++){const r=d[i*4],g=d[i*4+1],b=d[i*4+2],a=d[i*4+3];out[i]=(a>20&&((a<250)||((255-r)+(255-g)+(255-b)>t*3)))?1:0}return out}
 function dilate(src,r,w,h){if(r<=0)return src.slice();let a=src.slice(),b=new Uint8Array(src.length);for(let k=0;k<r;k++){b.fill(0);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let v=0;for(let yy=-1;yy<=1&&!v;yy++)for(let xx=-1;xx<=1;xx++){const nx=x+xx,ny=y+yy;if(nx>=0&&ny>=0&&nx<w&&ny<h&&a[ny*w+nx]){v=1;break}}b[y*w+x]=v}[a,b]=[b,a]}return a}
 function circularDilate(src,r,w,h){if(r<=0)return src.slice();const out=src.slice(),offsets=[];for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)if(dx*dx+dy*dy<=r*r+.25)offsets.push([dx,dy]);const boundary=[];for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(!src[i])continue;if(x===0||y===0||x===w-1||y===h-1||!src[i-1]||!src[i+1]||!src[i-w]||!src[i+w])boundary.push([x,y])}for(const[x,y]of boundary)for(const[dx,dy]of offsets){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<w&&ny<h)out[ny*w+nx]=1}return out}
@@ -372,7 +376,8 @@ function polyPath(ctx2,poly,map){
 function renderFlatPreview(){
   if(!previewCanvas)initFlatPreview();
   drawFlatPreview();
-  $('#placeholder').style.display='none';
+  els.drop.classList.add('loaded');
+  els.drop.innerHTML='<strong>Cambiar imagen</strong><span></span>';
 }
 function drawFlatPreview(){
   if(!pctx||!lastInner||!lastOuter||!lastBounds||!original)return;
