@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>3DCD LAB · Llavero con borde y resina</title>
+<title>3DCD LAB · Creador de piezas · vista superior</title>
 <style>
 :root{--bg:#dfe8f2;--panel:#f7f9fc;--txt:#182234;--muted:#66748a;--accent:#168ccb;--green:#168a63;--line:#c5d1df}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#eaf0f7,#dbe6f1);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
@@ -25,7 +25,7 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
 </style>
 </head>
 <body>
-<header><h1>3DCD LAB · Creador de llaveros</h1><div class="sub">Recorta el diseño, genera la pieza y exporta STL + PNG a tamaño real de 300 dpi.</div></header>
+<header><h1>3DCD LAB · Creador de llaveros</h1><div class="sub">Recorta el diseño, muestra una previa liviana y exporta STL + PNG a tamaño real de 300 dpi.</div></header>
 <main>
 <section class="panel controls">
   <div class="group">
@@ -99,7 +99,7 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
   <div class="status" id="status">Cargá una imagen para comenzar.</div>
 </section>
 <section class="stage">
-    <div class="viewer panel" id="viewer"><div class="placeholder" id="placeholder">Después de generar el diseño, acá vas a poder girar y acercar el STL.</div><div class="hint">Arrastrá para girar · rueda o pellizco para acercar</div></div>
+    <div class="viewer panel" id="viewer"><div class="placeholder" id="placeholder">Después de cargar una imagen, acá vas a ver la pieza desde arriba.</div><div class="hint">Vista superior del diseño · el STL conserva el volumen real al exportar</div></div>
   <div class="summary">
     <div class="card"><b>Interior útil</b><span id="sumSize">—</span></div>
     <div class="card"><b>Base</b><span>2 mm</span></div>
@@ -245,7 +245,7 @@ function generate(){try{
     outerContour=innerContour.slice();outer=inner.slice();
   }
   lastInner=inner;lastOuter=outer;lastBounds=b;lastScale=scale;
-  lastSTL=buildUnifiedSTL(inner,outer);renderSTL(lastSTL);createPNGBlob().then(blob=>lastPNG=blob);
+  lastSTL=buildUnifiedSTL(inner,outer);renderFlatPreview();createPNGBlob().then(blob=>lastPNG=blob);
   const names={cutout:'Figura recortada',square:'Cuadrado',portrait:'Rectángulo vertical',circle:'Círculo'};
   const extW=innerW+(hasBorder?wallWidth*2:0),extH=innerH+(hasBorder?wallWidth*2:0);
   $('#sumSize').textContent=innerW.toFixed(1)+' × '+innerH.toFixed(1)+' mm';
@@ -348,53 +348,75 @@ function createPNGBlob(){return new Promise(resolve=>{
   }
   c.toBlob(async blob=>resolve(await injectPngDpi(blob,dpi)),'image/png');
 })}
-let previewCanvas=null,pctx=null,mesh=[],rotX=-0.72,rotZ=-0.35,previewZoom=1,dragging=false,lastPX=0,lastPY=0,cameraDistance=180;
-function parseASCIISTL(stl){const nums=[...stl.matchAll(/vertex\s+([-+\deE.]+)\s+([-+\deE.]+)\s+([-+\deE.]+)/g)].map(m=>[+m[1],+m[2],+m[3]]),tris=[];for(let i=0;i+2<nums.length;i+=3)tris.push([nums[i],nums[i+1],nums[i+2]]);return tris}
-function init3D(){
-  const host=$('#viewer');previewCanvas=document.createElement('canvas');previewCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;touch-action:none;';host.insertBefore(previewCanvas,host.firstChild);pctx=previewCanvas.getContext('2d');
-  const resize=()=>{const r=host.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);previewCanvas.width=Math.max(1,Math.round(r.width*d));previewCanvas.height=Math.max(1,Math.round(r.height*d));pctx.setTransform(d,0,0,d,0,0);drawPreview()};new ResizeObserver(resize).observe(host);resize();
-  const pointers=new Map();let pinchDistance=0;
-  previewCanvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,[e.clientX,e.clientY]);dragging=true;lastPX=e.clientX;lastPY=e.clientY;previewCanvas.setPointerCapture(e.pointerId)});
-  previewCanvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===2){const a=[...pointers.values()],dist=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(pinchDistance){previewZoom*=dist/pinchDistance;previewZoom=Math.max(.45,Math.min(3.2,previewZoom))}pinchDistance=dist;drawPreview();return}pinchDistance=0;if(!dragging)return;rotZ+=(e.clientX-lastPX)*.012;rotX+=(e.clientY-lastPY)*.012;rotX=Math.max(-Math.PI/2+.05,Math.min(Math.PI/2-.05,rotX));lastPX=e.clientX;lastPY=e.clientY;drawPreview()});
-  const endPointer=e=>{pointers.delete(e.pointerId);dragging=pointers.size>0;pinchDistance=0};previewCanvas.addEventListener('pointerup',endPointer);previewCanvas.addEventListener('pointercancel',endPointer);
-  previewCanvas.addEventListener('wheel',e=>{e.preventDefault();previewZoom*=e.deltaY>0?.9:1.1;previewZoom=Math.max(.4,Math.min(4,previewZoom));drawPreview()},{passive:false});
+let previewCanvas=null,pctx=null;
+function initFlatPreview(){
+  const host=$('#viewer');
+  previewCanvas=document.createElement('canvas');
+  previewCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;touch-action:auto;';
+  host.insertBefore(previewCanvas,host.firstChild);
+  pctx=previewCanvas.getContext('2d');
+  const resize=()=>{
+    const r=host.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);
+    previewCanvas.width=Math.max(1,Math.round(r.width*d));
+    previewCanvas.height=Math.max(1,Math.round(r.height*d));
+    pctx.setTransform(d,0,0,d,0,0);
+    drawFlatPreview();
+  };
+  new ResizeObserver(resize).observe(host);resize();
 }
-function rotate3(p){const cz=Math.cos(rotZ),sz=Math.sin(rotZ),cx=Math.cos(rotX),sx=Math.sin(rotX),x=p[0]*cz-p[1]*sz,y=p[0]*sz+p[1]*cz,z=p[2],y2=y*cx-z*sx,z2=y*sx+z*cx;return[x,y2,z2]}
-function transformedBounds(){let mn=[Infinity,Infinity,Infinity],mx=[-Infinity,-Infinity,-Infinity];for(const t of mesh)for(const p of t){const q=rotate3(p);for(let k=0;k<3;k++){mn[k]=Math.min(mn[k],q[k]);mx[k]=Math.max(mx[k],q[k])}}return{mn,mx}}
-function shadeFor(){return '#9aa3ad'}
-function proj(p,cx,cy,sc){const q=rotate3(p),f=cameraDistance/Math.max(20,cameraDistance-q[2]);return[cx+q[0]*sc*f,cy-q[1]*sc*f,q[2]]}
-function drawMesh(cx,cy,sc){const faces=mesh.map(t=>{const q=t.map(p=>proj(p,cx,cy,sc));return{t,q,z:(q[0][2]+q[1][2]+q[2][2])/3}}).sort((a,b)=>a.z-b.z);for(const f of faces){pctx.beginPath();pctx.moveTo(f.q[0][0],f.q[0][1]);pctx.lineTo(f.q[1][0],f.q[1][1]);pctx.lineTo(f.q[2][0],f.q[2][1]);pctx.closePath();pctx.fillStyle=shadeFor(f.t);pctx.fill();/* sin filetes entre triángulos: evita marcas o píxeles residuales */}}
-function pointInsideMask(px,py){const x=Math.round(px),y=Math.round(py);return x>=0&&y>=0&&x<work.width&&y<work.height&&innerMask[y*work.width+x]}
-function sampleDesignColor(px,py){
-  const x=Math.max(0,Math.min(work.width-1,Math.round(px))),y=Math.max(0,Math.min(work.height-1,Math.round(py)));
-  if(!innerMask||!innerMask[y*work.width+x])return null;
-  const i=(y*work.width+x)*4,d=original.data;
-  if(d[i+3]<12)return null;
-  return `rgb(${d[i]},${d[i+1]},${d[i+2]})`;
+function polyPath(ctx2,poly,map){
+  ctx2.beginPath();
+  poly.forEach((p,i)=>{const q=map(p);i?ctx2.lineTo(q[0],q[1]):ctx2.moveTo(q[0],q[1])});
+  ctx2.closePath();
 }
-function drawDesignSurface(cx,cy,sc){
-  if(!original||!lastBounds||!innerContour||!innerMask)return;
-  const b=lastBounds,aspect=Math.max(.35,Math.min(3,b.w/Math.max(1,b.h)));
-  const cols=Math.max(22,Math.min(42,Math.round(32*Math.sqrt(aspect))));
-  const rows=Math.max(22,Math.min(42,Math.round(32/Math.sqrt(aspect))));
-  const cellW=b.w/cols,cellH=b.h/rows,z=CFG.base+.045;
-  for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
-    const sx=b.minX+(gx+.5)*cellW,sy=b.minY+(gy+.5)*cellH,color=sampleDesignColor(sx,sy);
-    if(!color)continue;
-    const pad=.04;
-    const pts=[
-      [b.minX+(gx+pad)*cellW,b.minY+(gy+pad)*cellH],
-      [b.minX+(gx+1-pad)*cellW,b.minY+(gy+pad)*cellH],
-      [b.minX+(gx+1-pad)*cellW,b.minY+(gy+1-pad)*cellH],
-      [b.minX+(gx+pad)*cellW,b.minY+(gy+1-pad)*cellH]
-    ];
-    if(!pts.every(([x,y])=>pointInsideMask(x,y)))continue;
-    const q=pts.map(([x,y])=>proj([(x-b.minX)*lastScale,(b.maxY-y)*lastScale,z],cx,cy,sc));
-    pctx.beginPath();pctx.moveTo(q[0][0],q[0][1]);for(let k=1;k<4;k++)pctx.lineTo(q[k][0],q[k][1]);pctx.closePath();pctx.fillStyle=color;pctx.fill();
+function renderFlatPreview(){
+  if(!previewCanvas)initFlatPreview();
+  drawFlatPreview();
+  $('#placeholder').style.display='none';
+}
+function drawFlatPreview(){
+  if(!pctx||!lastInner||!lastOuter||!lastBounds||!original)return;
+  const host=$('#viewer'),W=host.clientWidth,H=host.clientHeight;
+  pctx.clearRect(0,0,W,H);pctx.fillStyle='#e8eef5';pctx.fillRect(0,0,W,H);
+  const body=hasBorder?lastOuter:lastInner,bb=bounds(body);
+  let minX=bb.minX,maxX=bb.maxX,minY=bb.minY,maxY=bb.maxY;
+  if(attachmentMode==='keychain'){
+    const [x,top]=topAnchor(body),ro=CFG.ring/2,cy=top+ro-.8;
+    minX=Math.min(minX,x-ro);maxX=Math.max(maxX,x+ro);maxY=Math.max(maxY,cy+ro);
+  }else if(attachmentMode==='cake'){
+    const [x,bottom]=bottomAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength;
+    minX=Math.min(minX,x-w/2);maxX=Math.max(maxX,x+w/2);minY=Math.min(minY,bottom-L);
   }
+  const spanX=Math.max(1,maxX-minX),spanY=Math.max(1,maxY-minY),pad=34;
+  const sc=Math.min((W-pad*2)/spanX,(H-pad*2)/spanY);
+  const ox=(W-spanX*sc)/2-minX*sc,oy=(H-spanY*sc)/2+maxY*sc;
+  const map=([x,y])=>[ox+x*sc,oy-y*sc];
+
+  // Silueta exterior y accesorios en gris pleno.
+  pctx.fillStyle='#9aa3ad';
+  polyPath(pctx,body,map);pctx.fill();
+  if(attachmentMode==='keychain'){
+    const [x,top]=topAnchor(body),ro=CFG.ring/2,ri=CFG.hole/2,cy=top+ro-.8;
+    const q=map([x,cy]);pctx.beginPath();pctx.arc(q[0],q[1],ro*sc,0,Math.PI*2);pctx.fill();
+    pctx.save();pctx.globalCompositeOperation='destination-out';pctx.beginPath();pctx.arc(q[0],q[1],ri*sc,0,Math.PI*2);pctx.fill();pctx.restore();
+  }else if(attachmentMode==='cake'){
+    const [x,bottom]=bottomAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength,overlap=1.4;
+    const pin=[[x-w/2,bottom+overlap],[x+w/2,bottom+overlap],[x+w/2,bottom-L+4],[x,bottom-L],[x-w/2,bottom-L+4]];
+    polyPath(pctx,pin,map);pctx.fill();
+  }
+
+  // Diseño real, enmascarado y visto desde arriba.
+  pctx.save();polyPath(pctx,lastInner,map);pctx.clip();
+  const ib=bounds(lastInner),tl=map([ib.minX,ib.maxY]),br=map([ib.maxX,ib.minY]);
+  const sb=lastBounds;
+  pctx.imageSmoothingEnabled=true;pctx.imageSmoothingQuality='high';
+  pctx.drawImage(work,sb.minX,sb.minY,Math.max(1,sb.w),Math.max(1,sb.h),tl[0],tl[1],br[0]-tl[0],br[1]-tl[1]);
+  pctx.restore();
+
+  // Filete interior que representa el límite de la pileta, sin simular volumen.
+  if(hasBorder){polyPath(pctx,lastInner,map);pctx.strokeStyle='#737d88';pctx.lineWidth=Math.max(1.2,Math.min(3,sc*.12));pctx.stroke()}
+  polyPath(pctx,body,map);pctx.strokeStyle='#7f8994';pctx.lineWidth=1.2;pctx.stroke();
 }
-function drawPreview(){if(!pctx||!mesh.length)return;const host=$('#viewer'),W=host.clientWidth,H=host.clientHeight;pctx.save();pctx.setTransform(1,0,0,1,0,0);pctx.clearRect(-4,-4,previewCanvas.width+8,previewCanvas.height+8);pctx.restore();const bb=transformedBounds(),spanX=Math.max(1,bb.mx[0]-bb.mn[0]),spanY=Math.max(1,bb.mx[1]-bb.mn[1]);cameraDistance=Math.max(100,Math.max(spanX,spanY)*4.2);const sc=Math.min(W/(spanX+20),H/(spanY+20))*previewZoom,cx=W/2-(bb.mn[0]+bb.mx[0])*sc/2,cy=H/2+(bb.mn[1]+bb.mx[1])*sc/2;pctx.fillStyle='#e8eef5';pctx.fillRect(0,0,W,H);drawMesh(cx,cy,sc);drawDesignSurface(cx,cy,sc)}
-function renderSTL(stl){if(!previewCanvas)init3D();mesh=parseASCIISTL(stl);previewZoom=1;rotX=-0.72;rotZ=-0.35;drawPreview();$('#placeholder').style.display='none'}
 function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
 function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
 function join(parts){let n=parts.reduce((s,a)=>s+a.length,0),o=new Uint8Array(n),p=0;for(const a of parts){o.set(a,p);p+=a.length}return o}
