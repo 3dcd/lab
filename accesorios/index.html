@@ -20,11 +20,12 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
 .specs{display:grid;grid-template-columns:1fr 1fr;gap:7px}.spec{background:#eef3f8;border:1px solid #c5d1df;border-radius:11px;padding:9px}.spec b{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}.spec span{font-size:13px}
 .stage{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:9px;min-width:0;min-height:0;align-self:stretch}.viewtabs{display:flex;gap:8px}.viewtabs button{width:auto;min-width:135px;background:#dce7f2}.viewtabs button.active{outline:2px solid var(--accent);background:#c9e7f7}.viewer{position:relative;min-height:0;height:100%;background:#e8eef5;border:1px solid #b9c5d1;border-radius:18px;overflow:hidden;isolation:isolate;box-shadow:inset 0 0 0 3px #d3dbe4}.viewer canvas{display:block;width:100%;height:100%}.viewer:after{content:'';position:absolute;inset:0;border:3px solid rgba(125,139,154,.34);border-radius:17px;pointer-events:none;z-index:20}.placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px;pointer-events:none}.hint{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.88);border:1px solid #c4d0dc;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted);pointer-events:none}.status{font-size:12px;color:var(--muted);line-height:1.5}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef3f8;border:1px solid #c5d1df;color:var(--green);font-size:11px}
 .summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.card{background:#eef3f8;border:1px solid #c9d4df;border-radius:12px;padding:8px 9px}.card b{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}.card span{font-size:14px}
-@media(max-width:900px){body{overflow:auto}main{grid-template-columns:1fr;height:auto;overflow:visible}.controls{overflow:visible;padding-right:15px}.stage{grid-template-rows:440px auto}.viewer{min-height:440px}.summary{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){body{overflow:auto}main{grid-template-columns:1fr;height:auto;overflow:visible}.controls{overflow:visible;padding-right:15px}.stage{grid-template-rows:min(58vh,520px) auto}.viewer{min-height:360px}.summary{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){header{padding:13px 14px}main{padding:10px;gap:10px}.panel{border-radius:14px;padding:12px}.stage{grid-template-rows:400px auto}.hint{font-size:11px}.summary{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
-<header><h1>3DCD LAB · Creador de llaveros · malla optimizada o uniforme</h1><div class="sub">Recorta automáticamente el diseño, permite ubicarlo dentro de formas preestablecidas y exporta STL + PNG a tamaño real de 300 dpi.</div></header>
+<header><h1>3DCD LAB · Creador de llaveros</h1><div class="sub">Recorta el diseño, genera la pieza y exporta STL + PNG a tamaño real de 300 dpi.</div></header>
 <main>
 <section class="panel controls">
   <div class="group">
@@ -64,14 +65,6 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
   <div class="group">
     <label>Ancho interior de la imagen</label>
     <div class="row"><input id="widthMm" type="range" min="25" max="120" value="55"><div class="value" id="widthV">57 mm total</div></div><div class="status" id="widthDetail" style="margin-top:7px">Interior 55 mm + borde de 1 mm por lado = 57 mm exteriores.</div>
-  </div>
-  <div class="group">
-    <label>Tipo de malla STL</label>
-    <div class="optiongrid" id="meshMode">
-      <button type="button" data-mesh="optimized" class="active">Optimizada</button>
-      <button type="button" data-mesh="uniform">Uniforme</button>
-    </div>
-    <div class="status" style="margin-top:8px">La malla uniforme subdivide todas las caras de manera regular. El STL sigue usando triángulos, pero quedan distribuidos como una cuadrícula más pareja.</div>
   </div>
   <div class="group">
     <label>Terminación</label>
@@ -143,11 +136,6 @@ els.drop.onclick=()=>els.file.click();
 ['dragleave','drop'].forEach(ev=>els.drop.addEventListener(ev,e=>{e.preventDefault();els.drop.classList.remove('drag')}));
 els.drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f)});els.file.onchange=()=>els.file.files[0]&&loadFile(els.file.files[0]);
 
-document.querySelectorAll('#meshMode button').forEach(b=>b.onclick=()=>{
-  meshMode=b.dataset.mesh;
-  document.querySelectorAll('#meshMode button').forEach(x=>x.classList.toggle('active',x===b));
-  scheduleGenerate(40);
-});
 document.querySelectorAll('#borderMode button').forEach(b=>b.onclick=()=>{
   hasBorder=b.dataset.border==='yes';
   document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',x===b));
@@ -277,7 +265,7 @@ function subdivideFacet(a,b,c,level){
   const ab=midpoint(a,b),bc=midpoint(b,c),ca=midpoint(c,a),n=level-1;
   return subdivideFacet(a,ab,ca,n)+subdivideFacet(ab,b,bc,n)+subdivideFacet(ca,bc,c,n)+subdivideFacet(ab,bc,ca,n);
 }
-function facet(a,b,c){return meshMode==='uniform'?subdivideFacet(a,b,c,1):rawFacet(a,b,c)}
+function facet(a,b,c){return rawFacet(a,b,c)}
 function extrude(poly,z0,z1){const{poly:p,tris}=triangulate(poly);if(!tris.length)throw Error('No se pudo triangular la base');let s='';for(const[a,b,c]of tris){s+=facet([p[a][0],p[a][1],z0],[p[c][0],p[c][1],z0],[p[b][0],p[b][1],z0]);s+=facet([p[a][0],p[a][1],z1],[p[b][0],p[b][1],z1],[p[c][0],p[c][1],z1])}for(let i=0;i<p.length;i++){const j=(i+1)%p.length,a=p[i],b=p[j];s+=facet([a[0],a[1],z0],[b[0],b[1],z0],[b[0],b[1],z1]);s+=facet([a[0],a[1],z0],[b[0],b[1],z1],[a[0],a[1],z1])}return s}
 function pathLength(poly){let L=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];L+=Math.hypot(b[0]-a[0],b[1]-a[1])}return L}
 function resample(poly,count){const seg=[],cum=[0];let total=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length],l=Math.hypot(b[0]-a[0],b[1]-a[1]);seg.push(l);total+=l;cum.push(total)}const out=[];for(let k=0;k<count;k++){const target=total*k/count;let i=0;while(i<seg.length-1&&cum[i+1]<target)i++;const a=poly[i],b=poly[(i+1)%poly.length],t=seg[i]?((target-cum[i])/seg[i]):0;out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}return out}
@@ -365,9 +353,10 @@ function parseASCIISTL(stl){const nums=[...stl.matchAll(/vertex\s+([-+\deE.]+)\s
 function init3D(){
   const host=$('#viewer');previewCanvas=document.createElement('canvas');previewCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;touch-action:none;';host.insertBefore(previewCanvas,host.firstChild);pctx=previewCanvas.getContext('2d');
   const resize=()=>{const r=host.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);previewCanvas.width=Math.max(1,Math.round(r.width*d));previewCanvas.height=Math.max(1,Math.round(r.height*d));pctx.setTransform(d,0,0,d,0,0);drawPreview()};new ResizeObserver(resize).observe(host);resize();
-  previewCanvas.addEventListener('pointerdown',e=>{dragging=true;lastPX=e.clientX;lastPY=e.clientY;previewCanvas.setPointerCapture(e.pointerId)});
-  previewCanvas.addEventListener('pointermove',e=>{if(!dragging)return;rotZ+=(e.clientX-lastPX)*.012;rotX+=(e.clientY-lastPY)*.012;rotX=Math.max(-Math.PI/2+.05,Math.min(Math.PI/2-.05,rotX));lastPX=e.clientX;lastPY=e.clientY;drawPreview()});
-  previewCanvas.addEventListener('pointerup',()=>dragging=false);previewCanvas.addEventListener('pointercancel',()=>dragging=false);
+  const pointers=new Map();let pinchDistance=0;
+  previewCanvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,[e.clientX,e.clientY]);dragging=true;lastPX=e.clientX;lastPY=e.clientY;previewCanvas.setPointerCapture(e.pointerId)});
+  previewCanvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===2){const a=[...pointers.values()],dist=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(pinchDistance){previewZoom*=dist/pinchDistance;previewZoom=Math.max(.45,Math.min(3.2,previewZoom))}pinchDistance=dist;drawPreview();return}pinchDistance=0;if(!dragging)return;rotZ+=(e.clientX-lastPX)*.012;rotX+=(e.clientY-lastPY)*.012;rotX=Math.max(-Math.PI/2+.05,Math.min(Math.PI/2-.05,rotX));lastPX=e.clientX;lastPY=e.clientY;drawPreview()});
+  const endPointer=e=>{pointers.delete(e.pointerId);dragging=pointers.size>0;pinchDistance=0};previewCanvas.addEventListener('pointerup',endPointer);previewCanvas.addEventListener('pointercancel',endPointer);
   previewCanvas.addEventListener('wheel',e=>{e.preventDefault();previewZoom*=e.deltaY>0?.9:1.1;previewZoom=Math.max(.4,Math.min(4,previewZoom));drawPreview()},{passive:false});
 }
 function rotate3(p){const cz=Math.cos(rotZ),sz=Math.sin(rotZ),cx=Math.cos(rotX),sx=Math.sin(rotX),x=p[0]*cz-p[1]*sz,y=p[0]*sz+p[1]*cz,z=p[2],y2=y*cx-z*sx,z2=y*sx+z*cx;return[x,y2,z2]}
@@ -376,24 +365,33 @@ function shadeFor(){return '#9aa3ad'}
 function proj(p,cx,cy,sc){const q=rotate3(p),f=cameraDistance/Math.max(20,cameraDistance-q[2]);return[cx+q[0]*sc*f,cy-q[1]*sc*f,q[2]]}
 function drawMesh(cx,cy,sc){const faces=mesh.map(t=>{const q=t.map(p=>proj(p,cx,cy,sc));return{t,q,z:(q[0][2]+q[1][2]+q[2][2])/3}}).sort((a,b)=>a.z-b.z);for(const f of faces){pctx.beginPath();pctx.moveTo(f.q[0][0],f.q[0][1]);pctx.lineTo(f.q[1][0],f.q[1][1]);pctx.lineTo(f.q[2][0],f.q[2][1]);pctx.closePath();pctx.fillStyle=shadeFor(f.t);pctx.fill();/* sin filetes entre triángulos: evita marcas o píxeles residuales */}}
 function pointInsideMask(px,py){const x=Math.round(px),y=Math.round(py);return x>=0&&y>=0&&x<work.width&&y<work.height&&innerMask[y*work.width+x]}
-function affineTriangle(ctx2,src,dst){
-  const [s0,s1,s2]=src,[d0,d1,d2]=dst;
-  const den=s0[0]*(s1[1]-s2[1])+s1[0]*(s2[1]-s0[1])+s2[0]*(s0[1]-s1[1]);
-  if(Math.abs(den)<1e-8)return;
-  const coeff=v=>[(v[0]*(s1[1]-s2[1])+v[1]*(s2[1]-s0[1])+v[2]*(s0[1]-s1[1]))/den,(v[0]*(s2[0]-s1[0])+v[1]*(s0[0]-s2[0])+v[2]*(s1[0]-s0[0]))/den,(v[0]*(s1[0]*s2[1]-s2[0]*s1[1])+v[1]*(s2[0]*s0[1]-s0[0]*s2[1])+v[2]*(s0[0]*s1[1]-s1[0]*s0[1]))/den];
-  const X=coeff([d0[0],d1[0],d2[0]]),Y=coeff([d0[1],d1[1],d2[1]]);
-  ctx2.save();ctx2.beginPath();ctx2.moveTo(d0[0],d0[1]);ctx2.lineTo(d1[0],d1[1]);ctx2.lineTo(d2[0],d2[1]);ctx2.closePath();ctx2.clip();ctx2.setTransform(X[0],Y[0],X[1],Y[1],X[2],Y[2]);ctx2.imageSmoothingEnabled=true;ctx2.imageSmoothingQuality='high';ctx2.drawImage(work,0,0);ctx2.restore();
+function sampleDesignColor(px,py){
+  const x=Math.max(0,Math.min(work.width-1,Math.round(px))),y=Math.max(0,Math.min(work.height-1,Math.round(py)));
+  if(!innerMask||!innerMask[y*work.width+x])return null;
+  const i=(y*work.width+x)*4,d=original.data;
+  if(d[i+3]<12)return null;
+  return `rgb(${d[i]},${d[i+1]},${d[i+2]})`;
 }
 function drawDesignSurface(cx,cy,sc){
-  if(!original||!lastBounds||!innerContour)return;
-  const b=lastBounds,tri=triangulate(innerContour);
-  for(const ids of tri.tris){
-    const src=ids.map(i=>tri.poly[i]);
-    const dst=src.map(([x,y])=>proj([(x-b.minX)*lastScale,(b.maxY-y)*lastScale,CFG.base+.035],cx,cy,sc));
-    affineTriangle(pctx,src,dst);
+  if(!original||!lastBounds||!innerContour||!innerMask)return;
+  const b=lastBounds,aspect=Math.max(.35,Math.min(3,b.w/Math.max(1,b.h)));
+  const cols=Math.max(22,Math.min(42,Math.round(32*Math.sqrt(aspect))));
+  const rows=Math.max(22,Math.min(42,Math.round(32/Math.sqrt(aspect))));
+  const cellW=b.w/cols,cellH=b.h/rows,z=CFG.base+.045;
+  for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
+    const sx=b.minX+(gx+.5)*cellW,sy=b.minY+(gy+.5)*cellH,color=sampleDesignColor(sx,sy);
+    if(!color)continue;
+    const pad=.04;
+    const pts=[
+      [b.minX+(gx+pad)*cellW,b.minY+(gy+pad)*cellH],
+      [b.minX+(gx+1-pad)*cellW,b.minY+(gy+pad)*cellH],
+      [b.minX+(gx+1-pad)*cellW,b.minY+(gy+1-pad)*cellH],
+      [b.minX+(gx+pad)*cellW,b.minY+(gy+1-pad)*cellH]
+    ];
+    if(!pts.every(([x,y])=>pointInsideMask(x,y)))continue;
+    const q=pts.map(([x,y])=>proj([(x-b.minX)*lastScale,(b.maxY-y)*lastScale,z],cx,cy,sc));
+    pctx.beginPath();pctx.moveTo(q[0][0],q[0][1]);for(let k=1;k<4;k++)pctx.lineTo(q[k][0],q[k][1]);pctx.closePath();pctx.fillStyle=color;pctx.fill();
   }
-  const clipPts=innerContour.map(([x,y])=>proj([(x-b.minX)*lastScale,(b.maxY-y)*lastScale,CFG.base+.04],cx,cy,sc));
-  pctx.save();pctx.beginPath();pctx.moveTo(clipPts[0][0],clipPts[0][1]);for(let k=1;k<clipPts.length;k++)pctx.lineTo(clipPts[k][0],clipPts[k][1]);pctx.closePath();/* contorno auxiliar oculto para una vista más limpia */pctx.restore();
 }
 function drawPreview(){if(!pctx||!mesh.length)return;const host=$('#viewer'),W=host.clientWidth,H=host.clientHeight;pctx.save();pctx.setTransform(1,0,0,1,0,0);pctx.clearRect(-4,-4,previewCanvas.width+8,previewCanvas.height+8);pctx.restore();const bb=transformedBounds(),spanX=Math.max(1,bb.mx[0]-bb.mn[0]),spanY=Math.max(1,bb.mx[1]-bb.mn[1]);cameraDistance=Math.max(100,Math.max(spanX,spanY)*4.2);const sc=Math.min(W/(spanX+20),H/(spanY+20))*previewZoom,cx=W/2-(bb.mn[0]+bb.mx[0])*sc/2,cy=H/2+(bb.mn[1]+bb.mx[1])*sc/2;pctx.fillStyle='#e8eef5';pctx.fillRect(0,0,W,H);drawMesh(cx,cy,sc);drawDesignSurface(cx,cy,sc)}
 function renderSTL(stl){if(!previewCanvas)init3D();mesh=parseASCIISTL(stl);previewZoom=1;rotX=-0.72;rotZ=-0.35;drawPreview();$('#placeholder').style.display='none'}
@@ -408,7 +406,7 @@ async function downloadZip(){
     const names={cutout:'figura_recortada',square:'cuadrado',portrait:'rectangulo_vertical',circle:'circulo'};
     const txt='Formato: '+names[shape]+'\n'+
       'STL único y unido\n'+
-      'Malla: '+(meshMode==='uniform'?'uniforme experimental (subdivisión regular)':'optimizada')+'\n'+
+      'Malla: optimizada\n'+
       'Base: 2 mm\n'+
       'Espesor de accesorios: '+(hasBorder?'3 mm':'2 mm')+'\n'+
       'Terminación: '+(hasBorder?'borde de '+wallWidth+' mm hacia afuera y 3 mm de altura total':'sin borde, base plana de 2 mm')+'\n'+
