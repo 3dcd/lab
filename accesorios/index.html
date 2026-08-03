@@ -780,39 +780,28 @@ function initGLBRenderer(){
   attachGLBControls();
 }
 function buildGLBTextureCanvas(){
-  const sb=lastBounds||{minX:0,minY:0,w:work.width||512,h:work.height||512};
-  const texW=Math.max(1,Math.round(sb.w));
-  const texH=Math.max(1,Math.round(sb.h));
-  const c=document.createElement('canvas');
-  c.width=texW;c.height=texH;
-  const x=c.getContext('2d');
-  x.imageSmoothingEnabled=true;
-  x.imageSmoothingQuality='high';
-  x.fillStyle='#ffffff';
-  x.fillRect(0,0,texW,texH);
-  // Usamos la misma base procesada que utiliza la vista 2D.
-  x.drawImage(work,sb.minX,sb.minY,Math.max(1,sb.w),Math.max(1,sb.h),0,0,texW,texH);
-  // Máscara adicional: recortamos al contorno interior y retraemos apenas el diseño
-  // para que no trepe visualmente sobre la pared cuando se ve en perspectiva.
-  if(lastInner&&lastInner.length>2){
-    const innerPx=lastInner.map(p=>[(p[0]/lastScale), (p[1]/lastScale)]);
-    const innerInset=insetPolyTowardCenter(innerPx, hasBorder?0.8/lastScale:0.35/lastScale);
-    const b=bounds(innerInset);
-    const maskCanvas=document.createElement('canvas');
-    maskCanvas.width=texW;maskCanvas.height=texH;
-    const m=maskCanvas.getContext('2d');
-    m.fillStyle='#000';
-    m.beginPath();
-    innerInset.forEach((pt,i)=>{const xx=pt[0]-sb.minX,yy=pt[1]-sb.minY;i?m.lineTo(xx,yy):m.moveTo(xx,yy)});
-    m.closePath();
-    m.fill();
-    x.globalCompositeOperation='destination-in';
-    x.drawImage(maskCanvas,0,0);
-    x.globalCompositeOperation='destination-over';
-    x.fillStyle='#ffffff';
-    x.fillRect(0,0,texW,texH);
-    x.globalCompositeOperation='source-over';
+  const src=document.createElement('canvas');
+  src.width=work.width||512;src.height=work.height||512;
+  const sx=src.getContext('2d');
+  // Si la imagen tiene transparencia, para la vista 3D la apoyamos sobre blanco
+  // y evitamos que el navegador la interprete con negro en los bordes.
+  sx.fillStyle='#ffffff';
+  sx.fillRect(0,0,src.width,src.height);
+  if(original&&original.data){
+    const copy=new ImageData(new Uint8ClampedArray(original.data),original.width,original.height);
+    sx.putImageData(copy,0,0);
+  }else if(sourceImg){
+    sx.drawImage(sourceImg,0,0,src.width,src.height);
   }
+  const bb=((hasBorder?lastInnerBoundsPx:lastInnerBoundsPx)||lastOuterBoundsPx)||{minX:0,minY:0,w:src.width,h:src.height};
+  const inset=Math.max(2,Math.round(Math.min(bb.w,bb.h)*0.02));
+  const sx0=bb.minX+inset, sy0=bb.minY+inset, sw=Math.max(1,bb.w-inset*2), sh=Math.max(1,bb.h-inset*2);
+  const c=document.createElement('canvas');
+  c.width=Math.max(1,Math.round(sw));c.height=Math.max(1,Math.round(sh));
+  const x=c.getContext('2d');
+  x.fillStyle='#ffffff';
+  x.fillRect(0,0,c.width,c.height);
+  x.drawImage(src,sx0,sy0,sw,sh,0,0,c.width,c.height);
   return c;
 }
 function updateGLBTexture(srcCanvas){
