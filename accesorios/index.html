@@ -738,7 +738,7 @@ function buildTemporaryGLB(tris){
   const bodyPoly=(hasBorder?lastOuter:lastInner)||lastInner||[];
   const innerPoly=lastInner||bodyPoly;
   const designPoly=insetPolyTowardCenter((innerPoly&&innerPoly.length?innerPoly:bodyPoly),hasBorder?0.45:0.2);
-  const uvPoly=(designPoly&&designPoly.length?designPoly:(innerPoly&&innerPoly.length?innerPoly:bodyPoly));
+  const uvPoly=(innerPoly&&innerPoly.length?innerPoly:bodyPoly);
   const bb=uvPoly.length?bounds(uvPoly):{minX:0,maxX:1,minY:0,maxY:1,w:1,h:1};
   const spanX=Math.max(1e-6,bb.w),spanY=Math.max(1e-6,bb.h),topZ=CFG.base;
   for(const tri of tris){
@@ -746,7 +746,7 @@ function buildTemporaryGLB(tris){
     let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx,nl=Math.hypot(nx,ny,nz)||1;nx/=nl;ny/=nl;nz/=nl;
     const centroid=[(a[0]+b[0]+c[0])/3,(a[1]+b[1]+c[1])/3,(a[2]+b[2]+c[2])/3];
     const faceOnDesignPlane=Math.abs(centroid[2]-topZ)<0.08;
-    const faceInInner=uvPoly.length?pointInPoly([centroid[0],centroid[1]],uvPoly):true;
+    const faceInInner=designPoly.length?pointInPoly([centroid[0],centroid[1]],designPoly):true;
     const faceMask=(faceOnDesignPlane&&faceInInner)?1:0;
     for(const p of tri){
       positions[k]=p[0];positions[k+1]=p[1];positions[k+2]=p[2];
@@ -780,28 +780,39 @@ function initGLBRenderer(){
   attachGLBControls();
 }
 function buildGLBTextureCanvas(){
-  const src=document.createElement('canvas');
-  src.width=work.width||512;src.height=work.height||512;
-  const sx=src.getContext('2d');
-  // Si la imagen tiene transparencia, para la vista 3D la apoyamos sobre blanco
-  // y evitamos que el navegador la interprete con negro en los bordes.
-  sx.fillStyle='#ffffff';
-  sx.fillRect(0,0,src.width,src.height);
-  if(original&&original.data){
-    const copy=new ImageData(new Uint8ClampedArray(original.data),original.width,original.height);
-    sx.putImageData(copy,0,0);
-  }else if(sourceImg){
-    sx.drawImage(sourceImg,0,0,src.width,src.height);
-  }
-  const bb=((hasBorder?lastInnerBoundsPx:lastInnerBoundsPx)||lastOuterBoundsPx)||{minX:0,minY:0,w:src.width,h:src.height};
-  const inset=Math.max(2,Math.round(Math.min(bb.w,bb.h)*0.02));
-  const sx0=bb.minX+inset, sy0=bb.minY+inset, sw=Math.max(1,bb.w-inset*2), sh=Math.max(1,bb.h-inset*2);
+  const sb=lastBounds||{minX:0,minY:0,w:work.width||512,h:work.height||512};
+  const texW=Math.max(1,Math.round(sb.w));
+  const texH=Math.max(1,Math.round(sb.h));
   const c=document.createElement('canvas');
-  c.width=Math.max(1,Math.round(sw));c.height=Math.max(1,Math.round(sh));
+  c.width=texW;c.height=texH;
   const x=c.getContext('2d');
+  x.imageSmoothingEnabled=true;
+  x.imageSmoothingQuality='high';
   x.fillStyle='#ffffff';
-  x.fillRect(0,0,c.width,c.height);
-  x.drawImage(src,sx0,sy0,sw,sh,0,0,c.width,c.height);
+  x.fillRect(0,0,texW,texH);
+  // Usamos la misma base procesada que utiliza la vista 2D.
+  x.drawImage(work,sb.minX,sb.minY,Math.max(1,sb.w),Math.max(1,sb.h),0,0,texW,texH);
+  // Máscara adicional: recortamos al contorno interior y retraemos apenas el diseño
+  // para que no trepe visualmente sobre la pared cuando se ve en perspectiva.
+  if(lastInner&&lastInner.length>2){
+    const innerPx=lastInner.map(p=>[(p[0]/lastScale), (p[1]/lastScale)]);
+    const innerInset=insetPolyTowardCenter(innerPx, hasBorder?0.8/lastScale:0.35/lastScale);
+    const b=bounds(innerInset);
+    const maskCanvas=document.createElement('canvas');
+    maskCanvas.width=texW;maskCanvas.height=texH;
+    const m=maskCanvas.getContext('2d');
+    m.fillStyle='#000';
+    m.beginPath();
+    innerInset.forEach((pt,i)=>{const xx=pt[0]-sb.minX,yy=pt[1]-sb.minY;i?m.lineTo(xx,yy):m.moveTo(xx,yy)});
+    m.closePath();
+    m.fill();
+    x.globalCompositeOperation='destination-in';
+    x.drawImage(maskCanvas,0,0);
+    x.globalCompositeOperation='destination-over';
+    x.fillStyle='#ffffff';
+    x.fillRect(0,0,texW,texH);
+    x.globalCompositeOperation='source-over';
+  }
   return c;
 }
 function updateGLBTexture(srcCanvas){
