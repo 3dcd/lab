@@ -406,25 +406,29 @@ function ringWall(outer,inner,z0,z1){
   return s
 }
 function annulus(cx,cy,ro,ri,z0,z1,segments=72){let s='';for(let k=0;k<segments;k++){const a=k/segments*Math.PI*2,b=(k+1)/segments*Math.PI*2,o0=[cx+Math.cos(a)*ro,cy+Math.sin(a)*ro,z0],o1=[cx+Math.cos(b)*ro,cy+Math.sin(b)*ro,z0],ot0=[o0[0],o0[1],z1],ot1=[o1[0],o1[1],z1],i0=[cx+Math.cos(a)*ri,cy+Math.sin(a)*ri,z0],i1=[cx+Math.cos(b)*ri,cy+Math.sin(b)*ri,z0],it0=[i0[0],i0[1],z1],it1=[i1[0],i1[1],z1];s+=quad(o0,o1,ot1,ot0)+quad(i1,i0,it0,it1)+quad(ot0,ot1,it1,it0)+quad(o1,o0,i0,i1)}return s}
-function topAnchor(poly){
-  let maxY=-Infinity;
-  for(const p of poly)if(p[1]>maxY)maxY=p[1];
-  const tolerance=.25;
-  const crest=poly.filter(p=>p[1]>=maxY-tolerance);
-  let chosen=crest[0]||[+els.width.value/2,maxY];
-  if(crest.length>1){
-    const center=crest.reduce((s,p)=>s+p[0],0)/crest.length;
-    chosen=crest.reduce((best,p)=>Math.abs(p[0]-center)<Math.abs(best[0]-center)?p:best,crest[0]);
+function verticalCenterAnchor(poly,mode='top'){
+  const b=bounds(poly),centerX=(b.minX+b.maxX)/2,ys=[];
+  for(let i=0;i<poly.length;i++){
+    const a=poly[i],c=poly[(i+1)%poly.length];
+    const x1=a[0],y1=a[1],x2=c[0],y2=c[1];
+    if((centerX>=Math.min(x1,x2)-1e-6)&&(centerX<=Math.max(x1,x2)+1e-6)){
+      if(Math.abs(x2-x1)<1e-6){
+        ys.push(y1,y2);
+      }else{
+        const t=(centerX-x1)/(x2-x1);
+        if(t>=-1e-6&&t<=1+1e-6)ys.push(y1+t*(y2-y1));
+      }
+    }
   }
-  return[chosen[0],maxY];
+  if(ys.length){
+    return [centerX, mode==='top'?Math.max(...ys):Math.min(...ys)];
+  }
+  // Fallback: usar el punto más cercano al eje central
+  const chosen=poly.reduce((best,p)=>Math.abs(p[0]-centerX)<Math.abs(best[0]-centerX)?p:best,poly[0]);
+  return [centerX, chosen[1]];
 }
-function bottomAnchor(poly){
-  let minY=Infinity;for(const p of poly)minY=Math.min(minY,p[1]);
-  const tolerance=Math.max(.8,wallWidth*1.2),cands=poly.filter(p=>p[1]<=minY+tolerance);
-  const center=cands.length?cands.reduce((s,p)=>s+p[0],0)/cands.length:(bounds(poly).minX+bounds(poly).maxX)/2;
-  const chosen=(cands.length?cands:poly).reduce((best,p)=>Math.abs(p[0]-center)<Math.abs(best[0]-center)?p:best,(cands[0]||poly[0]));
-  return[chosen[0],minY];
-}
+function topAnchor(poly){return verticalCenterAnchor(poly,'top')}
+function bottomAnchor(poly){return verticalCenterAnchor(poly,'bottom')}
 function buildUnifiedSTL(inner,outer){
   const body=hasBorder?outer:inner;
   const pieceHeight=hasBorder?CFG.total:CFG.base;
@@ -509,27 +513,36 @@ function draw3DPreview(){
   const spanX=Math.max(1,maxX-minX),spanY=Math.max(1,maxY-minY),pad=38,sc=Math.min((W-pad*2)/spanX,(H-pad*2)/spanY)*viewZoom;
   const cx=(minX+maxX)/2,cy=(minY+maxY)/2,ox=W/2-cx*sc,oy=H/2+cy*sc;
 
-  // Sombra suave proyectada detrás de la pieza para separar el volumen del fondo.
-  pctx.save();pctx.globalAlpha=.22;pctx.fillStyle='#55606c';pctx.filter='blur(7px)';
-  for(const f of faces){const [a,b,c]=f.t;pctx.beginPath();pctx.moveTo(ox+a[0]*sc+7,oy-a[1]*sc+10);pctx.lineTo(ox+b[0]*sc+7,oy-b[1]*sc+10);pctx.lineTo(ox+c[0]*sc+7,oy-c[1]*sc+10);pctx.closePath();pctx.fill()}
-  pctx.restore();pctx.filter='none';
+  // Sombra suave, más separada y fuera de foco, para que la pieza parezca
+  // levemente elevada sin mostrar un reflejo artificial.
+  pctx.save();
+  pctx.globalAlpha=.18;
+  pctx.fillStyle='#66717d';
+  pctx.filter='blur(12px)';
+  for(const f of faces){const [a,b,c]=f.t;pctx.beginPath();pctx.moveTo(ox+a[0]*sc+10,oy-a[1]*sc+15);pctx.lineTo(ox+b[0]*sc+10,oy-b[1]*sc+15);pctx.lineTo(ox+c[0]*sc+10,oy-c[1]*sc+15);pctx.closePath();pctx.fill()}
+  pctx.restore();
+  pctx.filter='none';
 
   faces.sort((a,b)=>a.z-b.z);
-  const light=[-.42,.55,.72],ambient=.42,diffuse=.58;
+  const light=[-.38,.48,.68],ambient=.24,diffuse=.36;
   pctx.lineJoin='round';pctx.lineCap='round';
   for(const f of faces){
     const [a,b,c]=f.t,n=f.n;
     const lambert=Math.max(0,n[0]*light[0]+n[1]*light[1]+n[2]*light[2]);
-    // Las superficies casi horizontales reciben un tono uniforme. En las
-    // paredes sí conservamos la luz direccional para percibir el volumen.
+    // Tapa superior mate, sin brillo. En paredes laterales se conserva
+    // una sombra/luz muy suave para leer la profundidad del borde.
     const topness=Math.abs(n[2]);
-    const value=topness>.965?222:Math.round(128+82*(ambient+diffuse*lambert));
+    let value;
+    if(topness>.965){
+      value=208;
+    }else{
+      value=Math.round(150+52*(ambient+diffuse*lambert));
+      value=Math.max(156,Math.min(196,value));
+    }
     const fill=`rgb(${value},${value},${value})`;
     pctx.beginPath();pctx.moveTo(ox+a[0]*sc,oy-a[1]*sc);pctx.lineTo(ox+b[0]*sc,oy-b[1]*sc);pctx.lineTo(ox+c[0]*sc,oy-c[1]*sc);pctx.closePath();
     pctx.fillStyle=fill;pctx.fill();
-    // Un trazo mínimo del mismo color tapa las rendijas de antialias entre
-    // triángulos sin mostrar la triangulación.
-    pctx.strokeStyle=fill;pctx.lineWidth=.75;pctx.stroke();
+    pctx.strokeStyle=fill;pctx.lineWidth=.9;pctx.stroke();
   }
 }
 function attach3DControls(){
