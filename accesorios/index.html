@@ -19,7 +19,7 @@ input[type=range]{width:100%}.value{padding:8px;background:#eef3f8;border:1px so
 button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7f2;color:#334155;font-weight:900;cursor:pointer;width:100%}button.secondary{background:#dce7f2;color:#334155}.shapegrid button,.optiongrid button{color:#334155}.swatch{color:transparent}button:disabled{opacity:.38;cursor:not-allowed}
 .specs{display:grid;grid-template-columns:1fr 1fr;gap:7px}.spec{background:#eef3f8;border:1px solid #c5d1df;border-radius:11px;padding:9px}.spec b{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}.spec span{font-size:13px}
 .stage{grid-area:stage;display:grid;grid-template-rows:minmax(0,1fr);gap:0;min-width:0;min-height:0;align-self:stretch}.viewtabs{display:flex;gap:8px}.viewtabs button{width:auto;min-width:135px;background:#dce7f2}.viewtabs button.active{outline:2px solid var(--accent);background:#c9e7f7}.viewer{position:relative;min-height:0;height:100%;background:#e8eef5;border:1px solid #b9c5d1;border-radius:18px;overflow:hidden;isolation:isolate;box-shadow:inset 0 0 0 3px #d3dbe4;cursor:pointer}.viewer canvas{display:block;width:100%;height:100%;pointer-events:none}.viewer:after{content:'';position:absolute;inset:0;border:3px solid rgba(125,139,154,.34);border-radius:17px;pointer-events:none;z-index:20}.placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px;pointer-events:none}.hint{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.88);border:1px solid #c4d0dc;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted);pointer-events:none}.status{font-size:12px;color:var(--muted);line-height:1.5}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef3f8;border:1px solid #c5d1df;color:var(--green);font-size:11px}
-.summary,.specs,.hint{display:none!important}.viewmode{position:absolute;left:12px;top:12px;z-index:40;display:flex;gap:5px;padding:4px;background:rgba(255,255,255,.9);border:1px solid #b9c7d5;border-radius:12px;box-shadow:0 3px 10px rgba(44,62,80,.12)}.viewmode button{width:auto;padding:7px 12px;border-radius:9px;font-size:11px;background:#dce7f2}.viewmode button.active{background:#168ccb;color:#fff}.viewer.mode3d canvas{pointer-events:auto;touch-action:none;cursor:grab}.viewer.mode3d canvas:active{cursor:grabbing}.projectrow{display:grid;grid-template-columns:1fr 1fr;gap:7px}.projectname{width:100%;padding:10px;border:1px solid #c5d1df;border-radius:11px;background:#fff;color:#26364a;font:inherit}.projectfile{display:none}
+.summary,.specs,.hint{display:none!important}.glbpreviewbtn{position:absolute;left:12px;top:12px;z-index:40;width:auto;padding:9px 13px;border-radius:11px;font-size:11px;background:#168ccb;color:#fff;box-shadow:0 3px 10px rgba(44,62,80,.14)}.glbpreviewbtn:disabled{opacity:.45}.glbmodal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(26,35,47,.62);backdrop-filter:blur(5px)}.glbmodal.open{display:flex}.glbcard{width:min(920px,96vw);height:min(720px,90dvh);display:grid;grid-template-rows:auto minmax(0,1fr);background:#f5f7fa;border:1px solid #c4cfda;border-radius:20px;overflow:hidden;box-shadow:0 22px 70px rgba(0,0,0,.32)}.glbbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid #ccd5df}.glbbar strong{margin-right:auto;font-size:13px}.glbbar button{width:auto;padding:8px 12px;font-size:11px}.glbwrap{position:relative;min-height:0;background:linear-gradient(#eef2f6,#dfe6ed)}#glbCanvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}#glbCanvas:active{cursor:grabbing}.glbnotice{position:absolute;left:12px;bottom:12px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.84);border:1px solid #c7d1dc;font-size:11px;color:#536174;pointer-events:none}.projectrow{display:grid;grid-template-columns:1fr 1fr;gap:7px}.projectname{width:100%;padding:10px;border:1px solid #c5d1df;border-radius:11px;background:#fff;color:#26364a;font:inherit}.projectfile{display:none}
 @media(max-width:900px){body{overflow:hidden}main{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(260px,42vh) minmax(0,1fr);grid-template-areas:'stage' 'controls';height:calc(var(--app-h) - var(--header-h));overflow:hidden}.stage{min-height:0;height:auto}.controls{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-right:10px}.viewer{min-height:0;height:100%}}
 @media(max-width:600px){header{padding:10px 12px;height:48px;display:flex;align-items:center}header .sub{display:none}h1{font-size:16px;margin:0}main{height:calc(var(--app-h) - var(--header-h));grid-template-rows:minmax(230px,40vh) minmax(0,1fr);padding:7px;gap:7px}.panel{border-radius:13px;padding:9px}.shapegrid{gap:4px}.shapegrid button{padding:7px 2px;font-size:9.5px;min-height:38px}.controls{padding-right:7px}.dropzone{inset:9px}.dropzone.loaded{inset:9px 9px auto auto;max-width:145px;padding:7px 9px}}
 </style>
@@ -29,7 +29,7 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
 <main>
 <section class="stage">
     <div class="viewer panel" id="viewer">
-      <div class="viewmode" id="viewmode"><button type="button" data-view="2d" class="active">2D</button><button type="button" data-view="3d">3D</button></div>
+      <button type="button" class="glbpreviewbtn" id="previewGLB" disabled>Previsualizar GLB</button>
       <div class="dropzone" id="dropzone"><strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span></div>
     </div>
   <div hidden><span id="sumSize"></span><span id="sumBorder"></span><span id="sumHeight"></span></div>
@@ -125,6 +125,13 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
 </section>
 
 </main>
+
+<div class="glbmodal" id="glbModal" aria-hidden="true">
+  <div class="glbcard" role="dialog" aria-modal="true" aria-label="Previsualización GLB">
+    <div class="glbbar"><strong>Vista GLB temporal</strong><button type="button" id="glbReset">Centrar</button><button type="button" id="glbClose">Cerrar</button></div>
+    <div class="glbwrap"><canvas id="glbCanvas"></canvas><div class="glbnotice">Arrastrá para girar · pellizcá o usá la rueda para acercar</div></div>
+  </div>
+</div>
 <script>
 function syncVisibleViewport(){
   const vv=window.visualViewport;
@@ -142,7 +149,7 @@ if(window.visualViewport){
 }
 const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status'),autoBg:$('#autoBg'),autoBgChip:$('#autoBgChip'),cutTolerance:$('#cutTolerance'),cutMargin:$('#cutMargin'),cutSmooth:$('#cutSmooth'),projectName:$('#projectName'),saveProject:$('#saveProject'),openProject:$('#openProject'),projectFile:$('#projectFile')};
 const work=document.createElement('canvas'),ctx=work.getContext('2d',{willReadFrequently:true});
-let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.88,bgColor='#ffffff',detectedBgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1,sourceHasTransparency=false,currentFileType='',sourceDataURL='',sourceFileName='imagen.png',previewMode='2d',stlTriangles=[],viewYaw=-0.65,viewPitch=0.72,viewZoom=1;
+let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.88,bgColor='#ffffff',detectedBgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1,sourceHasTransparency=false,currentFileType='',sourceDataURL='',sourceFileName='imagen.png',previewMode='2d',stlTriangles=[],viewYaw=-0.65,viewPitch=0.72,viewZoom=1,currentGlbUrl='';
 const CFG={threshold:48,simplify:3,base:2,total:3,hole:3.2,ring:8,marginPx:10,cakePinLength:30,cakePinWidth:4};
 let autoTimer=null;
 function scheduleGenerate(delay=80){
@@ -174,20 +181,12 @@ const viewerHost=$('#viewer');
 viewerHost.setAttribute('role','button');
 viewerHost.setAttribute('aria-label','Tocar o arrastrar para cargar o cambiar imagen');
 viewerHost.addEventListener('click',e=>{
-  if(e.target.closest('#dropzone')||e.target.closest('#viewmode')||previewMode==='3d') return;
+  if(e.target.closest('#dropzone')||e.target.closest('#previewGLB')) return;
   els.file.click();
 });
 ['dragenter','dragover'].forEach(ev=>viewerHost.addEventListener(ev,e=>{e.preventDefault();els.drop.classList.add('drag')}));
 ['dragleave','drop'].forEach(ev=>viewerHost.addEventListener(ev,e=>{e.preventDefault();els.drop.classList.remove('drag')}));
 viewerHost.addEventListener('drop',e=>{const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)loadFile(f)});
-
-document.querySelectorAll('#viewmode button').forEach(b=>b.onclick=e=>{
-  e.stopPropagation();
-  previewMode=b.dataset.view;
-  document.querySelectorAll('#viewmode button').forEach(x=>x.classList.toggle('active',x===b));
-  viewerHost.classList.toggle('mode3d',previewMode==='3d');
-  renderCurrentPreview();
-});
 
 document.querySelectorAll('#borderMode button').forEach(b=>b.onclick=()=>{
   hasBorder=b.dataset.border==='yes';
@@ -325,7 +324,6 @@ function cleanClosed(poly){
   return out
 }
 function bounds(poly){let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;poly.forEach(([x,y])=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y)});return{minX,minY,maxX,maxY,w:maxX-minX,h:maxY-minY}}
-function pointInPoly(pt,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];const hit=((yi>pt[1])!==(yj>pt[1]))&&(pt[0]<(xj-xi)*(pt[1]-yi)/((yj-yi)||1e-9)+xi);if(hit)inside=!inside}return inside}
 function presetMask(kind,w,h){const out=new Uint8Array(w*h),pad=Math.max(12,Math.round(Math.min(w,h)*.055)),x0=pad,y0=pad,x1=w-pad-1,y1=h-pad-1,cx=w/2,cy=h/2;if(kind==='circle'){const rr=Math.min(x1-x0,y1-y0)/2;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if((x-cx)**2+(y-cy)**2<=rr**2)out[y*w+x]=1;return out}const r=Math.min(x1-x0,y1-y0)*.12;for(let y=0;y<h;y++)for(let x=0;x<w;x++){let inside=x>=x0&&x<=x1&&y>=y0&&y<=y1;if(inside){const dx=Math.max(x0+r-x,0,x-(x1-r),0),dy=Math.max(y0+r-y,0,y-(y1-r),0);if(dx>0&&dy>0&&dx*dx+dy*dy>r*r)inside=false}if(inside)out[y*w+x]=1}return out}
 
 function toMM(poly,b,scale){return poly.map(([x,y])=>[(x-b.minX)*scale,(b.maxY-y)*scale])}
@@ -359,7 +357,7 @@ function generate(){try{
     outerContour=innerContour.slice();outer=inner.slice();
   }
   lastInner=inner;lastOuter=outer;lastBounds=b;lastScale=scale;
-  lastSTL=buildUnifiedSTL(inner,outer);stlTriangles=parseAsciiSTL(lastSTL);renderCurrentPreview();createPNGBlob(false).then(blob=>lastPNG=blob);
+  lastSTL=buildUnifiedSTL(inner,outer);stlTriangles=parseAsciiSTL(lastSTL);$('#previewGLB').disabled=!stlTriangles.length;previewMode='2d';renderCurrentPreview();createPNGBlob(false).then(blob=>lastPNG=blob);
   const names={cutout:'Figura recortada',square:'Cuadrado',portrait:'Rectángulo vertical',circle:'Círculo'};
   const extW=innerW+(hasBorder?wallWidth*2:0),extH=innerH+(hasBorder?wallWidth*2:0);
   $('#sumSize').textContent=innerW.toFixed(1)+' × '+innerH.toFixed(1)+' mm';
@@ -475,7 +473,7 @@ function parseAsciiSTL(stl){
 }
 function renderCurrentPreview(){
   if(!previewCanvas)initFlatPreview();
-  if(previewMode==='3d')request3DRender();else drawFlatPreview();
+  drawFlatPreview();
   if(sourceImg){els.drop.classList.add('loaded');els.drop.innerHTML='<strong>Cambiar imagen</strong><span></span>'}
 }
 function rotatePoint3D(p){
@@ -509,30 +507,41 @@ function draw3DPreview(){
     // hacia la cámara. Esto evita que tapas inferiores y paredes ocultas
     // atraviesen visualmente la pieza en el canvas 2D.
     if(nz<=0.0005)continue;
-    const centroid=[(tri[0][0]+tri[1][0]+tri[2][0])/3,(tri[0][1]+tri[1][1]+tri[2][1])/3],avgZ=(tri[0][2]+tri[1][2]+tri[2][2])/3;
-    faces.push({t:rt,z:(a[2]+b[2]+c[2])/3,n:[nx,ny,nz],centroid,avgZ});
+    faces.push({t:rt,z:(a[2]+b[2]+c[2])/3,n:[nx,ny,nz]});
   }
   const spanX=Math.max(1,maxX-minX),spanY=Math.max(1,maxY-minY),pad=38,sc=Math.min((W-pad*2)/spanX,(H-pad*2)/spanY)*viewZoom;
   const cx=(minX+maxX)/2,cy=(minY+maxY)/2,ox=W/2-cx*sc,oy=H/2+cy*sc;
 
+  // Sombra suave, más separada y fuera de foco, para que la pieza parezca
+  // levemente elevada sin mostrar un reflejo artificial.
+  pctx.save();
+  pctx.globalAlpha=.18;
+  pctx.fillStyle='#66717d';
+  pctx.filter='blur(12px)';
+  for(const f of faces){const [a,b,c]=f.t;pctx.beginPath();pctx.moveTo(ox+a[0]*sc+10,oy-a[1]*sc+15);pctx.lineTo(ox+b[0]*sc+10,oy-b[1]*sc+15);pctx.lineTo(ox+c[0]*sc+10,oy-c[1]*sc+15);pctx.closePath();pctx.fill()}
+  pctx.restore();
+  pctx.filter='none';
+
   faces.sort((a,b)=>a.z-b.z);
+  const light=[-.38,.48,.68],ambient=.24,diffuse=.36;
   pctx.lineJoin='round';pctx.lineCap='round';
-  const innerPoly=lastInner||[], bodyPoly=(hasBorder?lastOuter:lastInner)||lastInner||[];
-  const lightFill='rgb(208,208,208)';
-  const darkFill='rgb(182,182,182)';
   for(const f of faces){
-    const [a,b,c]=f.t;
-    const insideInner=innerPoly.length?pointInPoly(f.centroid,innerPoly):false;
-    const insideBody=bodyPoly.length?pointInPoly(f.centroid,bodyPoly):insideInner;
-    let fill=lightFill;
-    if(hasBorder){
-      if(!insideInner || f.avgZ>CFG.base+0.15) fill=darkFill;
+    const [a,b,c]=f.t,n=f.n;
+    const lambert=Math.max(0,n[0]*light[0]+n[1]*light[1]+n[2]*light[2]);
+    // Tapa superior mate, sin brillo. En paredes laterales se conserva
+    // una sombra/luz muy suave para leer la profundidad del borde.
+    const topness=Math.abs(n[2]);
+    let value;
+    if(topness>.965){
+      value=208;
     }else{
-      if(!insideBody) fill=darkFill; // aro o pinche fuera del cuerpo
+      value=Math.round(150+52*(ambient+diffuse*lambert));
+      value=Math.max(156,Math.min(196,value));
     }
+    const fill=`rgb(${value},${value},${value})`;
     pctx.beginPath();pctx.moveTo(ox+a[0]*sc,oy-a[1]*sc);pctx.lineTo(ox+b[0]*sc,oy-b[1]*sc);pctx.lineTo(ox+c[0]*sc,oy-c[1]*sc);pctx.closePath();
     pctx.fillStyle=fill;pctx.fill();
-    pctx.strokeStyle=fill;pctx.lineWidth=1.0;pctx.stroke();
+    pctx.strokeStyle=fill;pctx.lineWidth=.9;pctx.stroke();
   }
 }
 function attach3DControls(){
@@ -693,6 +702,48 @@ async function openEditableProject(f){
 }
 els.saveProject.onclick=saveEditableProject;els.openProject.onclick=()=>els.projectFile.click();els.projectFile.onchange=()=>{const f=els.projectFile.files[0];if(f)openEditableProject(f);els.projectFile.value=''};
 function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
+
+function pad4(n){return (n+3)&~3}
+function buildTemporaryGLB(tris){
+  const count=tris.length*3,positions=new Float32Array(count*3),normals=new Float32Array(count*3);
+  let k=0,min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
+  for(const tri of tris){
+    const a=tri[0],b=tri[1],c=tri[2],ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
+    let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx,nl=Math.hypot(nx,ny,nz)||1;nx/=nl;ny/=nl;nz/=nl;
+    for(const p of tri){positions[k]=p[0];positions[k+1]=p[1];positions[k+2]=p[2];normals[k]=nx;normals[k+1]=ny;normals[k+2]=nz;for(let d=0;d<3;d++){min[d]=Math.min(min[d],p[d]);max[d]=Math.max(max[d],p[d])}k+=3}
+  }
+  const posBytes=new Uint8Array(positions.buffer),normOff=pad4(posBytes.length),binLen=pad4(normOff+normals.byteLength),bin=new Uint8Array(binLen);bin.set(posBytes,0);bin.set(new Uint8Array(normals.buffer),normOff);
+  const gltf={asset:{version:'2.0',generator:'3DCD LAB'},scene:0,scenes:[{nodes:[0]}],nodes:[{mesh:0}],meshes:[{primitives:[{attributes:{POSITION:0,NORMAL:1},material:0,mode:4}]}],materials:[{name:'Mate',pbrMetallicRoughness:{baseColorFactor:[.72,.74,.77,1],metallicFactor:0,roughnessFactor:.88}}],buffers:[{byteLength:binLen}],bufferViews:[{buffer:0,byteOffset:0,byteLength:positions.byteLength,target:34962},{buffer:0,byteOffset:normOff,byteLength:normals.byteLength,target:34962}],accessors:[{bufferView:0,componentType:5126,count,type:'VEC3',min,max},{bufferView:1,componentType:5126,count,type:'VEC3'}]};
+  let jsonBytes=new TextEncoder().encode(JSON.stringify(gltf)),jsonLen=pad4(jsonBytes.length),total=12+8+jsonLen+8+binLen,out=new ArrayBuffer(total),dv=new DataView(out),u8=new Uint8Array(out);dv.setUint32(0,0x46546c67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);dv.setUint32(12,jsonLen,true);dv.setUint32(16,0x4e4f534a,true);u8.fill(0x20,20,20+jsonLen);u8.set(jsonBytes,20);let bo=20+jsonLen;dv.setUint32(bo,binLen,true);dv.setUint32(bo+4,0x004e4942,true);u8.set(bin,bo+8);return new Blob([out],{type:'model/gltf-binary'});
+}
+function mat4Mul(a,b){const o=new Float32Array(16);for(let r=0;r<4;r++)for(let c=0;c<4;c++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return o}
+function mat4Perspective(fov,asp,n,f){const t=1/Math.tan(fov/2),o=new Float32Array(16);o[0]=t/asp;o[5]=t;o[10]=(f+n)/(n-f);o[11]=-1;o[14]=2*f*n/(n-f);return o}
+function mat4Translate(x,y,z){const o=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,x,y,z,1]);return o}
+function mat4RotX(a){const c=Math.cos(a),s=Math.sin(a);return new Float32Array([1,0,0,0,0,c,s,0,0,-s,c,0,0,0,0,1])}
+function mat4RotZ(a){const c=Math.cos(a),s=Math.sin(a);return new Float32Array([c,s,0,0,-s,c,0,0,0,0,1,0,0,0,0,1])}
+const glbView={gl:null,program:null,pos:null,norm:null,count:0,center:[0,0,0],radius:1,yaw:-.65,pitch:.78,zoom:1,pointers:new Map(),raf:0};
+function glCompile(gl,type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s}
+function initGLBRenderer(){
+  const canvas=$('#glbCanvas'),gl=canvas.getContext('webgl',{antialias:true,alpha:false})||canvas.getContext('experimental-webgl');if(!gl)throw Error('Este navegador no pudo iniciar WebGL.');glbView.gl=gl;
+  const vs='attribute vec3 aPosition;attribute vec3 aNormal;uniform mat4 uMVP;uniform mat4 uModel;varying vec3 vN;varying vec3 vP;void main(){vec4 wp=uModel*vec4(aPosition,1.0);vP=wp.xyz;vN=mat3(uModel)*aNormal;gl_Position=uMVP*vec4(aPosition,1.0);}';
+  const fs='precision mediump float;varying vec3 vN;varying vec3 vP;void main(){vec3 n=normalize(vN);vec3 l=normalize(vec3(-0.35,0.55,0.75));float d=max(dot(n,l),0.0);float hemi=.5+.5*n.z;vec3 base=vec3(.69,.71,.74);vec3 col=base*(.56+.28*d+.16*hemi);gl_FragColor=vec4(col,1.0);}';
+  const p=gl.createProgram();gl.attachShader(p,glCompile(gl,gl.VERTEX_SHADER,vs));gl.attachShader(p,glCompile(gl,gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));glbView.program=p;gl.useProgram(p);gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);gl.clearColor(.90,.93,.96,1);
+  attachGLBControls();
+}
+function parseGeneratedGLB(ab){
+  const dv=new DataView(ab);if(dv.getUint32(0,true)!==0x46546c67)throw Error('GLB inválido');let off=12,json=null,bin=null;while(off<ab.byteLength){const len=dv.getUint32(off,true),type=dv.getUint32(off+4,true),data=ab.slice(off+8,off+8+len);if(type===0x4e4f534a)json=JSON.parse(new TextDecoder().decode(data));if(type===0x004e4942)bin=data;off+=8+len}if(!json||!bin)throw Error('GLB incompleto');
+  const acc=i=>{const a=json.accessors[i],v=json.bufferViews[a.bufferView],start=(v.byteOffset||0)+(a.byteOffset||0);return new Float32Array(bin,start,a.count*3)};
+  const pos=acc(0),nor=acc(1),min=json.accessors[0].min,max=json.accessors[0].max;glbView.center=[(min[0]+max[0])/2,(min[1]+max[1])/2,(min[2]+max[2])/2];glbView.radius=Math.max(1,Math.hypot(max[0]-min[0],max[1]-min[1],max[2]-min[2])*.5);glbView.count=json.accessors[0].count;
+  const gl=glbView.gl,p=glbView.program;glbView.pos=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,glbView.pos);gl.bufferData(gl.ARRAY_BUFFER,pos,gl.STATIC_DRAW);const ap=gl.getAttribLocation(p,'aPosition');gl.enableVertexAttribArray(ap);gl.vertexAttribPointer(ap,3,gl.FLOAT,false,0,0);glbView.norm=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,glbView.norm);gl.bufferData(gl.ARRAY_BUFFER,nor,gl.STATIC_DRAW);const an=gl.getAttribLocation(p,'aNormal');gl.enableVertexAttribArray(an);gl.vertexAttribPointer(an,3,gl.FLOAT,false,0,0);
+}
+function requestGLBRender(){if(glbView.raf)return;glbView.raf=requestAnimationFrame(()=>{glbView.raf=0;drawGLB()})}
+function drawGLB(){const gl=glbView.gl,c=$('#glbCanvas');if(!gl||!glbView.count)return;const dpr=Math.min(devicePixelRatio||1,2),w=Math.max(1,Math.round(c.clientWidth*dpr)),h=Math.max(1,Math.round(c.clientHeight*dpr));if(c.width!==w||c.height!==h){c.width=w;c.height=h}gl.viewport(0,0,w,h);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);const r=glbView.radius,dist=r*3.15/glbView.zoom,proj=mat4Perspective(Math.PI/4,w/h,Math.max(.01,r*.01),r*20),view=mat4Translate(0,0,-dist),center=mat4Translate(-glbView.center[0],-glbView.center[1],-glbView.center[2]),rot=mat4Mul(mat4RotX(glbView.pitch),mat4RotZ(glbView.yaw)),model=mat4Mul(rot,center),mvp=mat4Mul(proj,mat4Mul(view,model)),p=glbView.program;gl.useProgram(p);gl.uniformMatrix4fv(gl.getUniformLocation(p,'uMVP'),false,mvp);gl.uniformMatrix4fv(gl.getUniformLocation(p,'uModel'),false,model);gl.bindBuffer(gl.ARRAY_BUFFER,glbView.pos);let a=gl.getAttribLocation(p,'aPosition');gl.vertexAttribPointer(a,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,glbView.norm);a=gl.getAttribLocation(p,'aNormal');gl.vertexAttribPointer(a,3,gl.FLOAT,false,0,0);gl.drawArrays(gl.TRIANGLES,0,glbView.count)}
+function attachGLBControls(){const c=$('#glbCanvas'),dist=()=>{const p=[...glbView.pointers.values()];return p.length<2?0:Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1])};let last=[0,0],pinch=0,pinchZoom=1;c.addEventListener('pointerdown',e=>{glbView.pointers.set(e.pointerId,[e.clientX,e.clientY]);c.setPointerCapture?.(e.pointerId);if(glbView.pointers.size===1)last=[e.clientX,e.clientY];if(glbView.pointers.size===2){pinch=dist();pinchZoom=glbView.zoom}e.preventDefault()});c.addEventListener('pointermove',e=>{if(!glbView.pointers.has(e.pointerId))return;glbView.pointers.set(e.pointerId,[e.clientX,e.clientY]);if(glbView.pointers.size===1){glbView.yaw+=(e.clientX-last[0])*.009;glbView.pitch=Math.max(-1.35,Math.min(1.35,glbView.pitch+(e.clientY-last[1])*.009));last=[e.clientX,e.clientY]}else if(glbView.pointers.size===2&&pinch>0)glbView.zoom=Math.max(.45,Math.min(4,pinchZoom*dist()/pinch));requestGLBRender();e.preventDefault()});const up=e=>{glbView.pointers.delete(e.pointerId);if(glbView.pointers.size===1){const p=[...glbView.pointers.values()][0];last=[p[0],p[1]]}};c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up);c.addEventListener('wheel',e=>{glbView.zoom=Math.max(.45,Math.min(4,glbView.zoom*(e.deltaY>0?.9:1.1)));requestGLBRender();e.preventDefault()},{passive:false})}
+async function openGLBPreview(){
+  if(!stlTriangles.length)return;try{const modal=$('#glbModal');modal.classList.add('open');modal.setAttribute('aria-hidden','false');if(!glbView.gl)initGLBRenderer();if(currentGlbUrl)URL.revokeObjectURL(currentGlbUrl);const blob=buildTemporaryGLB(stlTriangles);currentGlbUrl=URL.createObjectURL(blob);const ab=await fetch(currentGlbUrl).then(r=>r.arrayBuffer());parseGeneratedGLB(ab);glbView.yaw=-.65;glbView.pitch=.78;glbView.zoom=1;requestGLBRender()}catch(e){$('#glbModal').classList.remove('open');els.status.textContent='No se pudo generar la vista GLB: '+e.message}}
+function closeGLBPreview(){$('#glbModal').classList.remove('open');$('#glbModal').setAttribute('aria-hidden','true');if(currentGlbUrl){URL.revokeObjectURL(currentGlbUrl);currentGlbUrl=''}}
+$('#previewGLB').onclick=e=>{e.stopPropagation();openGLBPreview()};$('#glbClose').onclick=closeGLBPreview;$('#glbReset').onclick=()=>{glbView.yaw=-.65;glbView.pitch=.78;glbView.zoom=1;requestGLBRender()};$('#glbModal').addEventListener('click',e=>{if(e.target===$('#glbModal'))closeGLBPreview()});window.addEventListener('resize',()=>{$('#glbModal').classList.contains('open')&&requestGLBRender()});
+
 function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
 function join(parts){let n=parts.reduce((s,a)=>s+a.length,0),o=new Uint8Array(n),p=0;for(const a of parts){o.set(a,p);p+=a.length}return o}
 function makeZip(files){const enc=new TextEncoder(),locals=[],centrals=[];let offset=0;for(const f of files){const name=enc.encode(f.name),data=f.data instanceof Uint8Array?f.data:enc.encode(f.data),crc=crc32(data);const local=join([u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);locals.push(local);const central=join([u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]);centrals.push(central);offset+=local.length}const cd=join(centrals),body=join(locals),end=join([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(cd.length),u32(body.length),u16(0)]);return new Blob([body,cd,end],{type:'application/zip'})}
