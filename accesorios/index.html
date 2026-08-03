@@ -508,41 +508,30 @@ function draw3DPreview(){
     // hacia la cámara. Esto evita que tapas inferiores y paredes ocultas
     // atraviesen visualmente la pieza en el canvas 2D.
     if(nz<=0.0005)continue;
-    faces.push({t:rt,z:(a[2]+b[2]+c[2])/3,n:[nx,ny,nz]});
+    const centroid=[(tri[0][0]+tri[1][0]+tri[2][0])/3,(tri[0][1]+tri[1][1]+tri[2][1])/3],avgZ=(tri[0][2]+tri[1][2]+tri[2][2])/3;
+    faces.push({t:rt,z:(a[2]+b[2]+c[2])/3,n:[nx,ny,nz],centroid,avgZ});
   }
   const spanX=Math.max(1,maxX-minX),spanY=Math.max(1,maxY-minY),pad=38,sc=Math.min((W-pad*2)/spanX,(H-pad*2)/spanY)*viewZoom;
   const cx=(minX+maxX)/2,cy=(minY+maxY)/2,ox=W/2-cx*sc,oy=H/2+cy*sc;
 
-  // Sombra suave, más separada y fuera de foco, para que la pieza parezca
-  // levemente elevada sin mostrar un reflejo artificial.
-  pctx.save();
-  pctx.globalAlpha=.18;
-  pctx.fillStyle='#66717d';
-  pctx.filter='blur(12px)';
-  for(const f of faces){const [a,b,c]=f.t;pctx.beginPath();pctx.moveTo(ox+a[0]*sc+10,oy-a[1]*sc+15);pctx.lineTo(ox+b[0]*sc+10,oy-b[1]*sc+15);pctx.lineTo(ox+c[0]*sc+10,oy-c[1]*sc+15);pctx.closePath();pctx.fill()}
-  pctx.restore();
-  pctx.filter='none';
-
   faces.sort((a,b)=>a.z-b.z);
-  const light=[-.38,.48,.68],ambient=.24,diffuse=.36;
   pctx.lineJoin='round';pctx.lineCap='round';
+  const innerPoly=lastInner||[], bodyPoly=(hasBorder?lastOuter:lastInner)||lastInner||[];
+  const lightFill='rgb(208,208,208)';
+  const darkFill='rgb(182,182,182)';
   for(const f of faces){
-    const [a,b,c]=f.t,n=f.n;
-    const lambert=Math.max(0,n[0]*light[0]+n[1]*light[1]+n[2]*light[2]);
-    // Tapa superior mate, sin brillo. En paredes laterales se conserva
-    // una sombra/luz muy suave para leer la profundidad del borde.
-    const topness=Math.abs(n[2]);
-    let value;
-    if(topness>.965){
-      value=208;
+    const [a,b,c]=f.t;
+    const insideInner=innerPoly.length?pointInPoly(f.centroid,innerPoly):false;
+    const insideBody=bodyPoly.length?pointInPoly(f.centroid,bodyPoly):insideInner;
+    let fill=lightFill;
+    if(hasBorder){
+      if(!insideInner || f.avgZ>CFG.base+0.15) fill=darkFill;
     }else{
-      value=Math.round(150+52*(ambient+diffuse*lambert));
-      value=Math.max(156,Math.min(196,value));
+      if(!insideBody) fill=darkFill; // aro o pinche fuera del cuerpo
     }
-    const fill=`rgb(${value},${value},${value})`;
     pctx.beginPath();pctx.moveTo(ox+a[0]*sc,oy-a[1]*sc);pctx.lineTo(ox+b[0]*sc,oy-b[1]*sc);pctx.lineTo(ox+c[0]*sc,oy-c[1]*sc);pctx.closePath();
     pctx.fillStyle=fill;pctx.fill();
-    pctx.strokeStyle=fill;pctx.lineWidth=.9;pctx.stroke();
+    pctx.strokeStyle=fill;pctx.lineWidth=1.0;pctx.stroke();
   }
 }
 function attach3DControls(){
