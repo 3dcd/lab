@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>3DCD LAB · Creador de llaveros · recorte mejorado</title>
 <style>
-:root{--bg:#dfe8f2;--panel:#f7f9fc;--txt:#182234;--muted:#66748a;--accent:#168ccb;--green:#168a63;--line:#c5d1df}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#eaf0f7,#dbe6f1);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+:root{--bg:#dfe8f2;--panel:#f7f9fc;--txt:#182234;--muted:#66748a;--accent:#168ccb;--green:#168a63;--line:#c5d1df;--app-h:100dvh;--header-h:78px;--bottom-safe:max(6px,env(safe-area-inset-bottom))}
+*{box-sizing:border-box}html,body{width:100%;height:100%;overscroll-behavior:none}body{margin:0;background:linear-gradient(180deg,#eaf0f7,#dbe6f1);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden;min-height:var(--app-h)}
 header{padding:17px 20px;background:#f5f8fc;border-bottom:1px solid var(--line)}h1{font-size:20px;margin:0 0 5px}.sub{font-size:13px;color:var(--muted);max-width:1000px}
-main{display:grid;grid-template-columns:330px minmax(0,1fr);grid-template-areas:'controls stage';gap:15px;padding:15px;height:calc(100vh - 78px);min-height:0;overflow:hidden}
+main{display:grid;grid-template-columns:330px minmax(0,1fr);grid-template-areas:'controls stage';gap:15px;padding:15px 15px var(--bottom-safe);height:calc(var(--app-h) - var(--header-h));min-height:0;overflow:hidden}
 .panel{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 14px 30px rgba(43,67,94,.12)}
 .controls{grid-area:controls;display:flex;flex-direction:column;gap:13px;align-self:stretch;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:10px}.group{border-bottom:1px solid var(--line);padding-bottom:13px}.group:last-child{border:0;padding-bottom:0}
 label{display:block;margin-bottom:7px;font-size:12px;font-weight:800;color:#27364b}.row{display:grid;grid-template-columns:1fr 72px;gap:8px;align-items:center}
@@ -20,8 +20,8 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
 .specs{display:grid;grid-template-columns:1fr 1fr;gap:7px}.spec{background:#eef3f8;border:1px solid #c5d1df;border-radius:11px;padding:9px}.spec b{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}.spec span{font-size:13px}
 .stage{grid-area:stage;display:grid;grid-template-rows:minmax(0,1fr);gap:0;min-width:0;min-height:0;align-self:stretch}.viewtabs{display:flex;gap:8px}.viewtabs button{width:auto;min-width:135px;background:#dce7f2}.viewtabs button.active{outline:2px solid var(--accent);background:#c9e7f7}.viewer{position:relative;min-height:0;height:100%;background:#e8eef5;border:1px solid #b9c5d1;border-radius:18px;overflow:hidden;isolation:isolate;box-shadow:inset 0 0 0 3px #d3dbe4;cursor:pointer}.viewer canvas{display:block;width:100%;height:100%;pointer-events:none}.viewer:after{content:'';position:absolute;inset:0;border:3px solid rgba(125,139,154,.34);border-radius:17px;pointer-events:none;z-index:20}.placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px;pointer-events:none}.hint{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.88);border:1px solid #c4d0dc;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted);pointer-events:none}.status{font-size:12px;color:var(--muted);line-height:1.5}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef3f8;border:1px solid #c5d1df;color:var(--green);font-size:11px}
 .summary,.specs,.hint{display:none!important}.viewmode{position:absolute;left:12px;top:12px;z-index:40;display:flex;gap:5px;padding:4px;background:rgba(255,255,255,.9);border:1px solid #b9c7d5;border-radius:12px;box-shadow:0 3px 10px rgba(44,62,80,.12)}.viewmode button{width:auto;padding:7px 12px;border-radius:9px;font-size:11px;background:#dce7f2}.viewmode button.active{background:#168ccb;color:#fff}.viewer.mode3d canvas{pointer-events:auto;touch-action:none;cursor:grab}.viewer.mode3d canvas:active{cursor:grabbing}.projectrow{display:grid;grid-template-columns:1fr 1fr;gap:7px}.projectname{width:100%;padding:10px;border:1px solid #c5d1df;border-radius:11px;background:#fff;color:#26364a;font:inherit}.projectfile{display:none}
-@media(max-width:900px){body{overflow:hidden}main{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(260px,42vh) minmax(0,1fr);grid-template-areas:'stage' 'controls';height:calc(100dvh - 66px);overflow:hidden}.stage{min-height:0;height:auto}.controls{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-right:10px}.viewer{min-height:0;height:100%}}
-@media(max-width:600px){header{padding:10px 12px;height:48px;display:flex;align-items:center}header .sub{display:none}h1{font-size:16px;margin:0}main{height:calc(100dvh - 48px);grid-template-rows:minmax(230px,40vh) minmax(0,1fr);padding:7px;gap:7px}.panel{border-radius:13px;padding:9px}.shapegrid{gap:4px}.shapegrid button{padding:7px 2px;font-size:9.5px;min-height:38px}.controls{padding-right:7px}.dropzone{inset:9px}.dropzone.loaded{inset:9px 9px auto auto;max-width:145px;padding:7px 9px}}
+@media(max-width:900px){body{overflow:hidden}main{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(260px,42vh) minmax(0,1fr);grid-template-areas:'stage' 'controls';height:calc(var(--app-h) - var(--header-h));overflow:hidden}.stage{min-height:0;height:auto}.controls{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-right:10px}.viewer{min-height:0;height:100%}}
+@media(max-width:600px){header{padding:10px 12px;height:48px;display:flex;align-items:center}header .sub{display:none}h1{font-size:16px;margin:0}main{height:calc(var(--app-h) - var(--header-h));grid-template-rows:minmax(230px,40vh) minmax(0,1fr);padding:7px;gap:7px}.panel{border-radius:13px;padding:9px}.shapegrid{gap:4px}.shapegrid button{padding:7px 2px;font-size:9.5px;min-height:38px}.controls{padding-right:7px}.dropzone{inset:9px}.dropzone.loaded{inset:9px 9px auto auto;max-width:145px;padding:7px 9px}}
 </style>
 </head>
 <body>
@@ -126,6 +126,20 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
 
 </main>
 <script>
+function syncVisibleViewport(){
+  const vv=window.visualViewport;
+  const visibleH=vv?vv.height:window.innerHeight;
+  const header=document.querySelector('header');
+  document.documentElement.style.setProperty('--app-h',Math.max(320,Math.round(visibleH))+'px');
+  document.documentElement.style.setProperty('--header-h',Math.round(header?.getBoundingClientRect().height||0)+'px');
+}
+syncVisibleViewport();
+window.addEventListener('resize',syncVisibleViewport,{passive:true});
+window.addEventListener('orientationchange',()=>setTimeout(syncVisibleViewport,120),{passive:true});
+if(window.visualViewport){
+  visualViewport.addEventListener('resize',syncVisibleViewport,{passive:true});
+  visualViewport.addEventListener('scroll',syncVisibleViewport,{passive:true});
+}
 const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status'),autoBg:$('#autoBg'),autoBgChip:$('#autoBgChip'),cutTolerance:$('#cutTolerance'),cutMargin:$('#cutMargin'),cutSmooth:$('#cutSmooth'),projectName:$('#projectName'),saveProject:$('#saveProject'),openProject:$('#openProject'),projectFile:$('#projectFile')};
 const work=document.createElement('canvas'),ctx=work.getContext('2d',{willReadFrequently:true});
 let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.88,bgColor='#ffffff',detectedBgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1,sourceHasTransparency=false,currentFileType='',sourceDataURL='',sourceFileName='imagen.png',previewMode='2d',stlTriangles=[],viewYaw=-0.65,viewPitch=0.72,viewZoom=1;
