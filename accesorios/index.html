@@ -150,7 +150,7 @@ if(window.visualViewport){
 const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status'),autoBg:$('#autoBg'),autoBgChip:$('#autoBgChip'),cutTolerance:$('#cutTolerance'),cutMargin:$('#cutMargin'),cutSmooth:$('#cutSmooth'),projectName:$('#projectName'),saveProject:$('#saveProject'),openProject:$('#openProject'),projectFile:$('#projectFile')};
 const work=document.createElement('canvas'),ctx=work.getContext('2d',{willReadFrequently:true});
 let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.88,bgColor='#ffffff',detectedBgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1,lastInnerBoundsPx=null,lastOuterBoundsPx=null,sourceHasTransparency=false,currentFileType='',sourceDataURL='',sourceFileName='imagen.png',previewMode='2d',stlTriangles=[],viewYaw=-0.65,viewPitch=0.72,viewZoom=1,currentGlbUrl='',preparedSourceCanvas=null;
-const CFG={threshold:48,simplify:3,base:2,total:3,hole:3.2,ring:8,marginPx:10,cakePinLength:30,cakePinWidth:4};
+const CFG={threshold:48,simplify:3,base:2,total:2.75,hole:3.2,ring:8,marginPx:10,cakePinLength:30,cakePinWidth:4};
 let autoTimer=null;
 function scheduleGenerate(delay=80){
   clearTimeout(autoTimer);
@@ -727,12 +727,18 @@ els.saveProject.onclick=saveEditableProject;els.openProject.onclick=()=>els.proj
 function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
 
 function pad4(n){return (n+3)&~3}
+function insetPolyTowardCenter(poly,inset=0.45){
+  if(!poly||poly.length<3||inset<=0)return poly||[];
+  let cx=0,cy=0;for(const p of poly){cx+=p[0];cy+=p[1]}cx/=poly.length;cy/=poly.length;
+  return poly.map(p=>{const dx=cx-p[0],dy=cy-p[1],len=Math.hypot(dx,dy)||1;const move=Math.min(inset,len*0.35);return [p[0]+dx/len*move,p[1]+dy/len*move]});
+}
 function buildTemporaryGLB(tris){
   const count=tris.length*3,positions=new Float32Array(count*3),normals=new Float32Array(count*3),uvs=new Float32Array(count*2),colors=new Float32Array(count*3);
   let k=0,ku=0,min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
   const bodyPoly=(hasBorder?lastOuter:lastInner)||lastInner||[];
   const innerPoly=lastInner||bodyPoly;
-  const uvPoly=(innerPoly&&innerPoly.length?innerPoly:bodyPoly);
+  const designPoly=insetPolyTowardCenter((innerPoly&&innerPoly.length?innerPoly:bodyPoly),hasBorder?0.45:0.2);
+  const uvPoly=(designPoly&&designPoly.length?designPoly:(innerPoly&&innerPoly.length?innerPoly:bodyPoly));
   const bb=uvPoly.length?bounds(uvPoly):{minX:0,maxX:1,minY:0,maxY:1,w:1,h:1};
   const spanX=Math.max(1e-6,bb.w),spanY=Math.max(1e-6,bb.h),topZ=CFG.base;
   for(const tri of tris){
@@ -740,7 +746,7 @@ function buildTemporaryGLB(tris){
     let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx,nl=Math.hypot(nx,ny,nz)||1;nx/=nl;ny/=nl;nz/=nl;
     const centroid=[(a[0]+b[0]+c[0])/3,(a[1]+b[1]+c[1])/3,(a[2]+b[2]+c[2])/3];
     const faceOnDesignPlane=Math.abs(centroid[2]-topZ)<0.08;
-    const faceInInner=innerPoly.length?pointInPoly([centroid[0],centroid[1]],innerPoly):true;
+    const faceInInner=uvPoly.length?pointInPoly([centroid[0],centroid[1]],uvPoly):true;
     const faceMask=(faceOnDesignPlane&&faceInInner)?1:0;
     for(const p of tri){
       positions[k]=p[0];positions[k+1]=p[1];positions[k+2]=p[2];
@@ -756,7 +762,7 @@ function buildTemporaryGLB(tris){
   const posBytes=new Uint8Array(positions.buffer),normBytes=new Uint8Array(normals.buffer),uvBytes=new Uint8Array(uvs.buffer),colorBytes=new Uint8Array(colors.buffer);
   const normOff=pad4(posBytes.length),uvOff=pad4(normOff+normBytes.length),colorOff=pad4(uvOff+uvBytes.length),binLen=pad4(colorOff+colorBytes.length),bin=new Uint8Array(binLen);
   bin.set(posBytes,0);bin.set(normBytes,normOff);bin.set(uvBytes,uvOff);bin.set(colorBytes,colorOff);
-  const gltf={asset:{version:'2.0',generator:'3DCD LAB'},scene:0,scenes:[{nodes:[0]}],nodes:[{mesh:0}],meshes:[{primitives:[{attributes:{POSITION:0,NORMAL:1,TEXCOORD_0:2,COLOR_0:3},material:0,mode:4}]}],materials:[{name:'Mate',pbrMetallicRoughness:{baseColorFactor:[.72,.74,.77,1],metallicFactor:0,roughnessFactor:.88}}],buffers:[{byteLength:binLen}],bufferViews:[{buffer:0,byteOffset:0,byteLength:positions.byteLength,target:34962},{buffer:0,byteOffset:normOff,byteLength:normals.byteLength,target:34962},{buffer:0,byteOffset:uvOff,byteLength:uvs.byteLength,target:34962},{buffer:0,byteOffset:colorOff,byteLength:colors.byteLength,target:34962}],accessors:[{bufferView:0,componentType:5126,count,type:'VEC3',min,max},{bufferView:1,componentType:5126,count,type:'VEC3'},{bufferView:2,componentType:5126,count,type:'VEC2'},{bufferView:3,componentType:5126,count,type:'VEC3'}]};
+  const gltf={asset:{version:'2.0',generator:'3DCD LAB'},scene:0,scenes:[{nodes:[0]}],nodes:[{mesh:0}],meshes:[{primitives:[{attributes:{POSITION:0,NORMAL:1,TEXCOORD_0:2,COLOR_0:3},material:0,mode:4}]}],materials:[{name:'Mate',pbrMetallicRoughness:{baseColorFactor:[.79,.81,.84,1],metallicFactor:0,roughnessFactor:.88}}],buffers:[{byteLength:binLen}],bufferViews:[{buffer:0,byteOffset:0,byteLength:positions.byteLength,target:34962},{buffer:0,byteOffset:normOff,byteLength:normals.byteLength,target:34962},{buffer:0,byteOffset:uvOff,byteLength:uvs.byteLength,target:34962},{buffer:0,byteOffset:colorOff,byteLength:colors.byteLength,target:34962}],accessors:[{bufferView:0,componentType:5126,count,type:'VEC3',min,max},{bufferView:1,componentType:5126,count,type:'VEC3'},{bufferView:2,componentType:5126,count,type:'VEC2'},{bufferView:3,componentType:5126,count,type:'VEC3'}]};
   let jsonBytes=new TextEncoder().encode(JSON.stringify(gltf)),jsonLen=pad4(jsonBytes.length),total=12+8+jsonLen+8+binLen,out=new ArrayBuffer(total),dv=new DataView(out),u8=new Uint8Array(out);dv.setUint32(0,0x46546c67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);dv.setUint32(12,jsonLen,true);dv.setUint32(16,0x4e4f534a,true);u8.fill(0x20,20,20+jsonLen);u8.set(jsonBytes,20);let bo=20+jsonLen;dv.setUint32(bo,binLen,true);dv.setUint32(bo+4,0x004e4942,true);u8.set(bin,bo+8);return new Blob([out],{type:'model/gltf-binary'});
 }
 function mat4Mul(a,b){const o=new Float32Array(16);for(let r=0;r<4;r++)for(let c=0;c<4;c++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return o}
@@ -769,7 +775,7 @@ function glCompile(gl,type,src){const s=gl.createShader(type);gl.shaderSource(s,
 function initGLBRenderer(){
   const canvas=$('#glbCanvas'),gl=canvas.getContext('webgl',{antialias:true,alpha:false})||canvas.getContext('experimental-webgl');if(!gl)throw Error('Este navegador no pudo iniciar WebGL.');glbView.gl=gl;
   const vs='attribute vec3 aPosition;attribute vec3 aNormal;attribute vec2 aUV;attribute vec3 aColor;uniform mat4 uMVP;uniform mat4 uModel;varying vec3 vN;varying vec2 vUV;varying float vMask;void main(){vUV=aUV;vMask=aColor.r;vN=mat3(uModel)*aNormal;gl_Position=uMVP*vec4(aPosition,1.0);}';
-  const fs='precision mediump float;varying vec3 vN;varying vec2 vUV;varying float vMask;uniform sampler2D uTex;uniform float uUseTex;void main(){vec3 n=normalize(vN);vec3 l=normalize(vec3(-0.35,0.55,0.75));float d=max(dot(n,l),0.0);float hemi=.5+.5*n.z;vec3 base=vec3(.69,.71,.74);vec3 side=base*(.56+.28*d+.16*hemi);if(uUseTex>0.5&&vMask>0.5){vec4 tex=texture2D(uTex,vec2(vUV.x,1.0-vUV.y));vec3 col=mix(side,tex.rgb,0.92);gl_FragColor=vec4(col,1.0);}else{gl_FragColor=vec4(side,1.0);} }';
+  const fs='precision mediump float;varying vec3 vN;varying vec2 vUV;varying float vMask;uniform sampler2D uTex;uniform float uUseTex;void main(){vec3 n=normalize(vN);vec3 l=normalize(vec3(-0.35,0.55,0.75));float d=max(dot(n,l),0.0);float hemi=.5+.5*n.z;vec3 base=vec3(.78,.80,.83);vec3 side=base*(.56+.28*d+.16*hemi);if(uUseTex>0.5&&vMask>0.5){vec4 tex=texture2D(uTex,vec2(vUV.x,1.0-vUV.y));vec3 col=mix(side,tex.rgb,0.92);gl_FragColor=vec4(col,1.0);}else{gl_FragColor=vec4(side,1.0);} }';
   const p=gl.createProgram();gl.attachShader(p,glCompile(gl,gl.VERTEX_SHADER,vs));gl.attachShader(p,glCompile(gl,gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));glbView.program=p;gl.useProgram(p);gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);gl.clearColor(.90,.93,.96,1);
   attachGLBControls();
 }
@@ -788,7 +794,7 @@ function buildGLBTextureCanvas(){
     sx.drawImage(sourceImg,0,0,src.width,src.height);
   }
   const bb=((hasBorder?lastInnerBoundsPx:lastInnerBoundsPx)||lastOuterBoundsPx)||{minX:0,minY:0,w:src.width,h:src.height};
-  const inset=Math.max(1,Math.round(Math.min(bb.w,bb.h)*0.012));
+  const inset=Math.max(2,Math.round(Math.min(bb.w,bb.h)*0.02));
   const sx0=bb.minX+inset, sy0=bb.minY+inset, sw=Math.max(1,bb.w-inset*2), sh=Math.max(1,bb.h-inset*2);
   const c=document.createElement('canvas');
   c.width=Math.max(1,Math.round(sw));c.height=Math.max(1,Math.round(sh));
