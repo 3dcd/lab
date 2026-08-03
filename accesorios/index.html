@@ -486,6 +486,10 @@ function draw3DPreview(){
     const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
     let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
     const nl=Math.hypot(nx,ny,nz)||1;nx/=nl;ny/=nl;nz/=nl;
+    // El visor usa proyección ortográfica: solo dibujamos las caras orientadas
+    // hacia la cámara. Esto evita que tapas inferiores y paredes ocultas
+    // atraviesen visualmente la pieza en el canvas 2D.
+    if(nz<=0.0005)continue;
     faces.push({t:rt,z:(a[2]+b[2]+c[2])/3,n:[nx,ny,nz]});
   }
   const spanX=Math.max(1,maxX-minX),spanY=Math.max(1,maxY-minY),pad=38,sc=Math.min((W-pad*2)/spanX,(H-pad*2)/spanY)*viewZoom;
@@ -498,13 +502,20 @@ function draw3DPreview(){
 
   faces.sort((a,b)=>a.z-b.z);
   const light=[-.42,.55,.72],ambient=.42,diffuse=.58;
-  pctx.lineJoin='round';
+  pctx.lineJoin='round';pctx.lineCap='round';
   for(const f of faces){
     const [a,b,c]=f.t,n=f.n;
     const lambert=Math.max(0,n[0]*light[0]+n[1]*light[1]+n[2]*light[2]);
-    const value=Math.round(118+92*(ambient+diffuse*lambert));
+    // Las superficies casi horizontales reciben un tono uniforme. En las
+    // paredes sí conservamos la luz direccional para percibir el volumen.
+    const topness=Math.abs(n[2]);
+    const value=topness>.965?222:Math.round(128+82*(ambient+diffuse*lambert));
+    const fill=`rgb(${value},${value},${value})`;
     pctx.beginPath();pctx.moveTo(ox+a[0]*sc,oy-a[1]*sc);pctx.lineTo(ox+b[0]*sc,oy-b[1]*sc);pctx.lineTo(ox+c[0]*sc,oy-c[1]*sc);pctx.closePath();
-    pctx.fillStyle=`rgb(${value},${value},${value})`;pctx.fill();
+    pctx.fillStyle=fill;pctx.fill();
+    // Un trazo mínimo del mismo color tapa las rendijas de antialias entre
+    // triángulos sin mostrar la triangulación.
+    pctx.strokeStyle=fill;pctx.lineWidth=.75;pctx.stroke();
   }
 }
 function attach3DControls(){
