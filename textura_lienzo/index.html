@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Lienzo 1000x1000 - madera interactiva</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100vw;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      touch-action: none;
+      background: #202020;
+      overflow: hidden;
+    }
+
+    body {
+      min-height: 100dvh;
+      padding: 20px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      touch-action: none;
+      display: grid;
+      place-items: center;
+    }
+
+    .marco-textura {
+      position: fixed;
+      left: 20px;
+      top: 20px;
+      right: 20px;
+      bottom: 20px;
+      width: auto;
+      height: auto;
+      border-radius: 36px;
+      overflow: hidden;
+      background: #111;
+      box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.42),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 0 40px rgba(0, 0, 0, 0.18);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .aviso {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      max-width: calc(100% - 80px);
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.34);
+      color: rgba(255,255,255,.75);
+      font-size: 12px;
+      line-height: 1.25;
+      text-align: center;
+      white-space: normal;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
+      opacity: .85;
+    }
+
+
+    .marco-textura {
+      opacity: 0;
+      transition: opacity 700ms ease;
+    }
+
+    body.material-listo .marco-textura {
+      opacity: 1;
+    }
+
+    .loader-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: #202020;
+      color: rgba(255,255,255,.82);
+      font-size: 13px;
+      letter-spacing: .02em;
+      transition: opacity 420ms ease, visibility 420ms ease;
+    }
+
+    .loader-overlay.oculto {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-linea {
+      width: min(260px, 62vw);
+      height: 3px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.18);
+    }
+
+    .loader-barra {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: rgba(255,255,255,.82);
+      animation: cargaSuave 1100ms ease forwards;
+    }
+
+    @keyframes cargaSuave {
+      0% { width: 0%; }
+      55% { width: 72%; }
+      100% { width: 100%; }
+    }
+}
+
+
+    @media (min-width: 1024px) and (pointer: fine) {
+      .marco-textura {
+        width: min(calc(100vw - 40px), calc(100dvh - 40px), 1000px);
+        height: min(calc(100vw - 40px), calc(100dvh - 40px), 1000px);
+        left: 50%;
+        top: 50%;
+        right: auto;
+        bottom: auto;
+        transform: translate(-50%, -50%);
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <main class="marco-textura" aria-label="Roca con normal map interactivo">
+    <canvas id="surface"></canvas>
+    <div class="aviso">Mové la luz · pellizcá con dos dedos para agrandar/achicar</div>
+  </main>
+
+  <div id="loaderOverlay" class="loader-overlay" aria-live="polite">
+    <div>Cargando material...</div>
+    <div class="loader-linea"><div class="loader-barra"></div></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('surface');
+    const marco = document.querySelector('.marco-textura');
+    const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
+    if (!gl) {
+      marco.style.backgroundImage = `url("textura_1_tile.png")`;
+      marco.style.backgroundRepeat = 'repeat';
+      marco.style.backgroundSize = '720px 720px';
+      throw new Error('WebGL no está disponible en este navegador');
+    }
+
+    const ALBEDO_URL = 'textura_1_tile.png';
+    const NORMAL_URL = 'textura_1_normal.png';
+    const ROUGHNESS_URL = 'textura_1_aspereza.png';
+    const REFLECTION_URL = 'textura_1_reflejo.png';
+    const loaderOverlay = document.getElementById('loaderOverlay');
+    const inicioCarga = performance.now();
+
+    const vertexShaderSource = `
+      attribute vec2 a_position;
+      varying vec2 v_uv;
+      void main() {
+        v_uv = a_position * 0.5 + 0.5;
+        gl_Position = vec4(a_position, 0.0, 1.0);
+      }
+    `;
+
+    const fragmentShaderSource = `
+      precision highp float;
+
+      uniform sampler2D u_albedo;
+      uniform sampler2D u_normal;
+      uniform sampler2D u_roughness;
+      uniform sampler2D u_reflection;
+      uniform vec2 u_resolution;
+      uniform vec2 u_light;
+      uniform float u_tileSize;
+      uniform float u_time;
+      uniform float u_strength;
+      uniform float u_mobileBoost;
+      uniform float u_lightRadius;
+      uniform float u_lightOpacity;
+
+      varying vec2 v_uv;
+
+      void main() {
+        // MODO LIENZO: una sola imagen 1000x1000.
+        // No se repite: se muestra el lienzo completo dentro del marco cuadrado.
+        // Corrección de orientación dentro del HTML:
+        // los PNG quedan intactos; solo se espeja verticalmente la lectura en WebGL.
+        // Lienzo adaptativo en modo cover.
+        // El canvas ocupa la ventana útil; la imagen cuadrada se recorta sin deformarse.
+        float aspect = u_resolution.x / max(u_resolution.y, 1.0);
+        vec2 uvCover = v_uv;
+
+        if (aspect < 1.0) {
+          // Celular vertical: llena arriba/abajo y recorta laterales.
+          uvCover.x = (v_uv.x - 0.5) * aspect + 0.5;
+        } else {
+          // iPad/escritorio horizontal: llena costados y recorta arriba/abajo.
+          uvCover.y = (v_uv.y - 0.5) / aspect + 0.5;
+        }
+
+        vec2 uvCanvas = clamp(vec2(uvCover.x, 1.0 - uvCover.y), 0.0, 1.0);
+        vec2 px = v_uv * u_resolution;
+
+        vec3 base = texture2D(u_albedo, uvCanvas).rgb;
+        vec3 normalColor = texture2D(u_normal, uvCanvas).rgb;
+        float roughness = texture2D(u_roughness, uvCanvas).r;
+        float reflectionMask = texture2D(u_reflection, uvCanvas).r;
+        roughness = clamp(roughness, 0.0, 1.0);
+
+        // Normal map RGB: azul/violeta -> dirección falsa de relieve.
+        vec3 n = normalize(normalColor * 2.0 - 1.0);
+        n.y = -n.y;
+        n.xy *= u_strength;
+        n = normalize(n);
+
+        vec2 toLight2D = u_light - px;
+        float dist = length(toLight2D);
+
+        // Linterna pegada al dedo: x/y vienen del dedo; z da altura a la luz.
+        // Radio variable: ahora lo controla el usuario con pellizco.
+        // También ajustamos la altura aparente de la luz para que al agrandar no quede un círculo duro.
+        float radiusBoost = mix(1.0, 1.18, u_mobileBoost);
+        float radius = u_lightRadius * radiusBoost;
+        vec3 lightDir = normalize(vec3(toLight2D / max(radius * 0.58, 1.0), 0.82));
+        float diffuse = max(dot(n, lightDir), 0.0);
+
+        float falloff = 1.0 - smoothstep(0.0, radius * 1.18, dist);
+        float spot = 1.0 - smoothstep(radius * 0.16, radius, dist);
+        spot = pow(clamp(spot, 0.0, 1.0), mix(1.08, 1.28, u_mobileBoost));
+
+        // Aparición suave de la linterna: al cargar o volver al modo demo,
+        // la luz entra de 0 a 100 sin golpe brusco.
+        falloff *= u_lightOpacity;
+        spot *= u_lightOpacity;
+
+        // Relieve más profundo en móviles para compensar pantallas más lavadas.
+        float reliefDark = mix(0.70, 0.58, u_mobileBoost);
+        float reliefLight = mix(1.72, 1.92, u_mobileBoost);
+        float relief = mix(reliefDark, reliefLight, diffuse);
+        relief = mix(0.92, relief, falloff);
+
+        // Brillo especular más ancho y suave, no tan circular.
+        vec3 viewDir = vec3(0.0, 0.0, 1.0);
+        vec3 halfDir = normalize(lightDir + viewDir);
+        // Aspereza: blanco = más áspero/opaco, negro = más liso/brillante.
+        // En esta roca, las zonas más rugosas dispersan la luz; las menos rugosas generan un brillo más marcado.
+        float smoothness = 1.0 - roughness;
+        float specPower = mix(48.0, 14.0, roughness) * mix(1.0, 0.82, u_mobileBoost);
+        float specAmount = mix(0.62, 0.10, roughness) * mix(0.90, 1.12, u_mobileBoost);
+        float lightMask = clamp(falloff * spot, 0.0, 1.0);
+        float spec = pow(max(dot(n, halfDir), 0.0), specPower) * specAmount * lightMask;
+
+        // La aspereza también modula la respuesta difusa: donde hay poro áspero, la luz queda más mate.
+        float roughDiffuse = mix(1.08, 0.82, roughness);
+        vec3 color = base * relief * roughDiffuse;
+        color += vec3(1.0, 0.88, 0.62) * spec;
+        color += vec3(1.0,0.95,0.85) * spec * reflectionMask * 1.45;
+        color += base * lightMask * mix(0.18, 0.28, u_mobileBoost) * mix(1.18, 0.82, roughness);
+
+        // Ambiente base muy controlado.
+        vec3 litColor = color;
+        vec3 ambientColor = base * mix(0.060, 0.024, u_mobileBoost);
+
+        vec2 centered = v_uv - 0.5;
+        float vignette = 1.0 - dot(centered, centered) * mix(0.42, 0.56, u_mobileBoost);
+
+        // Máscara final común para TODAS las capas. En Android evita restos brillantes.
+        float finalMask = smoothstep(0.0, 1.0, lightMask);
+        color = mix(ambientColor, litColor, finalMask);
+        color *= vignette;
+
+        // Curva final tipo gamma/contraste para móvil: baja medios tonos sin matar la luz.
+        color = pow(max(color, 0.0), vec3(mix(1.03, 1.18, u_mobileBoost)));
+
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `;
+
+    function createShader(type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    function createProgram(vsSource, fsSource) {
+      const program = gl.createProgram();
+      gl.attachShader(program, createShader(gl.VERTEX_SHADER, vsSource));
+      gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fsSource));
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error(gl.getProgramInfoLog(program));
+        return null;
+      }
+      return program;
+    }
+
+    function loadTexture(url) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+          const tex = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, tex);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+          // Las texturas 1000x1000 no son power-of-two. En WebGL1 no se puede usar REPEAT directo.
+          // La repetición la hacemos en el shader con fract().
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          resolve(tex);
+        };
+        image.onerror = reject;
+        image.src = url;
+      });
+    }
+
+    const program = createProgram(vertexShaderSource, fragmentShaderSource);
+    gl.useProgram(program);
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1, -1,  1, -1, -1,  1,
+      -1,  1,  1, -1,  1,  1
+    ]), gl.STATIC_DRAW);
+
+    const posLoc = gl.getAttribLocation(program, 'a_position');
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+    const loc = {
+      albedo: gl.getUniformLocation(program, 'u_albedo'),
+      normal: gl.getUniformLocation(program, 'u_normal'),
+      roughness: gl.getUniformLocation(program, 'u_roughness'),
+      reflection: gl.getUniformLocation(program, 'u_reflection'),
+      resolution: gl.getUniformLocation(program, 'u_resolution'),
+      light: gl.getUniformLocation(program, 'u_light'),
+      tileSize: gl.getUniformLocation(program, 'u_tileSize'),
+      time: gl.getUniformLocation(program, 'u_time'),
+      strength: gl.getUniformLocation(program, 'u_strength'),
+      mobileBoost: gl.getUniformLocation(program, 'u_mobileBoost'),
+      lightRadius: gl.getUniformLocation(program, 'u_lightRadius'),
+      lightOpacity: gl.getUniformLocation(program, 'u_lightOpacity')
+    };
+
+    let light = { x: 0, y: 0 };
+    let target = { x: 0, y: 0 };
+    let currentDpr = 1;
+    let lightInitialized = false;
+    let ready = false;
+
+    // Radio del halo en píxeles CSS. El shader recibe el valor convertido al tamaño interno del canvas.
+    let lightRadiusCss = 920;
+    const MIN_RADIUS_CSS = 360;
+    const MAX_RADIUS_CSS = 1500;
+    let pinchStartDistance = 0;
+    let pinchStartRadius = lightRadiusCss;
+    const activePointers = new Map();
+
+    let lastInteractionTime = performance.now();
+    let userHasInteracted = false;
+    let demoWasActive = false;
+    let demoStartTime = performance.now();
+    let lightOpacity = 0.0;
+
+    const DEMO_IDLE_DELAY = 3200;
+    // Amplitud en píxeles CSS. Más grande que antes para que se note incluso con halo amplio.
+    const DEMO_AMP_X_CSS = 150;
+    const DEMO_AMP_Y_CSS = 95;
+
+    function markInteraction() {
+      userHasInteracted = true;
+      lastInteractionTime = performance.now();
+      demoWasActive = false;
+      // Cuando el usuario toca, toma control total y la luz ya queda al 100%.
+      lightOpacity = 1.0;
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function clientToCanvas(clientX, clientY) {
+      const r = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / r.width;
+      const scaleY = canvas.height / r.height;
+      const cssX = clamp(clientX - r.left, 0, r.width);
+      const cssY = clamp(clientY - r.top, 0, r.height);
+      return {
+        x: cssX * scaleX,
+        y: (r.height - cssY) * scaleY
+      };
+    }
+
+    function setLightFromClientPoint(clientX, clientY, immediate = false) {
+      const p = clientToCanvas(clientX, clientY);
+      target.x = p.x;
+      target.y = p.y;
+      if (immediate) {
+        light.x = target.x;
+        light.y = target.y;
+      }
+    }
+
+    function updateFromActivePointers(immediate = false) {
+      const pts = Array.from(activePointers.values());
+      if (pts.length === 0) return;
+
+      if (pts.length >= 2) {
+        const a = pts[0];
+        const b = pts[1];
+        const midX = (a.clientX + b.clientX) * 0.5;
+        const midY = (a.clientY + b.clientY) * 0.5;
+        setLightFromClientPoint(midX, midY, immediate);
+
+        const dx = a.clientX - b.clientX;
+        const dy = a.clientY - b.clientY;
+        const distance = Math.hypot(dx, dy);
+        if (pinchStartDistance <= 0) {
+          pinchStartDistance = distance;
+          pinchStartRadius = lightRadiusCss;
+        } else {
+          // Sensibilidad suave: evita saltos y permite controlar el halo con comodidad.
+          const scale = distance / pinchStartDistance;
+          lightRadiusCss = clamp(pinchStartRadius * scale, MIN_RADIUS_CSS, MAX_RADIUS_CSS);
+        }
+      } else {
+        const p = pts[0];
+        setLightFromClientPoint(p.clientX, p.clientY, immediate);
+        pinchStartDistance = 0;
+        pinchStartRadius = lightRadiusCss;
+      }
+    }
+
+    function onPointerDown(e) {
+      markInteraction();
+      if (e.cancelable) e.preventDefault();
+      activePointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+      if (marco.setPointerCapture) {
+        try { marco.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+      if (activePointers.size < 2) {
+        pinchStartDistance = 0;
+        pinchStartRadius = lightRadiusCss;
+      }
+      updateFromActivePointers(true);
+    }
+
+    function onPointerMove(e) {
+      markInteraction();
+      if (e.cancelable) e.preventDefault();
+      if (!activePointers.has(e.pointerId) && e.pointerType === 'mouse') {
+        setLightFromClientPoint(e.clientX, e.clientY, false);
+        return;
+      }
+      activePointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+      updateFromActivePointers(false);
+    }
+
+    function onPointerUp(e) {
+      markInteraction();
+      if (e.cancelable) e.preventDefault();
+      activePointers.delete(e.pointerId);
+      pinchStartDistance = 0;
+      pinchStartRadius = lightRadiusCss;
+      updateFromActivePointers(false);
+    }
+
+    // Fallback para navegadores sin Pointer Events.
+    function onTouch(e) {
+      markInteraction();
+      if (e.cancelable) e.preventDefault();
+      if (!e.touches || e.touches.length === 0) return;
+      if (e.touches.length >= 2) {
+        const a = e.touches[0];
+        const b = e.touches[1];
+        const midX = (a.clientX + b.clientX) * 0.5;
+        const midY = (a.clientY + b.clientY) * 0.5;
+        setLightFromClientPoint(midX, midY, e.type === 'touchstart');
+        const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        if (e.type === 'touchstart' || pinchStartDistance <= 0) {
+          pinchStartDistance = distance;
+          pinchStartRadius = lightRadiusCss;
+        } else {
+          lightRadiusCss = clamp(pinchStartRadius * (distance / pinchStartDistance), MIN_RADIUS_CSS, MAX_RADIUS_CSS);
+        }
+      } else {
+        const t = e.touches[0];
+        setLightFromClientPoint(t.clientX, t.clientY, e.type === 'touchstart');
+        pinchStartDistance = 0;
+      }
+    }
+
+    marco.addEventListener('pointerdown', onPointerDown, { passive: false });
+    marco.addEventListener('pointermove', onPointerMove, { passive: false });
+    marco.addEventListener('pointerup', onPointerUp, { passive: false });
+    marco.addEventListener('pointercancel', onPointerUp, { passive: false });
+    marco.addEventListener('pointerleave', onPointerUp, { passive: false });
+
+    marco.addEventListener('touchstart', onTouch, { passive: false });
+    marco.addEventListener('touchmove', onTouch, { passive: false });
+    marco.addEventListener('touchend', () => { markInteraction(); pinchStartDistance = 0; }, { passive: false });
+    marco.addEventListener('mousemove', (e) => { markInteraction(); setLightFromClientPoint(e.clientX, e.clientY, false); }, { passive: true });
+    marco.addEventListener('mousedown', (e) => { markInteraction(); setLightFromClientPoint(e.clientX, e.clientY, true); }, { passive: true });
+
+    // Ruedita del mouse/trackpad para probar el tamaño del halo en computadora.
+    marco.addEventListener('wheel', (e) => {
+      markInteraction();
+      if (e.cancelable) e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.06 : 0.94;
+      lightRadiusCss = clamp(lightRadiusCss * factor, MIN_RADIUS_CSS, MAX_RADIUS_CSS);
+    }, { passive: false });
+
+    function resize() {
+      const r = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      currentDpr = dpr;
+      const w = Math.max(1, Math.floor(r.width * dpr));
+      const h = Math.max(1, Math.floor(r.height * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        gl.viewport(0, 0, w, h);
+        if (!lightInitialized) {
+          target.x = w * 0.5;
+          target.y = h * 0.5;
+          light.x = target.x;
+          light.y = target.y;
+          lightInitialized = true;
+        }
+      }
+    }
+
+    function render(t) {
+      resize();
+
+      const now = performance.now();
+      const demoActivo = activePointers.size === 0 && (!userHasInteracted || (now - lastInteractionTime > DEMO_IDLE_DELAY));
+
+      if (demoActivo && canvas.width > 0 && canvas.height > 0) {
+        if (!demoWasActive) {
+          demoWasActive = true;
+          demoStartTime = now;
+        }
+
+        // Rampa suave: empieza desde cero y llega a 100% en unos segundos.
+        const demoAge = Math.max(0, (now - demoStartTime) / 1000.0);
+        const ramp = Math.min(1.0, demoAge / 2.4);
+        const eased = ramp * ramp * (3.0 - 2.0 * ramp);
+        lightOpacity += ((0.32 + 0.68 * eased) - lightOpacity) * 0.045;
+
+        const time = t * 0.001;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const ampX = Math.min(canvas.width * 0.22, DEMO_AMP_X_CSS * dpr) * eased;
+        const ampY = Math.min(canvas.height * 0.18, DEMO_AMP_Y_CSS * dpr) * eased;
+
+        // Movimiento orgánico: no random brusco, sino una S/figura de ocho irregular.
+        target.x = canvas.width * 0.5
+          + Math.sin(time * 0.38) * ampX
+          + Math.sin(time * 0.17 + 1.9) * ampX * 0.36;
+        target.y = canvas.height * 0.5
+          + Math.sin(time * 0.54 + 0.8) * ampY
+          + Math.sin(time * 0.23 + 2.6) * ampY * 0.42;
+      } else {
+        // Si no está en demo y nadie toca, dejamos la luz en el último punto sin auto-moverse.
+        demoWasActive = false;
+        lightOpacity += (1.0 - lightOpacity) * 0.10;
+      }
+
+      light.x += (target.x - light.x) * 0.16;
+      light.y += (target.y - light.y) * 0.16;
+
+      gl.uniform2f(loc.resolution, canvas.width, canvas.height);
+      gl.uniform2f(loc.light, light.x, light.y);
+      gl.uniform1f(loc.tileSize, 720.0 * Math.min(window.devicePixelRatio || 1, 2));
+      gl.uniform1f(loc.time, t * 0.001);
+      const isMobileLike = window.matchMedia('(pointer: coarse)').matches || Math.min(window.innerWidth, window.innerHeight) < 700;
+      gl.uniform1f(loc.strength, isMobileLike ? 1.95 : 1.72);
+      gl.uniform1f(loc.mobileBoost, isMobileLike ? 1.0 : 0.0);
+      gl.uniform1f(loc.lightRadius, lightRadiusCss * Math.min(window.devicePixelRatio || 1, 2));
+      gl.uniform1f(loc.lightOpacity, lightOpacity);
+
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      requestAnimationFrame(render);
+    }
+
+    Promise.all([loadTexture(ALBEDO_URL), loadTexture(NORMAL_URL), loadTexture(ROUGHNESS_URL), loadTexture(REFLECTION_URL)]).then(([albedoTex, normalTex, roughnessTex, reflectionTex]) => {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, albedoTex);
+      gl.uniform1i(loc.albedo, 0);
+
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, normalTex);
+      gl.uniform1i(loc.normal, 1);
+
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, roughnessTex);
+      gl.uniform1i(loc.roughness, 2);
+
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D, reflectionTex);
+      gl.uniform1i(loc.reflection, 3);
+
+      ready = true;
+      const esperaMinima = Math.max(0, 1150 - (performance.now() - inicioCarga));
+      setTimeout(() => {
+        document.body.classList.add('material-listo');
+        loaderOverlay.classList.add('oculto');
+        // Arranca sin linterna y entra con fade + movimiento demo.
+        lightOpacity = 0.0;
+        demoWasActive = false;
+        demoStartTime = performance.now();
+        requestAnimationFrame(render);
+      }, esperaMinima);
+    }).catch(err => {
+      console.error('No se pudieron cargar las texturas:', err);
+      marco.style.backgroundImage = `url("${ALBEDO_URL}")`;
+      marco.style.backgroundRepeat = 'repeat';
+      marco.style.backgroundSize = '720px 720px';
+      document.body.classList.add('material-listo');
+      loaderOverlay.classList.add('oculto');
+    });
+  </script>
+</body>
+</html>
