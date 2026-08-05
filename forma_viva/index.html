@@ -1,1 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forma Viva — Demo</title>
+  <style>
+    :root{
+      --bg:#ececec;
+      --panel:#ffffff;
+      --ink:#222;
+      --muted:#6f6f6f;
+      --line:#d5d5d5;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      display:grid;
+      place-items:center;
+      padding:22px;
+    }
+    .app{
+      width:min(1120px,100%);
+      background:var(--panel);
+      border:1px solid #dcdcdc;
+      border-radius:24px;
+      box-shadow:0 20px 60px rgba(0,0,0,.10);
+      overflow:hidden;
+    }
+    header{
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:center;
+      padding:18px 22px;
+      border-bottom:1px solid var(--line);
+    }
+    h1{font-size:18px;margin:0}
+    .subtitle{font-size:13px;color:var(--muted);margin-top:3px}
+    .badge{
+      font-size:12px;
+      padding:7px 10px;
+      border-radius:999px;
+      background:#f1f1f1;
+      color:#555;
+      white-space:nowrap;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 270px;
+      min-height:610px;
+    }
+    .stage-wrap{
+      padding:18px;
+      min-width:0;
+    }
+    .stage{
+      position:relative;
+      height:574px;
+      border-radius:18px;
+      overflow:hidden;
+      background:
+        linear-gradient(#f8f8f8 1px, transparent 1px),
+        linear-gradient(90deg,#f8f8f8 1px, transparent 1px),
+        #fff;
+      background-size:24px 24px;
+      border:1px solid #dedede;
+      touch-action:none;
+      user-select:none;
+    }
+    canvas{
+      width:100%;
+      height:100%;
+      display:block;
+      cursor:grab;
+    }
+    canvas.dragging{cursor:grabbing}
+    aside{
+      border-left:1px solid var(--line);
+      padding:20px;
+      background:#fafafa;
+    }
+    .section{margin-bottom:24px}
+    .section h2{font-size:13px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.08em;color:#777}
+    .control{margin-bottom:17px}
+    .control-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:14px}
+    .value{font-variant-numeric:tabular-nums;color:#666}
+    input[type="range"]{width:100%}
+    button{
+      width:100%;
+      border:1px solid #cfcfcf;
+      background:white;
+      color:#222;
+      border-radius:12px;
+      padding:11px 12px;
+      font-weight:650;
+      cursor:pointer;
+      margin-bottom:9px;
+    }
+    button:hover{background:#f2f2f2}
+    button.active{background:#222;color:#fff;border-color:#222}
+    .hint{
+      font-size:13px;
+      line-height:1.5;
+      color:#686868;
+      border-top:1px solid var(--line);
+      padding-top:16px;
+    }
+    .legend{display:grid;gap:8px;font-size:13px;color:#555}
+    .dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:#999;margin-right:8px}
+    @media(max-width:850px){
+      .layout{grid-template-columns:1fr}
+      aside{border-left:0;border-top:1px solid var(--line)}
+      .stage{height:58vh;min-height:430px}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Forma Viva</h1>
+        <div class="subtitle">Prototipo de figuras sólidas con uniones suaves</div>
+      </div>
+      <div class="badge">Arrastrá las figuras</div>
+    </header>
 
+    <div class="layout">
+      <section class="stage-wrap">
+        <div class="stage" id="stage">
+          <canvas id="view"></canvas>
+        </div>
+      </section>
+
+      <aside>
+        <div class="section">
+          <h2>Comportamiento</h2>
+          <div class="control">
+            <div class="control-row"><span>Curvatura de unión</span><span class="value" id="softValue">22</span></div>
+            <input id="softness" type="range" min="4" max="42" value="22" />
+          </div>
+          <div class="control">
+            <div class="control-row"><span>Grosor del borde</span><span class="value" id="borderValue">5 px</span></div>
+            <input id="border" type="range" min="0" max="12" value="5" />
+          </div>
+          <div class="control">
+            <div class="control-row"><span>Fuerza de fusión</span><span class="value" id="fusionValue">52%</span></div>
+            <input id="fusion" type="range" min="35" max="72" value="52" />
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Movimiento</h2>
+          <button id="groupBtn">Mover conjunto</button>
+          <button id="resetBtn">Restablecer posiciones</button>
+        </div>
+
+        <div class="section legend">
+          <div><span class="dot"></span>Círculo</div>
+          <div><span class="dot"></span>Cuadrado redondeado</div>
+          <div><span class="dot"></span>Triángulo suavizado</div>
+        </div>
+
+        <div class="hint">
+          Cuando las figuras se acercan, la silueta y el borde se calculan como una sola pieza. Al separarlas, recuperan su contorno individual.
+        </div>
+      </aside>
+    </div>
+  </main>
+
+<script>
+(() => {
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const mask = document.createElement('canvas');
+  const maskCtx = mask.getContext('2d');
+  const blurCanvas = document.createElement('canvas');
+  const blurCtx = blurCanvas.getContext('2d');
+  const binary = document.createElement('canvas');
+  const binaryCtx = binary.getContext('2d');
+
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const SCALE = 0.55;
+
+  let W = 900, H = 560, lowW = 495, lowH = 308;
+  let groupMode = false;
+  let active = null;
+  let last = {x:0,y:0};
+
+  const defaults = [
+    {type:'circle', x:.28, y:.48, r:.115},
+    {type:'square', x:.53, y:.47, w:.22, h:.22, radius:.035},
+    {type:'triangle', x:.72, y:.46, size:.24, round:.045}
+  ];
+  const cloneDefaults = () => defaults.map(s => Object.assign({}, s));
+  let shapes = cloneDefaults();
+
+  const softness = document.getElementById('softness');
+  const border = document.getElementById('border');
+  const fusion = document.getElementById('fusion');
+  const softValue = document.getElementById('softValue');
+  const borderValue = document.getElementById('borderValue');
+  const fusionValue = document.getElementById('fusionValue');
+  const groupBtn = document.getElementById('groupBtn');
+
+  function resize(){
+    const rect = stage.getBoundingClientRect();
+    W = Math.max(420, Math.round(rect.width));
+    H = Math.max(380, Math.round(rect.height));
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+
+    lowW = Math.round(W*SCALE);
+    lowH = Math.round(H*SCALE);
+    for(const c of [mask, blurCanvas, binary]){ c.width=lowW; c.height=lowH; }
+    draw();
+  }
+
+  function roundedTrianglePath(c, x, y, size, radius){
+    const h = size * .88;
+    const pts = [
+      {x:x, y:y-h/2},
+      {x:x-size/2, y:y+h/2},
+      {x:x+size/2, y:y+h/2}
+    ];
+    c.beginPath();
+    for(let i=0;i<3;i++){
+      const prev=pts[(i+2)%3], curr=pts[i], next=pts[(i+1)%3];
+      const v1={x:prev.x-curr.x,y:prev.y-curr.y};
+      const v2={x:next.x-curr.x,y:next.y-curr.y};
+      const l1=Math.hypot(v1.x,v1.y), l2=Math.hypot(v2.x,v2.y);
+      const rr=Math.min(radius,l1*.22,l2*.22);
+      const p1={x:curr.x+v1.x/l1*rr,y:curr.y+v1.y/l1*rr};
+      const p2={x:curr.x+v2.x/l2*rr,y:curr.y+v2.y/l2*rr};
+      if(i===0)c.moveTo(p1.x,p1.y); else c.lineTo(p1.x,p1.y);
+      c.quadraticCurveTo(curr.x,curr.y,p2.x,p2.y);
+    }
+    c.closePath();
+  }
+
+  function drawRawMask(){
+    maskCtx.clearRect(0,0,lowW,lowH);
+    maskCtx.fillStyle='#fff';
+    for(const s of shapes){
+      const x=s.x*lowW, y=s.y*lowH;
+      maskCtx.beginPath();
+      if(s.type==='circle'){
+        maskCtx.arc(x,y,s.r*Math.min(lowW,lowH),0,Math.PI*2);
+      }else if(s.type==='square'){
+        const w=s.w*lowW, h=s.h*lowH, r=s.radius*Math.min(lowW,lowH);
+        if (typeof maskCtx.roundRect === 'function') {
+          maskCtx.roundRect(x-w/2,y-h/2,w,h,r);
+        } else {
+          const left=x-w/2, top=y-h/2, right=x+w/2, bottom=y+h/2;
+          const rr=Math.max(0,Math.min(r,w/2,h/2));
+          maskCtx.moveTo(left+rr,top);
+          maskCtx.lineTo(right-rr,top);
+          maskCtx.quadraticCurveTo(right,top,right,top+rr);
+          maskCtx.lineTo(right,bottom-rr);
+          maskCtx.quadraticCurveTo(right,bottom,right-rr,bottom);
+          maskCtx.lineTo(left+rr,bottom);
+          maskCtx.quadraticCurveTo(left,bottom,left,bottom-rr);
+          maskCtx.lineTo(left,top+rr);
+          maskCtx.quadraticCurveTo(left,top,left+rr,top);
+          maskCtx.closePath();
+        }
+      }else{
+        roundedTrianglePath(maskCtx,x,y,s.size*lowW,s.round*Math.min(lowW,lowH));
+      }
+      maskCtx.fill();
+    }
+  }
+
+  function makeUnifiedMask(){
+    drawRawMask();
+    blurCtx.clearRect(0,0,lowW,lowH);
+    const blurPx = Number(softness.value) * SCALE;
+    blurCtx.save();
+    blurCtx.filter = `blur(${blurPx}px)`;
+    blurCtx.drawImage(mask,0,0);
+    blurCtx.restore();
+
+    const img = blurCtx.getImageData(0,0,lowW,lowH);
+    const threshold = Number(fusion.value) / 100 * 255;
+    for(let i=0;i<img.data.length;i+=4){
+      const a = img.data[i+3] >= threshold ? 255 : 0;
+      img.data[i]=255; img.data[i+1]=255; img.data[i+2]=255; img.data[i+3]=a;
+    }
+    binaryCtx.clearRect(0,0,lowW,lowH);
+    binaryCtx.putImageData(img,0,0);
+  }
+
+  function draw(){
+    makeUnifiedMask();
+    ctx.clearRect(0,0,W,H);
+    ctx.imageSmoothingEnabled=true;
+    ctx.imageSmoothingQuality='high';
+
+    const b = Number(border.value);
+    if(b>0){
+      ctx.save();
+      ctx.globalAlpha=1;
+      const steps=20;
+      for(let i=0;i<steps;i++){
+        const a=i/steps*Math.PI*2;
+        ctx.drawImage(binary, Math.cos(a)*b, Math.sin(a)*b, W, H);
+      }
+      ctx.globalCompositeOperation='source-in';
+      ctx.fillStyle='#2c2c2c';
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.drawImage(binary,0,0,W,H);
+    ctx.globalCompositeOperation='source-in';
+    const grad=ctx.createLinearGradient(W*.18,H*.2,W*.82,H*.75);
+    grad.addColorStop(0,'#b8b8b8');
+    grad.addColorStop(1,'#8f8f8f');
+    ctx.fillStyle=grad;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+
+    // Sutil brillo para conservar sensación sólida.
+    ctx.save();
+    ctx.globalAlpha=.18;
+    ctx.drawImage(binary,0,-2,W,H);
+    ctx.globalCompositeOperation='source-in';
+    const shine=ctx.createLinearGradient(0,0,0,H);
+    shine.addColorStop(0,'white');
+    shine.addColorStop(.55,'rgba(255,255,255,0)');
+    ctx.fillStyle=shine;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+
+  function hitShape(s, px, py){
+    const x=s.x*W, y=s.y*H;
+    if(s.type==='circle') return Math.hypot(px-x,py-y)<=s.r*Math.min(W,H)*1.12;
+    if(s.type==='square') return Math.abs(px-x)<=s.w*W*.56 && Math.abs(py-y)<=s.h*H*.56;
+    const size=s.size*W, h=size*.88;
+    const p1={x:x,y:y-h/2}, p2={x:x-size/2,y:y+h/2}, p3={x:x+size/2,y:y+h/2};
+    const area=(a,b,c)=>Math.abs((a.x*(b.y-c.y)+b.x*(c.y-a.y)+c.x*(a.y-b.y))/2);
+    const P={x:px,y:py};
+    const A=area(p1,p2,p3), A1=area(P,p2,p3), A2=area(p1,P,p3), A3=area(p1,p2,P);
+    return Math.abs(A-(A1+A2+A3))<700;
+  }
+
+  function posFromEvent(e){
+    const r=canvas.getBoundingClientRect();
+    return {x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)};
+  }
+
+  canvas.addEventListener('pointerdown',e=>{
+    const p=posFromEvent(e);
+    last=p;
+    active=groupMode?'all':null;
+    if(!groupMode){
+      for(let i=shapes.length-1;i>=0;i--){ if(hitShape(shapes[i],p.x,p.y)){ active=i; break; } }
+    }
+    if(active!==null){ canvas.setPointerCapture(e.pointerId); canvas.classList.add('dragging'); }
+  });
+
+  canvas.addEventListener('pointermove',e=>{
+    if(active===null)return;
+    const p=posFromEvent(e);
+    const dx=(p.x-last.x)/W, dy=(p.y-last.y)/H;
+    if(active==='all'){
+      for(const s of shapes){ s.x=Math.max(.04,Math.min(.96,s.x+dx)); s.y=Math.max(.06,Math.min(.94,s.y+dy)); }
+    }else{
+      const s=shapes[active];
+      s.x=Math.max(.04,Math.min(.96,s.x+dx));
+      s.y=Math.max(.06,Math.min(.94,s.y+dy));
+    }
+    last=p; draw();
+  });
+
+  const endDrag=e=>{ active=null; canvas.classList.remove('dragging'); try{canvas.releasePointerCapture(e.pointerId)}catch{} };
+  canvas.addEventListener('pointerup',endDrag);
+  canvas.addEventListener('pointercancel',endDrag);
+
+  [softness,border,fusion].forEach(el=>el.addEventListener('input',()=>{
+    softValue.textContent=softness.value;
+    borderValue.textContent=`${border.value} px`;
+    fusionValue.textContent=`${fusion.value}%`;
+    draw();
+  }));
+
+  groupBtn.addEventListener('click',()=>{
+    groupMode=!groupMode;
+    groupBtn.classList.toggle('active',groupMode);
+    groupBtn.textContent=groupMode?'Mover conjunto: activado':'Mover conjunto';
+  });
+
+  document.getElementById('resetBtn').addEventListener('click',()=>{ shapes=cloneDefaults(); draw(); });
+  window.addEventListener('resize',resize);
+  try {
+    resize();
+  } catch (err) {
+    console.error(err);
+    const warning=document.createElement('div');
+    warning.style.cssText='position:absolute;inset:20px;display:grid;place-items:center;text-align:center;padding:24px;border:2px dashed #999;border-radius:16px;background:#fff;color:#333;font:600 16px system-ui;z-index:5';
+    warning.textContent='No se pudo iniciar el dibujo en este navegador. Probá abrir este mismo archivo con Safari, Chrome o Edge actualizado.';
+    stage.appendChild(warning);
+  }
+})();
+</script>
+</body>
+</html>
