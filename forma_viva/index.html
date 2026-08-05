@@ -3,34 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Forma Viva — Responsive</title>
+<title>Forma Viva — Editor V2</title>
 <style>
-:root{--bg:#ececec;--panel:#fff;--ink:#242424;--muted:#707070;--line:#d7d7d7}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);display:grid;place-items:center;padding:22px}
-.app{width:min(1120px,100%);background:var(--panel);border:1px solid #ddd;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.11);overflow:hidden}
-header{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:18px 22px;border-bottom:1px solid var(--line)}
-h1{font-size:18px;margin:0}.sub{font-size:13px;color:var(--muted);margin-top:3px}.badge{font-size:12px;background:#f1f1f1;padding:7px 10px;border-radius:999px;color:#555}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;min-height:610px}.stage-wrap{padding:18px;min-width:0}
-.stage{height:574px;border:1px solid #dedede;border-radius:18px;overflow:hidden;background:linear-gradient(#f6f6f6 1px,transparent 1px),linear-gradient(90deg,#f6f6f6 1px,transparent 1px),#fff;background-size:24px 24px;touch-action:none}
-svg{display:block;width:100%;height:100%;touch-action:none;user-select:none}.piece{cursor:grab;touch-action:none}.piece.dragging{cursor:grabbing}
-aside{border-left:1px solid var(--line);background:#fafafa;padding:20px}.section{margin-bottom:24px}.section h2{font-size:13px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.08em;color:#777}.control{margin-bottom:17px}.row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px}.value{color:#666;font-variant-numeric:tabular-nums}input[type=range]{width:100%}
-button{width:100%;border:1px solid #cfcfcf;background:#fff;color:#222;border-radius:12px;padding:11px;font-weight:650;margin-bottom:9px;cursor:pointer}button.active{background:#222;color:#fff;border-color:#222}
-.legend{display:grid;gap:8px;font-size:13px;color:#555}.dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:#999;margin-right:8px}.hint{font-size:13px;line-height:1.48;color:#686868;border-top:1px solid var(--line);padding-top:16px}
-@media(max-width:850px){body{padding:10px}.layout{grid-template-columns:1fr}.stage{height:auto;aspect-ratio:900/574;min-height:0}aside{border-left:0;border-top:1px solid var(--line)}}
-@media(max-width:520px){body{padding:0;display:block}.app{border-radius:0;border-left:0;border-right:0}.stage-wrap{padding:10px}.stage{border-radius:14px}header{padding:14px 16px}.badge{display:none}aside{padding:16px}}
+:root{--bg:#e9e9e9;--panel:#fff;--ink:#232323;--muted:#737373;--line:#d8d8d8;--accent:#222}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;overscroll-behavior:none}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);padding:16px}
+.app{width:min(1240px,100%);margin:auto;background:var(--panel);border:1px solid #d9d9d9;border-radius:24px;box-shadow:0 18px 60px rgba(0,0,0,.12);overflow:hidden}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px;border-bottom:1px solid var(--line)}
+h1{font-size:19px;margin:0}.sub{font-size:12px;color:var(--muted);margin-top:3px}.badge{font-size:12px;padding:7px 10px;border-radius:999px;background:#f1f1f1;color:#555}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;min-height:650px}
+.stage-wrap{padding:16px;min-width:0}.stage{height:616px;border:1px solid #ddd;border-radius:18px;overflow:hidden;background:linear-gradient(#f4f4f4 1px,transparent 1px),linear-gradient(90deg,#f4f4f4 1px,transparent 1px),#fff;background-size:24px 24px;touch-action:none;position:relative}
+svg{display:block;width:100%;height:100%;touch-action:none;user-select:none}.hit{fill:transparent;stroke:transparent;cursor:grab}.hit:active{cursor:grabbing}.selection{fill:none;stroke:#2b2b2b;stroke-width:2.2;stroke-dasharray:8 6;vector-effect:non-scaling-stroke;pointer-events:none}.handle{fill:#fff;stroke:#222;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
+aside{border-left:1px solid var(--line);background:#fafafa;padding:17px;overflow:auto}.section{margin-bottom:20px}.section h2{font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.08em;color:#777}.selected-name{font-size:18px;font-weight:760;margin-bottom:4px}.selected-help{font-size:12px;line-height:1.4;color:#777;margin-bottom:13px}.control{margin-bottom:14px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:6px}.value{color:#656565;font-variant-numeric:tabular-nums}.inline{display:grid;grid-template-columns:1fr 1fr;gap:8px}.inline.three{grid-template-columns:1fr 1fr 1fr}input[type=range]{width:100%;accent-color:#222}input[type=number]{width:100%;border:1px solid #d0d0d0;border-radius:10px;padding:9px;background:#fff;font:inherit}button{width:100%;border:1px solid #cfcfcf;background:#fff;color:#222;border-radius:11px;padding:10px;font-weight:680;cursor:pointer}button.active{background:#222;color:#fff;border-color:#222}.button-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.switch-row{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border:1px solid #ddd;border-radius:11px;background:#fff}.switch-row input{width:20px;height:20px;accent-color:#222}.divider{height:1px;background:#ddd;margin:16px 0}.hint{font-size:12px;line-height:1.48;color:#666}.empty{padding:18px;border:1px dashed #ccc;border-radius:12px;text-align:center;color:#777;font-size:13px}.hidden{display:none!important}
+@media(max-width:900px){body{padding:8px}.layout{grid-template-columns:1fr}.stage{height:auto;aspect-ratio:900/610}aside{border-left:0;border-top:1px solid var(--line);max-height:none}.app{border-radius:18px}}
+@media(max-width:520px){body{padding:0}.app{border-radius:0;border:0}.stage-wrap{padding:8px}.stage{border-radius:13px}header{padding:13px 14px}.badge{display:none}aside{padding:14px}.layout{min-height:0}}
 </style>
 </head>
 <body>
 <main class="app">
-<header><div><h1>Forma Viva</h1><div class="sub">Figuras sólidas con uniones suaves · versión responsive</div></div><div class="badge">Arrastrá las figuras</div></header>
+<header><div><h1>Forma Viva</h1><div class="sub">Editor de formas fusionables · V2</div></div><div class="badge">Un dedo mueve · dos dedos escalan y rotan</div></header>
 <div class="layout">
 <section class="stage-wrap"><div class="stage">
-<svg id="board" viewBox="0 0 900 574" preserveAspectRatio="xMidYMid meet" aria-label="Área de figuras">
+<svg id="board" viewBox="0 0 900 610" preserveAspectRatio="xMidYMid meet" aria-label="Editor de formas">
 <defs>
-<filter id="fusionFilter" x="-18%" y="-18%" width="136%" height="136%" color-interpolation-filters="sRGB" filterRes="900 574">
-<feGaussianBlur id="blurNode" in="SourceGraphic" stdDeviation="13" result="blur"/>
-<feColorMatrix id="matrixNode" in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" result="goo"/>
+<filter id="fusionFilter" x="-14%" y="-14%" width="128%" height="128%" color-interpolation-filters="sRGB" filterRes="720 488">
+<feGaussianBlur id="blurNode" in="SourceGraphic" stdDeviation="12" result="blur"/>
+<feColorMatrix id="matrixNode" in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 21 -9" result="goo"/>
 <feMorphology id="borderNode" in="goo" operator="dilate" radius="5" result="expanded"/>
 <feFlood flood-color="#292929" result="borderPaint"/>
 <feComposite in="borderPaint" in2="expanded" operator="in" result="borderShape"/>
@@ -39,90 +38,83 @@ button{width:100%;border:1px solid #cfcfcf;background:#fff;color:#222;border-rad
 <feMerge><feMergeNode in="borderShape"/><feMergeNode in="fillShape"/></feMerge>
 </filter>
 </defs>
-<g id="fused" filter="url(#fusionFilter)">
-<circle class="piece" data-id="circle" cx="245" cy="292" r="78" fill="#999"/>
-<rect class="piece" data-id="square" x="380" y="220" width="150" height="150" rx="24" fill="#999"/>
-<path class="piece" data-id="triangle" d="M680 194 Q690 194 696 204 L770 350 Q776 364 760 364 H600 Q584 364 590 350 L664 204 Q670 194 680 194 Z" fill="#999"/>
-</g>
+<g id="visual" filter="url(#fusionFilter)"></g>
+<g id="holes"></g>
+<g id="selectionLayer"></g>
+<g id="hits"></g>
 </svg>
 </div></section>
 <aside>
-<div class="section"><h2>Comportamiento</h2>
-<div class="control"><div class="row"><span>Curvatura de unión</span><span id="softValue" class="value">13</span></div><input id="softness" type="range" min="3" max="28" value="13"></div>
-<div class="control"><div class="row"><span>Grosor del borde</span><span id="borderValue" class="value">5 px</span></div><input id="border" type="range" min="0" max="14" value="5"></div>
-<div class="control"><div class="row"><span>Fuerza de fusión</span><span id="fusionValue" class="value">55%</span></div><input id="fusion" type="range" min="35" max="75" value="55"></div>
+<div class="section"><h2>Selección</h2><div id="emptyState" class="empty">Tocá una figura para editarla.</div><div id="editor" class="hidden">
+<div id="selectedName" class="selected-name">Figura</div><div class="selected-help">Arrastrá para mover. Usá dos dedos para cambiar tamaño y rotación.</div>
+<div class="control"><div class="row"><span>Escala</span><span id="scaleValue" class="value">100%</span></div><input id="scale" type="range" min="35" max="220" value="100"></div>
+<div class="control"><div class="row"><span>Rotación</span><span id="rotationValue" class="value">0°</span></div><input id="rotation" type="range" min="-180" max="180" value="0"></div>
+<div id="squareControls" class="hidden">
+<div class="row"><span>Ancho y alto</span><span class="value">unidades</span></div><div class="inline"><input id="shapeWidth" type="number" min="40" max="320" step="2"><input id="shapeHeight" type="number" min="40" max="320" step="2"></div>
+<div class="control" style="margin-top:12px"><div class="row"><span>Redondeo</span><span id="roundValue" class="value">20%</span></div><input id="roundness" type="range" min="0" max="50" value="20"></div>
 </div>
-<div class="section"><h2>Movimiento</h2><button id="groupBtn">Mover conjunto</button><button id="resetBtn">Restablecer posiciones</button></div>
-<div class="section legend"><div><span class="dot"></span>Círculo</div><div><span class="dot"></span>Cuadrado redondeado</div><div><span class="dot"></span>Triángulo suavizado</div></div>
-<div class="hint">Al acercar las piezas, la unión se redondea y el borde abraza la silueta completa. Al separarlas, cada una recupera su borde.</div>
+<div id="circleControls" class="hidden">
+<div class="switch-row"><span>Convertir en anillo</span><input id="holeEnabled" type="checkbox"></div>
+<div id="holeControl" class="control hidden" style="margin-top:12px"><div class="row"><span>Tamaño del agujero</span><span id="holeValue" class="value">42%</span></div><input id="holeSize" type="range" min="12" max="78" value="42"></div>
+</div>
+<div id="polygonControls" class="hidden">
+<div class="control"><div class="row"><span>Cantidad de lados</span><span id="sidesValue" class="value">3</span></div><input id="sides" type="range" min="3" max="12" value="3"></div>
+<div class="control"><div class="row"><span>Radio</span><span id="radiusValue" class="value">84</span></div><input id="radius" type="range" min="45" max="150" value="84"></div>
+</div>
+<div class="divider"></div><div class="button-row"><button id="duplicateBtn">Duplicar</button><button id="deleteBtn">Eliminar</button></div>
+</div></div>
+<div class="section"><h2>Fusión general</h2>
+<div class="control"><div class="row"><span>Curvatura</span><span id="softValue" class="value">12</span></div><input id="softness" type="range" min="3" max="24" value="12"></div>
+<div class="control"><div class="row"><span>Borde</span><span id="borderValue" class="value">5 px</span></div><input id="border" type="range" min="0" max="12" value="5"></div>
+<div class="control"><div class="row"><span>Fuerza de unión</span><span id="fusionValue" class="value">55%</span></div><input id="fusion" type="range" min="35" max="75" value="55"></div>
+</div>
+<div class="section"><h2>Acciones</h2><div class="button-row"><button id="addCircle">+ Círculo</button><button id="addSquare">+ Cuadrado</button></div><div class="button-row"><button id="addPolygon">+ Polígono</button><button id="resetBtn">Restablecer</button></div></div>
+<div class="hint">El agujero del círculo es visual en esta etapa. La fusión exterior, la escala, la rotación, las dimensiones y los lados del polígono sí son editables en tiempo real.</div>
 </aside>
 </div>
 </main>
 <script>
 (function(){
-var svg=document.getElementById('board'), group=document.getElementById('fused');
-var pieces=[].slice.call(document.querySelectorAll('.piece'));
-var blur=document.getElementById('blurNode'), matrix=document.getElementById('matrixNode'), morph=document.getElementById('borderNode');
-var softness=document.getElementById('softness'), border=document.getElementById('border'), fusion=document.getElementById('fusion');
-var groupBtn=document.getElementById('groupBtn'), groupMode=false, dragging=null, start=null;
-var filter=document.getElementById('fusionFilter');
-var positions={circle:{x:0,y:0},square:{x:0,y:0},triangle:{x:0,y:0}};
-var framePending=false;
-function point(e){
-  var pt=svg.createSVGPoint();
-  pt.x=e.clientX;
-  pt.y=e.clientY;
-  var ctm=svg.getScreenCTM();
-  if(!ctm){return{x:0,y:0};}
-  var local=pt.matrixTransform(ctm.inverse());
-  return{x:local.x,y:local.y};
-}
-function applyNow(){
-  framePending=false;
-  pieces.forEach(function(el){var p=positions[el.dataset.id];el.setAttribute('transform','translate('+p.x+' '+p.y+')');});
-}
-function requestApply(){
-  if(framePending)return;
-  framePending=true;
-  requestAnimationFrame(applyNow);
-}
-function setDragQuality(active){
-  filter.setAttribute('filterRes',active?'520 332':'900 574');
-}
-function down(e){
-  e.preventDefault();
-  dragging=groupMode?'all':e.currentTarget.dataset.id;
-  start=point(e);
-  setDragQuality(true);
-  e.currentTarget.classList.add('dragging');
-  try{svg.setPointerCapture(e.pointerId);}catch(err){}
-}
-function move(e){
-  if(!dragging)return;
-  e.preventDefault();
-  var p=point(e),dx=p.x-start.x,dy=p.y-start.y;
-  if(dragging==='all'){
-    Object.keys(positions).forEach(function(k){positions[k].x+=dx;positions[k].y+=dy;});
-  }else{
-    positions[dragging].x+=dx;positions[dragging].y+=dy;
-  }
-  start=p;
-  requestApply();
-}
-function up(e){
-  if(!dragging)return;
-  dragging=null;
-  setDragQuality(false);
-  requestApply();
-  pieces.forEach(function(el){el.classList.remove('dragging');});
-  try{svg.releasePointerCapture(e.pointerId);}catch(err){}
-}
-pieces.forEach(function(el){el.addEventListener('pointerdown',down);});svg.addEventListener('pointermove',move);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);
-function controls(){var s=Number(softness.value),f=Number(fusion.value);blur.setAttribute('stdDeviation',s);var gain=12+(f-35)*0.38;var cutoff=-(gain*(0.82-(f-35)*0.006));matrix.setAttribute('values','1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 '+gain.toFixed(2)+' '+cutoff.toFixed(2));morph.setAttribute('radius',border.value);document.getElementById('softValue').textContent=softness.value;document.getElementById('borderValue').textContent=border.value+' px';document.getElementById('fusionValue').textContent=fusion.value+'%';}
-softness.addEventListener('input',controls);border.addEventListener('input',controls);fusion.addEventListener('input',controls);
-groupBtn.addEventListener('click',function(){groupMode=!groupMode;groupBtn.classList.toggle('active',groupMode);groupBtn.textContent=groupMode?'Mover conjunto: activado':'Mover conjunto';});
-document.getElementById('resetBtn').addEventListener('click',function(){Object.keys(positions).forEach(function(k){positions[k].x=0;positions[k].y=0;});requestApply();});
-controls();applyNow();
+'use strict';
+var svg=document.getElementById('board'), visual=document.getElementById('visual'), holes=document.getElementById('holes'), hits=document.getElementById('hits'), selectionLayer=document.getElementById('selectionLayer');
+var filter=document.getElementById('fusionFilter'), blur=document.getElementById('blurNode'), matrix=document.getElementById('matrixNode'), morph=document.getElementById('borderNode');
+var shapes=[], selectedId=null, nextId=1, pointers=new Map(), gesture=null, raf=0;
+function uid(){return 'shape'+(nextId++);} function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function svgPoint(e){var p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;var m=svg.getScreenCTM();if(!m)return{x:0,y:0};var q=p.matrixTransform(m.inverse());return{x:q.x,y:q.y};}
+function getShape(id){return shapes.find(function(s){return s.id===id;});}
+function polygonPoints(s){var pts=[], n=s.sides||3, r=s.radius||84;for(var i=0;i<n;i++){var a=-Math.PI/2+i*Math.PI*2/n;pts.push((Math.cos(a)*r).toFixed(2)+','+(Math.sin(a)*r).toFixed(2));}return pts.join(' ');}
+function shapeMarkup(s,hit){var attrs=' transform="translate('+s.x+' '+s.y+') rotate('+s.rotation+') scale('+s.scale+')"';var common=hit?' class="hit" data-id="'+s.id+'" pointer-events="all"':' fill="#999"';
+if(s.type==='circle')return '<circle'+attrs+common+' cx="0" cy="0" r="'+s.radius+'"/>';
+if(s.type==='square'){var rx=Math.min(s.w,s.h)*(s.roundness/100);return '<rect'+attrs+common+' x="'+(-s.w/2)+'" y="'+(-s.h/2)+'" width="'+s.w+'" height="'+s.h+'" rx="'+rx+'"/>';}
+return '<polygon'+attrs+common+' points="'+polygonPoints(s)+'"/>';}
+function bboxFor(s){if(s.type==='square')return{w:s.w*s.scale,h:s.h*s.scale};var r=(s.radius||84)*s.scale;return{w:r*2,h:r*2};}
+function render(){raf=0;visual.innerHTML=shapes.map(function(s){return shapeMarkup(s,false);}).join('');hits.innerHTML=shapes.map(function(s){return shapeMarkup(s,true);}).join('');
+holes.innerHTML=shapes.filter(function(s){return s.type==='circle'&&s.hole;}).map(function(s){var rr=s.radius*s.holeSize/100;return '<circle cx="'+s.x+'" cy="'+s.y+'" r="'+(rr*s.scale)+'" fill="#fff" stroke="#292929" stroke-width="'+Math.max(1,Number(document.getElementById('border').value))+'"/>';}).join('');
+selectionLayer.innerHTML='';if(selectedId){var s=getShape(selectedId);if(s){var b=bboxFor(s),pad=12;selectionLayer.innerHTML='<g transform="translate('+s.x+' '+s.y+') rotate('+s.rotation+')"><rect class="selection" x="'+(-b.w/2-pad)+'" y="'+(-b.h/2-pad)+'" width="'+(b.w+pad*2)+'" height="'+(b.h+pad*2)+'" rx="10"/><circle class="handle" cx="'+(b.w/2+pad)+'" cy="'+(-b.h/2-pad)+'" r="5"/></g>';}}
+bindHits();}
+function schedule(){if(!raf)raf=requestAnimationFrame(render);} function bindHits(){[].slice.call(hits.querySelectorAll('.hit')).forEach(function(el){el.addEventListener('pointerdown',pointerDown);});}
+function select(id){selectedId=id;updatePanel();schedule();}
+function pointerDown(e){e.preventDefault();var id=e.currentTarget.dataset.id;select(id);pointers.set(e.pointerId,svgPoint(e));try{svg.setPointerCapture(e.pointerId);}catch(err){}var s=getShape(id);if(pointers.size===1){gesture={mode:'move',id:id,last:svgPoint(e)};}else if(pointers.size===2){var arr=Array.from(pointers.values()),dx=arr[1].x-arr[0].x,dy=arr[1].y-arr[0].y;gesture={mode:'pinch',id:id,startDist:Math.hypot(dx,dy),startAngle:Math.atan2(dy,dx),startScale:s.scale,startRotation:s.rotation};}}
+svg.addEventListener('pointermove',function(e){if(!pointers.has(e.pointerId)||!gesture)return;e.preventDefault();pointers.set(e.pointerId,svgPoint(e));var s=getShape(gesture.id);if(!s)return;if(gesture.mode==='move'&&pointers.size===1){var p=svgPoint(e);s.x+=p.x-gesture.last.x;s.y+=p.y-gesture.last.y;gesture.last=p;schedule();}else if(pointers.size>=2){var arr=Array.from(pointers.values()).slice(0,2),dx=arr[1].x-arr[0].x,dy=arr[1].y-arr[0].y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);s.scale=clamp(gesture.startScale*(dist/Math.max(10,gesture.startDist)),.35,2.2);s.rotation=gesture.startRotation+(ang-gesture.startAngle)*180/Math.PI;syncPanelValues(s);schedule();}});
+function pointerEnd(e){pointers.delete(e.pointerId);try{svg.releasePointerCapture(e.pointerId);}catch(err){}if(pointers.size===0)gesture=null;else{var p=Array.from(pointers.values())[0];gesture={mode:'move',id:selectedId,last:p};}}
+svg.addEventListener('pointerup',pointerEnd);svg.addEventListener('pointercancel',pointerEnd);
+function addShape(type,x,y){var s={id:uid(),type:type,x:x||450,y:y||300,scale:1,rotation:0,radius:84,w:150,h:150,roundness:18,hole:false,holeSize:42,sides:type==='polygon'?3:0};shapes.push(s);select(s.id);}
+function updatePanel(){var empty=document.getElementById('emptyState'),editor=document.getElementById('editor'),s=getShape(selectedId);if(!s){empty.classList.remove('hidden');editor.classList.add('hidden');return;}empty.classList.add('hidden');editor.classList.remove('hidden');document.getElementById('selectedName').textContent=s.type==='circle'?'Círculo':s.type==='square'?'Cuadrado / rectángulo':'Polígono';
+['squareControls','circleControls','polygonControls'].forEach(function(id){document.getElementById(id).classList.add('hidden');});document.getElementById(s.type+'Controls').classList.remove('hidden');syncPanelValues(s);}
+function syncPanelValues(s){document.getElementById('scale').value=Math.round(s.scale*100);document.getElementById('scaleValue').textContent=Math.round(s.scale*100)+'%';document.getElementById('rotation').value=Math.round(((s.rotation+180)%360+360)%360-180);document.getElementById('rotationValue').textContent=Math.round(s.rotation)+'°';if(s.type==='square'){document.getElementById('shapeWidth').value=Math.round(s.w);document.getElementById('shapeHeight').value=Math.round(s.h);document.getElementById('roundness').value=s.roundness;document.getElementById('roundValue').textContent=s.roundness+'%';}if(s.type==='circle'){document.getElementById('holeEnabled').checked=s.hole;document.getElementById('holeControl').classList.toggle('hidden',!s.hole);document.getElementById('holeSize').value=s.holeSize;document.getElementById('holeValue').textContent=s.holeSize+'%';}if(s.type==='polygon'){document.getElementById('sides').value=s.sides;document.getElementById('sidesValue').textContent=s.sides;document.getElementById('radius').value=s.radius;document.getElementById('radiusValue').textContent=s.radius;}}
+function selected(){return getShape(selectedId);} function on(id,event,fn){document.getElementById(id).addEventListener(event,fn);}
+on('scale','input',function(){var s=selected();if(!s)return;s.scale=this.value/100;syncPanelValues(s);schedule();});on('rotation','input',function(){var s=selected();if(!s)return;s.rotation=Number(this.value);syncPanelValues(s);schedule();});
+on('shapeWidth','input',function(){var s=selected();if(s){s.w=clamp(Number(this.value)||40,40,320);schedule();}});on('shapeHeight','input',function(){var s=selected();if(s){s.h=clamp(Number(this.value)||40,40,320);schedule();}});on('roundness','input',function(){var s=selected();if(s){s.roundness=Number(this.value);syncPanelValues(s);schedule();}});
+on('holeEnabled','change',function(){var s=selected();if(s){s.hole=this.checked;syncPanelValues(s);schedule();}});on('holeSize','input',function(){var s=selected();if(s){s.holeSize=Number(this.value);syncPanelValues(s);schedule();}});
+on('sides','input',function(){var s=selected();if(s){s.sides=Number(this.value);syncPanelValues(s);schedule();}});on('radius','input',function(){var s=selected();if(s){s.radius=Number(this.value);syncPanelValues(s);schedule();}});
+function fusionControls(){var soft=Number(document.getElementById('softness').value),f=Number(document.getElementById('fusion').value);blur.setAttribute('stdDeviation',soft);var gain=12+(f-35)*.38,cut=-(gain*(.82-(f-35)*.006));matrix.setAttribute('values','1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 '+gain.toFixed(2)+' '+cut.toFixed(2));morph.setAttribute('radius',document.getElementById('border').value);document.getElementById('softValue').textContent=soft;document.getElementById('borderValue').textContent=document.getElementById('border').value+' px';document.getElementById('fusionValue').textContent=f+'%';schedule();}
+['softness','border','fusion'].forEach(function(id){on(id,'input',fusionControls);});
+on('duplicateBtn','click',function(){var s=selected();if(!s)return;var c=JSON.parse(JSON.stringify(s));c.id=uid();c.x+=35;c.y+=35;shapes.push(c);select(c.id);});on('deleteBtn','click',function(){if(!selectedId)return;shapes=shapes.filter(function(s){return s.id!==selectedId;});selectedId=shapes.length?shapes[shapes.length-1].id:null;updatePanel();schedule();});
+on('addCircle','click',function(){addShape('circle',330+Math.random()*80,270+Math.random()*80);});on('addSquare','click',function(){addShape('square',410+Math.random()*80,270+Math.random()*80);});on('addPolygon','click',function(){addShape('polygon',500+Math.random()*80,270+Math.random()*80);});
+on('resetBtn','click',function(){shapes=[];nextId=1;shapes.push({id:uid(),type:'circle',x:245,y:305,scale:1,rotation:0,radius:78,hole:false,holeSize:42});shapes.push({id:uid(),type:'square',x:450,y:305,scale:1,rotation:0,w:150,h:150,roundness:18});shapes.push({id:uid(),type:'polygon',x:680,y:305,scale:1,rotation:0,radius:88,sides:3});selectedId=shapes[0].id;updatePanel();schedule();});
+// inicio
+shapes.push({id:uid(),type:'circle',x:245,y:305,scale:1,rotation:0,radius:78,hole:false,holeSize:42});shapes.push({id:uid(),type:'square',x:450,y:305,scale:1,rotation:0,w:150,h:150,roundness:18});shapes.push({id:uid(),type:'polygon',x:680,y:305,scale:1,rotation:0,radius:88,sides:3});selectedId=shapes[0].id;fusionControls();updatePanel();render();
 })();
 </script>
-</body></html>
+</body>
+</html>
