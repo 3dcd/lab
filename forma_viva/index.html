@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Forma Viva — SVG</title>
+<title>Forma Viva — SVG optimizado</title>
 <style>
 :root{--bg:#ececec;--panel:#fff;--ink:#242424;--muted:#707070;--line:#d7d7d7}
 *{box-sizing:border-box}
@@ -22,12 +22,12 @@ button{width:100%;border:1px solid #cfcfcf;background:#fff;color:#222;border-rad
 </head>
 <body>
 <main class="app">
-<header><div><h1>Forma Viva</h1><div class="sub">Figuras sólidas con uniones suaves</div></div><div class="badge">Arrastrá las figuras</div></header>
+<header><div><h1>Forma Viva</h1><div class="sub">Figuras sólidas con uniones suaves · versión optimizada</div></div><div class="badge">Arrastrá las figuras</div></header>
 <div class="layout">
 <section class="stage-wrap"><div class="stage">
 <svg id="board" viewBox="0 0 900 574" preserveAspectRatio="none" aria-label="Área de figuras">
 <defs>
-<filter id="fusionFilter" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+<filter id="fusionFilter" x="-18%" y="-18%" width="136%" height="136%" color-interpolation-filters="sRGB" filterRes="900 574">
 <feGaussianBlur id="blurNode" in="SourceGraphic" stdDeviation="13" result="blur"/>
 <feColorMatrix id="matrixNode" in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" result="goo"/>
 <feMorphology id="borderNode" in="goo" operator="dilate" radius="5" result="expanded"/>
@@ -64,19 +64,56 @@ var pieces=[].slice.call(document.querySelectorAll('.piece'));
 var blur=document.getElementById('blurNode'), matrix=document.getElementById('matrixNode'), morph=document.getElementById('borderNode');
 var softness=document.getElementById('softness'), border=document.getElementById('border'), fusion=document.getElementById('fusion');
 var groupBtn=document.getElementById('groupBtn'), groupMode=false, dragging=null, start=null;
-var original={circle:{x:0,y:0},square:{x:0,y:0},triangle:{x:0,y:0}};
+var filter=document.getElementById('fusionFilter');
 var positions={circle:{x:0,y:0},square:{x:0,y:0},triangle:{x:0,y:0}};
+var framePending=false;
 function point(e){var r=svg.getBoundingClientRect();return{x:(e.clientX-r.left)*900/r.width,y:(e.clientY-r.top)*574/r.height};}
-function apply(){pieces.forEach(function(el){var p=positions[el.dataset.id];el.setAttribute('transform','translate('+p.x+' '+p.y+')');});}
-function down(e){e.preventDefault();dragging=groupMode?'all':e.currentTarget.dataset.id;start=point(e);e.currentTarget.classList.add('dragging');try{svg.setPointerCapture(e.pointerId);}catch(err){}}
-function move(e){if(!dragging)return;e.preventDefault();var p=point(e),dx=p.x-start.x,dy=p.y-start.y;if(dragging==='all'){Object.keys(positions).forEach(function(k){positions[k].x+=dx;positions[k].y+=dy;});}else{positions[dragging].x+=dx;positions[dragging].y+=dy;}start=p;apply();}
-function up(e){dragging=null;pieces.forEach(function(el){el.classList.remove('dragging');});try{svg.releasePointerCapture(e.pointerId);}catch(err){}}
+function applyNow(){
+  framePending=false;
+  pieces.forEach(function(el){var p=positions[el.dataset.id];el.setAttribute('transform','translate('+p.x+' '+p.y+')');});
+}
+function requestApply(){
+  if(framePending)return;
+  framePending=true;
+  requestAnimationFrame(applyNow);
+}
+function setDragQuality(active){
+  filter.setAttribute('filterRes',active?'520 332':'900 574');
+}
+function down(e){
+  e.preventDefault();
+  dragging=groupMode?'all':e.currentTarget.dataset.id;
+  start=point(e);
+  setDragQuality(true);
+  e.currentTarget.classList.add('dragging');
+  try{svg.setPointerCapture(e.pointerId);}catch(err){}
+}
+function move(e){
+  if(!dragging)return;
+  e.preventDefault();
+  var p=point(e),dx=p.x-start.x,dy=p.y-start.y;
+  if(dragging==='all'){
+    Object.keys(positions).forEach(function(k){positions[k].x+=dx;positions[k].y+=dy;});
+  }else{
+    positions[dragging].x+=dx;positions[dragging].y+=dy;
+  }
+  start=p;
+  requestApply();
+}
+function up(e){
+  if(!dragging)return;
+  dragging=null;
+  setDragQuality(false);
+  requestApply();
+  pieces.forEach(function(el){el.classList.remove('dragging');});
+  try{svg.releasePointerCapture(e.pointerId);}catch(err){}
+}
 pieces.forEach(function(el){el.addEventListener('pointerdown',down);});svg.addEventListener('pointermove',move);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);
 function controls(){var s=Number(softness.value),f=Number(fusion.value);blur.setAttribute('stdDeviation',s);var gain=12+(f-35)*0.38;var cutoff=-(gain*(0.82-(f-35)*0.006));matrix.setAttribute('values','1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 '+gain.toFixed(2)+' '+cutoff.toFixed(2));morph.setAttribute('radius',border.value);document.getElementById('softValue').textContent=softness.value;document.getElementById('borderValue').textContent=border.value+' px';document.getElementById('fusionValue').textContent=fusion.value+'%';}
 softness.addEventListener('input',controls);border.addEventListener('input',controls);fusion.addEventListener('input',controls);
 groupBtn.addEventListener('click',function(){groupMode=!groupMode;groupBtn.classList.toggle('active',groupMode);groupBtn.textContent=groupMode?'Mover conjunto: activado':'Mover conjunto';});
-document.getElementById('resetBtn').addEventListener('click',function(){Object.keys(positions).forEach(function(k){positions[k].x=0;positions[k].y=0;});apply();});
-controls();apply();
+document.getElementById('resetBtn').addEventListener('click',function(){Object.keys(positions).forEach(function(k){positions[k].x=0;positions[k].y=0;});requestApply();});
+controls();applyNow();
 })();
 </script>
 </body></html>
