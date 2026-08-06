@@ -1,1 +1,906 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>DashCam de Audio Experimental</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #151c2f;
+      --panel-2: #1c263e;
+      --text: #f5f7fb;
+      --muted: #9aa7bd;
+      --green: #32d583;
+      --yellow: #fdb022;
+      --red: #f04438;
+      --blue: #4ea1ff;
+      --border: rgba(255,255,255,.09);
+      --shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
 
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top right, rgba(78,161,255,.12), transparent 30%),
+        linear-gradient(180deg, #0b1020 0%, #0d1325 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    button, input, select { font: inherit; }
+
+    .app {
+      width: min(960px, 100%);
+      margin: 0 auto;
+      padding: 18px 16px calc(28px + env(safe-area-inset-bottom));
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(24px, 5vw, 38px);
+      line-height: 1.05;
+      margin: 0 0 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0;
+      max-width: 650px;
+      line-height: 1.45;
+    }
+
+    .badge {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      border-radius: 999px;
+      padding: 8px 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+      .hero { flex-direction: column; }
+      .badge { align-self: flex-start; }
+    }
+
+    .card {
+      background: rgba(21,28,47,.92);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-pad { padding: 18px; }
+
+    .status-wrap {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      padding: 18px;
+      background: linear-gradient(135deg, rgba(78,161,255,.08), rgba(255,255,255,.02));
+      border-bottom: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #667085;
+      box-shadow: 0 0 0 10px rgba(102,112,133,.12);
+      flex: 0 0 auto;
+      transition: .25s ease;
+    }
+
+    .status-dot.resting {
+      background: var(--green);
+      box-shadow: 0 0 0 10px rgba(50,213,131,.12);
+    }
+
+    .status-dot.alert {
+      background: var(--yellow);
+      box-shadow: 0 0 0 10px rgba(253,176,34,.12);
+    }
+
+    .status-dot.recording {
+      background: var(--red);
+      box-shadow: 0 0 0 10px rgba(240,68,56,.14);
+      animation: pulse 1.35s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    .status-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .status-detail {
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .big-button {
+      width: 100%;
+      border: 0;
+      border-radius: 17px;
+      padding: 17px 18px;
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .big-button:active { transform: scale(.985); }
+    .big-button.primary { background: linear-gradient(135deg, #1677ff, #4ea1ff); }
+    .big-button.danger { background: linear-gradient(135deg, #d92d20, #f04438); }
+    .big-button.save { background: linear-gradient(135deg, #7a5af8, #9b8afb); }
+    .big-button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+      padding: 18px;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 420px) {
+      .mini-grid { grid-template-columns: 1fr; }
+    }
+
+    .metric {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      padding: 13px;
+      border-radius: 15px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .metric-value {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0 0 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    input[type="range"] { width: 100%; }
+
+    select, input[type="number"], input[type="text"] {
+      width: 100%;
+      background: #0f1628;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      outline: none;
+    }
+
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .switch-row:first-of-type { border-top: 0; }
+
+    .switch {
+      position: relative;
+      width: 50px;
+      height: 29px;
+      flex: 0 0 auto;
+    }
+
+    .switch input { display: none; }
+
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #344054;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    .slider::after {
+      content: "";
+      position: absolute;
+      width: 23px;
+      height: 23px;
+      top: 3px;
+      left: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: .2s;
+    }
+
+    .switch input:checked + .slider {
+      background: var(--blue);
+    }
+
+    .switch input:checked + .slider::after {
+      transform: translateX(21px);
+    }
+
+    .events {
+      margin-top: 14px;
+    }
+
+    .event-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .event {
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 13px;
+    }
+
+    .event-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .event-title { font-weight: 800; }
+    .event-meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+    audio {
+      width: 100%;
+      margin-bottom: 9px;
+    }
+
+    .event-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .small-btn, .download-link {
+      border: 1px solid var(--border);
+      background: #202a43;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .small-btn.delete { color: #ffb4ad; }
+
+    .log {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      background: #0a0f1d;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      color: #a8b3c7;
+      max-height: 130px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .notice {
+      margin-top: 14px;
+      border: 1px solid rgba(253,176,34,.3);
+      background: rgba(253,176,34,.08);
+      color: #ffe1a6;
+      border-radius: 16px;
+      padding: 13px 14px;
+      line-height: 1.4;
+      font-size: 14px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="hero">
+      <div>
+        <h1>DashCam de Audio</h1>
+        <p class="subtitle">Prototipo experimental: detecta movimiento, activa una grabación por fragmentos y conserva un buffer circular para guardar el contexto cuando sucede algo importante.</p>
+      </div>
+      <div class="badge">Versión experimental 0.1</div>
+    </div>
+
+    <section class="grid">
+      <div class="card">
+        <div class="status-wrap">
+          <div id="statusDot" class="status-dot"></div>
+          <div>
+            <div id="statusTitle" class="status-title">Sin activar</div>
+            <div id="statusDetail" class="status-detail">Pulsa activar para solicitar permisos.</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="startBtn" class="big-button primary">ACTIVAR DASH CAM</button>
+          <button id="saveBtn" class="big-button save" disabled>GUARDAR BUFFER ACTUAL</button>
+          <button id="stopBtn" class="big-button danger hidden">DETENER SISTEMA</button>
+
+          <div class="mini-grid">
+            <div class="metric">
+              <div class="metric-label">Movimiento</div>
+              <div id="motionValue" class="metric-value">0.00</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Fragmentos en buffer</div>
+              <div id="chunkCount" class="metric-value">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Tiempo protegido</div>
+              <div id="bufferTime" class="metric-value">00:00</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Micrófono</div>
+              <div id="micState" class="metric-value">Apagado</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">Registro técnico</div>
+            <div id="log" class="log">Sistema listo.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-pad">
+        <h2 class="section-title">Configuración</h2>
+
+        <div class="field">
+          <label for="sensitivity">Sensibilidad al movimiento: <strong id="sensitivityLabel">1.8</strong></label>
+          <input id="sensitivity" type="range" min="0.2" max="8" step="0.1" value="1.8" />
+        </div>
+
+        <div class="field">
+          <label for="chunkSeconds">Duración de cada fragmento</label>
+          <select id="chunkSeconds">
+            <option value="10">10 segundos</option>
+            <option value="20">20 segundos</option>
+            <option value="30" selected>30 segundos</option>
+            <option value="60">60 segundos</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="bufferMinutes">Duración máxima del buffer</label>
+          <select id="bufferMinutes">
+            <option value="1">1 minuto</option>
+            <option value="3">3 minutos</option>
+            <option value="5" selected>5 minutos</option>
+            <option value="10">10 minutos</option>
+            <option value="15">15 minutos</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="idleSeconds">Detener después de estar quieto</label>
+          <select id="idleSeconds">
+            <option value="15">15 segundos</option>
+            <option value="30">30 segundos</option>
+            <option value="60" selected>1 minuto</option>
+            <option value="120">2 minutos</option>
+            <option value="300">5 minutos</option>
+          </select>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <strong>Modo reunión</strong>
+            <div class="event-meta">Graba aunque el celular esté quieto.</div>
+          </div>
+          <label class="switch">
+            <input id="meetingMode" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <strong>Continuar 30 s después de guardar</strong>
+            <div class="event-meta">Añade contexto posterior al evento.</div>
+          </div>
+          <label class="switch">
+            <input id="postRecord" type="checkbox" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="notice">
+          En iPhone o iPad, la página debe quedar visible y desbloqueada para que la prueba sea confiable. El navegador puede pausar sensores o micrófono cuando pasa al fondo.
+        </div>
+      </div>
+    </section>
+
+    <section class="card card-pad events">
+      <h2 class="section-title">Eventos guardados</h2>
+      <div id="emptyEvents" class="status-detail">Todavía no guardaste ningún evento.</div>
+      <div id="eventList" class="event-list"></div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+
+      const els = {
+        statusDot: $("statusDot"),
+        statusTitle: $("statusTitle"),
+        statusDetail: $("statusDetail"),
+        startBtn: $("startBtn"),
+        stopBtn: $("stopBtn"),
+        saveBtn: $("saveBtn"),
+        motionValue: $("motionValue"),
+        chunkCount: $("chunkCount"),
+        bufferTime: $("bufferTime"),
+        micState: $("micState"),
+        log: $("log"),
+        sensitivity: $("sensitivity"),
+        sensitivityLabel: $("sensitivityLabel"),
+        chunkSeconds: $("chunkSeconds"),
+        bufferMinutes: $("bufferMinutes"),
+        idleSeconds: $("idleSeconds"),
+        meetingMode: $("meetingMode"),
+        postRecord: $("postRecord"),
+        eventList: $("eventList"),
+        emptyEvents: $("emptyEvents")
+      };
+
+      let active = false;
+      let stream = null;
+      let mediaRecorder = null;
+      let currentChunkParts = [];
+      let buffer = [];
+      let chunkTimer = null;
+      let inactivityTimer = null;
+      let postSaveTimer = null;
+      let lastMotionAt = 0;
+      let isRecording = false;
+      let eventCounter = 0;
+      let motionHandlerAttached = false;
+
+      function log(message) {
+        const time = new Date().toLocaleTimeString();
+        els.log.textContent = `[${time}] ${message}\n` + els.log.textContent;
+      }
+
+      function setStatus(type, title, detail) {
+        els.statusDot.className = "status-dot" + (type ? ` ${type}` : "");
+        els.statusTitle.textContent = title;
+        els.statusDetail.textContent = detail;
+      }
+
+      function formatSeconds(total) {
+        total = Math.max(0, Math.round(total));
+        const m = String(Math.floor(total / 60)).padStart(2, "0");
+        const s = String(total % 60).padStart(2, "0");
+        return `${m}:${s}`;
+      }
+
+      function updateMetrics() {
+        const seconds = buffer.reduce((sum, item) => sum + item.duration, 0);
+        els.chunkCount.textContent = buffer.length;
+        els.bufferTime.textContent = formatSeconds(seconds);
+        els.micState.textContent = isRecording ? "Grabando" : "En espera";
+      }
+
+      function getMimeType() {
+        const candidates = [
+          "audio/mp4",
+          "audio/webm;codecs=opus",
+          "audio/webm",
+          "audio/ogg;codecs=opus"
+        ];
+        return candidates.find(type => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
+      }
+
+      async function requestMotionPermission() {
+        if (typeof DeviceMotionEvent !== "undefined" &&
+            typeof DeviceMotionEvent.requestPermission === "function") {
+          const response = await DeviceMotionEvent.requestPermission();
+          if (response !== "granted") {
+            throw new Error("Permiso de movimiento rechazado.");
+          }
+        }
+      }
+
+      async function requestMicrophone() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Este navegador no permite acceder al micrófono.");
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+      }
+
+      function attachMotionHandler() {
+        if (motionHandlerAttached) return;
+        window.addEventListener("devicemotion", onMotion, { passive: true });
+        motionHandlerAttached = true;
+      }
+
+      function detachMotionHandler() {
+        if (!motionHandlerAttached) return;
+        window.removeEventListener("devicemotion", onMotion);
+        motionHandlerAttached = false;
+      }
+
+      function onMotion(event) {
+        if (!active) return;
+
+        const a = event.accelerationIncludingGravity || event.acceleration;
+        if (!a) return;
+
+        const x = a.x || 0;
+        const y = a.y || 0;
+        const z = a.z || 0;
+        const magnitude = Math.sqrt(x*x + y*y + z*z);
+        const motionScore = Math.abs(magnitude - 9.81);
+
+        els.motionValue.textContent = motionScore.toFixed(2);
+
+        const threshold = Number(els.sensitivity.value);
+        if (motionScore >= threshold) {
+          lastMotionAt = Date.now();
+          if (!isRecording) startRecording("Movimiento detectado");
+          resetInactivityTimer();
+        }
+      }
+
+      function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+
+        if (els.meetingMode.checked || !active) return;
+
+        const idleMs = Number(els.idleSeconds.value) * 1000;
+        inactivityTimer = setTimeout(() => {
+          if (!els.meetingMode.checked && Date.now() - lastMotionAt >= idleMs) {
+            stopRecording("Sin movimiento");
+            setStatus("resting", "En reposo", "Esperando movimiento para volver a grabar.");
+          }
+        }, idleMs + 250);
+      }
+
+      function startRecording(reason = "") {
+        if (!active || isRecording || !stream) return;
+
+        try {
+          const mimeType = getMimeType();
+          mediaRecorder = mimeType
+            ? new MediaRecorder(stream, { mimeType })
+            : new MediaRecorder(stream);
+
+          currentChunkParts = [];
+
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) currentChunkParts.push(event.data);
+          };
+
+          mediaRecorder.onstop = () => {
+            if (!currentChunkParts.length) return;
+
+            const blob = new Blob(currentChunkParts, {
+              type: mediaRecorder.mimeType || currentChunkParts[0].type || "audio/webm"
+            });
+
+            const duration = Number(els.chunkSeconds.value);
+            buffer.push({
+              blob,
+              duration,
+              createdAt: new Date()
+            });
+
+            trimBuffer();
+            updateMetrics();
+            currentChunkParts = [];
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          els.saveBtn.disabled = false;
+          setStatus("recording", "Grabando en bucle", reason || "Micrófono activo.");
+          updateMetrics();
+          log(`Grabación iniciada${reason ? `: ${reason}` : ""}.`);
+
+          scheduleChunkRotation();
+        } catch (err) {
+          log(`Error al iniciar grabación: ${err.message}`);
+        }
+      }
+
+      function scheduleChunkRotation() {
+        clearTimeout(chunkTimer);
+
+        const durationMs = Number(els.chunkSeconds.value) * 1000;
+        chunkTimer = setTimeout(() => {
+          rotateChunk();
+        }, durationMs);
+      }
+
+      function rotateChunk() {
+        if (!isRecording || !mediaRecorder) return;
+
+        mediaRecorder.addEventListener("stop", () => {
+          if (active && (els.meetingMode.checked || Date.now() - lastMotionAt < Number(els.idleSeconds.value) * 1000)) {
+            startRecording("Continuación del bucle");
+          }
+        }, { once: true });
+
+        try {
+          mediaRecorder.stop();
+        } catch (_) {}
+        isRecording = false;
+        clearTimeout(chunkTimer);
+        updateMetrics();
+      }
+
+      function stopRecording(reason = "") {
+        clearTimeout(chunkTimer);
+
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+          try { mediaRecorder.stop(); } catch (_) {}
+        }
+
+        isRecording = false;
+        updateMetrics();
+        if (reason) log(`Grabación detenida: ${reason}.`);
+      }
+
+      function trimBuffer() {
+        const maxSeconds = Number(els.bufferMinutes.value) * 60;
+        let total = buffer.reduce((sum, item) => sum + item.duration, 0);
+
+        while (buffer.length && total > maxSeconds) {
+          const removed = buffer.shift();
+          total -= removed.duration;
+        }
+      }
+
+      async function activate() {
+        try {
+          els.startBtn.disabled = true;
+          setStatus("alert", "Solicitando permisos", "Aceptá movimiento y micrófono.");
+
+          await requestMotionPermission();
+          await requestMicrophone();
+
+          active = true;
+          lastMotionAt = Date.now();
+          attachMotionHandler();
+
+          els.startBtn.classList.add("hidden");
+          els.stopBtn.classList.remove("hidden");
+          els.saveBtn.disabled = false;
+
+          setStatus("resting", "En reposo", "Esperando movimiento.");
+          updateMetrics();
+          log("Sistema activado correctamente.");
+
+          if (els.meetingMode.checked) {
+            startRecording("Modo reunión activo");
+          }
+        } catch (err) {
+          els.startBtn.disabled = false;
+          setStatus("", "No se pudo activar", err.message);
+          log(`Error: ${err.message}`);
+        }
+      }
+
+      function deactivate() {
+        active = false;
+        clearTimeout(inactivityTimer);
+        clearTimeout(chunkTimer);
+        clearTimeout(postSaveTimer);
+        stopRecording("Sistema detenido");
+        detachMotionHandler();
+
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          stream = null;
+        }
+
+        els.startBtn.classList.remove("hidden");
+        els.startBtn.disabled = false;
+        els.stopBtn.classList.add("hidden");
+        els.saveBtn.disabled = true;
+        els.motionValue.textContent = "0.00";
+        els.micState.textContent = "Apagado";
+        setStatus("", "Sin activar", "Pulsa activar para solicitar permisos.");
+        log("Sistema desactivado.");
+      }
+
+      async function saveCurrentBuffer() {
+        if (!buffer.length && !currentChunkParts.length) {
+          alert("Todavía no hay audio suficiente en el buffer.");
+          return;
+        }
+
+        if (isRecording && mediaRecorder && mediaRecorder.state === "recording") {
+          try { mediaRecorder.requestData(); } catch (_) {}
+          await new Promise(resolve => setTimeout(resolve, 250));
+        }
+
+        const snapshot = [...buffer];
+        if (currentChunkParts.length) {
+          snapshot.push({
+            blob: new Blob(currentChunkParts, {
+              type: mediaRecorder?.mimeType || currentChunkParts[0]?.type || "audio/webm"
+            }),
+            duration: 0,
+            createdAt: new Date()
+          });
+        }
+
+        const blobs = snapshot.map(item => item.blob);
+        const type = blobs[0]?.type || "audio/webm";
+        const merged = new Blob(blobs, { type });
+        createEventCard(merged, snapshot);
+
+        log("Evento protegido y agregado al historial.");
+
+        if (els.postRecord.checked && active) {
+          setStatus("recording", "Evento guardado", "Continuando 30 segundos para registrar el contexto posterior.");
+          clearTimeout(postSaveTimer);
+          postSaveTimer = setTimeout(() => {
+            log("Finalizó el período posterior al evento.");
+          }, 30000);
+        }
+      }
+
+      function createEventCard(blob, snapshot) {
+        eventCounter++;
+        els.emptyEvents.classList.add("hidden");
+
+        const url = URL.createObjectURL(blob);
+        const now = new Date();
+        const extension = blob.type.includes("mp4") ? "m4a"
+          : blob.type.includes("ogg") ? "ogg"
+          : "webm";
+
+        const totalSeconds = snapshot.reduce((sum, item) => sum + item.duration, 0);
+
+        const card = document.createElement("article");
+        card.className = "event";
+
+        card.innerHTML = `
+          <div class="event-top">
+            <div>
+              <div class="event-title">Evento ${String(eventCounter).padStart(2, "0")}</div>
+              <div class="event-meta">${now.toLocaleString()} · ${formatSeconds(totalSeconds)}</div>
+            </div>
+          </div>
+          <audio controls src="${url}"></audio>
+          <div class="event-actions">
+            <a class="download-link" href="${url}" download="evento-${now.toISOString().replace(/[:.]/g, "-")}.${extension}">Descargar audio</a>
+            <button class="small-btn rename">Renombrar</button>
+            <button class="small-btn delete">Eliminar</button>
+          </div>
+        `;
+
+        card.querySelector(".rename").addEventListener("click", () => {
+          const title = card.querySelector(".event-title");
+          const name = prompt("Nombre del evento:", title.textContent);
+          if (name && name.trim()) title.textContent = name.trim();
+        });
+
+        card.querySelector(".delete").addEventListener("click", () => {
+          if (!confirm("¿Eliminar este evento guardado?")) return;
+          URL.revokeObjectURL(url);
+          card.remove();
+          if (!els.eventList.children.length) {
+            els.emptyEvents.classList.remove("hidden");
+          }
+        });
+
+        els.eventList.prepend(card);
+      }
+
+      els.startBtn.addEventListener("click", activate);
+      els.stopBtn.addEventListener("click", deactivate);
+      els.saveBtn.addEventListener("click", saveCurrentBuffer);
+
+      els.sensitivity.addEventListener("input", () => {
+        els.sensitivityLabel.textContent = els.sensitivity.value;
+      });
+
+      els.meetingMode.addEventListener("change", () => {
+        if (!active) return;
+
+        if (els.meetingMode.checked) {
+          clearTimeout(inactivityTimer);
+          startRecording("Modo reunión activado");
+        } else {
+          lastMotionAt = Date.now();
+          resetInactivityTimer();
+          setStatus(isRecording ? "recording" : "resting",
+            isRecording ? "Grabando en bucle" : "En reposo",
+            isRecording ? "Modo reunión desactivado; ahora se controla por movimiento." : "Esperando movimiento.");
+        }
+      });
+
+      els.bufferMinutes.addEventListener("change", () => {
+        trimBuffer();
+        updateMetrics();
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden && active) {
+          log("Advertencia: la página pasó a segundo plano y el navegador podría pausar la grabación.");
+        }
+      });
+
+      window.addEventListener("beforeunload", () => {
+        if (stream) stream.getTracks().forEach(track => track.stop());
+      });
+
+      updateMetrics();
+    })();
+  </script>
+</body>
+</html>
