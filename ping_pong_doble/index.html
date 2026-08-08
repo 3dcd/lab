@@ -470,6 +470,7 @@
     aiHesitationUntil = 0;
     soloStartedAt = performance.now();
     resetBall(Math.random() > .5 ? 1 : -1);
+    startCountdown(3200, false);
   }
 
   soloBtn.addEventListener('click', startSolo);
