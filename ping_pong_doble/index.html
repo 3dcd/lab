@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v12</title>
+  <title>Pong Doble v13</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -188,7 +188,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v12</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v13</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -241,6 +241,8 @@
   let role = null; // left | right
   let connected = false;
   let mode = 'menu'; // menu | solo | multi
+  let countdownUntil = 0;
+  let gameReady = false;
 
   // Rival virtual: deliberadamente imperfecto.
   let aiTargetY = 280;
@@ -267,6 +269,17 @@
   const ballR = 15;
 
   function setStatus(msg){ statusEl.textContent = msg; }
+
+  function startCountdown(ms = 3200, notifyPeer = false) {
+    countdownUntil = performance.now() + ms;
+    gameReady = false;
+    state.ballX = canvas.width / 2;
+    state.ballY = canvas.height / 2;
+
+    if (notifyPeer && conn && conn.open) {
+      conn.send({ type:'countdown', duration: ms });
+    }
+  }
 
   function makeRoomCode() {
     return 'pong-' + Math.random().toString(36).slice(2, 7);
@@ -301,7 +314,12 @@
 
     peer.on('error', err => {
       console.error(err);
-      setStatus('Error de conexión: ' + (err.type || err.message));
+      if (mode === 'multi' && !isHost) {
+        retryBtn.style.display = '';
+        setStatus('La conexión no pudo completarse. Podés reintentar.');
+      } else {
+        setStatus('Error de conexión: ' + (err.type || err.message));
+      }
     });
   }
 
@@ -316,9 +334,10 @@
         roleText.textContent = 'Rol: barra izquierda';
         conn.send({ type:'role', role:'right' });
         conn.send({ type:'state', state });
-        setStatus('Conectados. Empieza la partida.');
+        startCountdown(3200, true);
+        setStatus('Jugador conectado. La partida comienza en 3…');
       } else {
-        setStatus('Conectado al anfitrión.');
+        setStatus('Conectado al anfitrión. Preparando partida…');
       }
     });
 
@@ -328,6 +347,11 @@
       if (data.type === 'role') {
         role = data.role;
         roleText.textContent = role === 'right' ? 'Rol: barra derecha' : 'Rol: barra izquierda';
+      }
+
+      if (data.type === 'countdown') {
+        startCountdown(Number(data.duration) || 3200, false);
+        setStatus('Partida encontrada. Preparados…');
       }
 
       if (data.type === 'paddle' && isHost) {
@@ -340,6 +364,7 @@
 
       if (data.type === 'restart' && isHost) {
         resetBall(Math.random() > .5 ? 1 : -1);
+    startCountdown(3200, false);
       }
     });
 
@@ -363,6 +388,8 @@
   function createMultiplayerSession() {
     mode = 'multi';
     connected = false;
+    gameReady = false;
+    countdownUntil = 0;
     isHost = true;
     role = 'left';
     roleText.textContent = 'Rol: barra izquierda';
@@ -759,6 +786,34 @@
       ctx.fillText('RALLY ' + state.rallyHits, canvas.width/2, 145);
     }
 
+    if (countdownUntil > performance.now()) {
+      const remaining = countdownUntil - performance.now();
+      const number = Math.max(1, Math.ceil(remaining / 1000));
+
+      ctx.fillStyle = 'rgba(2,7,14,.48)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      const boxW = 190;
+      const boxH = 190;
+      const bx = canvas.width/2 - boxW/2;
+      const by = canvas.height/2 - boxH/2;
+
+      ctx.fillStyle = 'rgba(14,27,47,.94)';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 28);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = '800 110px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillText(String(number), canvas.width/2, canvas.height/2 + 4);
+      ctx.textBaseline = 'alphabetic';
+    }
+
     ctx.font = '600 24px system-ui';
     ctx.fillStyle = '#8396ab';
     const footerText = mode === 'solo'
@@ -768,13 +823,23 @@
   }
 
   function loop(t) {
-    if (isHost && connected) {
+    if (countdownUntil > 0 && performance.now() >= countdownUntil) {
+      countdownUntil = 0;
+      gameReady = true;
+      setStatus(mode === 'solo' ? '¡Jugando!' : '¡Partida en marcha!');
+    }
+
+    if (isHost && connected && gameReady) {
       hostPhysics();
 
       if (conn && conn.open && t - lastSync > 33) {
         conn.send({ type:'state', state });
         lastSync = t;
       }
+    } else if (isHost && connected && conn && conn.open && t - lastSync > 80) {
+      // Durante la cuenta atrás mantenemos ambos tableros sincronizados.
+      conn.send({ type:'state', state });
+      lastSync = t;
     }
 
     render();
@@ -784,6 +849,8 @@
   function autoJoinRoom(code) {
     mode = 'multi';
     connected = false;
+    gameReady = false;
+    countdownUntil = 0;
     isHost = false;
     role = 'right';
     roomInput.value = code;
@@ -801,17 +868,7 @@
       conn = peer.connect(code, { reliable: true });
       setupConnection();
 
-      const failTimer = setTimeout(() => {
-        if (!connected) {
-          retryBtn.style.display = '';
-          setStatus('No se pudo conectar automáticamente. Tocá “Reintentar conexión”.');
-          peerBadge.textContent = 'sin conexión';
-        }
-      }, 7000);
 
-      if (conn) {
-        conn.on('open', () => clearTimeout(failTimer));
-      }
     };
 
     peer.on('open', tryConnect);
