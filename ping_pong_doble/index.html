@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v9</title>
+  <title>Pong Doble v10</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -188,14 +188,15 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v9</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v10</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
-    <button id="hostBtn" style="display:none">Crear sala</button>
+    <button id="hostBtn" style="display:none">Crear partida</button>
+    <button id="shareGameBtn" style="display:none">Compartir juego</button>
+    <button id="shareCodeBtn" style="display:none">Compartir código</button>
     <input id="roomInput" style="display:none" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
-    <button id="shareBtn" style="display:none">Compartir</button>
-    <button id="joinBtn" style="display:none">Unirme</button>
+    <button id="joinBtn" style="display:none">Unirme a partida</button>
     <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
   </div>
 
@@ -229,7 +230,8 @@
   const joinBtn = document.getElementById('joinBtn');
   const soloBtn = document.getElementById('soloBtn');
   const multiBtn = document.getElementById('multiBtn');
-  const shareBtn = document.getElementById('shareBtn');
+  const shareGameBtn = document.getElementById('shareGameBtn');
+  const shareCodeBtn = document.getElementById('shareCodeBtn');
 
   let peer = null;
   let conn = null;
@@ -243,6 +245,7 @@
   let aiNextThinkAt = 0;
   let aiError = 0;
   let aiHesitationUntil = 0;
+  let soloStartedAt = 0;
 
   const state = {
     leftY: 280,
@@ -350,7 +353,8 @@
     hostBtn.style.display = show ? '' : 'none';
     roomInput.style.display = show ? '' : 'none';
     joinBtn.style.display = show ? '' : 'none';
-    shareBtn.style.display = 'none';
+    shareGameBtn.style.display = show ? '' : 'none';
+    shareCodeBtn.style.display = 'none';
   }
 
   function startSolo() {
@@ -362,7 +366,7 @@
     role = 'left';
     roleText.textContent = 'Rol: barra izquierda · rival automático';
     peerBadge.textContent = '1 jugador';
-    setStatus('Modo 1 jugador. El rival reacciona con pequeños errores y puede quedar mal parado.');
+    setStatus('Modo 1 jugador. Al principio el rival juega casi perfecto; después empieza a cometer errores.');
     state.scoreL = 0;
     state.scoreR = 0;
     state.leftY = 280;
@@ -371,6 +375,7 @@
     aiNextThinkAt = 0;
     aiError = 0;
     aiHesitationUntil = 0;
+    soloStartedAt = performance.now();
     resetBall(Math.random() > .5 ? 1 : -1);
   }
 
@@ -386,7 +391,7 @@
     peerBadge.textContent = 'sin conexión';
     role = null;
     roleText.textContent = 'Rol: elegí crear sala o unirte';
-    setStatus('Multijugador: un dispositivo crea la sala y el otro se une con el código.');
+    setStatus('Multijugador: creá una partida, compartí el juego y después compartí el código de sala.');
   });
 
   hostBtn.addEventListener('click', () => {
@@ -398,26 +403,43 @@
     const code = makeRoomCode();
     roomInput.value = code;
     roomInput.readOnly = true;
-    shareBtn.style.display = '';
-    setStatus('Sala creada. Podés seleccionar el código y copiarlo, o tocar Compartir.');
+    shareCodeBtn.style.display = '';
+    setStatus('Partida creada. Compartí el juego y después el código de sala.');
     createPeer(code);
   });
 
+  shareGameBtn.addEventListener('click', async () => {
+    const url = window.location.href;
 
-  shareBtn.addEventListener('click', async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Pong Doble',
+          url
+        });
+        setStatus('Juego listo para compartir.');
+        return;
+      } catch (err) {
+        // Si se cancela o falla, dejamos la URL visible en el estado.
+      }
+    }
+
+    setStatus('Compartí este enlace: ' + url);
+  });
+
+  shareCodeBtn.addEventListener('click', async () => {
     const code = roomInput.value.trim();
     if (!code) return;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Pong Doble',
-          text: 'Código de sala: ' + code
+          text: code
         });
         setStatus('Código listo para compartir.');
         return;
       } catch (err) {
-        // Si el usuario cancela o el sistema falla, caemos al método tradicional.
+        // Si se cancela o falla, seleccionamos el código.
       }
     }
 
@@ -430,7 +452,7 @@
   joinBtn.addEventListener('click', () => {
     mode = 'multi';
     roomInput.readOnly = false;
-    shareBtn.style.display = 'none';
+    shareCodeBtn.style.display = 'none';
     const code = roomInput.value.trim();
     if (!code) {
       setStatus('Escribí el código de sala del otro dispositivo.');
@@ -506,42 +528,50 @@
   function hostPhysics() {
     if (mode === 'solo') {
       const now = performance.now();
+      const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
+      const speedFactor = clamp((ballSpeed - 6) / 13, 0, 1);
+      const elapsedSolo = Math.max(0, now - soloStartedAt);
 
-      // La IA "piensa" a intervalos, no sigue la pelota cuadro por cuadro.
+      // Durante los primeros ~4 segundos, la máquina juega casi perfecto.
+      const grace = clamp(elapsedSolo / 4000, 0, 1);
+
       if (now >= aiNextThinkAt) {
-        // A mayor velocidad de pelota, más difícil le resulta predecir.
-        const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
-        const speedFactor = clamp((ballSpeed - 6) / 13, 0, 1);
+        // Error mínimo al inicio; luego aumenta progresivamente.
+        const errorRange = 2 + grace * (8 + speedFactor * 50);
+        aiError = (Math.random() * 2 - 1) * errorRange;
 
-        // Error vertical variable. A veces calcula muy bien y otras queda mal parada.
-        const baseError = 20 + speedFactor * 65;
-        aiError = (Math.random() * 2 - 1) * baseError;
-
-        // En ocasiones duda y tarda más en reaccionar.
-        const hesitationChance = 0.10 + speedFactor * 0.12;
+        // Casi no duda al principio. Luego la posibilidad de duda crece.
+        const hesitationChance = grace * (0.01 + speedFactor * 0.13);
         if (Math.random() < hesitationChance) {
-          aiHesitationUntil = now + 180 + Math.random() * 280;
+          aiHesitationUntil = now + 70 + grace * speedFactor * (120 + Math.random() * 180);
         }
 
-        aiTargetY = state.ballY - paddle.h / 2 + aiError;
+        let predictedY = state.ballY;
 
-        // Reacción normal entre 90 y 170 ms; con pelota rápida puede tardar más.
-        aiNextThinkAt = now + 90 + Math.random() * (80 + speedFactor * 70);
+        if (state.ballVX > 0) {
+          const distanceX = (canvas.width - paddle.margin - paddle.w) - state.ballX;
+          const framesAhead = distanceX / Math.max(1, state.ballVX);
+
+          // Al comienzo anticipa mucho mejor; después la predicción es menos precisa.
+          const predictionStrength = 0.72 - grace * 0.20;
+          predictedY = state.ballY + state.ballVY * framesAhead * predictionStrength;
+        }
+
+        aiTargetY = predictedY - paddle.h / 2 + aiError;
+
+        // Reacción muy rápida al comienzo y más humana después.
+        aiNextThinkAt = now + (35 + grace * 25) + Math.random() * (20 + grace * (30 + speedFactor * 70));
       }
 
       if (now >= aiHesitationUntil) {
         const diff = aiTargetY - state.rightY;
 
-        // Tiene una velocidad máxima real: una pelota rápida o angulada puede superarla.
-        const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
-        const speedFactor = clamp((ballSpeed - 6) / 13, 0, 1);
-        const maxStep = 6.0 + speedFactor * 1.6;
-
+        // Arranca con buena movilidad; más adelante queda algo más limitada.
+        const maxStep = 8.5 - grace * (0.8 + speedFactor * 0.8);
         state.rightY += clamp(diff, -maxStep, maxStep);
         state.rightY = clamp(state.rightY, 0, canvas.height - paddle.h);
       }
     }
-
     state.ballX += state.ballVX;
     state.ballY += state.ballVY;
 
@@ -722,7 +752,7 @@
     ctx.fillStyle = '#8396ab';
     const footerText = mode === 'solo'
       ? '1 JUGADOR'
-      : (connected ? 'DOS DISPOSITIVOS CONECTADOS' : 'MODO DE CONEXIÓN');
+      : (connected ? 'MULTIJUGADOR CONECTADO' : 'MODO DE CONEXIÓN');
     ctx.fillText(footerText, canvas.width/2, canvas.height-34);
   }
 
