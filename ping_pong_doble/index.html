@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v16</title>
+  <title>Pong Doble v17 experimental</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -188,7 +188,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v16</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v17</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -250,6 +250,7 @@
   const WIN_SCORE = 10;
   let matchesLeft = 0;
   let matchesRight = 0;
+  let obstacles = [];
 
   // Rival virtual: deliberadamente imperfecto.
   let aiTargetY = 280;
@@ -277,12 +278,32 @@
 
   function setStatus(msg){ statusEl.textContent = msg; }
 
+  function generateObstacles() {
+    const list = [];
+    const count = 4; // dos aproximados por lado del centro
+    const centerX = canvas.width / 2;
+
+    for (let i = 0; i < count; i++) {
+      const side = i < 2 ? -1 : 1;
+      const x = centerX + side * (90 + Math.random() * 170);
+      const y = 120 + Math.random() * (canvas.height - 240);
+      const w = 30 + Math.random() * 40;
+      const h = 70 + Math.random() * 65;
+      const angle = (-28 + Math.random() * 56) * Math.PI / 180;
+
+      list.push({ x, y, w, h, angle });
+    }
+
+    obstacles = list;
+  }
+
   function resetMatch(notifyPeer = false) {
     state.scoreL = 0;
     state.scoreR = 0;
     winner = null;
     matchOver = false;
     rematchBtn.style.display = 'none';
+    generateObstacles();
     resetBall(Math.random() > .5 ? 1 : -1);
     startCountdown(3200, notifyPeer);
 
@@ -354,7 +375,7 @@
         role = 'left';
         roleText.textContent = 'Rol: barra izquierda';
         conn.send({ type:'role', role:'right' });
-        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner });
+        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles });
         startCountdown(3200, true);
         setStatus('Jugador conectado. La partida comienza en 3…');
       } else {
@@ -399,6 +420,7 @@
         if (typeof data.matchesRight === 'number') matchesRight = data.matchesRight;
         if (typeof data.matchOver === 'boolean') matchOver = data.matchOver;
         if (data.winner === 'left' || data.winner === 'right' || data.winner === null) winner = data.winner;
+        if (Array.isArray(data.obstacles)) obstacles = data.obstacles;
       }
 
       if (data.type === 'restart' && isHost) {
@@ -435,6 +457,8 @@
     role = 'left';
     roleText.textContent = 'Rol: barra izquierda';
 
+    generateObstacles();
+
     const code = makeRoomCode();
     roomInput.value = code;
     roomInput.readOnly = true;
@@ -469,6 +493,7 @@
     aiError = 0;
     aiHesitationUntil = 0;
     soloStartedAt = performance.now();
+    generateObstacles();
     resetBall(Math.random() > .5 ? 1 : -1);
     startCountdown(3200, false);
   }
@@ -616,6 +641,57 @@
     state.rallyHits = 0;
   }
 
+  function collideBallWithObstacle(o) {
+    const cos = Math.cos(-o.angle);
+    const sin = Math.sin(-o.angle);
+
+    const dx = state.ballX - o.x;
+    const dy = state.ballY - o.y;
+
+    const lx = dx * cos - dy * sin;
+    const ly = dx * sin + dy * cos;
+
+    const hw = o.w / 2;
+    const hh = o.h / 2;
+
+    const cx = clamp(lx, -hw, hw);
+    const cy = clamp(ly, -hh, hh);
+
+    const ddx = lx - cx;
+    const ddy = ly - cy;
+    const dist2 = ddx * ddx + ddy * ddy;
+
+    if (dist2 > ballR * ballR) return false;
+
+    // Normal local aproximada según el lado más cercano.
+    let nx = 0, ny = 0;
+    if (Math.abs(ddx) > Math.abs(ddy)) {
+      nx = ddx >= 0 ? 1 : -1;
+    } else {
+      ny = ddy >= 0 ? 1 : -1;
+    }
+
+    // Normal al mundo.
+    const c2 = Math.cos(o.angle);
+    const s2 = Math.sin(o.angle);
+    const wx = nx * c2 - ny * s2;
+    const wy = nx * s2 + ny * c2;
+
+    const dot = state.ballVX * wx + state.ballVY * wy;
+    state.ballVX = state.ballVX - 2 * dot * wx;
+    state.ballVY = state.ballVY - 2 * dot * wy;
+
+    // Pequeña ganancia arcade para que el rebote se sienta vivo.
+    state.ballVX *= 1.025;
+    state.ballVY *= 1.025;
+
+    // Sacar la pelota un poco del obstáculo para evitar rebotes repetidos.
+    state.ballX += wx * (ballR + 3);
+    state.ballY += wy * (ballR + 3);
+
+    return true;
+  }
+
   function hostPhysics() {
     if (mode === 'solo') {
       const now = performance.now();
@@ -682,6 +758,10 @@
     if (state.ballY + ballR > canvas.height) {
       state.ballY = canvas.height - ballR;
       state.ballVY = -Math.abs(state.ballVY);
+    }
+
+    for (const o of obstacles) {
+      if (collideBallWithObstacle(o)) break;
     }
 
     const leftX = paddle.margin;
@@ -816,6 +896,23 @@
     ctx.lineTo(canvas.width/2, canvas.height-20);
     ctx.stroke();
     ctx.setLineDash([]);
+
+    // Obstáculos centrales aleatorios: cambian en cada partida.
+    for (const o of obstacles) {
+      ctx.save();
+      ctx.translate(o.x, o.y);
+      ctx.rotate(o.angle);
+
+      ctx.fillStyle = 'rgba(125,211,252,.16)';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(-o.w/2, -o.h/2, o.w, o.h, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+    }
 
     function drawBeveledPaddle(x, y, side) {
       const w = paddle.w;
@@ -966,12 +1063,12 @@
       hostPhysics();
 
       if (conn && conn.open && t - lastSync > 50) {
-        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner });
+        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles });
         lastSync = t;
       }
     } else if (isHost && connected && conn && conn.open && t - lastSync > 120) {
       // Durante la cuenta atrás mantenemos ambos tableros sincronizados.
-      conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner });
+      conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles });
       lastSync = t;
     }
 
