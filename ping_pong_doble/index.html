@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble</title>
+  <title>Pong Doble v4</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -188,11 +188,13 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble</div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v4</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
-    <button id="hostBtn">Crear sala</button>
-    <input id="roomInput" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
-    <button id="joinBtn">Unirme</button>
+    <button id="soloBtn">1 jugador</button>
+    <button id="multiBtn">Multijugador</button>
+    <button id="hostBtn" style="display:none">Crear sala</button>
+    <input id="roomInput" style="display:none" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
+    <button id="joinBtn" style="display:none">Unirme</button>
     <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
   </div>
 
@@ -203,10 +205,10 @@
   <div class="controls">
     <div>
       <div class="role" id="roleText">Rol: espectador local</div>
-      <div class="hint">Mové el dedo arriba y abajo. Para dar un RAQUETAZO, hacé un gesto corto hacia el rival justo cuando llega la pelota.</div>
+      <div class="hint">Mové el dedo hacia arriba y abajo dentro del recuadro. La barrita celeste te muestra la posición de tu paleta.</div>
     </div>
     <div class="touch" id="touchArea">
-      <div class="touchLabel">CONTROL · DESLIZÁ HACIA EL RIVAL PARA GOLPEAR</div>
+      <div class="touchLabel">CONTROL</div>
       <div class="touchHandle" id="touchHandle"></div>
       <div class="touchArrows">▲<br>▼</div>
     </div>
@@ -224,12 +226,15 @@
   const roomInput = document.getElementById('roomInput');
   const hostBtn = document.getElementById('hostBtn');
   const joinBtn = document.getElementById('joinBtn');
+  const soloBtn = document.getElementById('soloBtn');
+  const multiBtn = document.getElementById('multiBtn');
 
   let peer = null;
   let conn = null;
   let isHost = false;
   let role = null; // left | right
   let connected = false;
+  let mode = 'menu'; // menu | solo | multi
 
   const state = {
     leftY: 280,
@@ -316,7 +321,7 @@
       }
 
       if (data.type === 'punch' && isHost && data.role === 'right') {
-        triggerPunch('right');
+        state.rightPunch = 1;
       }
 
       if (data.type === 'state' && !isHost) {
@@ -335,7 +340,43 @@
     });
   }
 
+
+  function showMultiControls(show) {
+    hostBtn.style.display = show ? '' : 'none';
+    roomInput.style.display = show ? '' : 'none';
+    joinBtn.style.display = show ? '' : 'none';
+  }
+
+  function startSolo() {
+    mode = 'solo';
+    showMultiControls(false);
+    connected = true;
+    isHost = true;
+    role = 'left';
+    roleText.textContent = 'Rol: barra izquierda · rival automático';
+    peerBadge.textContent = '1 jugador';
+    setStatus('Modo 1 jugador. El rival automático aprende a seguir la pelota.');
+    state.scoreL = 0;
+    state.scoreR = 0;
+    state.leftY = 280;
+    state.rightY = 280;
+    resetBall(Math.random() > .5 ? 1 : -1);
+  }
+
+  soloBtn.addEventListener('click', startSolo);
+
+  multiBtn.addEventListener('click', () => {
+    mode = 'multi';
+    connected = false;
+    showMultiControls(true);
+    peerBadge.textContent = 'sin conexión';
+    role = null;
+    roleText.textContent = 'Rol: elegí crear sala o unirte';
+    setStatus('Multijugador: un dispositivo crea la sala y el otro se une con el código.');
+  });
+
   hostBtn.addEventListener('click', () => {
+    mode = 'multi';
     isHost = true;
     role = 'left';
     roleText.textContent = 'Rol: barra izquierda';
@@ -345,6 +386,7 @@
   });
 
   joinBtn.addEventListener('click', () => {
+    mode = 'multi';
     const code = roomInput.value.trim();
     if (!code) {
       setStatus('Escribí el código de sala del otro dispositivo.');
@@ -382,67 +424,48 @@
   }
 
   let touching = false;
-  let gestureStartX = 0;
-  let gestureLastX = 0;
-  let gestureStartTime = 0;
-  let punchUsedThisTouch = false;
+  let startX = 0;
+  let startTime = 0;
+  let punchedThisTouch = false;
   let lastPunchAt = 0;
-  const punchCooldown = 420;
 
-  function triggerPunch(which) {
-    if (which === 'left') state.leftPunch = 1;
-    if (which === 'right') state.rightPunch = 1;
-  }
-
-  function attemptPunch(ev) {
-    if (!role || punchUsedThisTouch) return;
-
+  function doPunch() {
     const now = performance.now();
-    if (now - lastPunchAt < punchCooldown) return;
+    if (now - lastPunchAt < 420) return;
+    lastPunchAt = now;
 
-    const dx = ev.clientX - gestureStartX;
-    const elapsed = now - gestureStartTime;
-    const towardOpponent = role === 'left' ? dx > 26 : dx < -26;
-
-    if (towardOpponent && elapsed < 650) {
-      punchUsedThisTouch = true;
-      lastPunchAt = now;
-
-      touchHandle.style.transform =
-        role === 'left' ? 'translate(18px,-50%)' : 'translate(-18px,-50%)';
-
-      setTimeout(() => {
-        touchHandle.style.transform = 'translate(0,-50%)';
-      }, 150);
-
-      if (role === 'left') {
-        triggerPunch('left');
-      } else if (role === 'right') {
-        if (isHost) {
-          triggerPunch('right');
-        } else if (conn && conn.open) {
-          conn.send({ type:'punch', role:'right' });
-          state.rightPunch = 1;
-        }
+    if (role === 'left') {
+      state.leftPunch = 1;
+    } else if (role === 'right') {
+      state.rightPunch = 1;
+      if (!isHost && conn && conn.open) {
+        conn.send({ type:'punch', role:'right' });
       }
     }
-
-    gestureLastX = ev.clientX;
   }
 
   function pointerMove(ev) {
     const r = touchArea.getBoundingClientRect();
     const norm = clamp((ev.clientY - r.top) / r.height, 0, 1);
     localMove(norm);
-    attemptPunch(ev);
+
+    if (!punchedThisTouch && role) {
+      const dx = ev.clientX - startX;
+      const elapsed = performance.now() - startTime;
+      const towardOpponent = role === 'left' ? dx > 32 : dx < -32;
+
+      if (towardOpponent && elapsed < 700) {
+        punchedThisTouch = true;
+        doPunch();
+      }
+    }
   }
 
   touchArea.addEventListener('pointerdown', ev => {
     touching = true;
-    punchUsedThisTouch = false;
-    gestureStartX = ev.clientX;
-    gestureLastX = ev.clientX;
-    gestureStartTime = performance.now();
+    punchedThisTouch = false;
+    startX = ev.clientX;
+    startTime = performance.now();
     touchArea.classList.add('active');
     touchArea.setPointerCapture(ev.pointerId);
     pointerMove(ev);
@@ -454,9 +477,8 @@
 
   function endTouch(ev) {
     touching = false;
-    punchUsedThisTouch = false;
+    punchedThisTouch = false;
     touchArea.classList.remove('active');
-    touchHandle.style.transform = 'translate(0,-50%)';
     try { touchArea.releasePointerCapture(ev.pointerId); } catch(e){}
   }
 
@@ -471,9 +493,16 @@
   }
 
   function hostPhysics() {
-    // El raquetazo dura apenas unas décimas. Si se hace antes de tiempo, se pierde.
-    state.leftPunch = Math.max(0, state.leftPunch - 0.12);
-    state.rightPunch = Math.max(0, state.rightPunch - 0.12);
+    state.leftPunch = Math.max(0, state.leftPunch - 0.10);
+    state.rightPunch = Math.max(0, state.rightPunch - 0.10);
+
+    if (mode === 'solo') {
+      const target = state.ballY - paddle.h / 2;
+      const diff = target - state.rightY;
+      const maxStep = 7.5;
+      state.rightY += clamp(diff, -maxStep, maxStep);
+      state.rightY = clamp(state.rightY, 0, canvas.height - paddle.h);
+    }
 
     state.ballX += state.ballVX;
     state.ballY += state.ballVY;
@@ -490,8 +519,8 @@
     const leftX = paddle.margin;
     const rightX = canvas.width - paddle.margin - paddle.w;
 
-    const leftReach = state.leftPunch > 0 ? 58 * state.leftPunch : 0;
-    const rightReach = state.rightPunch > 0 ? 58 * state.rightPunch : 0;
+    const leftReach = state.leftPunch > 0 ? 44 * state.leftPunch : 0;
+    const rightReach = state.rightPunch > 0 ? 44 * state.rightPunch : 0;
 
     if (
       state.ballVX < 0 &&
@@ -500,12 +529,12 @@
       state.ballY >= state.leftY &&
       state.ballY <= state.leftY + paddle.h
     ) {
-      const power = state.leftPunch > 0.15;
+      const powered = state.leftPunch > 0.2;
       state.ballX = leftX + paddle.w + leftReach + ballR;
-      state.ballVX = Math.abs(state.ballVX) * (power ? 1.52 : 1.035);
+      state.ballVX = Math.abs(state.ballVX) * (powered ? 1.45 : 1.035);
       const offset = (state.ballY - (state.leftY + paddle.h/2)) / (paddle.h/2);
-      state.ballVY += offset * (power ? 4.1 : 2.8);
-      if (power) state.leftPunch = 0;
+      state.ballVY += offset * (powered ? 3.8 : 2.8);
+      if (powered) state.leftPunch = 0;
     }
 
     if (
@@ -515,12 +544,12 @@
       state.ballY >= state.rightY &&
       state.ballY <= state.rightY + paddle.h
     ) {
-      const power = state.rightPunch > 0.15;
+      const powered = state.rightPunch > 0.2;
       state.ballX = rightX - rightReach - ballR;
-      state.ballVX = -Math.abs(state.ballVX) * (power ? 1.52 : 1.035);
+      state.ballVX = -Math.abs(state.ballVX) * (powered ? 1.45 : 1.035);
       const offset = (state.ballY - (state.rightY + paddle.h/2)) / (paddle.h/2);
-      state.ballVY += offset * (power ? 4.1 : 2.8);
-      if (power) state.rightPunch = 0;
+      state.ballVY += offset * (powered ? 3.8 : 2.8);
+      if (powered) state.rightPunch = 0;
     }
 
     if (state.ballX < -50) {
@@ -551,25 +580,14 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const leftPunchPx = 58 * state.leftPunch;
-    const rightPunchPx = 58 * state.rightPunch;
+    const leftForward = 44 * state.leftPunch;
+    const rightForward = 44 * state.rightPunch;
 
-    // La paleta se adelanta físicamente durante el golpe.
-    ctx.fillStyle = state.leftPunch > 0.15 ? '#7dd3fc' : '#f4f7fb';
-    ctx.fillRect(paddle.margin + leftPunchPx, state.leftY, paddle.w, paddle.h);
+    ctx.fillStyle = state.leftPunch > 0.2 ? '#7dd3fc' : '#f4f7fb';
+    ctx.fillRect(paddle.margin + leftForward, state.leftY, paddle.w, paddle.h);
 
-    ctx.fillStyle = state.rightPunch > 0.15 ? '#7dd3fc' : '#f4f7fb';
-    ctx.fillRect(canvas.width - paddle.margin - paddle.w - rightPunchPx, state.rightY, paddle.w, paddle.h);
-
-    // Pequeña estela visual del raquetazo.
-    if (state.leftPunch > 0.15) {
-      ctx.fillStyle = 'rgba(125,211,252,.22)';
-      ctx.fillRect(paddle.margin, state.leftY, leftPunchPx + paddle.w, paddle.h);
-    }
-    if (state.rightPunch > 0.15) {
-      ctx.fillStyle = 'rgba(125,211,252,.22)';
-      ctx.fillRect(canvas.width - paddle.margin - paddle.w - rightPunchPx, state.rightY, rightPunchPx + paddle.w, paddle.h);
-    }
+    ctx.fillStyle = state.rightPunch > 0.2 ? '#7dd3fc' : '#f4f7fb';
+    ctx.fillRect(canvas.width - paddle.margin - paddle.w - rightForward, state.rightY, paddle.w, paddle.h);
 
     ctx.beginPath();
     ctx.arc(state.ballX, state.ballY, ballR, 0, Math.PI*2);
@@ -600,6 +618,9 @@
     requestAnimationFrame(loop);
   }
 
+  showMultiControls(false);
+  peerBadge.textContent = 'elegí modo';
+  setStatus('Elegí 1 jugador o Multijugador.');
   requestAnimationFrame(loop);
 })();
 </script>
