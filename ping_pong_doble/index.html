@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v10</title>
+  <title>Pong Doble v11</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -188,7 +188,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v10</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v11</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -409,7 +409,15 @@
   });
 
   shareGameBtn.addEventListener('click', async () => {
-    const url = window.location.href;
+    const code = roomInput.value.trim();
+    let inviteUrl = new URL(window.location.href);
+    inviteUrl.searchParams.delete('sala');
+
+    if (code) {
+      inviteUrl.searchParams.set('sala', code);
+    }
+
+    const url = inviteUrl.toString();
 
     if (navigator.share) {
       try {
@@ -417,14 +425,18 @@
           title: 'Pong Doble',
           url
         });
-        setStatus('Juego listo para compartir.');
+        setStatus(code
+          ? 'Invitación compartida con la sala incluida.'
+          : 'Juego compartido.');
         return;
       } catch (err) {
-        // Si se cancela o falla, dejamos la URL visible en el estado.
+        // Si se cancela o falla, mostramos el enlace.
       }
     }
 
-    setStatus('Compartí este enlace: ' + url);
+    setStatus(code
+      ? 'Compartí esta invitación: ' + url
+      : 'Compartí este enlace: ' + url);
   });
 
   shareCodeBtn.addEventListener('click', async () => {
@@ -770,9 +782,36 @@
     requestAnimationFrame(loop);
   }
 
+  function applyInvitationFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const invitedRoom = (params.get('sala') || '').trim();
+
+    if (!invitedRoom) return false;
+
+    mode = 'multi';
+    connected = false;
+    isHost = false;
+    role = 'right';
+
+    showMultiControls(true);
+    roomInput.readOnly = false;
+    roomInput.value = invitedRoom;
+    shareCodeBtn.style.display = 'none';
+
+    peerBadge.textContent = 'invitación recibida';
+    roleText.textContent = 'Rol: barra derecha';
+    setStatus('Invitación detectada. Tocá “Unirme a partida” para entrar.');
+
+    return true;
+  }
+
   showMultiControls(false);
-  peerBadge.textContent = 'elegí modo';
-  setStatus('Elegí 1 jugador o Multijugador.');
+
+  if (!applyInvitationFromUrl()) {
+    peerBadge.textContent = 'elegí modo';
+    setStatus('Elegí 1 jugador o Multijugador.');
+  }
+
   requestAnimationFrame(loop);
 })();
 </script>
