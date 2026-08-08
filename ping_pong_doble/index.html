@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v8</title>
+  <title>Pong Doble v9</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -184,43 +184,20 @@
       canvas{max-height:58vh}
       .touch{height:132px}
     }
-  
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:calc(22px + env(safe-area-inset-bottom));
-      transform:translateX(-50%) translateY(10px);
-      background:#0f2138;
-      color:var(--text);
-      border:1px solid var(--line);
-      border-radius:999px;
-      padding:9px 13px;
-      font-size:13px;
-      font-weight:700;
-      opacity:0;
-      pointer-events:none;
-      transition:.18s ease;
-      z-index:20;
-    }
-    .toast.show{
-      opacity:1;
-      transform:translateX(-50%) translateY(0);
-    }
   </style>
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v8</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v9</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
     <button id="hostBtn" style="display:none">Crear sala</button>
     <input id="roomInput" style="display:none" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
+    <button id="shareBtn" style="display:none">Compartir</button>
     <button id="joinBtn" style="display:none">Unirme</button>
     <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
   </div>
-
-  <div class="toast" id="toast" aria-live="polite"></div>
 
   <div class="gameWrap">
     <canvas id="game" width="1280" height="720"></canvas>
@@ -252,7 +229,7 @@
   const joinBtn = document.getElementById('joinBtn');
   const soloBtn = document.getElementById('soloBtn');
   const multiBtn = document.getElementById('multiBtn');
-  const toast = document.getElementById('toast');
+  const shareBtn = document.getElementById('shareBtn');
 
   let peer = null;
   let conn = null;
@@ -285,46 +262,6 @@
   const ballR = 15;
 
   function setStatus(msg){ statusEl.textContent = msg; }
-
-  let toastTimer = null;
-  function showToast(msg){
-    toast.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 1200);
-  }
-
-  async function copyCode(){
-    const code = roomInput.value.trim();
-    if (!code) return;
-    try{
-      await navigator.clipboard.writeText(code);
-      showToast('Código copiado');
-    }catch(err){
-      roomInput.focus();
-      roomInput.select();
-      roomInput.setSelectionRange(0, roomInput.value.length);
-      try{
-        document.execCommand('copy');
-        showToast('Código copiado');
-      }catch(e){
-        showToast('Código seleccionado');
-      }
-    }
-  }
-
-  async function pasteCode(){
-    if (isHost) return;
-    try{
-      const text = (await navigator.clipboard.readText()).trim();
-      if(text){
-        roomInput.value = text;
-        showToast('Código pegado');
-      }
-    }catch(err){
-      showToast('Tocá y mantené para pegar');
-    }
-  }
 
   function makeRoomCode() {
     return 'pong-' + Math.random().toString(36).slice(2, 7);
@@ -413,10 +350,12 @@
     hostBtn.style.display = show ? '' : 'none';
     roomInput.style.display = show ? '' : 'none';
     joinBtn.style.display = show ? '' : 'none';
+    shareBtn.style.display = 'none';
   }
 
   function startSolo() {
     mode = 'solo';
+    roomInput.readOnly = false;
     showMultiControls(false);
     connected = true;
     isHost = true;
@@ -440,41 +379,58 @@
   multiBtn.addEventListener('click', () => {
     mode = 'multi';
     connected = false;
+    isHost = false;
+    roomInput.readOnly = false;
+    roomInput.value = '';
     showMultiControls(true);
     peerBadge.textContent = 'sin conexión';
     role = null;
     roleText.textContent = 'Rol: elegí crear sala o unirte';
-    setStatus('Multijugador: Crear sala genera el código. Tocá el campo para copiarlo o pegar uno recibido.');
-  });
-
-  roomInput.addEventListener('click', async () => {
-    if (isHost && roomInput.value.trim()) {
-      await copyCode();
-    } else if (!roomInput.value.trim()) {
-      await pasteCode();
-    } else {
-      roomInput.select();
-    }
+    setStatus('Multijugador: un dispositivo crea la sala y el otro se une con el código.');
   });
 
   hostBtn.addEventListener('click', () => {
     mode = 'multi';
-    connected = false;
     isHost = true;
     role = 'left';
     roleText.textContent = 'Rol: barra izquierda';
 
-    // El código aparece inmediatamente, antes de cualquier conexión externa.
     const code = makeRoomCode();
     roomInput.value = code;
-    peerBadge.textContent = code;
-    setStatus('Sala creada. Tocá el código para copiarlo y enviarlo al otro jugador.');
-
+    roomInput.readOnly = true;
+    shareBtn.style.display = '';
+    setStatus('Sala creada. Podés seleccionar el código y copiarlo, o tocar Compartir.');
     createPeer(code);
+  });
+
+
+  shareBtn.addEventListener('click', async () => {
+    const code = roomInput.value.trim();
+    if (!code) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Pong Doble',
+          text: 'Código de sala: ' + code
+        });
+        setStatus('Código listo para compartir.');
+        return;
+      } catch (err) {
+        // Si el usuario cancela o el sistema falla, caemos al método tradicional.
+      }
+    }
+
+    roomInput.focus();
+    roomInput.select();
+    roomInput.setSelectionRange(0, roomInput.value.length);
+    setStatus('Código seleccionado. Copialo y envialo al otro jugador.');
   });
 
   joinBtn.addEventListener('click', () => {
     mode = 'multi';
+    roomInput.readOnly = false;
+    shareBtn.style.display = 'none';
     const code = roomInput.value.trim();
     if (!code) {
       setStatus('Escribí el código de sala del otro dispositivo.');
@@ -550,37 +506,42 @@
   function hostPhysics() {
     if (mode === 'solo') {
       const now = performance.now();
-      const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
-      const speedFactor = clamp((ballSpeed - 6) / 13, 0, 1);
 
+      // La IA "piensa" a intervalos, no sigue la pelota cuadro por cuadro.
       if (now >= aiNextThinkAt) {
-        // Muy poco error al principio; crece a medida que la pelota acelera.
-        const errorRange = 8 + speedFactor * 55;
-        aiError = (Math.random() * 2 - 1) * errorRange;
+        // A mayor velocidad de pelota, más difícil le resulta predecir.
+        const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
+        const speedFactor = clamp((ballSpeed - 6) / 13, 0, 1);
 
-        const hesitationChance = 0.015 + speedFactor * 0.13;
+        // Error vertical variable. A veces calcula muy bien y otras queda mal parada.
+        const baseError = 20 + speedFactor * 65;
+        aiError = (Math.random() * 2 - 1) * baseError;
+
+        // En ocasiones duda y tarda más en reaccionar.
+        const hesitationChance = 0.10 + speedFactor * 0.12;
         if (Math.random() < hesitationChance) {
-          aiHesitationUntil = now + 80 + speedFactor * (120 + Math.random() * 190);
+          aiHesitationUntil = now + 180 + Math.random() * 280;
         }
 
-        let predictedY = state.ballY;
-        if (state.ballVX > 0) {
-          const distanceX = (canvas.width - paddle.margin - paddle.w) - state.ballX;
-          const framesAhead = distanceX / Math.max(1, state.ballVX);
-          predictedY = state.ballY + state.ballVY * framesAhead * 0.48;
-        }
+        aiTargetY = state.ballY - paddle.h / 2 + aiError;
 
-        aiTargetY = predictedY - paddle.h / 2 + aiError;
-        aiNextThinkAt = now + 55 + Math.random() * (35 + speedFactor * 90);
+        // Reacción normal entre 90 y 170 ms; con pelota rápida puede tardar más.
+        aiNextThinkAt = now + 90 + Math.random() * (80 + speedFactor * 70);
       }
 
       if (now >= aiHesitationUntil) {
         const diff = aiTargetY - state.rightY;
-        const maxStep = 7.7 - speedFactor * 0.9;
+
+        // Tiene una velocidad máxima real: una pelota rápida o angulada puede superarla.
+        const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
+        const speedFactor = clamp((ballSpeed - 6) / 13, 0, 1);
+        const maxStep = 6.0 + speedFactor * 1.6;
+
         state.rightY += clamp(diff, -maxStep, maxStep);
         state.rightY = clamp(state.rightY, 0, canvas.height - paddle.h);
       }
     }
+
     state.ballX += state.ballVX;
     state.ballY += state.ballVY;
 
