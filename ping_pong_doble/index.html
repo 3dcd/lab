@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v13</title>
+  <title>Pong Doble v14</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -188,12 +188,13 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v13</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v14</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
     <button id="shareGameBtn" style="display:none">Compartir juego</button>
     <button id="retryBtn" style="display:none">Reintentar conexión</button>
+    <button id="rematchBtn" style="display:none">Revancha</button>
     <input id="roomInput" style="display:none" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
     <button id="hostBtn" style="display:none">Crear partida</button>
     <button id="shareCodeBtn" style="display:none">Compartir código</button>
@@ -234,6 +235,7 @@
   const shareGameBtn = document.getElementById('shareGameBtn');
   const shareCodeBtn = document.getElementById('shareCodeBtn');
   const retryBtn = document.getElementById('retryBtn');
+  const rematchBtn = document.getElementById('rematchBtn');
 
   let peer = null;
   let conn = null;
@@ -243,6 +245,9 @@
   let mode = 'menu'; // menu | solo | multi
   let countdownUntil = 0;
   let gameReady = false;
+  let matchOver = false;
+  let winner = null; // left | right
+  const WIN_SCORE = 10;
 
   // Rival virtual: deliberadamente imperfecto.
   let aiTargetY = 280;
@@ -269,6 +274,20 @@
   const ballR = 15;
 
   function setStatus(msg){ statusEl.textContent = msg; }
+
+  function resetMatch(notifyPeer = false) {
+    state.scoreL = 0;
+    state.scoreR = 0;
+    winner = null;
+    matchOver = false;
+    rematchBtn.style.display = 'none';
+    resetBall(Math.random() > .5 ? 1 : -1);
+    startCountdown(3200, notifyPeer);
+
+    if (notifyPeer && conn && conn.open) {
+      conn.send({ type:'resetMatch' });
+    }
+  }
 
   function startCountdown(ms = 3200, notifyPeer = false) {
     countdownUntil = performance.now() + ms;
@@ -354,6 +373,15 @@
         setStatus('Partida encontrada. Preparados…');
       }
 
+      if (data.type === 'resetMatch') {
+        state.scoreL = 0;
+        state.scoreR = 0;
+        winner = null;
+        matchOver = false;
+        rematchBtn.style.display = 'none';
+        resetBall(Math.random() > .5 ? 1 : -1);
+      }
+
       if (data.type === 'paddle' && isHost) {
         if (data.role === 'right') state.rightY = clamp(data.y, 0, canvas.height - paddle.h);
       }
@@ -416,6 +444,9 @@
     setStatus('Modo 1 jugador. Al principio el rival juega casi perfecto; después empieza a cometer errores.');
     state.scoreL = 0;
     state.scoreR = 0;
+    matchOver = false;
+    winner = null;
+    rematchBtn.style.display = 'none';
     state.leftY = 280;
     state.rightY = 280;
     aiTargetY = 280;
@@ -704,14 +735,32 @@
       state.scoreR++;
       state.flash = 1;
       state.flashColor = role === 'left' ? 'red' : 'green';
-      resetBall(1);
+
+      if (state.scoreR >= WIN_SCORE) {
+        matchOver = true;
+        winner = 'right';
+        gameReady = false;
+        rematchBtn.style.display = '';
+        setStatus(mode === 'solo' ? 'Partida terminada.' : 'Partida terminada.');
+      } else {
+        resetBall(1);
+      }
     }
 
     if (state.ballX > canvas.width + 50) {
       state.scoreL++;
       state.flash = 1;
       state.flashColor = role === 'right' ? 'red' : 'green';
-      resetBall(-1);
+
+      if (state.scoreL >= WIN_SCORE) {
+        matchOver = true;
+        winner = 'left';
+        gameReady = false;
+        rematchBtn.style.display = '';
+        setStatus(mode === 'solo' ? 'Partida terminada.' : 'Partida terminada.');
+      } else {
+        resetBall(-1);
+      }
     }
 
     if (state.flash > 0) {
@@ -786,6 +835,47 @@
       ctx.fillText('RALLY ' + state.rallyHits, canvas.width/2, 145);
     }
 
+    if (matchOver && winner) {
+      ctx.fillStyle = 'rgba(2,7,14,.78)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      const boxW = 560;
+      const boxH = 250;
+      const bx = canvas.width/2 - boxW/2;
+      const by = canvas.height/2 - boxH/2;
+
+      ctx.fillStyle = 'rgba(14,27,47,.97)';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 30);
+      ctx.fill();
+      ctx.stroke();
+
+      let winnerText = '';
+      if (mode === 'solo') {
+        winnerText = winner === 'left' ? '¡GANASTE!' : 'GANÓ LA MÁQUINA';
+      } else {
+        const localWon =
+          (role === 'left' && winner === 'left') ||
+          (role === 'right' && winner === 'right');
+        winnerText = localWon ? '¡GANASTE!' : 'GANÓ TU OPONENTE';
+      }
+
+      ctx.font = '800 66px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillText(winnerText, canvas.width/2, canvas.height/2 - 18);
+
+      ctx.font = '600 28px system-ui';
+      ctx.fillStyle = '#9eb0c6';
+      ctx.fillText('Felicitaciones al ganador', canvas.width/2, canvas.height/2 + 40);
+
+      ctx.font = '700 34px system-ui';
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText(state.scoreL + '  —  ' + state.scoreR, canvas.width/2, canvas.height/2 + 92);
+    }
+
     if (countdownUntil > performance.now()) {
       const remaining = countdownUntil - performance.now();
       const number = Math.max(1, Math.ceil(remaining / 1000));
@@ -816,9 +906,11 @@
 
     ctx.font = '600 24px system-ui';
     ctx.fillStyle = '#8396ab';
-    const footerText = mode === 'solo'
-      ? '1 JUGADOR'
-      : (connected ? 'MULTIJUGADOR CONECTADO' : 'MODO DE CONEXIÓN');
+    const footerText = matchOver
+      ? 'PARTIDA FINALIZADA · PRIMERO A 10'
+      : (mode === 'solo'
+        ? '1 JUGADOR · PRIMERO A 10'
+        : (connected ? 'MULTIJUGADOR · PRIMERO A 10' : 'MODO DE CONEXIÓN'));
     ctx.fillText(footerText, canvas.width/2, canvas.height-34);
   }
 
@@ -829,14 +921,14 @@
       setStatus(mode === 'solo' ? '¡Jugando!' : '¡Partida en marcha!');
     }
 
-    if (isHost && connected && gameReady) {
+    if (isHost && connected && gameReady && !matchOver) {
       hostPhysics();
 
-      if (conn && conn.open && t - lastSync > 33) {
+      if (conn && conn.open && t - lastSync > 50) {
         conn.send({ type:'state', state });
         lastSync = t;
       }
-    } else if (isHost && connected && conn && conn.open && t - lastSync > 80) {
+    } else if (isHost && connected && conn && conn.open && t - lastSync > 120) {
       // Durante la cuenta atrás mantenemos ambos tableros sincronizados.
       conn.send({ type:'state', state });
       lastSync = t;
@@ -873,6 +965,18 @@
 
     peer.on('open', tryConnect);
   }
+
+  rematchBtn.addEventListener('click', () => {
+    if (mode === 'solo') {
+      resetMatch(false);
+      setStatus('Nueva partida. Preparados…');
+    } else if (mode === 'multi' && isHost) {
+      resetMatch(true);
+      setStatus('Revancha. Preparados…');
+    } else if (mode === 'multi' && !isHost) {
+      setStatus('La revancha la inicia quien creó la partida.');
+    }
+  });
 
   retryBtn.addEventListener('click', () => {
     const code = roomInput.value.trim();
