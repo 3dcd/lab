@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v4</title>
+  <title>Pong Doble v8</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -184,22 +184,17 @@
       canvas{max-height:58vh}
       .touch{height:132px}
     }
-
-    .copyHint{
-      font-size:12px;
-      color:var(--muted);
-      width:100%;
-    }
+  
     .toast{
       position:fixed;
       left:50%;
-      bottom:calc(24px + env(safe-area-inset-bottom));
-      transform:translateX(-50%) translateY(12px);
+      bottom:calc(22px + env(safe-area-inset-bottom));
+      transform:translateX(-50%) translateY(10px);
       background:#0f2138;
       color:var(--text);
       border:1px solid var(--line);
       border-radius:999px;
-      padding:10px 14px;
+      padding:9px 13px;
       font-size:13px;
       font-weight:700;
       opacity:0;
@@ -211,12 +206,11 @@
       opacity:1;
       transform:translateX(-50%) translateY(0);
     }
-
   </style>
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v4</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v8</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -225,6 +219,8 @@
     <button id="joinBtn" style="display:none">Unirme</button>
     <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
   </div>
+
+  <div class="toast" id="toast" aria-live="polite"></div>
 
   <div class="gameWrap">
     <canvas id="game" width="1280" height="720"></canvas>
@@ -256,7 +252,6 @@
   const joinBtn = document.getElementById('joinBtn');
   const soloBtn = document.getElementById('soloBtn');
   const multiBtn = document.getElementById('multiBtn');
-  const copyHint = document.getElementById('copyHint');
   const toast = document.getElementById('toast');
 
   let peer = null;
@@ -296,41 +291,38 @@
     toast.textContent = msg;
     toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 1300);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1200);
   }
 
-  async function copyRoomCode(){
+  async function copyCode(){
     const code = roomInput.value.trim();
     if (!code) return;
     try{
       await navigator.clipboard.writeText(code);
       showToast('Código copiado');
-      setStatus('Código copiado. Ya podés mandárselo al otro jugador.');
     }catch(err){
+      roomInput.focus();
       roomInput.select();
       roomInput.setSelectionRange(0, roomInput.value.length);
       try{
         document.execCommand('copy');
         showToast('Código copiado');
       }catch(e){
-        showToast('Seleccionado para copiar');
+        showToast('Código seleccionado');
       }
     }
   }
 
-  async function pasteRoomCode(){
-    if (mode !== 'multi' || isHost) return;
+  async function pasteCode(){
+    if (isHost) return;
     try{
       const text = (await navigator.clipboard.readText()).trim();
       if(text){
         roomInput.value = text;
         showToast('Código pegado');
-        setStatus('Código pegado. Tocá Unirme.');
       }
     }catch(err){
-      // Algunos navegadores muestran permiso o bloquean lectura automática.
-      roomInput.focus();
-      showToast('Pegá el código aquí');
+      showToast('Tocá y mantené para pegar');
     }
   }
 
@@ -351,8 +343,7 @@
       peerBadge.textContent = peerId;
       if (isHost) {
         roomInput.value = peerId;
-        copyHint.textContent = 'Tocá el código para copiarlo.';
-        setStatus('Sala creada. Tocá el código para copiarlo y mandárselo al otro jugador.');
+        setStatus('Sala creada. Pasale este código al otro celular.');
       }
     });
 
@@ -432,8 +423,7 @@
     role = 'left';
     roleText.textContent = 'Rol: barra izquierda · rival automático';
     peerBadge.textContent = '1 jugador';
-    copyHint.textContent = '';
-    setStatus('Modo 1 jugador. El rival comete errores, pero no regala puntos fáciles.');
+    setStatus('Modo 1 jugador. El rival reacciona con pequeños errores y puede quedar mal parado.');
     state.scoreL = 0;
     state.scoreR = 0;
     state.leftY = 280;
@@ -454,33 +444,32 @@
     peerBadge.textContent = 'sin conexión';
     role = null;
     roleText.textContent = 'Rol: elegí crear sala o unirte';
-    copyHint.textContent = 'Crear sala: tocá el código para copiar. Unirse: tocá el campo para intentar pegar.';
-    setStatus('Multijugador: un dispositivo crea la sala y el otro se une con el código.');
+    setStatus('Multijugador: Crear sala genera el código. Tocá el campo para copiarlo o pegar uno recibido.');
   });
-
 
   roomInput.addEventListener('click', async () => {
     if (isHost && roomInput.value.trim()) {
-      await copyRoomCode();
+      await copyCode();
+    } else if (!roomInput.value.trim()) {
+      await pasteCode();
     } else {
-      await pasteRoomCode();
-    }
-  });
-
-  roomInput.addEventListener('focus', async () => {
-    if (mode === 'multi' && !isHost && !roomInput.value.trim()) {
-      await pasteRoomCode();
+      roomInput.select();
     }
   });
 
   hostBtn.addEventListener('click', () => {
     mode = 'multi';
+    connected = false;
     isHost = true;
     role = 'left';
-    copyHint.textContent = 'Tocá el código para copiarlo.';
     roleText.textContent = 'Rol: barra izquierda';
+
+    // El código aparece inmediatamente, antes de cualquier conexión externa.
     const code = makeRoomCode();
     roomInput.value = code;
+    peerBadge.textContent = code;
+    setStatus('Sala creada. Tocá el código para copiarlo y enviarlo al otro jugador.');
+
     createPeer(code);
   });
 
@@ -494,7 +483,6 @@
 
     isHost = false;
     role = 'right';
-    copyHint.textContent = '';
     roleText.textContent = 'Rol: barra derecha';
     createPeer();
 
@@ -565,37 +553,30 @@
       const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
       const speedFactor = clamp((ballSpeed - 6) / 13, 0, 1);
 
-      // Al principio juega bastante firme. A medida que la pelota acelera,
-      // empieza a cometer errores más visibles.
       if (now >= aiNextThinkAt) {
-        const baseError = 7 + speedFactor * 58;
-        aiError = (Math.random() * 2 - 1) * baseError;
+        // Muy poco error al principio; crece a medida que la pelota acelera.
+        const errorRange = 8 + speedFactor * 55;
+        aiError = (Math.random() * 2 - 1) * errorRange;
 
-        // Casi no duda con pelota lenta; la duda crece con la velocidad.
-        const hesitationChance = 0.015 + speedFactor * 0.14;
+        const hesitationChance = 0.015 + speedFactor * 0.13;
         if (Math.random() < hesitationChance) {
-          aiHesitationUntil = now + 90 + speedFactor * (140 + Math.random() * 180);
+          aiHesitationUntil = now + 80 + speedFactor * (120 + Math.random() * 190);
         }
 
-        // Cuando la pelota viene hacia la IA, intenta anticipar un poco.
         let predictedY = state.ballY;
         if (state.ballVX > 0) {
           const distanceX = (canvas.width - paddle.margin - paddle.w) - state.ballX;
-          const timeApprox = distanceX / Math.max(1, state.ballVX);
-          predictedY = state.ballY + state.ballVY * timeApprox * 0.55;
+          const framesAhead = distanceX / Math.max(1, state.ballVX);
+          predictedY = state.ballY + state.ballVY * framesAhead * 0.48;
         }
 
         aiTargetY = predictedY - paddle.h / 2 + aiError;
-
-        // Reacciona rápido al principio; con velocidad alta tarda más.
-        aiNextThinkAt = now + 55 + Math.random() * (35 + speedFactor * 95);
+        aiNextThinkAt = now + 55 + Math.random() * (35 + speedFactor * 90);
       }
 
       if (now >= aiHesitationUntil) {
         const diff = aiTargetY - state.rightY;
-
-        // Buena movilidad inicial; luego queda limitada frente a tiros rápidos.
-        const maxStep = 7.2 + (1 - speedFactor) * 0.9;
+        const maxStep = 7.7 - speedFactor * 0.9;
         state.rightY += clamp(diff, -maxStep, maxStep);
         state.rightY = clamp(state.rightY, 0, canvas.height - paddle.h);
       }
