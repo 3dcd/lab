@@ -1,1 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pong Doble</title>
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <style>
+    :root{
+      --bg:#08111f;
+      --panel:#0e1b2f;
+      --line:#274261;
+      --text:#f4f7fb;
+      --muted:#9eb0c6;
+      --accent:#7dd3fc;
+      --danger:#fb7185;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      min-height:100%;
+      background:var(--bg);
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      overscroll-behavior:none;
+      touch-action:none;
+    }
+    body{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      padding:12px;
+      gap:10px;
+    }
+    .top{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      background:var(--panel);
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:16px;
+    }
+    .title{
+      font-weight:800;
+      margin-right:auto;
+      letter-spacing:.2px;
+    }
+    .badge{
+      font-size:12px;
+      color:var(--muted);
+    }
+    button,input{
+      border:1px solid var(--line);
+      background:#12243d;
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:15px;
+    }
+    button{font-weight:700}
+    button:active{transform:scale(.98)}
+    input{
+      width:150px;
+      outline:none;
+    }
+    .status{
+      width:100%;
+      font-size:13px;
+      color:var(--muted);
+      min-height:18px;
+    }
+    .gameWrap{
+      flex:1;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    canvas{
+      width:min(100%, 900px);
+      max-height:72vh;
+      aspect-ratio:16/9;
+      background:#02070e;
+      border:1px solid var(--line);
+      border-radius:18px;
+      display:block;
+      box-shadow:0 10px 40px rgba(0,0,0,.25);
+    }
+    .controls{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      align-items:center;
+    }
+    .role{
+      font-weight:700;
+    }
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .touch{
+      height:72px;
+      border-radius:14px;
+      border:1px dashed var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      user-select:none;
+    }
+    .touch.active{
+      color:var(--text);
+      border-style:solid;
+      border-color:var(--accent);
+    }
+    @media (max-width:650px){
+      body{padding:8px}
+      .top{border-radius:14px}
+      .controls{grid-template-columns:1fr}
+      input{width:132px}
+      canvas{max-height:62vh}
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="title">Pong Doble</div>
+    <div class="badge" id="peerBadge">sin conexión</div>
+    <button id="hostBtn">Crear sala</button>
+    <input id="roomInput" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
+    <button id="joinBtn">Unirme</button>
+    <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
+  </div>
 
+  <div class="gameWrap">
+    <canvas id="game" width="1280" height="720"></canvas>
+  </div>
+
+  <div class="controls">
+    <div>
+      <div class="role" id="roleText">Rol: espectador local</div>
+      <div class="hint">Deslizá el dedo sobre el área inferior para mover tu barra.</div>
+    </div>
+    <div class="touch" id="touchArea">TOCÁ Y DESLIZÁ ACÁ</div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+  const peerBadge = document.getElementById('peerBadge');
+  const roleText = document.getElementById('roleText');
+  const touchArea = document.getElementById('touchArea');
+  const roomInput = document.getElementById('roomInput');
+  const hostBtn = document.getElementById('hostBtn');
+  const joinBtn = document.getElementById('joinBtn');
+
+  let peer = null;
+  let conn = null;
+  let isHost = false;
+  let role = null; // left | right
+  let connected = false;
+
+  const state = {
+    leftY: 280,
+    rightY: 280,
+    ballX: 640,
+    ballY: 360,
+    ballVX: 7,
+    ballVY: 4.5,
+    scoreL: 0,
+    scoreR: 0
+  };
+
+  const paddle = { w:22, h:150, margin:42, speed:15 };
+  const ballR = 15;
+
+  function setStatus(msg){ statusEl.textContent = msg; }
+
+  function makeRoomCode() {
+    return 'pong-' + Math.random().toString(36).slice(2, 7);
+  }
+
+  function createPeer(id) {
+    if (peer) {
+      try { peer.destroy(); } catch(e){}
+    }
+
+    peer = id
+      ? new Peer(id, { debug: 1 })
+      : new Peer({ debug: 1 });
+
+    peer.on('open', peerId => {
+      peerBadge.textContent = peerId;
+      if (isHost) {
+        roomInput.value = peerId;
+        setStatus('Sala creada. Pasale este código al otro celular.');
+      }
+    });
+
+    peer.on('connection', incoming => {
+      if (!isHost) return;
+      if (conn && conn.open) {
+        incoming.close();
+        return;
+      }
+      conn = incoming;
+      setupConnection();
+    });
+
+    peer.on('error', err => {
+      console.error(err);
+      setStatus('Error de conexión: ' + (err.type || err.message));
+    });
+  }
+
+  function setupConnection() {
+    if (!conn) return;
+
+    conn.on('open', () => {
+      connected = true;
+      peerBadge.textContent = 'conectado';
+      if (isHost) {
+        role = 'left';
+        roleText.textContent = 'Rol: barra izquierda';
+        conn.send({ type:'role', role:'right' });
+        conn.send({ type:'state', state });
+        setStatus('Conectados. Empieza la partida.');
+      } else {
+        setStatus('Conectado al anfitrión.');
+      }
+    });
+
+    conn.on('data', data => {
+      if (!data || typeof data !== 'object') return;
+
+      if (data.type === 'role') {
+        role = data.role;
+        roleText.textContent = role === 'right' ? 'Rol: barra derecha' : 'Rol: barra izquierda';
+      }
+
+      if (data.type === 'paddle' && isHost) {
+        if (data.role === 'right') state.rightY = clamp(data.y, 0, canvas.height - paddle.h);
+      }
+
+      if (data.type === 'state' && !isHost) {
+        Object.assign(state, data.state);
+      }
+
+      if (data.type === 'restart' && isHost) {
+        resetBall(Math.random() > .5 ? 1 : -1);
+      }
+    });
+
+    conn.on('close', () => {
+      connected = false;
+      peerBadge.textContent = 'desconectado';
+      setStatus('Se cerró la conexión.');
+    });
+  }
+
+  hostBtn.addEventListener('click', () => {
+    isHost = true;
+    role = 'left';
+    roleText.textContent = 'Rol: barra izquierda';
+    const code = makeRoomCode();
+    roomInput.value = code;
+    createPeer(code);
+  });
+
+  joinBtn.addEventListener('click', () => {
+    const code = roomInput.value.trim();
+    if (!code) {
+      setStatus('Escribí el código de sala del otro dispositivo.');
+      return;
+    }
+
+    isHost = false;
+    role = 'right';
+    roleText.textContent = 'Rol: barra derecha';
+    createPeer();
+
+    peer.on('open', () => {
+      conn = peer.connect(code, { reliable: true });
+      setupConnection();
+      setStatus('Intentando conectar...');
+    });
+  });
+
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+  function localMove(yNormalized) {
+    const y = clamp(yNormalized * canvas.height - paddle.h/2, 0, canvas.height - paddle.h);
+
+    if (role === 'left') {
+      state.leftY = y;
+    } else if (role === 'right') {
+      if (isHost) state.rightY = y;
+      else {
+        state.rightY = y;
+        if (conn && conn.open) conn.send({ type:'paddle', role:'right', y });
+      }
+    }
+  }
+
+  function pointerMove(ev) {
+    const r = touchArea.getBoundingClientRect();
+    const norm = clamp((ev.clientY - r.top) / r.height, 0, 1);
+    localMove(norm);
+  }
+
+  let touching = false;
+
+  touchArea.addEventListener('pointerdown', ev => {
+    touching = true;
+    touchArea.classList.add('active');
+    touchArea.setPointerCapture(ev.pointerId);
+    pointerMove(ev);
+  });
+
+  touchArea.addEventListener('pointermove', ev => {
+    if (touching) pointerMove(ev);
+  });
+
+  touchArea.addEventListener('pointerup', ev => {
+    touching = false;
+    touchArea.classList.remove('active');
+    try { touchArea.releasePointerCapture(ev.pointerId); } catch(e){}
+  });
+
+  function resetBall(dir=1){
+    state.ballX = canvas.width/2;
+    state.ballY = canvas.height/2;
+    state.ballVX = dir * (6.5 + Math.random()*2);
+    state.ballVY = (Math.random() * 7 - 3.5);
+  }
+
+  function hostPhysics() {
+    state.ballX += state.ballVX;
+    state.ballY += state.ballVY;
+
+    if (state.ballY - ballR < 0) {
+      state.ballY = ballR;
+      state.ballVY *= -1;
+    }
+    if (state.ballY + ballR > canvas.height) {
+      state.ballY = canvas.height - ballR;
+      state.ballVY *= -1;
+    }
+
+    const leftX = paddle.margin;
+    const rightX = canvas.width - paddle.margin - paddle.w;
+
+    if (
+      state.ballVX < 0 &&
+      state.ballX - ballR <= leftX + paddle.w &&
+      state.ballX > leftX &&
+      state.ballY >= state.leftY &&
+      state.ballY <= state.leftY + paddle.h
+    ) {
+      state.ballX = leftX + paddle.w + ballR;
+      state.ballVX = Math.abs(state.ballVX) * 1.035;
+      const offset = (state.ballY - (state.leftY + paddle.h/2)) / (paddle.h/2);
+      state.ballVY += offset * 2.8;
+    }
+
+    if (
+      state.ballVX > 0 &&
+      state.ballX + ballR >= rightX &&
+      state.ballX < rightX + paddle.w &&
+      state.ballY >= state.rightY &&
+      state.ballY <= state.rightY + paddle.h
+    ) {
+      state.ballX = rightX - ballR;
+      state.ballVX = -Math.abs(state.ballVX) * 1.035;
+      const offset = (state.ballY - (state.rightY + paddle.h/2)) / (paddle.h/2);
+      state.ballVY += offset * 2.8;
+    }
+
+    if (state.ballX < -50) {
+      state.scoreR++;
+      resetBall(1);
+    }
+
+    if (state.ballX > canvas.width + 50) {
+      state.scoreL++;
+      resetBall(-1);
+    }
+  }
+
+  let lastSync = 0;
+
+  function render() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = '#02070e';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.strokeStyle = '#20344a';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([18,22]);
+    ctx.beginPath();
+    ctx.moveTo(canvas.width/2, 20);
+    ctx.lineTo(canvas.width/2, canvas.height-20);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#f4f7fb';
+    ctx.fillRect(paddle.margin, state.leftY, paddle.w, paddle.h);
+    ctx.fillRect(canvas.width - paddle.margin - paddle.w, state.rightY, paddle.w, paddle.h);
+
+    ctx.beginPath();
+    ctx.arc(state.ballX, state.ballY, ballR, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.font = '700 76px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#6f839a';
+    ctx.fillText(state.scoreL, canvas.width/2 - 90, 95);
+    ctx.fillText(state.scoreR, canvas.width/2 + 90, 95);
+
+    ctx.font = '600 24px system-ui';
+    ctx.fillStyle = '#8396ab';
+    ctx.fillText(connected ? 'DOS DISPOSITIVOS CONECTADOS' : 'MODO DE CONEXIÓN', canvas.width/2, canvas.height-34);
+  }
+
+  function loop(t) {
+    if (isHost && connected) {
+      hostPhysics();
+
+      if (conn && conn.open && t - lastSync > 33) {
+        conn.send({ type:'state', state });
+        lastSync = t;
+      }
+    }
+
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
