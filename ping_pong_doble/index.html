@@ -203,10 +203,10 @@
   <div class="controls">
     <div>
       <div class="role" id="roleText">Rol: espectador local</div>
-      <div class="hint">Mové el dedo hacia arriba y abajo dentro del recuadro. La barrita celeste te muestra la posición de tu paleta.</div>
+      <div class="hint">Mové el dedo arriba y abajo. Para dar un RAQUETAZO, hacé un gesto corto hacia el rival justo cuando llega la pelota.</div>
     </div>
     <div class="touch" id="touchArea">
-      <div class="touchLabel">CONTROL</div>
+      <div class="touchLabel">CONTROL · DESLIZÁ HACIA EL RIVAL PARA GOLPEAR</div>
       <div class="touchHandle" id="touchHandle"></div>
       <div class="touchArrows">▲<br>▼</div>
     </div>
@@ -239,7 +239,9 @@
     ballVX: 7,
     ballVY: 4.5,
     scoreL: 0,
-    scoreR: 0
+    scoreR: 0,
+    leftPunch: 0,
+    rightPunch: 0
   };
 
   const paddle = { w:22, h:150, margin:42, speed:15 };
@@ -313,6 +315,10 @@
         if (data.role === 'right') state.rightY = clamp(data.y, 0, canvas.height - paddle.h);
       }
 
+      if (data.type === 'punch' && isHost && data.role === 'right') {
+        triggerPunch('right');
+      }
+
       if (data.type === 'state' && !isHost) {
         Object.assign(state, data.state);
       }
@@ -375,16 +381,68 @@
     }
   }
 
+  let touching = false;
+  let gestureStartX = 0;
+  let gestureLastX = 0;
+  let gestureStartTime = 0;
+  let punchUsedThisTouch = false;
+  let lastPunchAt = 0;
+  const punchCooldown = 420;
+
+  function triggerPunch(which) {
+    if (which === 'left') state.leftPunch = 1;
+    if (which === 'right') state.rightPunch = 1;
+  }
+
+  function attemptPunch(ev) {
+    if (!role || punchUsedThisTouch) return;
+
+    const now = performance.now();
+    if (now - lastPunchAt < punchCooldown) return;
+
+    const dx = ev.clientX - gestureStartX;
+    const elapsed = now - gestureStartTime;
+    const towardOpponent = role === 'left' ? dx > 26 : dx < -26;
+
+    if (towardOpponent && elapsed < 650) {
+      punchUsedThisTouch = true;
+      lastPunchAt = now;
+
+      touchHandle.style.transform =
+        role === 'left' ? 'translate(18px,-50%)' : 'translate(-18px,-50%)';
+
+      setTimeout(() => {
+        touchHandle.style.transform = 'translate(0,-50%)';
+      }, 150);
+
+      if (role === 'left') {
+        triggerPunch('left');
+      } else if (role === 'right') {
+        if (isHost) {
+          triggerPunch('right');
+        } else if (conn && conn.open) {
+          conn.send({ type:'punch', role:'right' });
+          state.rightPunch = 1;
+        }
+      }
+    }
+
+    gestureLastX = ev.clientX;
+  }
+
   function pointerMove(ev) {
     const r = touchArea.getBoundingClientRect();
     const norm = clamp((ev.clientY - r.top) / r.height, 0, 1);
     localMove(norm);
+    attemptPunch(ev);
   }
-
-  let touching = false;
 
   touchArea.addEventListener('pointerdown', ev => {
     touching = true;
+    punchUsedThisTouch = false;
+    gestureStartX = ev.clientX;
+    gestureLastX = ev.clientX;
+    gestureStartTime = performance.now();
     touchArea.classList.add('active');
     touchArea.setPointerCapture(ev.pointerId);
     pointerMove(ev);
@@ -394,11 +452,16 @@
     if (touching) pointerMove(ev);
   });
 
-  touchArea.addEventListener('pointerup', ev => {
+  function endTouch(ev) {
     touching = false;
+    punchUsedThisTouch = false;
     touchArea.classList.remove('active');
+    touchHandle.style.transform = 'translate(0,-50%)';
     try { touchArea.releasePointerCapture(ev.pointerId); } catch(e){}
-  });
+  }
+
+  touchArea.addEventListener('pointerup', endTouch);
+  touchArea.addEventListener('pointercancel', endTouch);
 
   function resetBall(dir=1){
     state.ballX = canvas.width/2;
@@ -408,6 +471,10 @@
   }
 
   function hostPhysics() {
+    // El raquetazo dura apenas unas décimas. Si se hace antes de tiempo, se pierde.
+    state.leftPunch = Math.max(0, state.leftPunch - 0.12);
+    state.rightPunch = Math.max(0, state.rightPunch - 0.12);
+
     state.ballX += state.ballVX;
     state.ballY += state.ballVY;
 
@@ -423,30 +490,37 @@
     const leftX = paddle.margin;
     const rightX = canvas.width - paddle.margin - paddle.w;
 
+    const leftReach = state.leftPunch > 0 ? 58 * state.leftPunch : 0;
+    const rightReach = state.rightPunch > 0 ? 58 * state.rightPunch : 0;
+
     if (
       state.ballVX < 0 &&
-      state.ballX - ballR <= leftX + paddle.w &&
+      state.ballX - ballR <= leftX + paddle.w + leftReach &&
       state.ballX > leftX &&
       state.ballY >= state.leftY &&
       state.ballY <= state.leftY + paddle.h
     ) {
-      state.ballX = leftX + paddle.w + ballR;
-      state.ballVX = Math.abs(state.ballVX) * 1.035;
+      const power = state.leftPunch > 0.15;
+      state.ballX = leftX + paddle.w + leftReach + ballR;
+      state.ballVX = Math.abs(state.ballVX) * (power ? 1.52 : 1.035);
       const offset = (state.ballY - (state.leftY + paddle.h/2)) / (paddle.h/2);
-      state.ballVY += offset * 2.8;
+      state.ballVY += offset * (power ? 4.1 : 2.8);
+      if (power) state.leftPunch = 0;
     }
 
     if (
       state.ballVX > 0 &&
-      state.ballX + ballR >= rightX &&
+      state.ballX + ballR >= rightX - rightReach &&
       state.ballX < rightX + paddle.w &&
       state.ballY >= state.rightY &&
       state.ballY <= state.rightY + paddle.h
     ) {
-      state.ballX = rightX - ballR;
-      state.ballVX = -Math.abs(state.ballVX) * 1.035;
+      const power = state.rightPunch > 0.15;
+      state.ballX = rightX - rightReach - ballR;
+      state.ballVX = -Math.abs(state.ballVX) * (power ? 1.52 : 1.035);
       const offset = (state.ballY - (state.rightY + paddle.h/2)) / (paddle.h/2);
-      state.ballVY += offset * 2.8;
+      state.ballVY += offset * (power ? 4.1 : 2.8);
+      if (power) state.rightPunch = 0;
     }
 
     if (state.ballX < -50) {
@@ -477,9 +551,25 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.fillStyle = '#f4f7fb';
-    ctx.fillRect(paddle.margin, state.leftY, paddle.w, paddle.h);
-    ctx.fillRect(canvas.width - paddle.margin - paddle.w, state.rightY, paddle.w, paddle.h);
+    const leftPunchPx = 58 * state.leftPunch;
+    const rightPunchPx = 58 * state.rightPunch;
+
+    // La paleta se adelanta físicamente durante el golpe.
+    ctx.fillStyle = state.leftPunch > 0.15 ? '#7dd3fc' : '#f4f7fb';
+    ctx.fillRect(paddle.margin + leftPunchPx, state.leftY, paddle.w, paddle.h);
+
+    ctx.fillStyle = state.rightPunch > 0.15 ? '#7dd3fc' : '#f4f7fb';
+    ctx.fillRect(canvas.width - paddle.margin - paddle.w - rightPunchPx, state.rightY, paddle.w, paddle.h);
+
+    // Pequeña estela visual del raquetazo.
+    if (state.leftPunch > 0.15) {
+      ctx.fillStyle = 'rgba(125,211,252,.22)';
+      ctx.fillRect(paddle.margin, state.leftY, leftPunchPx + paddle.w, paddle.h);
+    }
+    if (state.rightPunch > 0.15) {
+      ctx.fillStyle = 'rgba(125,211,252,.22)';
+      ctx.fillRect(canvas.width - paddle.margin - paddle.w - rightPunchPx, state.rightY, rightPunchPx + paddle.w, paddle.h);
+    }
 
     ctx.beginPath();
     ctx.arc(state.ballX, state.ballY, ballR, 0, Math.PI*2);
