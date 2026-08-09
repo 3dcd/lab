@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v23 spin experimental</title>
+  <title>Pong Doble v24 spin corregido</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -359,7 +359,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v23</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v24</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -1021,9 +1021,9 @@
 
         // Si la paleta venía barriendo fuerte en vertical, aplica efecto.
         if (Math.abs(leftPaddleVY) > 7.5) {
-          ballSpin = clamp(leftPaddleVY * 0.55, -11, 11);
+          ballSpin = clamp(-leftPaddleVY * 0.55, -11, 11);
           ballSpinVisual = 1;
-          state.ballVY += leftPaddleVY * 0.22;
+          state.ballVY -= leftPaddleVY * 0.22;
         }
       }
 
@@ -1058,9 +1058,9 @@
         }
 
         if (Math.abs(rightPaddleVY) > 7.5) {
-          ballSpin = clamp(rightPaddleVY * 0.55, -11, 11);
+          ballSpin = clamp(-rightPaddleVY * 0.55, -11, 11);
           ballSpinVisual = 1;
-          state.ballVY += rightPaddleVY * 0.22;
+          state.ballVY -= rightPaddleVY * 0.22;
         }
       }
 
