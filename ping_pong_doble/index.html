@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v26 spin corregido</title>
+  <title>Pong Doble v28 pausa breve</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -359,7 +359,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v26</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v28</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -421,6 +421,8 @@
   let mode = 'menu'; // menu | solo | multi
   let countdownUntil = 0;
   let gameReady = false;
+  let pointPauseUntil = 0;
+  let pendingServeDir = 1;
   let matchOver = false;
   let winner = null; // left | right
   const WIN_SCORE = 10;
@@ -654,6 +656,7 @@
     connected = false;
     gameReady = false;
     countdownUntil = 0;
+    pointPauseUntil = 0;
     matchesLeft = 0;
     matchesRight = 0;
     isHost = true;
@@ -674,6 +677,7 @@
 
   function startSolo() {
     mode = 'solo';
+    pointPauseUntil = 0;
     roomInput.readOnly = false;
     showMultiControls(false);
     connected = true;
@@ -845,6 +849,16 @@
   function clearSpin() {
     ballSpin = 0;
     ballSpinVisual = 0;
+  }
+
+  function pauseAfterPoint(dir=1, ms=3000) {
+    pendingServeDir = dir;
+    pointPauseUntil = performance.now() + ms;
+    state.ballX = canvas.width/2;
+    state.ballY = canvas.height/2;
+    state.ballVX = 0;
+    state.ballVY = 0;
+    clearSpin();
   }
 
   function resetBall(dir=1){
@@ -1090,7 +1104,7 @@
         setStatus('Partida terminada. Tocá el cartel para jugar otra vez.');
       } else {
         generateObstacles();
-        resetBall(1);
+        pauseAfterPoint(1, 30);
       }
     }
 
@@ -1108,7 +1122,7 @@
         setStatus('Partida terminada. Tocá el cartel para jugar otra vez.');
       } else {
         generateObstacles();
-        resetBall(-1);
+        pauseAfterPoint(-1, 30);
       }
     }
 
@@ -1250,6 +1264,7 @@
       ctx.fillText('RALLY ' + state.rallyHits, canvas.width/2, 145);
     }
 
+
     if (matchOver && winner) {
       ctx.fillStyle = 'rgba(2,7,14,.78)';
       ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -1338,13 +1353,21 @@
   }
 
   function loop(t) {
-    if (countdownUntil > 0 && performance.now() >= countdownUntil) {
+    const now = performance.now();
+
+    if (countdownUntil > 0 && now >= countdownUntil) {
       countdownUntil = 0;
       gameReady = true;
       setStatus(mode === 'solo' ? '¡Jugando!' : '¡Partida en marcha!');
     }
 
-    if (isHost && connected && gameReady && !matchOver) {
+    if (pointPauseUntil > 0 && now >= pointPauseUntil) {
+      pointPauseUntil = 0;
+      resetBall(pendingServeDir);
+      setStatus('¡Sigue!');
+    }
+
+    if (isHost && connected && gameReady && !matchOver && pointPauseUntil === 0) {
       hostPhysics();
 
       if (conn && conn.open && t - lastSync > 50) {
