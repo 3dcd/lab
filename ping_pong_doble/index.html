@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v28 pausa breve</title>
+  <title>Pong Doble v29 pausa perceptible</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -359,7 +359,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v28</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v29</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -1104,7 +1104,7 @@
         setStatus('Partida terminada. Tocá el cartel para jugar otra vez.');
       } else {
         generateObstacles();
-        pauseAfterPoint(1, 30);
+        pauseAfterPoint(1, 300);
       }
     }
 
@@ -1122,7 +1122,7 @@
         setStatus('Partida terminada. Tocá el cartel para jugar otra vez.');
       } else {
         generateObstacles();
-        pauseAfterPoint(-1, 30);
+        pauseAfterPoint(-1, 300);
       }
     }
 
