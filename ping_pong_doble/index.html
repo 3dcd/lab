@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v31 sesión limpia</title>
+  <title>Pong Doble v32 niveles</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -355,14 +355,54 @@
       }
     }
 
+  
+    .difficulty{
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex-wrap:wrap;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .difficulty button{
+      padding:7px 10px;
+      font-size:12px;
+      border-radius:10px;
+    }
+    .difficulty .activeLevel{
+      border-color:var(--accent);
+      background:#18314f;
+      color:var(--text);
+    }
+    @media (orientation:landscape) and (max-height:650px){
+      .difficulty{
+        flex-direction:column;
+        align-items:stretch;
+        gap:5px;
+      }
+      .difficulty span{font-size:10px}
+      .difficulty button{
+        width:100%;
+        padding:6px 7px;
+        font-size:11px;
+      }
+    }
+
   </style>
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v31</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v32</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
+    <div class="difficulty" id="difficultyChooser">
+      <span>Nivel</span>
+      <button id="levelBeginnerBtn" type="button">Principiante</button>
+      <button id="levelMediumBtn" type="button" class="activeLevel">Medio</button>
+      <button id="levelProBtn" type="button">Pro</button>
+    </div>
     <button id="shareGameBtn" style="display:none">Compartir juego</button>
     <button id="retryBtn" style="display:none">Reintentar conexión</button>
     <button id="endSessionBtn" style="display:none">Terminar partida</button>
@@ -412,6 +452,9 @@
   const retryBtn = document.getElementById('retryBtn');
   const endSessionBtn = document.getElementById('endSessionBtn');
   const rematchBtn = document.getElementById('rematchBtn');
+  const levelBeginnerBtn = document.getElementById('levelBeginnerBtn');
+  const levelMediumBtn = document.getElementById('levelMediumBtn');
+  const levelProBtn = document.getElementById('levelProBtn');
   const sideChooser = document.getElementById('sideChooser');
   const sideToggleBtn = document.getElementById('sideToggleBtn');
 
@@ -428,6 +471,14 @@
   let matchOver = false;
   let winner = null; // left | right
   const WIN_SCORE = 10;
+  let difficulty = 'medium';
+
+  const difficultyConfig = {
+    beginner: { startSpeedMin:5.0, startSpeedExtra:0.8, verticalRange:4.2, accel:1.00075, maxSpeed:14.5, aiErrorScale:1.15, aiSpeedScale:0.92 },
+    medium:   { startSpeedMin:6.2, startSpeedExtra:1.2, verticalRange:5.6, accel:1.0017,  maxSpeed:19.0, aiErrorScale:1.00, aiSpeedScale:1.00 },
+    pro:      { startSpeedMin:7.4, startSpeedExtra:1.6, verticalRange:6.8, accel:1.0026,  maxSpeed:23.5, aiErrorScale:0.72, aiSpeedScale:1.12 }
+  };
+
   let matchesLeft = 0;
   let matchesRight = 0;
   let obstacles = [];
@@ -472,6 +523,22 @@
   const ballR = 15;
 
   function setStatus(msg){ statusEl.textContent = msg; }
+
+  function setDifficulty(level, fromNetwork = false) {
+    if (!difficultyConfig[level]) return;
+    difficulty = level;
+    levelBeginnerBtn.classList.toggle('activeLevel', level === 'beginner');
+    levelMediumBtn.classList.toggle('activeLevel', level === 'medium');
+    levelProBtn.classList.toggle('activeLevel', level === 'pro');
+
+    if (!fromNetwork && mode === 'multi' && isHost && conn && conn.open) {
+      conn.send({ type:'difficulty', level });
+    }
+  }
+
+  levelBeginnerBtn.addEventListener('click', () => setDifficulty('beginner'));
+  levelMediumBtn.addEventListener('click', () => setDifficulty('medium'));
+  levelProBtn.addEventListener('click', () => setDifficulty('pro'));
 
   let controlSide = 'right';
 
@@ -620,6 +687,7 @@
         role = 'left';
         roleText.textContent = 'Rol: barra izquierda';
         conn.send({ type:'role', role:'right' });
+        conn.send({ type:'difficulty', level:difficulty });
         conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles, ballSpin, ballSpinVisual });
         startCountdown(3200, true);
         setStatus('Jugador conectado. La partida comienza en 3…');
@@ -644,6 +712,10 @@
       if (data.type === 'countdown') {
         startCountdown(Number(data.duration) || 3200, false);
         setStatus('Partida encontrada. Preparados…');
+      }
+
+      if (data.type === 'difficulty' && difficultyConfig[data.level]) {
+        setDifficulty(data.level, true);
       }
 
       if (data.type === 'resetMatch') {
@@ -942,10 +1014,11 @@
   }
 
   function resetBall(dir=1){
+    const cfg = difficultyConfig[difficulty];
     state.ballX = canvas.width/2;
     state.ballY = canvas.height/2;
-    state.ballVX = dir * (6.2 + Math.random()*1.2);
-    state.ballVY = (Math.random() * 5.6 - 2.8);
+    state.ballVX = dir * (cfg.startSpeedMin + Math.random()*cfg.startSpeedExtra);
+    state.ballVY = (Math.random() * cfg.verticalRange - cfg.verticalRange/2);
     state.rallyHits = 0;
     clearSpin();
   }
@@ -1014,7 +1087,7 @@
 
       if (now >= aiNextThinkAt) {
         // Error mínimo al inicio; luego aumenta progresivamente.
-        const errorRange = 2 + grace * (8 + speedFactor * 50);
+        const errorRange = (2 + grace * (8 + speedFactor * 50)) * difficultyConfig[difficulty].aiErrorScale;
         aiError = (Math.random() * 2 - 1) * errorRange;
 
         // Casi no duda al principio. Luego la posibilidad de duda crece.
@@ -1044,7 +1117,7 @@
         const diff = aiTargetY - state.rightY;
 
         // Arranca con buena movilidad; más adelante queda algo más limitada.
-        const maxStep = 8.5 - grace * (0.8 + speedFactor * 0.8);
+        const maxStep = (8.5 - grace * (0.8 + speedFactor * 0.8)) * difficultyConfig[difficulty].aiSpeedScale;
         state.rightY += clamp(diff, -maxStep, maxStep);
         state.rightY = clamp(state.rightY, 0, canvas.height - paddle.h);
       }
@@ -1064,9 +1137,10 @@
 
     // Aceleración continua: empieza suave, pero ya a los pocos segundos se nota.
     const currentSpeed = Math.hypot(state.ballVX, state.ballVY);
-    const maxSpeed = 19;
+    const cfg = difficultyConfig[difficulty];
+    const maxSpeed = cfg.maxSpeed;
     if (currentSpeed < maxSpeed) {
-      const accel = 1.0017;
+      const accel = cfg.accel;
       state.ballVX *= accel;
       state.ballVY *= accel;
     }
