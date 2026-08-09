@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v30 predicción invitado</title>
+  <title>Pong Doble v31 sesión limpia</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -359,12 +359,13 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v30</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v31</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
     <button id="shareGameBtn" style="display:none">Compartir juego</button>
     <button id="retryBtn" style="display:none">Reintentar conexión</button>
+    <button id="endSessionBtn" style="display:none">Terminar partida</button>
     <button id="rematchBtn" style="display:none">Revancha</button>
     <input id="roomInput" style="display:none" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
     <button id="hostBtn" style="display:none">Crear partida</button>
@@ -409,6 +410,7 @@
   const shareGameBtn = document.getElementById('shareGameBtn');
   const shareCodeBtn = document.getElementById('shareCodeBtn');
   const retryBtn = document.getElementById('retryBtn');
+  const endSessionBtn = document.getElementById('endSessionBtn');
   const rematchBtn = document.getElementById('rematchBtn');
   const sideChooser = document.getElementById('sideChooser');
   const sideToggleBtn = document.getElementById('sideToggleBtn');
@@ -533,6 +535,42 @@
     return 'pong-' + Math.random().toString(36).slice(2, 7);
   }
 
+  function closeCurrentSession(goToMenu = true) {
+    connected = false;
+    gameReady = false;
+    countdownUntil = 0;
+    pointPauseUntil = 0;
+    matchOver = false;
+    winner = null;
+
+    if (conn) {
+      try { conn.close(); } catch(e) {}
+      conn = null;
+    }
+
+    if (peer) {
+      try { peer.destroy(); } catch(e) {}
+      peer = null;
+    }
+
+    roomInput.value = '';
+    roomInput.readOnly = false;
+    retryBtn.style.display = 'none';
+    endSessionBtn.style.display = 'none';
+    shareGameBtn.style.display = 'none';
+    shareCodeBtn.style.display = 'none';
+
+    if (goToMenu) {
+      mode = 'menu';
+      role = null;
+      isHost = false;
+      peerBadge.textContent = 'elegí modo';
+      roleText.textContent = 'Rol: espectador local';
+      setStatus('Elegí 1 jugador o Multijugador.');
+      showMultiControls(false);
+    }
+  }
+
   function createPeer(id) {
     if (peer) {
       try { peer.destroy(); } catch(e){}
@@ -576,6 +614,7 @@
 
     conn.on('open', () => {
       connected = true;
+      endSessionBtn.style.display = '';
       peerBadge.textContent = 'conectado';
       if (isHost) {
         role = 'left';
@@ -619,6 +658,11 @@
       if (data.type === 'requestRematch' && isHost && matchOver) {
         resetMatch(true);
         setStatus('Revancha. Preparados…');
+      }
+
+      if (data.type === 'sessionEnded') {
+        closeCurrentSession(true);
+        return;
       }
 
       if (data.type === 'paddle' && isHost) {
@@ -665,8 +709,11 @@
 
     conn.on('close', () => {
       connected = false;
-      peerBadge.textContent = 'desconectado';
-      setStatus('Se cerró la conexión.');
+      if (mode === 'multi') {
+        peerBadge.textContent = 'desconectado';
+        setStatus('Se cerró la conexión.');
+        endSessionBtn.style.display = '';
+      }
     });
   }
 
@@ -681,6 +728,8 @@
   }
 
   function createMultiplayerSession() {
+    closeCurrentSession(false);
+
     mode = 'multi';
     connected = false;
     gameReady = false;
@@ -699,12 +748,14 @@
     roomInput.readOnly = true;
 
     showMultiControls(true);
+    endSessionBtn.style.display = '';
     peerBadge.textContent = 'creando sala';
     setStatus('Partida creada. Tocá “Compartir juego” para invitar al otro jugador.');
     createPeer(code);
   }
 
   function startSolo() {
+    closeCurrentSession(false);
     mode = 'solo';
     pointPauseUntil = 0;
     roomInput.readOnly = false;
@@ -1436,6 +1487,8 @@
   }
 
   function autoJoinRoom(code) {
+    closeCurrentSession(false);
+
     mode = 'multi';
     connected = false;
     gameReady = false;
@@ -1450,6 +1503,7 @@
     roomInput.value = code;
     roomInput.readOnly = true;
     showMultiControls(false);
+    endSessionBtn.style.display = '';
 
     peerBadge.textContent = 'conectando…';
     roleText.textContent = 'Rol: barra derecha';
@@ -1493,6 +1547,13 @@
 
   rematchBtn.addEventListener('click', () => {
     startRematchFromLocalTap();
+  });
+
+  endSessionBtn.addEventListener('click', () => {
+    if (conn && conn.open) {
+      try { conn.send({ type:'sessionEnded' }); } catch(e) {}
+    }
+    closeCurrentSession(true);
   });
 
   retryBtn.addEventListener('click', () => {
