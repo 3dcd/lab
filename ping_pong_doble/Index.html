@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pong Doble v20 responsive</title>
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <style>
+    :root{
+      --bg:#08111f;
+      --panel:#0e1b2f;
+      --line:#274261;
+      --text:#f4f7fb;
+      --muted:#9eb0c6;
+      --accent:#7dd3fc;
+      --danger:#fb7185;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      width:100%;
+      min-height:100%;
+      overflow-x:hidden;
+      background:var(--bg);
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      overscroll-behavior:none;
+      touch-action:none;
+    }
+    body{
+      min-height:100dvh;
+      display:flex;
+      flex-direction:column;
+      padding:12px;
+      padding-bottom:calc(12px + env(safe-area-inset-bottom));
+      gap:10px;
+    }
+    .top{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      background:var(--panel);
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:16px;
+    }
+    .title{
+      font-weight:800;
+      margin-right:auto;
+      letter-spacing:.2px;
+    }
+    .badge{
+      font-size:12px;
+      color:var(--muted);
+    }
+    button,input{
+      border:1px solid var(--line);
+      background:#12243d;
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:15px;
+    }
+    button{font-weight:700}
+    button:active{transform:scale(.98)}
+    input{
+      width:150px;
+      outline:none;
+    }
+    .status{
+      width:100%;
+      font-size:13px;
+      color:var(--muted);
+      min-height:18px;
+    }
+    .gameWrap{
+      flex:1;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    canvas{
+      width:min(100%, 900px);
+      max-height:72vh;
+      aspect-ratio:16/9;
+      background:#02070e;
+      border:1px solid var(--line);
+      border-radius:18px;
+      display:block;
+      box-shadow:0 10px 40px rgba(0,0,0,.25);
+    }
+    .controls{
+      width:min(100%, 900px);
+      align-self:center;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px;
+      display:grid;
+      grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);
+      gap:10px;
+      align-items:stretch;
+      overflow:hidden;
+    }
+    .controls > *{min-width:0}
+    .role{
+      font-weight:700;
+    }
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .touch{
+      position:relative;
+      width:100%;
+      min-width:0;
+      height:118px;
+      border-radius:14px;
+      border:1px dashed var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      user-select:none;
+      overflow:hidden;
+      touch-action:none;
+    }
+    .touch::before{
+      content:"";
+      position:absolute;
+      top:14px;
+      bottom:14px;
+      left:50%;
+      width:3px;
+      border-radius:3px;
+      background:#20344a;
+      transform:translateX(-50%);
+    }
+    .touchHandle{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:54px;
+      height:18px;
+      border-radius:999px;
+      background:var(--accent);
+      transform:translate(-50%,-50%);
+      box-shadow:0 2px 10px rgba(0,0,0,.35);
+      pointer-events:none;
+    }
+    .touchLabel{
+      position:absolute;
+      left:10px;
+      top:10px;
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.5px;
+      color:var(--muted);
+      pointer-events:none;
+    }
+    .touchArrows{
+      position:absolute;
+      right:10px;
+      top:50%;
+      transform:translateY(-50%);
+      font-size:24px;
+      line-height:1.15;
+      color:var(--muted);
+      text-align:center;
+      pointer-events:none;
+    }
+    .touch.active{
+      color:var(--text);
+      border-style:solid;
+      border-color:var(--accent);
+    }
+    @media (max-width:650px){
+      body{padding:8px}
+      .top{border-radius:14px}
+      .controls{grid-template-columns:1fr}
+      input{width:132px}
+      canvas{max-height:58vh}
+      .touch{height:132px}
+    }
+  
+    @media (orientation:landscape) and (max-height:650px){
+      body{
+        display:grid;
+        grid-template-columns:190px minmax(0,1fr) 190px;
+        grid-template-rows:1fr;
+        gap:8px;
+        min-height:100dvh;
+        height:100dvh;
+        padding:8px;
+        padding-left:calc(8px + env(safe-area-inset-left));
+        padding-right:calc(8px + env(safe-area-inset-right));
+        padding-bottom:calc(8px + env(safe-area-inset-bottom));
+        overflow:hidden;
+      }
+
+      .top{
+        grid-column:1;
+        grid-row:1;
+        align-self:stretch;
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+        justify-content:flex-start;
+        gap:7px;
+        padding:8px;
+        overflow:auto;
+        border-radius:14px;
+      }
+
+      .title{
+        margin-right:0;
+        font-size:14px;
+      }
+
+      .badge{
+        font-size:11px;
+      }
+
+      .top button,
+      .top input{
+        width:100%;
+        font-size:13px;
+        padding:8px 9px;
+      }
+
+      .status{
+        font-size:11px;
+        line-height:1.25;
+        min-height:0;
+      }
+
+      .gameWrap{
+        grid-column:2;
+        grid-row:1;
+        min-width:0;
+        min-height:0;
+        align-self:center;
+      }
+
+      canvas{
+        width:100%;
+        height:auto;
+        max-height:calc(100dvh - 16px);
+        aspect-ratio:16/9;
+        border-radius:14px;
+      }
+
+      .controls{
+        grid-column:3;
+        grid-row:1;
+        width:100%;
+        height:100%;
+        align-self:stretch;
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        padding:8px;
+        overflow:hidden;
+      }
+
+      .controls > div:first-child{
+        flex:0 0 auto;
+      }
+
+      .role{
+        font-size:13px;
+      }
+
+      .hint{
+        font-size:10px;
+        line-height:1.2;
+      }
+
+      .touch{
+        flex:1;
+        min-height:0;
+        height:auto;
+      }
+
+      .touchLabel{
+        font-size:10px;
+      }
+    }
+
+    @media (orientation:landscape) and (max-height:480px){
+      body{
+        grid-template-columns:160px minmax(0,1fr) 160px;
+      }
+
+      .hint{
+        display:none;
+      }
+
+      .top{
+        gap:5px;
+      }
+
+      .top button,
+      .top input{
+        padding:6px 8px;
+        font-size:12px;
+      }
+
+      .status{
+        font-size:10px;
+      }
+    }
+
+  
+    .sideChooser{
+      display:none;
+      align-items:center;
+      gap:6px;
+      margin-top:8px;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .sideChooser button{
+      padding:5px 8px;
+      font-size:11px;
+      border-radius:9px;
+    }
+    .sideChooser .activeSide{
+      border-color:var(--accent);
+      color:var(--text);
+      background:#18314f;
+    }
+
+    @media (orientation:landscape) and (max-height:650px){
+      .sideChooser{
+        display:flex;
+      }
+
+      body.control-left{
+        grid-template-columns:190px 190px minmax(0,1fr);
+      }
+
+      body.control-left .top{
+        grid-column:1;
+      }
+
+      body.control-left .controls{
+        grid-column:2;
+      }
+
+      body.control-left .gameWrap{
+        grid-column:3;
+      }
+    }
+
+    @media (orientation:landscape) and (max-height:480px){
+      body.control-left{
+        grid-template-columns:160px 160px minmax(0,1fr);
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v20</span></div>
+    <div class="badge" id="peerBadge">sin conexión</div>
+    <button id="soloBtn">1 jugador</button>
+    <button id="multiBtn">Multijugador</button>
+    <button id="shareGameBtn" style="display:none">Compartir juego</button>
+    <button id="retryBtn" style="display:none">Reintentar conexión</button>
+    <button id="rematchBtn" style="display:none">Revancha</button>
+    <input id="roomInput" style="display:none" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
+    <button id="hostBtn" style="display:none">Crear partida</button>
+    <button id="shareCodeBtn" style="display:none">Compartir código</button>
+    <button id="joinBtn" style="display:none">Unirme a partida</button>
+    <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
+  </div>
+
+  <div class="gameWrap">
+    <canvas id="game" width="1280" height="720"></canvas>
+  </div>
+
+  <div class="controls" id="controlsPanel">
+    <div>
+      <div class="role" id="roleText">Rol: espectador local</div>
+      <div class="hint">Mové el dedo hacia arriba y abajo dentro del recuadro. La barrita celeste te muestra la posición de tu paleta.</div>
+      <div class="sideChooser" id="sideChooser">
+        <span>Control</span>
+        <button id="sideLeftBtn" type="button">Izq</button>
+        <button id="sideRightBtn" type="button" class="activeSide">Der</button>
+      </div>
+    </div>
+    <div class="touch" id="touchArea">
+      <div class="touchLabel">CONTROL</div>
+      <div class="touchHandle" id="touchHandle"></div>
+      <div class="touchArrows">▲<br>▼</div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+  const peerBadge = document.getElementById('peerBadge');
+  const roleText = document.getElementById('roleText');
+  const touchArea = document.getElementById('touchArea');
+  const touchHandle = document.getElementById('touchHandle');
+  const roomInput = document.getElementById('roomInput');
+  const hostBtn = document.getElementById('hostBtn');
+  const joinBtn = document.getElementById('joinBtn');
+  const soloBtn = document.getElementById('soloBtn');
+  const multiBtn = document.getElementById('multiBtn');
+  const shareGameBtn = document.getElementById('shareGameBtn');
+  const shareCodeBtn = document.getElementById('shareCodeBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const rematchBtn = document.getElementById('rematchBtn');
+  const sideChooser = document.getElementById('sideChooser');
+  const sideLeftBtn = document.getElementById('sideLeftBtn');
+  const sideRightBtn = document.getElementById('sideRightBtn');
+
+  let peer = null;
+  let conn = null;
+  let isHost = false;
+  let role = null; // left | right
+  let connected = false;
+  let mode = 'menu'; // menu | solo | multi
+  let countdownUntil = 0;
+  let gameReady = false;
+  let matchOver = false;
+  let winner = null; // left | right
+  const WIN_SCORE = 10;
+  let matchesLeft = 0;
+  let matchesRight = 0;
+  let obstacles = [];
+
+  // Rival virtual: deliberadamente imperfecto.
+  let aiTargetY = 280;
+  let aiNextThinkAt = 0;
+  let aiError = 0;
+  let aiHesitationUntil = 0;
+  let soloStartedAt = 0;
+
+  const state = {
+    leftY: 280,
+    rightY: 280,
+    ballX: 640,
+    ballY: 360,
+    ballVX: 7,
+    ballVY: 4.5,
+    scoreL: 0,
+    scoreR: 0,
+    rallyHits: 0,
+    flash: 0,
+    flashColor: null
+  };
+
+  const paddle = { w:22, h:150, margin:42, speed:15 };
+  const ballR = 15;
+
+  function setStatus(msg){ statusEl.textContent = msg; }
+
+  function setControlSide(side){
+    const left = side === 'left';
+    document.body.classList.toggle('control-left', left);
+    sideLeftBtn.classList.toggle('activeSide', left);
+    sideRightBtn.classList.toggle('activeSide', !left);
+  }
+
+  sideLeftBtn.addEventListener('click', () => setControlSide('left'));
+  sideRightBtn.addEventListener('click', () => setControlSide('right'));
+
+  function generateObstacles() {
+    const list = [];
+    const count = 4; // dos aproximados por lado del centro
+    const centerX = canvas.width / 2;
+
+    for (let i = 0; i < count; i++) {
+      const side = i < 2 ? -1 : 1;
+      const x = centerX + side * (90 + Math.random() * 170);
+      const y = 120 + Math.random() * (canvas.height - 240);
+      const w = 30 + Math.random() * 40;
+      const h = 70 + Math.random() * 65;
+      const angle = (-28 + Math.random() * 56) * Math.PI / 180;
+
+      list.push({ x, y, w, h, angle });
+    }
+
+    obstacles = list;
+  }
+
+  function resetMatch(notifyPeer = false) {
+    state.scoreL = 0;
+    state.scoreR = 0;
+    winner = null;
+    matchOver = false;
+    rematchBtn.style.display = 'none';
+    generateObstacles();
+    resetBall(Math.random() > .5 ? 1 : -1);
+    startCountdown(3200, notifyPeer);
+
+    if (notifyPeer && conn && conn.open) {
+      conn.send({ type:'resetMatch' });
+    }
+  }
+
+  function startCountdown(ms = 3200, notifyPeer = false) {
+    countdownUntil = performance.now() + ms;
+    gameReady = false;
+    state.ballX = canvas.width / 2;
+    state.ballY = canvas.height / 2;
+
+    if (notifyPeer && conn && conn.open) {
+      conn.send({ type:'countdown', duration: ms });
+    }
+  }
+
+  function makeRoomCode() {
+    return 'pong-' + Math.random().toString(36).slice(2, 7);
+  }
+
+  function createPeer(id) {
+    if (peer) {
+      try { peer.destroy(); } catch(e){}
+    }
+
+    peer = id
+      ? new Peer(id, { debug: 1 })
+      : new Peer({ debug: 1 });
+
+    peer.on('open', peerId => {
+      peerBadge.textContent = peerId;
+      if (isHost) {
+        roomInput.value = peerId;
+        setStatus('Sala creada. Pasale este código al otro celular.');
+      }
+    });
+
+    peer.on('connection', incoming => {
+      if (!isHost) return;
+      if (conn && conn.open) {
+        incoming.close();
+        return;
+      }
+      conn = incoming;
+      setupConnection();
+    });
+
+    peer.on('error', err => {
+      console.error(err);
+      if (mode === 'multi' && !isHost) {
+        retryBtn.style.display = '';
+        setStatus('La conexión no pudo completarse. Podés reintentar.');
+      } else {
+        setStatus('Error de conexión: ' + (err.type || err.message));
+      }
+    });
+  }
+
+  function setupConnection() {
+    if (!conn) return;
+
+    conn.on('open', () => {
+      connected = true;
+      peerBadge.textContent = 'conectado';
+      if (isHost) {
+        role = 'left';
+        roleText.textContent = 'Rol: barra izquierda';
+        conn.send({ type:'role', role:'right' });
+        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles });
+        startCountdown(3200, true);
+        setStatus('Jugador conectado. La partida comienza en 3…');
+      } else {
+        setStatus('Conectado al anfitrión. Preparando partida…');
+      }
+    });
+
+    conn.on('data', data => {
+      if (!data || typeof data !== 'object') return;
+
+      if (data.type === 'role') {
+        role = data.role;
+        roleText.textContent = role === 'right' ? 'Rol: barra derecha' : 'Rol: barra izquierda';
+      }
+
+      if (data.type === 'countdown') {
+        startCountdown(Number(data.duration) || 3200, false);
+        setStatus('Partida encontrada. Preparados…');
+      }
+
+      if (data.type === 'resetMatch') {
+        state.scoreL = 0;
+        state.scoreR = 0;
+        winner = null;
+        matchOver = false;
+        rematchBtn.style.display = 'none';
+        resetBall(Math.random() > .5 ? 1 : -1);
+      }
+
+      if (data.type === 'requestRematch' && isHost && matchOver) {
+        resetMatch(true);
+        setStatus('Revancha. Preparados…');
+      }
+
+      if (data.type === 'paddle' && isHost) {
+        if (data.role === 'right') state.rightY = clamp(data.y, 0, canvas.height - paddle.h);
+      }
+
+      if (data.type === 'state' && !isHost) {
+        Object.assign(state, data.state);
+        if (typeof data.matchesLeft === 'number') matchesLeft = data.matchesLeft;
+        if (typeof data.matchesRight === 'number') matchesRight = data.matchesRight;
+        if (typeof data.matchOver === 'boolean') matchOver = data.matchOver;
+        if (data.winner === 'left' || data.winner === 'right' || data.winner === null) winner = data.winner;
+        if (Array.isArray(data.obstacles)) obstacles = data.obstacles;
+      }
+
+      if (data.type === 'restart' && isHost) {
+        resetBall(Math.random() > .5 ? 1 : -1);
+    startCountdown(3200, false);
+      }
+    });
+
+    conn.on('close', () => {
+      connected = false;
+      peerBadge.textContent = 'desconectado';
+      setStatus('Se cerró la conexión.');
+    });
+  }
+
+
+  function showMultiControls(show) {
+    hostBtn.style.display = 'none';
+    roomInput.style.display = 'none';
+    joinBtn.style.display = 'none';
+    shareCodeBtn.style.display = 'none';
+    shareGameBtn.style.display = show ? '' : 'none';
+    retryBtn.style.display = 'none';
+  }
+
+  function createMultiplayerSession() {
+    mode = 'multi';
+    connected = false;
+    gameReady = false;
+    countdownUntil = 0;
+    matchesLeft = 0;
+    matchesRight = 0;
+    isHost = true;
+    role = 'left';
+    roleText.textContent = 'Rol: barra izquierda';
+
+    generateObstacles();
+
+    const code = makeRoomCode();
+    roomInput.value = code;
+    roomInput.readOnly = true;
+
+    showMultiControls(true);
+    peerBadge.textContent = 'creando sala';
+    setStatus('Partida creada. Tocá “Compartir juego” para invitar al otro jugador.');
+    createPeer(code);
+  }
+
+  function startSolo() {
+    mode = 'solo';
+    roomInput.readOnly = false;
+    showMultiControls(false);
+    connected = true;
+    isHost = true;
+    role = 'left';
+    roleText.textContent = 'Rol: barra izquierda · rival automático';
+    peerBadge.textContent = '1 jugador';
+    setStatus('Modo 1 jugador. Al principio el rival juega casi perfecto; después empieza a cometer errores.');
+    state.scoreL = 0;
+    state.scoreR = 0;
+    matchesLeft = 0;
+    matchesRight = 0;
+    matchOver = false;
+    winner = null;
+    rematchBtn.style.display = 'none';
+    state.leftY = 280;
+    state.rightY = 280;
+    aiTargetY = 280;
+    aiNextThinkAt = 0;
+    aiError = 0;
+    aiHesitationUntil = 0;
+    soloStartedAt = performance.now();
+    generateObstacles();
+    resetBall(Math.random() > .5 ? 1 : -1);
+    startCountdown(3200, false);
+  }
+
+  soloBtn.addEventListener('click', startSolo);
+
+  multiBtn.addEventListener('click', () => {
+    createMultiplayerSession();
+  });
+
+  hostBtn.addEventListener('click', () => {
+    createMultiplayerSession();
+  });
+
+  shareGameBtn.addEventListener('click', async () => {
+    const code = roomInput.value.trim();
+    let inviteUrl = new URL(window.location.href);
+    inviteUrl.searchParams.delete('sala');
+
+    if (code) {
+      inviteUrl.searchParams.set('sala', code);
+    }
+
+    const url = inviteUrl.toString();
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Pong Doble',
+          url
+        });
+        setStatus(code ? 'Invitación enviada. Esperando al otro jugador…' : 'Juego compartido.');
+        return;
+      } catch (err) {
+        // Si se cancela o falla, mostramos el enlace.
+      }
+    }
+
+    setStatus(code
+      ? 'Compartí esta invitación: ' + url
+      : 'Compartí este enlace: ' + url);
+  });
+
+  shareCodeBtn.addEventListener('click', async () => {
+    const code = roomInput.value.trim();
+    if (!code) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          text: code
+        });
+        setStatus('Código listo para compartir.');
+        return;
+      } catch (err) {
+        // Si se cancela o falla, seleccionamos el código.
+      }
+    }
+
+    roomInput.focus();
+    roomInput.select();
+    roomInput.setSelectionRange(0, roomInput.value.length);
+    setStatus('Código seleccionado. Copialo y envialo al otro jugador.');
+  });
+
+  joinBtn.addEventListener('click', () => {
+    mode = 'multi';
+    roomInput.readOnly = false;
+    shareCodeBtn.style.display = 'none';
+    const code = roomInput.value.trim();
+    if (!code) {
+      setStatus('Escribí el código de sala del otro dispositivo.');
+      return;
+    }
+
+    isHost = false;
+    role = 'right';
+    roleText.textContent = 'Rol: barra derecha';
+    createPeer();
+
+    peer.on('open', () => {
+      conn = peer.connect(code, { reliable: true });
+      setupConnection();
+      setStatus('Intentando conectar...');
+    });
+  });
+
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+  function localMove(yNormalized) {
+    yNormalized = clamp(yNormalized, 0, 1);
+    touchHandle.style.top = (10 + yNormalized * 80) + '%';
+    const y = clamp(yNormalized * canvas.height - paddle.h/2, 0, canvas.height - paddle.h);
+
+    if (role === 'left') {
+      state.leftY = y;
+    } else if (role === 'right') {
+      if (isHost) state.rightY = y;
+      else {
+        state.rightY = y;
+        if (conn && conn.open) conn.send({ type:'paddle', role:'right', y });
+      }
+    }
+  }
+
+  let touching = false;
+
+  function pointerMove(ev) {
+    const r = touchArea.getBoundingClientRect();
+    const norm = clamp((ev.clientY - r.top) / r.height, 0, 1);
+    localMove(norm);
+  }
+
+  touchArea.addEventListener('pointerdown', ev => {
+    touching = true;
+    touchArea.classList.add('active');
+    touchArea.setPointerCapture(ev.pointerId);
+    pointerMove(ev);
+  });
+
+  touchArea.addEventListener('pointermove', ev => {
+    if (touching) pointerMove(ev);
+  });
+
+  function endTouch(ev) {
+    touching = false;
+    touchArea.classList.remove('active');
+    try { touchArea.releasePointerCapture(ev.pointerId); } catch(e){}
+  }
+
+  touchArea.addEventListener('pointerup', endTouch);
+  touchArea.addEventListener('pointercancel', endTouch);
+
+  canvas.addEventListener('pointerup', () => {
+    if (matchOver) {
+      startRematchFromLocalTap();
+    }
+  });
+
+  function resetBall(dir=1){
+    state.ballX = canvas.width/2;
+    state.ballY = canvas.height/2;
+    state.ballVX = dir * (6.2 + Math.random()*1.2);
+    state.ballVY = (Math.random() * 5.6 - 2.8);
+    state.rallyHits = 0;
+  }
+
+  function collideBallWithObstacle(o) {
+    const cos = Math.cos(-o.angle);
+    const sin = Math.sin(-o.angle);
+
+    const dx = state.ballX - o.x;
+    const dy = state.ballY - o.y;
+
+    const lx = dx * cos - dy * sin;
+    const ly = dx * sin + dy * cos;
+
+    const hw = o.w / 2;
+    const hh = o.h / 2;
+
+    const cx = clamp(lx, -hw, hw);
+    const cy = clamp(ly, -hh, hh);
+
+    const ddx = lx - cx;
+    const ddy = ly - cy;
+    const dist2 = ddx * ddx + ddy * ddy;
+
+    if (dist2 > ballR * ballR) return false;
+
+    // Normal local aproximada según el lado más cercano.
+    let nx = 0, ny = 0;
+    if (Math.abs(ddx) > Math.abs(ddy)) {
+      nx = ddx >= 0 ? 1 : -1;
+    } else {
+      ny = ddy >= 0 ? 1 : -1;
+    }
+
+    // Normal al mundo.
+    const c2 = Math.cos(o.angle);
+    const s2 = Math.sin(o.angle);
+    const wx = nx * c2 - ny * s2;
+    const wy = nx * s2 + ny * c2;
+
+    const dot = state.ballVX * wx + state.ballVY * wy;
+    state.ballVX = state.ballVX - 2 * dot * wx;
+    state.ballVY = state.ballVY - 2 * dot * wy;
+
+    // Pequeña ganancia arcade para que el rebote se sienta vivo.
+    state.ballVX *= 1.025;
+    state.ballVY *= 1.025;
+
+    // Sacar la pelota un poco del obstáculo para evitar rebotes repetidos.
+    state.ballX += wx * (ballR + 3);
+    state.ballY += wy * (ballR + 3);
+
+    return true;
+  }
+
+  function hostPhysics() {
+    if (mode === 'solo') {
+      const now = performance.now();
+      const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
+      const speedFactor = clamp((ballSpeed - 6) / 13, 0, 1);
+      const elapsedSolo = Math.max(0, now - soloStartedAt);
+
+      // Durante los primeros ~4 segundos, la máquina juega casi perfecto.
+      const grace = clamp(elapsedSolo / 4000, 0, 1);
+
+      if (now >= aiNextThinkAt) {
+        // Error mínimo al inicio; luego aumenta progresivamente.
+        const errorRange = 2 + grace * (8 + speedFactor * 50);
+        aiError = (Math.random() * 2 - 1) * errorRange;
+
+        // Casi no duda al principio. Luego la posibilidad de duda crece.
+        const hesitationChance = grace * (0.01 + speedFactor * 0.13);
+        if (Math.random() < hesitationChance) {
+          aiHesitationUntil = now + 70 + grace * speedFactor * (120 + Math.random() * 180);
+        }
+
+        let predictedY = state.ballY;
+
+        if (state.ballVX > 0) {
+          const distanceX = (canvas.width - paddle.margin - paddle.w) - state.ballX;
+          const framesAhead = distanceX / Math.max(1, state.ballVX);
+
+          // Al comienzo anticipa mucho mejor; después la predicción es menos precisa.
+          const predictionStrength = 0.72 - grace * 0.20;
+          predictedY = state.ballY + state.ballVY * framesAhead * predictionStrength;
+        }
+
+        aiTargetY = predictedY - paddle.h / 2 + aiError;
+
+        // Reacción muy rápida al comienzo y más humana después.
+        aiNextThinkAt = now + (35 + grace * 25) + Math.random() * (20 + grace * (30 + speedFactor * 70));
+      }
+
+      if (now >= aiHesitationUntil) {
+        const diff = aiTargetY - state.rightY;
+
+        // Arranca con buena movilidad; más adelante queda algo más limitada.
+        const maxStep = 8.5 - grace * (0.8 + speedFactor * 0.8);
+        state.rightY += clamp(diff, -maxStep, maxStep);
+        state.rightY = clamp(state.rightY, 0, canvas.height - paddle.h);
+      }
+    }
+    state.ballX += state.ballVX;
+    state.ballY += state.ballVY;
+
+    // Aceleración continua: empieza suave, pero ya a los pocos segundos se nota.
+    const currentSpeed = Math.hypot(state.ballVX, state.ballVY);
+    const maxSpeed = 19;
+    if (currentSpeed < maxSpeed) {
+      const accel = 1.0017;
+      state.ballVX *= accel;
+      state.ballVY *= accel;
+    }
+
+    if (state.ballY - ballR < 0) {
+      state.ballY = ballR;
+      state.ballVY = Math.abs(state.ballVY);
+    }
+    if (state.ballY + ballR > canvas.height) {
+      state.ballY = canvas.height - ballR;
+      state.ballVY = -Math.abs(state.ballVY);
+    }
+
+    for (const o of obstacles) {
+      if (collideBallWithObstacle(o)) break;
+    }
+
+    const leftX = paddle.margin;
+    const rightX = canvas.width - paddle.margin - paddle.w;
+    const tip = 34; // zona inclinada superior/inferior de la paleta
+    const bevelReach = 18; // cuánto sobresale visualmente el bisel
+
+    // LEFT paddle collision with angled tips
+    if (
+      state.ballVX < 0 &&
+      state.ballX - ballR <= leftX + paddle.w + bevelReach &&
+      state.ballX > leftX - 8 &&
+      state.ballY >= state.leftY - 6 &&
+      state.ballY <= state.leftY + paddle.h + 6
+    ) {
+      const localY = state.ballY - state.leftY;
+      let hit = false;
+
+      if (localY >= 0 && localY <= paddle.h) {
+        hit = true;
+        state.ballX = leftX + paddle.w + ballR;
+
+        if (localY < tip) {
+          // Punta superior: rebote marcado hacia arriba
+          state.ballVX = Math.abs(state.ballVX) * 1.07;
+          state.ballVY = -Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+        } else if (localY > paddle.h - tip) {
+          // Punta inferior: rebote marcado hacia abajo
+          state.ballVX = Math.abs(state.ballVX) * 1.07;
+          state.ballVY = Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+        } else {
+          const offset = (state.ballY - (state.leftY + paddle.h/2)) / (paddle.h/2);
+          state.ballVX = Math.abs(state.ballVX) * 1.045;
+          state.ballVY += offset * 3.2;
+        }
+      }
+
+      if (hit) state.rallyHits++;
+    }
+
+    // RIGHT paddle collision with mirrored angled tips
+    if (
+      state.ballVX > 0 &&
+      state.ballX + ballR >= rightX - bevelReach &&
+      state.ballX < rightX + paddle.w + 8 &&
+      state.ballY >= state.rightY - 6 &&
+      state.ballY <= state.rightY + paddle.h + 6
+    ) {
+      const localY = state.ballY - state.rightY;
+      let hit = false;
+
+      if (localY >= 0 && localY <= paddle.h) {
+        hit = true;
+        state.ballX = rightX - ballR;
+
+        if (localY < tip) {
+          state.ballVX = -Math.abs(state.ballVX) * 1.07;
+          state.ballVY = -Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+        } else if (localY > paddle.h - tip) {
+          state.ballVX = -Math.abs(state.ballVX) * 1.07;
+          state.ballVY = Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+        } else {
+          const offset = (state.ballY - (state.rightY + paddle.h/2)) / (paddle.h/2);
+          state.ballVX = -Math.abs(state.ballVX) * 1.045;
+          state.ballVY += offset * 3.2;
+        }
+      }
+
+      if (hit) state.rallyHits++;
+    }
+
+    if (state.ballX < -50) {
+      state.scoreR++;
+      state.flash = 1;
+      state.flashColor = role === 'left' ? 'red' : 'green';
+
+      if (state.scoreR >= WIN_SCORE && !matchOver) {
+        matchOver = true;
+        winner = 'right';
+        matchesRight++;
+        gameReady = false;
+        rematchBtn.style.display = 'none';
+        setStatus('Partida terminada. Tocá el cartel para jugar otra vez.');
+      } else {
+        generateObstacles();
+        resetBall(1);
+      }
+    }
+
+    if (state.ballX > canvas.width + 50) {
+      state.scoreL++;
+      state.flash = 1;
+      state.flashColor = role === 'right' ? 'red' : 'green';
+
+      if (state.scoreL >= WIN_SCORE && !matchOver) {
+        matchOver = true;
+        winner = 'left';
+        matchesLeft++;
+        gameReady = false;
+        rematchBtn.style.display = 'none';
+        setStatus('Partida terminada. Tocá el cartel para jugar otra vez.');
+      } else {
+        generateObstacles();
+        resetBall(-1);
+      }
+    }
+
+    if (state.flash > 0) {
+      state.flash = Math.max(0, state.flash - 0.045);
+    }
+  }
+
+  let lastSync = 0;
+
+  function render() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = '#02070e';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    if (state.flash > 0 && state.flashColor) {
+      const a = 0.72 * state.flash;
+      ctx.fillStyle = state.flashColor === 'red'
+        ? `rgba(255,45,65,${a})`
+        : `rgba(55,220,110,${a})`;
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+
+    ctx.strokeStyle = '#20344a';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([18,22]);
+    ctx.beginPath();
+    ctx.moveTo(canvas.width/2, 20);
+    ctx.lineTo(canvas.width/2, canvas.height-20);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Obstáculos centrales aleatorios: cambian en cada partida.
+    for (const o of obstacles) {
+      ctx.save();
+      ctx.translate(o.x, o.y);
+      ctx.rotate(o.angle);
+
+      ctx.fillStyle = 'rgba(125,211,252,.16)';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(-o.w/2, -o.h/2, o.w, o.h, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawBeveledPaddle(x, y, side) {
+      const w = paddle.w;
+      const h = paddle.h;
+      const bevel = 18;
+      ctx.fillStyle = '#f4f7fb';
+      ctx.beginPath();
+
+      if (side === 'left') {
+        ctx.moveTo(x, y + bevel);
+        ctx.lineTo(x + w, y);
+        ctx.lineTo(x + w, y + h);
+        ctx.lineTo(x, y + h - bevel);
+      } else {
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + w, y + bevel);
+        ctx.lineTo(x + w, y + h - bevel);
+        ctx.lineTo(x, y + h);
+      }
+
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    drawBeveledPaddle(paddle.margin, state.leftY, 'left');
+    drawBeveledPaddle(canvas.width - paddle.margin - paddle.w, state.rightY, 'right');
+
+    ctx.beginPath();
+    ctx.arc(state.ballX, state.ballY, ballR, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.font = '700 76px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#6f839a';
+    ctx.fillText(state.scoreL, canvas.width/2 - 90, 95);
+    ctx.fillText(state.scoreR, canvas.width/2 + 90, 95);
+
+    // Marcador de partidos ganados: persiste entre revanchas.
+    ctx.font = '700 22px system-ui';
+    ctx.fillStyle = '#9eb0c6';
+    ctx.fillText('PARTIDOS', canvas.width/2, 32);
+
+    ctx.font = '800 30px system-ui';
+    ctx.fillStyle = '#f4f7fb';
+    ctx.fillText(matchesLeft + '  —  ' + matchesRight, canvas.width/2, 64);
+
+    if (state.rallyHits >= 6) {
+      ctx.font = '700 22px system-ui';
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText('RALLY ' + state.rallyHits, canvas.width/2, 145);
+    }
+
+    if (matchOver && winner) {
+      ctx.fillStyle = 'rgba(2,7,14,.78)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      const boxW = 680;
+      const boxH = 300;
+      const bx = canvas.width/2 - boxW/2;
+      const by = canvas.height/2 - boxH/2;
+
+      ctx.fillStyle = 'rgba(14,27,47,.97)';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 30);
+      ctx.fill();
+      ctx.stroke();
+
+      let winnerText = '';
+      if (mode === 'solo') {
+        winnerText = winner === 'left' ? '¡GANASTE!' : 'GANÓ LA MÁQUINA';
+      } else {
+        const localWon =
+          (role === 'left' && winner === 'left') ||
+          (role === 'right' && winner === 'right');
+        winnerText = localWon ? '¡GANASTE!' : 'GANÓ TU OPONENTE';
+      }
+
+      ctx.font = '800 58px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillText(winnerText, canvas.width/2, canvas.height/2 - 42);
+
+      ctx.font = '600 26px system-ui';
+      ctx.fillStyle = '#9eb0c6';
+      ctx.fillText('Felicitaciones al ganador', canvas.width/2, canvas.height/2 + 12);
+
+      ctx.font = '700 34px system-ui';
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText(state.scoreL + '  —  ' + state.scoreR, canvas.width/2, canvas.height/2 + 62);
+
+      ctx.font = '600 22px system-ui';
+      ctx.fillStyle = '#9eb0c6';
+      ctx.fillText('PARTIDOS: ' + matchesLeft + '  —  ' + matchesRight, canvas.width/2, canvas.height/2 + 104);
+
+      ctx.font = '600 22px system-ui';
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillText('TOCÁ PARA JUGAR OTRA PARTIDA', canvas.width/2, canvas.height/2 + 154);
+    }
+
+    if (countdownUntil > performance.now()) {
+      const remaining = countdownUntil - performance.now();
+      const number = Math.max(1, Math.ceil(remaining / 1000));
+
+      ctx.fillStyle = 'rgba(2,7,14,.48)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      const boxW = 190;
+      const boxH = 190;
+      const bx = canvas.width/2 - boxW/2;
+      const by = canvas.height/2 - boxH/2;
+
+      ctx.fillStyle = 'rgba(14,27,47,.94)';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 28);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = '800 110px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillText(String(number), canvas.width/2, canvas.height/2 + 4);
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    ctx.font = '600 24px system-ui';
+    ctx.fillStyle = '#8396ab';
+    const footerText = matchOver
+      ? 'PARTIDA FINALIZADA · PRIMERO A 10'
+      : (mode === 'solo'
+        ? '1 JUGADOR · PRIMERO A 10'
+        : (connected ? 'MULTIJUGADOR · PRIMERO A 10' : 'MODO DE CONEXIÓN'));
+    ctx.fillText(footerText, canvas.width/2, canvas.height-34);
+  }
+
+  function loop(t) {
+    if (countdownUntil > 0 && performance.now() >= countdownUntil) {
+      countdownUntil = 0;
+      gameReady = true;
+      setStatus(mode === 'solo' ? '¡Jugando!' : '¡Partida en marcha!');
+    }
+
+    if (isHost && connected && gameReady && !matchOver) {
+      hostPhysics();
+
+      if (conn && conn.open && t - lastSync > 50) {
+        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles });
+        lastSync = t;
+      }
+    } else if (isHost && connected && conn && conn.open && t - lastSync > 120) {
+      // Durante la cuenta atrás mantenemos ambos tableros sincronizados.
+      conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles });
+      lastSync = t;
+    }
+
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function autoJoinRoom(code) {
+    mode = 'multi';
+    connected = false;
+    gameReady = false;
+    countdownUntil = 0;
+    isHost = false;
+    role = 'right';
+    roomInput.value = code;
+    roomInput.readOnly = true;
+    showMultiControls(false);
+
+    peerBadge.textContent = 'conectando…';
+    roleText.textContent = 'Rol: barra derecha';
+    setStatus('Invitación detectada. Conectando automáticamente…');
+
+    createPeer();
+
+    const tryConnect = () => {
+      if (!peer || !peer.id) return;
+      conn = peer.connect(code, { reliable: true });
+      setupConnection();
+
+
+    };
+
+    peer.on('open', tryConnect);
+  }
+
+  function startRematchFromLocalTap() {
+    if (!matchOver) return;
+
+    if (mode === 'solo') {
+      resetMatch(false);
+      setStatus('Nueva partida. Preparados…');
+      return;
+    }
+
+    if (mode === 'multi' && isHost) {
+      resetMatch(true);
+      setStatus('Revancha. Preparados…');
+      return;
+    }
+
+    if (mode === 'multi' && !isHost) {
+      if (conn && conn.open) {
+        conn.send({ type:'requestRematch' });
+        setStatus('Revancha solicitada. Esperando al anfitrión…');
+      }
+    }
+  }
+
+  rematchBtn.addEventListener('click', () => {
+    startRematchFromLocalTap();
+  });
+
+  retryBtn.addEventListener('click', () => {
+    const code = roomInput.value.trim();
+    if (!code) return;
+    retryBtn.style.display = 'none';
+    autoJoinRoom(code);
+  });
+
+  function applyInvitationFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const invitedRoom = (params.get('sala') || '').trim();
+
+    if (!invitedRoom) return false;
+
+    autoJoinRoom(invitedRoom);
+    return true;
+  }
+
+  showMultiControls(false);
+
+  if (!applyInvitationFromUrl()) {
+    peerBadge.textContent = 'elegí modo';
+    setStatus('Elegí 1 jugador o Multijugador.');
+  }
+
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
