@@ -22,7 +22,7 @@
       min-height:100%;
       overflow-x:hidden;
       background:var(--bg) center center / cover no-repeat fixed;
-      transition:background-image .35s ease;
+      transition:none;
       color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       overscroll-behavior:none;
@@ -76,9 +76,16 @@
     .status{
       width:100%;
       font-size:13px;
-      color:var(--muted);
+      color:#f4f7fb;
       min-height:18px;
+      text-shadow:0 1px 3px rgba(0,0,0,.88), 0 0 8px rgba(0,0,0,.45);
     }
+    #preloadCover{position:fixed;inset:0;z-index:9999;background:#10161d;opacity:1;transition:opacity .38s ease;pointer-events:none}
+    #preloadCover.ready{opacity:0}
+    #consoleFade{position:fixed;inset:0;z-index:-1;background-position:center;background-size:cover;background-repeat:no-repeat;opacity:0;pointer-events:none}
+    #consoleFade.active{z-index:0;opacity:1;transition:opacity .9s ease}
+    #consoleFade.fadeOut{opacity:0}
+    body > *:not(#preloadCover):not(#consoleFade){position:relative;z-index:1}
     .gameWrap{
       flex:1;
       min-height:0;
@@ -94,7 +101,7 @@
       border:1px solid var(--line);
       border-radius:18px;
       display:block;
-      box-shadow:0 10px 40px rgba(0,0,0,.25);
+      box-shadow:0 14px 28px rgba(0,0,0,.38), 0 4px 10px rgba(0,0,0,.28);
     }
     .controls{
       width:min(100%, 900px);
@@ -406,6 +413,8 @@
   </style>
 </head>
 <body>
+  <div id="preloadCover"></div>
+  <div id="consoleFade"></div>
   <div class="top">
     <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v34</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
@@ -456,9 +465,26 @@
   const gameBackgrounds = Array.from({length:5}, (_,i) => `fondo_juego_${i+1}.webp`);
   let lastConsoleBg = -1;
   let lastGameBg = -1;
-  const gameBackground = new Image();
+  let gameBackground = new Image();
+  let previousGameBackground = null;
   let gameBackgroundReady = false;
-  gameBackground.addEventListener('load', () => { gameBackgroundReady = true; });
+  let themeFadeStart = 0;
+  const themeFadeDuration = 900;
+  const imageCache = new Map();
+  const preloadCover = document.getElementById('preloadCover');
+  const consoleFade = document.getElementById('consoleFade');
+
+  function preloadImage(src) {
+    if (imageCache.has(src)) return imageCache.get(src);
+    const promise = new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+    imageCache.set(src, promise);
+    return promise;
+  }
 
   function pickDifferent(length, last) {
     if (length <= 1) return 0;
@@ -467,15 +493,52 @@
     return n;
   }
 
-  function randomizeVisualTheme() {
-    lastConsoleBg = pickDifferent(consoleBackgrounds.length, lastConsoleBg);
-    lastGameBg = pickDifferent(gameBackgrounds.length, lastGameBg);
-    document.documentElement.style.backgroundImage = `url('${consoleBackgrounds[lastConsoleBg]}')`;
-    document.body.style.backgroundImage = `url('${consoleBackgrounds[lastConsoleBg]}')`;
-    gameBackgroundReady = false;
-    gameBackground.src = gameBackgrounds[lastGameBg];
+  async function applyTheme(consoleIndex, gameIndex, animate = false) {
+    const consoleSrc = consoleBackgrounds[consoleIndex];
+    const gameSrc = gameBackgrounds[gameIndex];
+    const [consoleImg, gameImg] = await Promise.all([preloadImage(consoleSrc), preloadImage(gameSrc)]);
+    if (!consoleImg || !gameImg) return;
+
+    if (animate && lastConsoleBg >= 0) {
+      const oldConsole = consoleBackgrounds[lastConsoleBg];
+      consoleFade.style.transition = 'none';
+      consoleFade.style.backgroundImage = `url('${oldConsole}')`;
+      consoleFade.className = 'active';
+      document.documentElement.style.backgroundImage = `url('${consoleSrc}')`;
+      document.body.style.backgroundImage = `url('${consoleSrc}')`;
+      void consoleFade.offsetWidth;
+      consoleFade.style.transition = `opacity ${themeFadeDuration}ms ease`;
+      consoleFade.classList.add('fadeOut');
+      setTimeout(() => { consoleFade.className = ''; consoleFade.style.backgroundImage = ''; }, themeFadeDuration + 80);
+      previousGameBackground = gameBackgroundReady ? gameBackground : null;
+      themeFadeStart = performance.now();
+    } else {
+      document.documentElement.style.backgroundImage = `url('${consoleSrc}')`;
+      document.body.style.backgroundImage = `url('${consoleSrc}')`;
+      previousGameBackground = null;
+      themeFadeStart = 0;
+    }
+
+    gameBackground = gameImg;
+    gameBackgroundReady = true;
+    lastConsoleBg = consoleIndex;
+    lastGameBg = gameIndex;
   }
-  randomizeVisualTheme();
+
+  async function randomizeVisualTheme(animate = false) {
+    const nextConsole = pickDifferent(consoleBackgrounds.length, lastConsoleBg);
+    const nextGame = pickDifferent(gameBackgrounds.length, lastGameBg);
+    await applyTheme(nextConsole, nextGame, animate);
+  }
+
+  async function initializeVisuals() {
+    await randomizeVisualTheme(false);
+    preloadCover.classList.add('ready');
+    setTimeout(() => preloadCover.remove(), 450);
+    // El resto se precarga en segundo plano para que los próximos cambios sean instantáneos.
+    [...consoleBackgrounds, ...gameBackgrounds].forEach(preloadImage);
+  }
+  initializeVisuals();
 
   function drawImageCover(ctx, img, x, y, w, h) {
     if (!img || !img.naturalWidth || !img.naturalHeight) return false;
@@ -636,7 +699,7 @@
   }
 
   function resetMatch(notifyPeer = false) {
-    randomizeVisualTheme();
+    randomizeVisualTheme(true);
     state.scoreL = 0;
     state.scoreR = 0;
     winner = null;
@@ -1382,8 +1445,20 @@
   function render() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    if (!gameBackgroundReady || !drawImageCover(ctx, gameBackground, 0, 0, canvas.width, canvas.height)) {
-      ctx.fillStyle = '#02070e';
+    if (!gameBackgroundReady) {
+      ctx.fillStyle = '#10161d';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    } else if (previousGameBackground && themeFadeStart > 0) {
+      const fade = Math.min(1, (performance.now() - themeFadeStart) / themeFadeDuration);
+      ctx.save();
+      ctx.globalAlpha = 1;
+      drawImageCover(ctx, previousGameBackground, 0, 0, canvas.width, canvas.height);
+      ctx.globalAlpha = fade;
+      drawImageCover(ctx, gameBackground, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      if (fade >= 1) { previousGameBackground = null; themeFadeStart = 0; }
+    } else if (!drawImageCover(ctx, gameBackground, 0, 0, canvas.width, canvas.height)) {
+      ctx.fillStyle = '#10161d';
       ctx.fillRect(0,0,canvas.width,canvas.height);
     }
 
