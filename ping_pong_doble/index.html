@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v32 niveles</title>
+  <title>Pong Doble v33 modos ordenados</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -389,11 +389,17 @@
       }
     }
 
+  
+    .top .activeMode{
+      border-color:var(--accent);
+      background:#18314f;
+      color:var(--text);
+    }
   </style>
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v32</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v33</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -524,6 +530,11 @@
 
   function setStatus(msg){ statusEl.textContent = msg; }
 
+  function updateModeButtons() {
+    soloBtn.classList.toggle('activeMode', mode === 'solo');
+    multiBtn.classList.toggle('activeMode', mode === 'multi');
+  }
+
   function setDifficulty(level, fromNetwork = false) {
     if (!difficultyConfig[level]) return;
     difficulty = level;
@@ -531,8 +542,16 @@
     levelMediumBtn.classList.toggle('activeLevel', level === 'medium');
     levelProBtn.classList.toggle('activeLevel', level === 'pro');
 
-    if (!fromNetwork && mode === 'multi' && isHost && conn && conn.open) {
-      conn.send({ type:'difficulty', level });
+    if (fromNetwork) return;
+
+    if (mode === 'solo') {
+      startSolo();
+      return;
+    }
+
+    if (mode === 'multi') {
+      createMultiplayerSession();
+      return;
     }
   }
 
@@ -631,6 +650,7 @@
       mode = 'menu';
       role = null;
       isHost = false;
+      updateModeButtons();
       peerBadge.textContent = 'elegí modo';
       roleText.textContent = 'Rol: espectador local';
       setStatus('Elegí 1 jugador o Multijugador.');
@@ -803,6 +823,7 @@
     closeCurrentSession(false);
 
     mode = 'multi';
+    updateModeButtons();
     connected = false;
     gameReady = false;
     countdownUntil = 0;
@@ -829,6 +850,7 @@
   function startSolo() {
     closeCurrentSession(false);
     mode = 'solo';
+    updateModeButtons();
     pointPauseUntil = 0;
     roomInput.readOnly = false;
     showMultiControls(false);
@@ -1564,6 +1586,7 @@
     closeCurrentSession(false);
 
     mode = 'multi';
+    updateModeButtons();
     connected = false;
     gameReady = false;
     countdownUntil = 0;
@@ -1648,6 +1671,7 @@
   }
 
   showMultiControls(false);
+  updateModeButtons();
 
   if (!applyInvitationFromUrl()) {
     peerBadge.textContent = 'elegí modo';
