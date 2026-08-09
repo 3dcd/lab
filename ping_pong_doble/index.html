@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v24 spin corregido</title>
+  <title>Pong Doble v25 spin por tramo</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -359,7 +359,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v24</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v25</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -842,14 +842,17 @@
     }
   });
 
+  function clearSpin() {
+    clearSpin();
+  }
+
   function resetBall(dir=1){
     state.ballX = canvas.width/2;
     state.ballY = canvas.height/2;
     state.ballVX = dir * (6.2 + Math.random()*1.2);
     state.ballVY = (Math.random() * 5.6 - 2.8);
     state.rallyHits = 0;
-    ballSpin = 0;
-    ballSpinVisual = 0;
+    clearSpin();
   }
 
   function collideBallWithObstacle(o) {
@@ -900,6 +903,7 @@
     state.ballX += wx * (ballR + 3);
     state.ballY += wy * (ballR + 3);
 
+    clearSpin();
     return true;
   }
 
@@ -975,10 +979,12 @@
     if (state.ballY - ballR < 0) {
       state.ballY = ballR;
       state.ballVY = Math.abs(state.ballVY);
+      clearSpin();
     }
     if (state.ballY + ballR > canvas.height) {
       state.ballY = canvas.height - ballR;
       state.ballVY = -Math.abs(state.ballVY);
+      clearSpin();
     }
 
     for (const o of obstacles) {
@@ -1003,6 +1009,7 @@
 
       if (localY >= 0 && localY <= paddle.h) {
         hit = true;
+        clearSpin();
         state.ballX = leftX + paddle.w + ballR;
 
         if (localY < tip) {
@@ -1043,6 +1050,7 @@
 
       if (localY >= 0 && localY <= paddle.h) {
         hit = true;
+        clearSpin();
         state.ballX = rightX - ballR;
 
         if (localY < tip) {
