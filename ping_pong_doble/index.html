@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v29 pausa perceptible</title>
+  <title>Pong Doble v30 predicción invitado</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -359,7 +359,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v29</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v30</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -429,6 +429,13 @@
   let matchesLeft = 0;
   let matchesRight = 0;
   let obstacles = [];
+
+  // Predicción visual para el invitado: evita que la pelota se vea atrasada.
+  let remoteTargetX = 640;
+  let remoteTargetY = 360;
+  let remoteVX = 0;
+  let remoteVY = 0;
+  let lastRemoteStateAt = 0;
 
   // Efecto/spin de la pelota.
   let ballSpin = 0;          // intensidad y signo
@@ -588,6 +595,11 @@
       if (data.type === 'role') {
         role = data.role;
         roleText.textContent = role === 'right' ? 'Rol: barra derecha' : 'Rol: barra izquierda';
+        if (!isHost) {
+          remoteTargetX = state.ballX;
+          remoteTargetY = state.ballY;
+          lastRemoteStateAt = performance.now();
+        }
       }
 
       if (data.type === 'countdown') {
@@ -618,7 +630,24 @@
       }
 
       if (data.type === 'state' && !isHost) {
-        Object.assign(state, data.state);
+        const incoming = data.state || {};
+
+        // El resto del estado sí se actualiza normalmente.
+        if (typeof incoming.leftY === 'number') state.leftY = incoming.leftY;
+        if (typeof incoming.rightY === 'number') state.rightY = incoming.rightY;
+        if (typeof incoming.scoreL === 'number') state.scoreL = incoming.scoreL;
+        if (typeof incoming.scoreR === 'number') state.scoreR = incoming.scoreR;
+        if (typeof incoming.rallyHits === 'number') state.rallyHits = incoming.rallyHits;
+        if (typeof incoming.flash === 'number') state.flash = incoming.flash;
+        if ('flashColor' in incoming) state.flashColor = incoming.flashColor;
+
+        // La pelota se interpola/predice en vez de saltar a cada paquete recibido.
+        if (typeof incoming.ballX === 'number') remoteTargetX = incoming.ballX;
+        if (typeof incoming.ballY === 'number') remoteTargetY = incoming.ballY;
+        if (typeof incoming.ballVX === 'number') remoteVX = incoming.ballVX;
+        if (typeof incoming.ballVY === 'number') remoteVY = incoming.ballVY;
+        lastRemoteStateAt = performance.now();
+
         if (typeof data.matchesLeft === 'number') matchesLeft = data.matchesLeft;
         if (typeof data.matchesRight === 'number') matchesRight = data.matchesRight;
         if (typeof data.matchOver === 'boolean') matchOver = data.matchOver;
@@ -1136,6 +1165,27 @@
 
   let lastSync = 0;
 
+  function updateRemoteBallVisual() {
+    if (isHost || mode !== 'multi' || !connected) return;
+
+    const now = performance.now();
+    const age = Math.min(120, Math.max(0, now - lastRemoteStateAt));
+
+    // Extrapolamos apenas hacia adelante usando la velocidad conocida.
+    const predictedX = remoteTargetX + remoteVX * (age / 16.67);
+    const predictedY = remoteTargetY + remoteVY * (age / 16.67);
+
+    // Corrección suave. Si hay una diferencia enorme (gol, saque, choque fuerte),
+    // corregimos más agresivamente para no quedar desfasados.
+    const dx = predictedX - state.ballX;
+    const dy = predictedY - state.ballY;
+    const dist = Math.hypot(dx, dy);
+
+    const blend = dist > 120 ? 0.72 : 0.28;
+    state.ballX += dx * blend;
+    state.ballY += dy * blend;
+  }
+
   function render() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -1380,6 +1430,7 @@
       lastSync = t;
     }
 
+    updateRemoteBallVisual();
     render();
     requestAnimationFrame(loop);
   }
@@ -1391,6 +1442,11 @@
     countdownUntil = 0;
     isHost = false;
     role = 'right';
+    remoteTargetX = state.ballX;
+    remoteTargetY = state.ballY;
+    remoteVX = 0;
+    remoteVY = 0;
+    lastRemoteStateAt = performance.now();
     roomInput.value = code;
     roomInput.readOnly = true;
     showMultiControls(false);
