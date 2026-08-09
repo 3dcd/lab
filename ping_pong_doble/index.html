@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v25 spin por tramo</title>
+  <title>Pong Doble v26 spin corregido</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -359,7 +359,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v25</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v26</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -843,7 +843,8 @@
   });
 
   function clearSpin() {
-    clearSpin();
+    ballSpin = 0;
+    ballSpinVisual = 0;
   }
 
   function resetBall(dir=1){
