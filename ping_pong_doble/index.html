@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v37 velocidad estable</title>
+  <title>Pong Doble v38 física por tiempo</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -459,13 +459,22 @@
       stroke: rgba(255,255,255,.94) !important;
       fill: rgba(255,255,255,.94) !important;
     }
+  
+    /* v38: el control táctil no debe disparar scroll/zoom ni alterar el ritmo del loop */
+    .touch, .controls {
+      touch-action: none;
+      overscroll-behavior: contain;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
   </style>
 </head>
 <body>
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v37</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v38</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -1255,7 +1264,7 @@
     return true;
   }
 
-  function hostPhysics() {
+  function hostPhysics(stepScale = 1) {
     if (mode === 'solo') {
       const now = performance.now();
       const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
@@ -1302,13 +1311,13 @@
         state.rightY = clamp(state.rightY, 0, canvas.height - paddle.h);
       }
     }
-    state.ballX += state.ballVX;
-    state.ballY += state.ballVY;
+    state.ballX += state.ballVX * stepScale;
+    state.ballY += state.ballVY * stepScale;
 
     // Efecto curvo: rota el vector de velocidad sin cambiar su magnitud.
     // Así el gesto de la paleta cambia la trayectoria, pero no acelera ni frena la pelota.
     if (Math.abs(ballSpin) > 0.01) {
-      const spinAngle = ballSpin * 0.00085;
+      const spinAngle = ballSpin * 0.00085 * stepScale;
       const c = Math.cos(spinAngle);
       const s = Math.sin(spinAngle);
       const vx = state.ballVX;
@@ -1316,11 +1325,11 @@
       state.ballVX = vx * c - vy * s;
       state.ballVY = vx * s + vy * c;
 
-      ballSpin *= 0.992;
+      ballSpin *= Math.pow(0.992, stepScale);
       ballSpinVisual = Math.min(1, Math.abs(ballSpin) / 9);
     } else {
       ballSpin = 0;
-      ballSpinVisual *= 0.92;
+      ballSpinVisual *= Math.pow(0.92, stepScale);
     }
 
     // Aceleración continua: empieza suave, pero ya a los pocos segundos se nota.
@@ -1328,7 +1337,7 @@
     const cfg = difficultyConfig[difficulty];
     const maxSpeed = cfg.maxSpeed;
     if (currentSpeed < maxSpeed) {
-      const accel = cfg.accel;
+      const accel = Math.pow(cfg.accel, stepScale);
       state.ballVX *= accel;
       state.ballVY *= accel;
     }
@@ -1467,11 +1476,11 @@
     }
 
     if (state.flash > 0) {
-      state.flash = Math.max(0, state.flash - 0.045);
+      state.flash = Math.max(0, state.flash - 0.045 * stepScale);
     }
 
-    leftPaddleVY *= 0.72;
-    rightPaddleVY *= 0.72;
+    leftPaddleVY *= Math.pow(0.72, stepScale);
+    rightPaddleVY *= Math.pow(0.72, stepScale);
   }
 
   let lastSync = 0;
@@ -1738,6 +1747,10 @@
     ctx.fillText(footerText, canvas.width/2, canvas.height-34);
   }
 
+  let lastFrameTime = performance.now();
+  let physicsAccumulator = 0;
+  const PHYSICS_STEP_MS = 1000 / 60;
+
   function loop(t) {
     const now = performance.now();
 
@@ -1753,10 +1766,17 @@
       setStatus('¡Sigue!');
     }
 
-    if (isHost && connected && gameReady && !matchOver && pointPauseUntil === 0) {
-      hostPhysics();
+    const frameDelta = Math.min(50, Math.max(0, t - lastFrameTime));
+    lastFrameTime = t;
 
-      if (conn && conn.open && t - lastSync > 50) {
+    if (isHost && connected && gameReady && !matchOver && pointPauseUntil === 0) {
+      physicsAccumulator += frameDelta;
+      let safety = 0;
+      while (physicsAccumulator >= PHYSICS_STEP_MS && safety < 4) {physicsAccumulator -= PHYSICS_STEP_MS;
+        safety++;
+      }
+      if (physicsAccumulator > PHYSICS_STEP_MS * 4) physicsAccumulator = 0;
+if (conn && conn.open && t - lastSync > 50) {
         conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles, ballSpin, ballSpinVisual });
         lastSync = t;
       }
