@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v34 fondos gráficos</title>
+  <title>Pong Doble v37 velocidad estable</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -410,13 +410,62 @@
       background:#18314f;
       color:var(--text);
     }
+  
+    /* v37: legibilidad sobre fondos variables */
+    .top,
+    .controls,
+    .status,
+    .role,
+    .hint,
+    .badge,
+    .difficulty,
+    .difficulty span,
+    .sideChooser,
+    .sideChooser button,
+    .top button,
+    .top input,
+    .controls button,
+    .controls input {
+      color: rgba(255,255,255,.96) !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,.65);
+    }
+
+    .top button,
+    .controls button {
+      border-color: rgba(255,255,255,.34);
+    }
+
+    .top .activeMode,
+    .difficulty .activeLevel,
+    .sideChooser button {
+      color: #fff !important;
+    }
+
+    .touchLabel {
+      color: rgba(255,255,255,.94) !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,.7);
+    }
+
+    /* Flechas del control en blanco */
+    .touch::before,
+    .touch::after {
+      color: rgba(255,255,255,.94) !important;
+      border-color: rgba(255,255,255,.94) !important;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,.65));
+    }
+
+  
+    .controls svg, .controls svg * {
+      stroke: rgba(255,255,255,.94) !important;
+      fill: rgba(255,255,255,.94) !important;
+    }
   </style>
 </head>
 <body>
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v34</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v37</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -1256,9 +1305,17 @@
     state.ballX += state.ballVX;
     state.ballY += state.ballVY;
 
-    // Efecto curvo: el spin modifica gradualmente la velocidad vertical.
+    // Efecto curvo: rota el vector de velocidad sin cambiar su magnitud.
+    // Así el gesto de la paleta cambia la trayectoria, pero no acelera ni frena la pelota.
     if (Math.abs(ballSpin) > 0.01) {
-      state.ballVY += ballSpin * 0.032;
+      const spinAngle = ballSpin * 0.00085;
+      const c = Math.cos(spinAngle);
+      const s = Math.sin(spinAngle);
+      const vx = state.ballVX;
+      const vy = state.ballVY;
+      state.ballVX = vx * c - vy * s;
+      state.ballVY = vx * s + vy * c;
+
       ballSpin *= 0.992;
       ballSpinVisual = Math.min(1, Math.abs(ballSpin) / 9);
     } else {
@@ -1330,7 +1387,6 @@
         if (Math.abs(leftPaddleVY) > 7.5) {
           ballSpin = clamp(-leftPaddleVY * 0.55, -11, 11);
           ballSpinVisual = 1;
-          state.ballVY -= leftPaddleVY * 0.22;
         }
       }
 
@@ -1368,7 +1424,6 @@
         if (Math.abs(rightPaddleVY) > 7.5) {
           ballSpin = clamp(-rightPaddleVY * 0.55, -11, 11);
           ballSpinVisual = 1;
-          state.ballVY -= rightPaddleVY * 0.22;
         }
       }
 
