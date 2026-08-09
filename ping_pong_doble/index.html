@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v19 responsive</title>
+  <title>Pong Doble v21 responsive</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -313,11 +313,53 @@
       }
     }
 
+  
+    .sideChooser{
+      display:none;
+      margin-top:8px;
+    }
+    .sideChooser button{
+      width:100%;
+      padding:7px 9px;
+      font-size:11px;
+      border-radius:9px;
+      border-color:var(--accent);
+      background:#18314f;
+    }
+
+    @media (orientation:landscape) and (max-height:650px){
+      .sideChooser{
+        display:flex;
+      }
+
+      body.control-left{
+        grid-template-columns:190px 190px minmax(0,1fr);
+      }
+
+      body.control-left .top{
+        grid-column:1;
+      }
+
+      body.control-left .controls{
+        grid-column:2;
+      }
+
+      body.control-left .gameWrap{
+        grid-column:3;
+      }
+    }
+
+    @media (orientation:landscape) and (max-height:480px){
+      body.control-left{
+        grid-template-columns:160px 160px minmax(0,1fr);
+      }
+    }
+
   </style>
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v19</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v21</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -335,10 +377,13 @@
     <canvas id="game" width="1280" height="720"></canvas>
   </div>
 
-  <div class="controls">
+  <div class="controls" id="controlsPanel">
     <div>
       <div class="role" id="roleText">Rol: espectador local</div>
       <div class="hint">Mové el dedo hacia arriba y abajo dentro del recuadro. La barrita celeste te muestra la posición de tu paleta.</div>
+      <div class="sideChooser" id="sideChooser">
+        <button id="sideToggleBtn" type="button">Control: derecha</button>
+      </div>
     </div>
     <div class="touch" id="touchArea">
       <div class="touchLabel">CONTROL</div>
@@ -365,6 +410,8 @@
   const shareCodeBtn = document.getElementById('shareCodeBtn');
   const retryBtn = document.getElementById('retryBtn');
   const rematchBtn = document.getElementById('rematchBtn');
+  const sideChooser = document.getElementById('sideChooser');
+  const sideToggleBtn = document.getElementById('sideToggleBtn');
 
   let peer = null;
   let conn = null;
@@ -406,6 +453,19 @@
   const ballR = 15;
 
   function setStatus(msg){ statusEl.textContent = msg; }
+
+  let controlSide = 'right';
+
+  function setControlSide(side){
+    controlSide = side;
+    const left = side === 'left';
+    document.body.classList.toggle('control-left', left);
+    sideToggleBtn.textContent = left ? 'Control: izquierda' : 'Control: derecha';
+  }
+
+  sideToggleBtn.addEventListener('click', () => {
+    setControlSide(controlSide === 'right' ? 'left' : 'right');
+  });
 
   function generateObstacles() {
     const list = [];
@@ -1101,7 +1161,7 @@
       ctx.fillRect(0,0,canvas.width,canvas.height);
 
       const boxW = 680;
-      const boxH = 300;
+      const boxH = 320;
       const bx = canvas.width/2 - boxW/2;
       const by = canvas.height/2 - boxH/2;
 
@@ -1142,7 +1202,7 @@
 
       ctx.font = '600 22px system-ui';
       ctx.fillStyle = '#f4f7fb';
-      ctx.fillText('TOCÁ PARA JUGAR OTRA PARTIDA', canvas.width/2, canvas.height/2 + 154);
+      ctx.fillText('TOCÁ PARA JUGAR OTRA PARTIDA', canvas.width/2, canvas.height/2 + 126);
     }
 
     if (countdownUntil > performance.now()) {
