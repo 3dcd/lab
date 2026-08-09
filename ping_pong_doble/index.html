@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v22 responsive</title>
+  <title>Pong Doble v23 spin experimental</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -359,7 +359,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v22</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v23</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
@@ -427,6 +427,14 @@
   let matchesLeft = 0;
   let matchesRight = 0;
   let obstacles = [];
+
+  // Efecto/spin de la pelota.
+  let ballSpin = 0;          // intensidad y signo
+  let ballSpinVisual = 0;    // animación visual de flechas
+  let lastLeftY = 280;
+  let lastRightY = 280;
+  let leftPaddleVY = 0;
+  let rightPaddleVY = 0;
 
   // Rival virtual: deliberadamente imperfecto.
   let aiTargetY = 280;
@@ -564,7 +572,7 @@
         role = 'left';
         roleText.textContent = 'Rol: barra izquierda';
         conn.send({ type:'role', role:'right' });
-        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles });
+        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles, ballSpin, ballSpinVisual });
         startCountdown(3200, true);
         setStatus('Jugador conectado. La partida comienza en 3…');
       } else {
@@ -600,7 +608,11 @@
       }
 
       if (data.type === 'paddle' && isHost) {
-        if (data.role === 'right') state.rightY = clamp(data.y, 0, canvas.height - paddle.h);
+        if (data.role === 'right') {
+          state.rightY = clamp(data.y, 0, canvas.height - paddle.h);
+          rightPaddleVY = Number(data.vy) || 0;
+          lastRightY = state.rightY;
+        }
       }
 
       if (data.type === 'state' && !isHost) {
@@ -610,6 +622,8 @@
         if (typeof data.matchOver === 'boolean') matchOver = data.matchOver;
         if (data.winner === 'left' || data.winner === 'right' || data.winner === null) winner = data.winner;
         if (Array.isArray(data.obstacles)) obstacles = data.obstacles;
+        if (typeof data.ballSpin === 'number') ballSpin = data.ballSpin;
+        if (typeof data.ballSpinVisual === 'number') ballSpinVisual = data.ballSpinVisual;
       }
 
       if (data.type === 'restart' && isHost) {
@@ -778,12 +792,18 @@
     const y = clamp(yNormalized * canvas.height - paddle.h/2, 0, canvas.height - paddle.h);
 
     if (role === 'left') {
+      leftPaddleVY = y - lastLeftY;
+      lastLeftY = y;
       state.leftY = y;
     } else if (role === 'right') {
-      if (isHost) state.rightY = y;
-      else {
+      rightPaddleVY = y - lastRightY;
+      lastRightY = y;
+
+      if (isHost) {
         state.rightY = y;
-        if (conn && conn.open) conn.send({ type:'paddle', role:'right', y });
+      } else {
+        state.rightY = y;
+        if (conn && conn.open) conn.send({ type:'paddle', role:'right', y, vy:rightPaddleVY });
       }
     }
   }
@@ -828,6 +848,8 @@
     state.ballVX = dir * (6.2 + Math.random()*1.2);
     state.ballVY = (Math.random() * 5.6 - 2.8);
     state.rallyHits = 0;
+    ballSpin = 0;
+    ballSpinVisual = 0;
   }
 
   function collideBallWithObstacle(o) {
@@ -931,6 +953,16 @@
     state.ballX += state.ballVX;
     state.ballY += state.ballVY;
 
+    // Efecto curvo: el spin modifica gradualmente la velocidad vertical.
+    if (Math.abs(ballSpin) > 0.01) {
+      state.ballVY += ballSpin * 0.032;
+      ballSpin *= 0.992;
+      ballSpinVisual = Math.min(1, Math.abs(ballSpin) / 9);
+    } else {
+      ballSpin = 0;
+      ballSpinVisual *= 0.92;
+    }
+
     // Aceleración continua: empieza suave, pero ya a los pocos segundos se nota.
     const currentSpeed = Math.hypot(state.ballVX, state.ballVY);
     const maxSpeed = 19;
@@ -986,6 +1018,13 @@
           state.ballVX = Math.abs(state.ballVX) * 1.045;
           state.ballVY += offset * 3.2;
         }
+
+        // Si la paleta venía barriendo fuerte en vertical, aplica efecto.
+        if (Math.abs(leftPaddleVY) > 7.5) {
+          ballSpin = clamp(leftPaddleVY * 0.55, -11, 11);
+          ballSpinVisual = 1;
+          state.ballVY += leftPaddleVY * 0.22;
+        }
       }
 
       if (hit) state.rallyHits++;
@@ -1016,6 +1055,12 @@
           const offset = (state.ballY - (state.rightY + paddle.h/2)) / (paddle.h/2);
           state.ballVX = -Math.abs(state.ballVX) * 1.045;
           state.ballVY += offset * 3.2;
+        }
+
+        if (Math.abs(rightPaddleVY) > 7.5) {
+          ballSpin = clamp(rightPaddleVY * 0.55, -11, 11);
+          ballSpinVisual = 1;
+          state.ballVY += rightPaddleVY * 0.22;
         }
       }
 
@@ -1061,6 +1106,9 @@
     if (state.flash > 0) {
       state.flash = Math.max(0, state.flash - 0.045);
     }
+
+    leftPaddleVY *= 0.72;
+    rightPaddleVY *= 0.72;
   }
 
   let lastSync = 0;
@@ -1134,6 +1182,43 @@
     ctx.beginPath();
     ctx.arc(state.ballX, state.ballY, ballR, 0, Math.PI*2);
     ctx.fill();
+
+    if (ballSpinVisual > 0.08) {
+      const dir = ballSpin >= 0 ? 1 : -1;
+      const t = performance.now() * 0.006 * dir;
+
+      ctx.save();
+      ctx.translate(state.ballX, state.ballY);
+      ctx.rotate(t);
+
+      ctx.strokeStyle = `rgba(125,211,252,${0.25 + ballSpinVisual * 0.55})`;
+      ctx.fillStyle = `rgba(125,211,252,${0.25 + ballSpinVisual * 0.55})`;
+      ctx.lineWidth = 2.2;
+
+      const r = ballR + 10;
+
+      for (let i = 0; i < 2; i++) {
+        const a0 = i * Math.PI;
+        const a1 = a0 + dir * 1.25;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r, a0, a1, dir < 0);
+        ctx.stroke();
+
+        const ax = Math.cos(a1) * r;
+        const ay = Math.sin(a1) * r;
+        const tangent = a1 + (dir > 0 ? Math.PI/2 : -Math.PI/2);
+
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax - Math.cos(tangent - 0.65) * 7, ay - Math.sin(tangent - 0.65) * 7);
+        ctx.lineTo(ax - Math.cos(tangent + 0.65) * 7, ay - Math.sin(tangent + 0.65) * 7);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
 
     ctx.font = '700 76px system-ui';
     ctx.textAlign = 'center';
@@ -1254,12 +1339,12 @@
       hostPhysics();
 
       if (conn && conn.open && t - lastSync > 50) {
-        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles });
+        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles, ballSpin, ballSpinVisual });
         lastSync = t;
       }
     } else if (isHost && connected && conn && conn.open && t - lastSync > 120) {
       // Durante la cuenta atrás mantenemos ambos tableros sincronizados.
-      conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles });
+      conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles, ballSpin, ballSpinVisual });
       lastSync = t;
     }
 
