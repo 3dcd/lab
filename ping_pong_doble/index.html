@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v21 responsive</title>
+  <title>Pong Doble v22 responsive</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -333,25 +333,25 @@
       }
 
       body.control-left{
-        grid-template-columns:190px 190px minmax(0,1fr);
-      }
-
-      body.control-left .top{
-        grid-column:1;
+        grid-template-columns:190px minmax(0,1fr) 190px;
       }
 
       body.control-left .controls{
-        grid-column:2;
+        grid-column:1;
       }
 
       body.control-left .gameWrap{
+        grid-column:2;
+      }
+
+      body.control-left .top{
         grid-column:3;
       }
     }
 
     @media (orientation:landscape) and (max-height:480px){
       body.control-left{
-        grid-template-columns:160px 160px minmax(0,1fr);
+        grid-template-columns:160px minmax(0,1fr) 160px;
       }
     }
 
@@ -359,7 +359,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v21</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v22</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <button id="soloBtn">1 jugador</button>
     <button id="multiBtn">Multijugador</button>
