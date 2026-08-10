@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v46 flujo de partida</title>
+  <title>Pong Doble v47 visual remoto estable</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -626,7 +626,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v46</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v47</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -858,6 +858,13 @@
   let remoteLeftTargetY = 280;
   let remoteLeftVY = 0;
   let lastRemoteLeftStateAt = 0;
+
+  // Posiciones sólo visuales para elementos remotos.
+  let visualRemoteLeftY = 280;
+  let visualRemoteRightY = 280;
+  let visualBallX = 640;
+  let visualBallY = 360;
+  let visualBallInitialized = false;
 
   // Efecto/spin de la pelota.
   let ballSpin = 0;          // intensidad y signo
@@ -1207,16 +1214,19 @@
         if (typeof data.x === 'number') {
           state.ballX = data.x;
           remoteTargetX = data.x;
+          visualBallX = data.x;
         }
         if (typeof data.y === 'number') {
           state.ballY = data.y;
           remoteTargetY = data.y;
+          visualBallY = data.y;
         }
         if (typeof data.vx === 'number') remoteVX = data.vx;
         if (typeof data.vy === 'number') remoteVY = data.vy;
         if (typeof data.spin === 'number') ballSpin = data.spin;
         if (typeof data.spinVisual === 'number') ballSpinVisual = data.spinVisual;
 
+        visualBallInitialized = true;
         lastRemoteStateAt = performance.now();
       }
 
@@ -1538,6 +1548,9 @@
     state.ballVY = (Math.random() * cfg.verticalRange - cfg.verticalRange/2);
     state.rallyHits = 0;
     clearSpin();
+    visualBallX = state.ballX;
+    visualBallY = state.ballY;
+    visualBallInitialized = true;
   }
 
   function collideBallWithObstacle(o) {
@@ -1836,54 +1849,78 @@
   let lastSync = 0;
 
   function updateRemoteBallVisual() {
-    if (isHost || mode !== 'multi' || !connected) return;
+    if (isHost || mode !== 'multi' || !connected) {
+      visualBallX = state.ballX;
+      visualBallY = state.ballY;
+      visualBallInitialized = true;
+      return;
+    }
 
-    const now = performance.now();
-    const age = Math.min(120, Math.max(0, now - lastRemoteStateAt));
+    if (!visualBallInitialized) {
+      visualBallX = remoteTargetX;
+      visualBallY = remoteTargetY;
+      visualBallInitialized = true;
+    }
 
-    // Extrapolamos apenas hacia adelante usando la velocidad conocida.
-    let leadAge = age;
-
-    // Cerca de una paleta reducimos apenas la extrapolación.
-    // Esto evita que en el invitado el rebote parezca ocurrir antes del contacto visual.
-    const leftContactX = paddle.margin + paddle.w + ballR + 28;
-    const rightContactX = canvas.width - paddle.margin - paddle.w - ballR - 28;
-    const nearLeft = remoteVX < 0 && remoteTargetX < leftContactX + 120;
-    const nearRight = remoteVX > 0 && remoteTargetX > rightContactX - 120;
-    if (nearLeft || nearRight) leadAge *= 0.45;
-
-    const predictedX = remoteTargetX + remoteVX * (leadAge / 16.67);
-    const predictedY = remoteTargetY + remoteVY * (leadAge / 16.67);
-
-    // Corrección suave. Si hay una diferencia enorme (gol, saque, choque fuerte),
-    // corregimos más agresivamente para no quedar desfasados.
-    const dx = predictedX - state.ballX;
-    const dy = predictedY - state.ballY;
+    // Sólo interpolamos hacia la última posición real recibida.
+    // No adelantamos la pelota: así evitamos rebotes "antes de tocar".
+    const dx = remoteTargetX - visualBallX;
+    const dy = remoteTargetY - visualBallY;
     const dist = Math.hypot(dx, dy);
 
-    const blend = dist > 120 ? 0.72 : 0.28;
-    state.ballX += dx * blend;
-    state.ballY += dy * blend;
+    const blend = dist > 150 ? 0.58 : (dist > 70 ? 0.34 : 0.20);
+
+    visualBallX += dx * blend;
+    visualBallY += dy * blend;
+
+    if (Math.abs(dx) < 0.3) visualBallX = remoteTargetX;
+    if (Math.abs(dy) < 0.3) visualBallY = remoteTargetY;
   }
 
   function updateRemotePaddleVisual() {
-    if (isHost || mode !== 'multi' || !connected) return;
+    if (mode !== 'multi' || !connected) {
+      visualRemoteLeftY = state.leftY;
+      visualRemoteRightY = state.rightY;
+      return;
+    }
 
-    // Sólo interpolamos hacia el último dato real recibido.
-    // No extrapolamos: así evitamos que la paleta del anfitrión
-    // parezca subir y bajar de forma errática en el invitado.
-    const diff = remoteLeftTargetY - state.leftY;
-    const blend = Math.abs(diff) > 110 ? 0.48 : 0.20;
+    if (isHost) {
+      // El anfitrión ve su paleta local perfecta y suaviza sólo la del invitado.
+      visualRemoteLeftY = state.leftY;
 
-    state.leftY += diff * blend;
+      const diff = state.rightY - visualRemoteRightY;
+      const blend = Math.abs(diff) > 100 ? 0.40 : 0.17;
+      visualRemoteRightY += diff * blend;
+      if (Math.abs(diff) < 0.35) visualRemoteRightY = state.rightY;
+    } else {
+      // El invitado ve su paleta local perfecta y suaviza sólo la del anfitrión.
+      visualRemoteRightY = state.rightY;
 
-    if (Math.abs(remoteLeftTargetY - state.leftY) < 0.35) {
-      state.leftY = remoteLeftTargetY;
+      const diff = remoteLeftTargetY - visualRemoteLeftY;
+      const blend = Math.abs(diff) > 100 ? 0.40 : 0.17;
+      visualRemoteLeftY += diff * blend;
+      if (Math.abs(diff) < 0.35) visualRemoteLeftY = remoteLeftTargetY;
     }
   }
 
 
   function render() {
+    const drawLeftY = (mode === 'multi' && connected)
+      ? (isHost ? state.leftY : visualRemoteLeftY)
+      : state.leftY;
+
+    const drawRightY = (mode === 'multi' && connected)
+      ? (isHost ? visualRemoteRightY : state.rightY)
+      : state.rightY;
+
+    const drawBallX = (mode === 'multi' && connected && !isHost)
+      ? visualBallX
+      : state.ballX;
+
+    const drawBallY = (mode === 'multi' && connected && !isHost)
+      ? visualBallY
+      : state.ballY;
+
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     if (!gameBackgroundReady) {
@@ -1964,8 +2001,8 @@
       ctx.fill();
     }
 
-    drawBeveledPaddle(paddle.margin, state.leftY, 'left');
-    drawBeveledPaddle(canvas.width - paddle.margin - paddle.w, state.rightY, 'right');
+    drawBeveledPaddle(paddle.margin, drawLeftY, 'left');
+    drawBeveledPaddle(canvas.width - paddle.margin - paddle.w, drawRightY, 'right');
 
     ctx.beginPath();
 
@@ -1974,8 +2011,8 @@
       const dh = paddle.h * 0.72;
       const dw = paddle.w;
 
-      const targetL = clamp(state.leftY + paddle.h * 0.48, 0, canvas.height - dh);
-      const targetR = clamp(state.rightY - paddle.h * 0.20, 0, canvas.height - dh);
+      const targetL = clamp(drawLeftY + paddle.h * 0.48, 0, canvas.height - dh);
+      const targetR = clamp(drawRightY - paddle.h * 0.20, 0, canvas.height - dh);
 
       doublesLeft2Y += (targetL - doublesLeft2Y) * 0.10;
       doublesRight2Y += (targetR - doublesRight2Y) * 0.10;
@@ -2004,7 +2041,7 @@
       ctx.restore();
     }
 
-    ctx.arc(state.ballX, state.ballY, ballR, 0, Math.PI*2);
+    ctx.arc(drawBallX, drawBallY, ballR, 0, Math.PI*2);
     ctx.fill();
 
     if (ballSpinVisual > 0.08) {
@@ -2012,7 +2049,7 @@
       const t = performance.now() * 0.006 * dir;
 
       ctx.save();
-      ctx.translate(state.ballX, state.ballY);
+      ctx.translate(drawBallX, drawBallY);
       ctx.rotate(t);
 
       ctx.strokeStyle = `rgba(125,211,252,${0.25 + ballSpinVisual * 0.55})`;
@@ -2262,6 +2299,11 @@
     remoteLeftTargetY = state.leftY;
     remoteLeftVY = 0;
     lastRemoteLeftStateAt = performance.now();
+    visualRemoteLeftY = state.leftY;
+    visualRemoteRightY = state.rightY;
+    visualBallX = state.ballX;
+    visualBallY = state.ballY;
+    visualBallInitialized = true;
     roomInput.value = code;
     roomInput.readOnly = true;
     showMultiControls(false);
