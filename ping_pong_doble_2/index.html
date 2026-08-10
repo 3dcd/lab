@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v47 visual remoto estable</title>
+  <title>Pong Doble v48 multijugador corregido</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -626,7 +626,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v47</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v48</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -937,10 +937,25 @@
 
 
   function refreshTeamSlots(){
-    if (teamSlots) teamSlots.classList.toggle('show', mode === 'multi' && teamPlayMode === 'doubles');
-    if (doubleHint) doubleHint.classList.toggle('show', mode === 'multi' && teamPlayMode === 'doubles');
-    if (teamModePanel) teamModePanel.classList.toggle('soloHidden', mode !== 'multi');
-    if (teamSlots) teamSlots.classList.toggle('soloHidden', mode !== 'multi');
+    const multiVisible = mode === 'multi';
+
+    if (teamModePanel) {
+      teamModePanel.classList.toggle('soloHidden', !multiVisible);
+      teamModePanel.style.display = multiVisible ? '' : 'none';
+    }
+
+    if (teamSlots) {
+      teamSlots.classList.toggle('show', multiVisible && teamPlayMode === 'doubles');
+      teamSlots.classList.toggle('soloHidden', !multiVisible);
+      if (!multiVisible) teamSlots.style.display = 'none';
+      else teamSlots.style.display = '';
+    }
+
+    if (doubleHint) {
+      doubleHint.classList.toggle('show', multiVisible && teamPlayMode === 'doubles');
+      if (!multiVisible) doubleHint.style.display = 'none';
+      else doubleHint.style.display = '';
+    }
   }
 
   function setRulesLocked(locked){
@@ -1110,6 +1125,7 @@
       role = null;
       isHost = false;
       updateModeButtons();
+      refreshTeamSlots();
       peerBadge.textContent = 'elegí modo';
       roleText.textContent = 'Rol: espectador local';
       setStatus('Elegí 1 jugador o Multijugador.');
@@ -1323,6 +1339,7 @@
     mode = 'multi';
     updateModeButtons();
     refreshTeamSlots();
+    setGameplayUI(false);
     connected = false;
     gameReady = false;
     countdownUntil = 0;
@@ -1344,6 +1361,9 @@
     showMultiControls(true);
     endSessionBtn.style.display = '';
     peerBadge.textContent = 'creando sala';
+    gameReady = false;
+    countdownUntil = 0;
+    pointPauseUntil = 0;
     setStatus('Partida creada. Tocá “Compartir juego” para invitar al otro jugador.');
     createPeer(code);
   }
@@ -2285,6 +2305,7 @@
     mode = 'multi';
     updateModeButtons();
     refreshTeamSlots();
+    setGameplayUI(false);
     connected = false;
     gameReady = false;
     countdownUntil = 0;
@@ -2411,6 +2432,7 @@
   showMultiControls(false);
   updateModeButtons();
   setGameplayUI(false);
+  refreshTeamSlots();
 
   if (!applyInvitationFromUrl()) {
     peerBadge.textContent = 'elegí modo';
