@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v44 Single / Dobles estable</title>
+  <title>Pong Doble v45 modos multijugador</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -565,13 +565,28 @@
       opacity:.85;
     }
 
-  </style>
+  
+    .teamMode.soloHidden,
+    .teamSlots.soloHidden{display:none !important;}
+
+    .doubleHint{
+      display:none;
+      color:#fff;
+      font-size:10px;
+      line-height:1.25;
+      text-align:center;
+      opacity:.88;
+      text-shadow:0 1px 3px rgba(0,0,0,.65);
+      margin:4px 0;
+    }
+    .doubleHint.show{display:block;}
+</style>
 </head>
 <body>
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v44</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v45</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -604,9 +619,9 @@
       <div class="hint">Mové el dedo hacia arriba y abajo dentro del recuadro. La barrita celeste te muestra la posición de tu paleta.</div>
       
       <div class="teamMode" id="teamModePanel">
-        <span>FORMATO</span>
-        <button id="singleModeBtn" type="button" class="activeTeamMode">SINGLE</button>
-        <button id="doubleModeBtn" type="button">DOBLES</button>
+        <span>MULTIJUGADOR</span>
+        <button id="singleModeBtn" type="button" class="activeTeamMode">1 VS 1</button>
+        <button id="doubleModeBtn" type="button">2 VS 2</button>
         <label class="obstacleToggle">
           <input id="obstaclesToggle" type="checkbox" checked>
           OBSTÁCULOS
@@ -616,14 +631,14 @@
       <div class="teamSlots" id="teamSlots">
         <div class="teamCol">
           <div class="teamTitle">EQUIPO A</div>
-          <div class="slot activeSlot">Vos</div>
-          <div class="slot">Compañero</div>
+          <div class="slot activeSlot">Jugador 1 · Vos</div>
+          <div class="slot">Jugador 2 · Compañero</div>
         </div>
         <div class="versus">VS</div>
         <div class="teamCol">
           <div class="teamTitle">EQUIPO B</div>
-          <div class="slot">Rival 1</div>
-          <div class="slot">Rival 2</div>
+          <div class="slot">Jugador 3 · Rival</div>
+          <div class="slot">Jugador 4 · Rival</div>
         </div>
       </div>
 
@@ -752,6 +767,7 @@
   const obstaclesToggle = document.getElementById('obstaclesToggle');
   const teamModePanel = document.getElementById('teamModePanel');
   const teamSlots = document.getElementById('teamSlots');
+  const doubleHint = document.getElementById('doubleHint');
   const levelBeginnerBtn = document.getElementById('levelBeginnerBtn');
   const levelMediumBtn = document.getElementById('levelMediumBtn');
   const levelProBtn = document.getElementById('levelProBtn');
@@ -836,18 +852,28 @@
   function setStatus(msg){ statusEl.textContent = msg; }
 
   function refreshTeamSlots(){
-    if (teamSlots) teamSlots.classList.toggle('show', teamPlayMode === 'doubles');
+    if (teamSlots) teamSlots.classList.toggle('show', mode === 'multi' && teamPlayMode === 'doubles');
+    if (doubleHint) doubleHint.classList.toggle('show', mode === 'multi' && teamPlayMode === 'doubles');
+    if (teamModePanel) teamModePanel.classList.toggle('soloHidden', mode !== 'multi');
+    if (teamSlots) teamSlots.classList.toggle('soloHidden', mode !== 'multi');
   }
 
   function setRulesLocked(locked){
     matchRulesLocked = !!locked;
-    if (teamModePanel) teamModePanel.classList.toggle('locked', matchRulesLocked);
-    if (singleModeBtn) singleModeBtn.disabled = matchRulesLocked;
-    if (doubleModeBtn) doubleModeBtn.disabled = matchRulesLocked;
-    if (obstaclesToggle) obstaclesToggle.disabled = matchRulesLocked;
+
+    const lockMultiplayerRules = matchRulesLocked && mode === 'multi';
+
+    if (teamModePanel) teamModePanel.classList.toggle('locked', lockMultiplayerRules);
+    if (singleModeBtn) singleModeBtn.disabled = lockMultiplayerRules;
+    if (doubleModeBtn) doubleModeBtn.disabled = lockMultiplayerRules;
+
+    // En 1 jugador se puede cambiar Obstáculos libremente.
+    // En multijugador queda fijado durante el partido a 10.
+    if (obstaclesToggle) obstaclesToggle.disabled = lockMultiplayerRules;
   }
 
   function setTeamPlayMode(value, fromNetwork = false){
+    if (mode !== 'multi' && !fromNetwork) return;
     if (matchRulesLocked && !fromNetwork) return;
     teamPlayMode = value === 'doubles' ? 'doubles' : 'single';
 
@@ -857,13 +883,13 @@
 
     if (!fromNetwork) {
       setStatus(teamPlayMode === 'doubles'
-        ? 'DOBLES seleccionado · dos jugadores por equipo'
-        : 'SINGLE seleccionado');
+        ? '2 VS 2 seleccionado · dos jugadores por equipo'
+        : '1 VS 1 seleccionado');
     }
   }
 
   function setObstaclesEnabled(enabled, fromNetwork = false){
-    if (matchRulesLocked && !fromNetwork) {
+    if (matchRulesLocked && mode === 'multi' && !fromNetwork) {
       if (obstaclesToggle) obstaclesToggle.checked = obstaclesEnabled;
       return;
     }
@@ -875,6 +901,10 @@
       obstacles = [];
     } else if (!matchOver) {
       generateObstacles();
+    }
+
+    if (!fromNetwork && mode === 'solo') {
+      startSolo();
     }
   }
 
@@ -1217,6 +1247,7 @@
 
     mode = 'multi';
     updateModeButtons();
+    refreshTeamSlots();
     connected = false;
     gameReady = false;
     countdownUntil = 0;
@@ -1245,7 +1276,9 @@
   function startSolo() {
     closeCurrentSession(false);
     mode = 'solo';
+    teamPlayMode = 'single';
     updateModeButtons();
+    refreshTeamSlots();
     pointPauseUntil = 0;
     roomInput.readOnly = false;
     showMultiControls(false);
@@ -1874,32 +1907,33 @@
 
     ctx.beginPath();
 
-    // DOBLES: segunda paleta por equipo, más corta y ligeramente adelantada.
-    if (teamPlayMode === 'doubles') {
-      const dh = paddle.h * 0.58;
-      const dw = Math.max(5, paddle.w * 0.72);
+    // 2 VS 2: segunda paleta por equipo, mismo estilo y algo más corta.
+    if (mode === 'multi' && teamPlayMode === 'doubles') {
+      const dh = paddle.h * 0.72;
+      const dw = paddle.w;
 
-      const targetL = clamp(state.leftY + paddle.h * 0.62, 0, canvas.height - dh);
+      const targetL = clamp(state.leftY + paddle.h * 0.48, 0, canvas.height - dh);
       const targetR = clamp(state.rightY - paddle.h * 0.20, 0, canvas.height - dh);
 
       doublesLeft2Y += (targetL - doublesLeft2Y) * 0.10;
       doublesRight2Y += (targetR - doublesRight2Y) * 0.10;
 
       ctx.save();
-      ctx.globalAlpha = 0.88;
+      ctx.globalAlpha = 0.92;
       ctx.fillStyle = '#fff';
       ctx.shadowColor = 'rgba(0,0,0,.28)';
       ctx.shadowBlur = 5;
 
+      // Adelantadas respecto de las paletas principales para que no se pisen.
       ctx.fillRect(
-        paddle.margin + paddle.w + 16,
+        paddle.margin + paddle.w + 18,
         doublesLeft2Y,
         dw,
         dh
       );
 
       ctx.fillRect(
-        canvas.width - paddle.margin - paddle.w - dw - 16,
+        canvas.width - paddle.margin - paddle.w - dw - 18,
         doublesRight2Y,
         dw,
         dh
@@ -2151,6 +2185,7 @@
 
     mode = 'multi';
     updateModeButtons();
+    refreshTeamSlots();
     connected = false;
     gameReady = false;
     countdownUntil = 0;
