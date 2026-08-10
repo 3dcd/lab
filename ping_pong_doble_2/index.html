@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v50 red suave sin salto</title>
+  <title>Pong Doble v51 pausa visual de gol</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -626,7 +626,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v50</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v51</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -825,7 +825,9 @@
   let countdownUntil = 0;
   let gameReady = false;
   let pointPauseUntil = 0;
+  let goalHoldUntil = 0;
   let pendingServeDir = 1;
+  let pendingCenterPauseMs = 300;
   let matchOver = false;
   let winner = null; // left | right
   const WIN_SCORE = 10;
@@ -952,6 +954,7 @@
     ballY: 360,
     ballVX: 7,
     ballVY: 4.5,
+    ballVisible: true,
     scoreL: 0,
     scoreR: 0,
     rallyHits: 0,
@@ -984,6 +987,7 @@
     gameReady = false;
     countdownUntil = 0;
     pointPauseUntil = 0;
+    goalHoldUntil = 0;
     matchOver = false;
     winner = null;
 
@@ -994,6 +998,7 @@
     state.ballY = canvas.height / 2;
     state.ballVX = 0;
     state.ballVY = 0;
+    state.ballVisible = true;
     clearSpin();
 
     setStatus(message);
@@ -1160,6 +1165,7 @@
   function closeCurrentSession(goToMenu = true) {
     connected = false;
     gameReady = false;
+    goalHoldUntil = 0;
     remoteStateSnapshots = [];
     remoteGuestPaddleSnapshots = [];
     countdownUntil = 0;
@@ -1367,6 +1373,20 @@
         if (typeof incoming.flash === 'number') state.flash = incoming.flash;
         if ('flashColor' in incoming) state.flashColor = incoming.flashColor;
 
+        if (typeof incoming.ballVisible === 'boolean' && incoming.ballVisible !== state.ballVisible) {
+          state.ballVisible = incoming.ballVisible;
+          remoteStateSnapshots = [];
+          visualBallInitialized = false;
+
+          if (state.ballVisible && typeof incoming.ballX === 'number' && typeof incoming.ballY === 'number') {
+            visualBallX = incoming.ballX;
+            visualBallY = incoming.ballY;
+            remoteTargetX = incoming.ballX;
+            remoteTargetY = incoming.ballY;
+            visualBallInitialized = true;
+          }
+        }
+
         // La pelota se interpola/predice en vez de saltar a cada paquete recibido.
         if (typeof incoming.ballX === 'number') remoteTargetX = incoming.ballX;
         if (typeof incoming.ballY === 'number') remoteTargetY = incoming.ballY;
@@ -1375,6 +1395,7 @@
         lastRemoteStateAt = performance.now();
 
         if (
+          state.ballVisible !== false &&
           typeof incoming.ballX === 'number' &&
           typeof incoming.ballY === 'number' &&
           typeof incoming.leftY === 'number'
@@ -1428,6 +1449,7 @@
     gameReady = false;
     countdownUntil = 0;
     pointPauseUntil = 0;
+    goalHoldUntil = 0;
     physicsAccumulator = 0;
     lastFrameTime = 0;
     matchesLeft = 0;
@@ -1634,13 +1656,17 @@
     ballSpinVisual = 0;
   }
 
-  function pauseAfterPoint(dir=1, ms=3000) {
+  function pauseAfterPoint(dir=1, ms=300) {
     pendingServeDir = dir;
-    pointPauseUntil = performance.now() + ms;
-    state.ballX = canvas.width/2;
-    state.ballY = canvas.height/2;
+    pendingCenterPauseMs = ms;
+
+    // Gol: pequeño silencio visual antes de reaparecer en el centro.
+    goalHoldUntil = performance.now() + ms;
+    pointPauseUntil = 0;
+
     state.ballVX = 0;
     state.ballVY = 0;
+    state.ballVisible = false;
     clearSpin();
   }
 
@@ -1650,6 +1676,7 @@
     state.ballY = canvas.height/2;
     state.ballVX = dir * (cfg.startSpeedMin + Math.random()*cfg.startSpeedExtra);
     state.ballVY = (Math.random() * cfg.verticalRange - cfg.verticalRange/2);
+    state.ballVisible = true;
     state.rallyHits = 0;
     clearSpin();
     visualBallX = state.ballX;
@@ -2154,10 +2181,13 @@
       ctx.restore();
     }
 
-    ctx.arc(drawBallX, drawBallY, ballR, 0, Math.PI*2);
-    ctx.fill();
+    if (state.ballVisible !== false) {
+      ctx.beginPath();
+      ctx.arc(drawBallX, drawBallY, ballR, 0, Math.PI*2);
+      ctx.fill();
+    }
 
-    if (ballSpinVisual > 0.08) {
+    if (state.ballVisible !== false && ballSpinVisual > 0.08) {
       const dir = ballSpin >= 0 ? 1 : -1;
       const t = performance.now() * 0.006 * dir;
 
@@ -2328,6 +2358,27 @@
       setStatus(mode === 'solo' ? '¡Jugando!' : '¡Partida en marcha!');
     }
 
+    if (goalHoldUntil > 0 && now >= goalHoldUntil) {
+      goalHoldUntil = 0;
+
+      // Reaparece directamente en el centro; nunca viaja visualmente desde el arco.
+      state.ballX = canvas.width / 2;
+      state.ballY = canvas.height / 2;
+      state.ballVX = 0;
+      state.ballVY = 0;
+      state.ballVisible = true;
+
+      visualBallX = state.ballX;
+      visualBallY = state.ballY;
+      visualBallInitialized = true;
+
+      remoteStateSnapshots = [];
+      pushRemoteStateSnapshot(state.ballX, state.ballY, state.leftY);
+
+      pointPauseUntil = now + pendingCenterPauseMs;
+      physicsAccumulator = 0;
+    }
+
     if (pointPauseUntil > 0 && now >= pointPauseUntil) {
       pointPauseUntil = 0;
       resetBall(pendingServeDir);
@@ -2335,7 +2386,14 @@
       setStatus('¡Sigue!');
     }
 
-    if (isHost && connected && gameReady && !matchOver && pointPauseUntil === 0) {
+    if (
+      isHost &&
+      connected &&
+      gameReady &&
+      !matchOver &&
+      pointPauseUntil === 0 &&
+      goalHoldUntil === 0
+    ) {
       physicsAccumulator += frameDelta;
 
       let safety = 0;
