@@ -1,1 +1,2089 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pong Doble v42 Single / Dobles</title>
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <style>
+    :root{
+      --bg:#08111f;
+      --panel:#0e1b2f;
+      --line:#274261;
+      --text:#f4f7fb;
+      --muted:#9eb0c6;
+      --accent:#7dd3fc;
+      --danger:#fb7185;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      width:100%;
+      min-height:100%;
+      overflow-x:hidden;
+      background:var(--bg) center center / cover no-repeat fixed;
+      transition:none;
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      overscroll-behavior:none;
+      touch-action:none;
+    }
+    body{
+      min-height:100dvh;
+      display:flex;
+      flex-direction:column;
+      padding:12px;
+      padding-bottom:calc(12px + env(safe-area-inset-bottom));
+      gap:10px;
+    }
+    .top{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      background:rgba(245,248,252,.22);
+      backdrop-filter:blur(5px);
+      -webkit-backdrop-filter:blur(5px);
+      padding:10px;
+      border:1px solid rgba(255,255,255,.30);
+      border-radius:16px;
+      box-shadow:0 8px 26px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.16);
+    }
+    .title{
+      font-weight:800;
+      margin-right:auto;
+      letter-spacing:.2px;
+    }
+    .badge{
+      font-size:12px;
+      color:var(--muted);
+    }
+    button,input{
+      border:1px solid var(--line);
+      background:rgba(245,248,252,.20);
+      color:var(--text);
+      box-shadow:0 4px 12px rgba(0,0,0,.16);
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:15px;
+    }
+    button{font-weight:700}
+    button:active{transform:scale(.98)}
+    input{
+      width:150px;
+      outline:none;
+    }
+    .status{
+      width:100%;
+      font-size:13px;
+      color:#f4f7fb;
+      min-height:18px;
+      text-shadow:0 1px 3px rgba(0,0,0,.88), 0 0 8px rgba(0,0,0,.45);
+    }
+    #preloadCover{position:fixed;inset:0;z-index:9999;background:#10161d;opacity:1;transition:opacity .38s ease;pointer-events:none}
+    #preloadCover.ready{opacity:0}
+    #consoleFade{position:fixed;inset:0;z-index:-1;background-position:center;background-size:cover;background-repeat:no-repeat;opacity:0;pointer-events:none}
+    #consoleFade.active{z-index:0;opacity:1;transition:opacity .9s ease}
+    #consoleFade.fadeOut{opacity:0}
+    body > *:not(#preloadCover):not(#consoleFade){position:relative;z-index:1}
+    .gameWrap{
+      flex:1;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    canvas{
+      width:min(100%, 900px);
+      max-height:72vh;
+      aspect-ratio:16/9;
+      background:#02070e;
+      border:1px solid var(--line);
+      border-radius:18px;
+      display:block;
+      box-shadow:0 14px 28px rgba(0,0,0,.38), 0 4px 10px rgba(0,0,0,.28);
+    }
+    .controls{
+      width:min(100%, 900px);
+      align-self:center;
+      background:rgba(245,248,252,.20);
+      backdrop-filter:blur(5px);
+      -webkit-backdrop-filter:blur(5px);
+      border:1px solid rgba(255,255,255,.28);
+      border-radius:16px;
+      box-shadow:0 8px 26px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.14);
+      padding:10px;
+      display:grid;
+      grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);
+      gap:10px;
+      align-items:stretch;
+      overflow:hidden;
+    }
+    .controls > *{min-width:0}
+    .role{
+      font-weight:700;
+    }
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .touch{
+      position:relative;
+      width:100%;
+      min-width:0;
+      height:118px;
+      border-radius:14px;
+      border:1px dashed var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      user-select:none;
+      overflow:hidden;
+      touch-action:none;
+    }
+    .touch::before{
+      content:"";
+      position:absolute;
+      top:14px;
+      bottom:14px;
+      left:50%;
+      width:3px;
+      border-radius:3px;
+      background:#20344a;
+      transform:translateX(-50%);
+    }
+    .touchHandle{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:54px;
+      height:18px;
+      border-radius:999px;
+      background:var(--accent);
+      transform:translate(-50%,-50%);
+      box-shadow:0 2px 10px rgba(0,0,0,.35);
+      pointer-events:none;
+    }
+    .touchLabel{
+      position:absolute;
+      left:10px;
+      top:10px;
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.5px;
+      color:var(--muted);
+      pointer-events:none;
+    }
+    .touchArrows{
+      position:absolute;
+      right:10px;
+      top:50%;
+      transform:translateY(-50%);
+      font-size:24px;
+      line-height:1.15;
+      color:var(--muted);
+      text-align:center;
+      pointer-events:none;
+    }
+    .touch.active{
+      color:var(--text);
+      border-style:solid;
+      border-color:var(--accent);
+    }
+    @media (max-width:650px){
+      body{padding:8px}
+      .top{border-radius:14px}
+      .controls{grid-template-columns:1fr}
+      input{width:132px}
+      canvas{max-height:58vh}
+      .touch{height:132px}
+    }
+  
+    @media (orientation:landscape) and (max-height:650px){
+      body{
+        display:grid;
+        grid-template-columns:190px minmax(0,1fr) 190px;
+        grid-template-rows:1fr;
+        gap:8px;
+        min-height:100dvh;
+        height:100dvh;
+        padding:8px;
+        padding-left:calc(8px + env(safe-area-inset-left));
+        padding-right:calc(8px + env(safe-area-inset-right));
+        padding-bottom:calc(8px + env(safe-area-inset-bottom));
+        overflow:hidden;
+      }
 
+      .top{
+        grid-column:1;
+        grid-row:1;
+        align-self:stretch;
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+        justify-content:flex-start;
+        gap:7px;
+        padding:8px;
+        overflow:auto;
+        border-radius:14px;
+      }
+
+      .title{
+        margin-right:0;
+        font-size:14px;
+      }
+
+      .badge{
+        font-size:11px;
+      }
+
+      .top button,
+      .top input{
+        width:100%;
+        font-size:13px;
+        padding:8px 9px;
+      }
+
+      .status{
+        font-size:11px;
+        line-height:1.25;
+        min-height:0;
+      }
+
+      .gameWrap{
+        grid-column:2;
+        grid-row:1;
+        min-width:0;
+        min-height:0;
+        align-self:center;
+      }
+
+      canvas{
+        width:100%;
+        height:auto;
+        max-height:calc(100dvh - 16px);
+        aspect-ratio:16/9;
+        border-radius:14px;
+      }
+
+      .controls{
+        grid-column:3;
+        grid-row:1;
+        width:100%;
+        height:100%;
+        align-self:stretch;
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        padding:8px;
+        overflow:hidden;
+      }
+
+      .controls > div:first-child{
+        flex:0 0 auto;
+      }
+
+      .role{
+        font-size:13px;
+      }
+
+      .hint{
+        font-size:10px;
+        line-height:1.2;
+      }
+
+      .touch{
+        flex:1;
+        min-height:0;
+        height:auto;
+      }
+
+      .touchLabel{
+        font-size:10px;
+      }
+    }
+
+    @media (orientation:landscape) and (max-height:480px){
+      body{
+        grid-template-columns:160px minmax(0,1fr) 160px;
+      }
+
+      .hint{
+        display:none;
+      }
+
+      .top{
+        gap:5px;
+      }
+
+      .top button,
+      .top input{
+        padding:6px 8px;
+        font-size:12px;
+      }
+
+      .status{
+        font-size:10px;
+      }
+    }
+
+  
+    .sideChooser{
+      display:none;
+      margin-top:8px;
+    }
+    .sideChooser button{
+      width:100%;
+      padding:7px 9px;
+      font-size:11px;
+      border-radius:9px;
+      border-color:var(--accent);
+      background:#18314f;
+    }
+
+    @media (orientation:landscape) and (max-height:650px){
+      .sideChooser{
+        display:flex;
+      }
+
+      body.control-left{
+        grid-template-columns:190px minmax(0,1fr) 190px;
+      }
+
+      body.control-left .controls{
+        grid-column:1;
+      }
+
+      body.control-left .gameWrap{
+        grid-column:2;
+      }
+
+      body.control-left .top{
+        grid-column:3;
+      }
+    }
+
+    @media (orientation:landscape) and (max-height:480px){
+      body.control-left{
+        grid-template-columns:160px minmax(0,1fr) 160px;
+      }
+    }
+
+  
+    .difficulty{
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex-wrap:wrap;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .difficulty button{
+      padding:7px 10px;
+      font-size:12px;
+      border-radius:10px;
+    }
+    .difficulty .activeLevel{
+      border-color:var(--accent);
+      background:#18314f;
+      color:var(--text);
+    }
+    @media (orientation:landscape) and (max-height:650px){
+      .difficulty{
+        flex-direction:column;
+        align-items:stretch;
+        gap:5px;
+      }
+      .difficulty span{font-size:10px}
+      .difficulty button{
+        width:100%;
+        padding:6px 7px;
+        font-size:11px;
+      }
+    }
+
+  
+    .top .activeMode{
+      border-color:var(--accent);
+      background:#18314f;
+      color:var(--text);
+    }
+  
+    /* v37: legibilidad sobre fondos variables */
+    .top,
+    .controls,
+    .status,
+    .role,
+    .hint,
+    .badge,
+    .difficulty,
+    .difficulty span,
+    .sideChooser,
+    .sideChooser button,
+    .top button,
+    .top input,
+    .controls button,
+    .controls input {
+      color: rgba(255,255,255,.96) !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,.65);
+    }
+
+    .top button,
+    .controls button {
+      border-color: rgba(255,255,255,.34);
+    }
+
+    .top .activeMode,
+    .difficulty .activeLevel,
+    .sideChooser button {
+      color: #fff !important;
+    }
+
+    .touchLabel {
+      color: rgba(255,255,255,.94) !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,.7);
+    }
+
+    /* Flechas del control en blanco */
+    .touch::before,
+    .touch::after {
+      color: rgba(255,255,255,.94) !important;
+      border-color: rgba(255,255,255,.94) !important;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,.65));
+    }
+
+  
+    .controls svg, .controls svg * {
+      stroke: rgba(255,255,255,.94) !important;
+      fill: rgba(255,255,255,.94) !important;
+    }
+  
+    /* v38: el control táctil no debe disparar scroll/zoom ni alterar el ritmo del loop */
+    .touch, .controls {
+      touch-action: none;
+      overscroll-behavior: contain;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+  
+    /* v39: los botones de modo no deben saltar de fila al activarse */
+    .modeButtons{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px;
+      width:100%;
+      min-width:0;
+    }
+
+    .modeButtons button{
+      width:100%;
+      min-width:0;
+      white-space:nowrap;
+    }
+
+    @media (orientation:landscape) and (max-height:650px){
+      .modeButtons{
+        grid-template-columns:1fr;
+        gap:5px;
+      }
+    }
+
+  
+.teamMode{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;width:100%;margin:5px 0;color:#fff;font-size:10px;font-weight:800}
+.teamMode button,.teamMode label{border:1px solid rgba(255,255,255,.35);background:rgba(235,245,255,.15);color:#fff;border-radius:9px;padding:7px 9px;box-shadow:0 2px 7px rgba(0,0,0,.16)}
+.teamMode .activeTeamMode{background:rgba(32,126,255,.72);border-color:rgba(255,255,255,.65)}
+.teamMode label{display:flex;align-items:center;gap:4px;white-space:nowrap}.teamMode input{accent-color:#2d8cff}
+</style>
+</head>
+<body>
+  <div id="preloadCover"></div>
+  <div id="consoleFade"></div>
+  <div class="top">
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v42</span></div>
+    <div class="badge" id="peerBadge">sin conexión</div>
+    <div class="modeButtons">
+      <button id="soloBtn">1 jugador</button>
+      <button id="multiBtn">Multijugador</button>
+    </div>
+    <div class="difficulty" id="difficultyChooser">
+      <span>Nivel</span>
+      <button id="levelBeginnerBtn" type="button">Principiante</button>
+      <button id="levelMediumBtn" type="button" class="activeLevel">Medio</button>
+      <button id="levelProBtn" type="button">Pro</button>
+    </div>
+    <button id="shareGameBtn" style="display:none">Compartir juego</button>
+    <button id="retryBtn" style="display:none">Reintentar conexión</button>
+    <button id="endSessionBtn" style="display:none">Terminar partida</button>
+    <button id="rematchBtn" style="display:none">Revancha</button>
+    <input id="roomInput" style="display:none" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
+    <button id="hostBtn" style="display:none">Crear partida</button>
+    <button id="shareCodeBtn" style="display:none">Compartir código</button>
+    <button id="joinBtn" style="display:none">Unirme a partida</button>
+    <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
+  </div>
+
+  <div class="gameWrap">
+    <canvas id="game" width="1280" height="720"></canvas>
+  </div>
+
+  <div class="controls" id="controlsPanel">
+    <div>
+      <div class="role" id="roleText">Rol: espectador local</div>
+      <div class="hint">Mové el dedo hacia arriba y abajo dentro del recuadro. La barrita celeste te muestra la posición de tu paleta.</div>
+      <div class="teamMode">
+<span>FORMATO</span><button id="singleModeBtn" class="activeTeamMode">SINGLE</button>
+<button id="doubleModeBtn">DOBLES</button>
+<label><input id="obstaclesToggle" type="checkbox" checked> OBSTÁCULOS</label>
+</div>
+<div class="sideChooser" id="sideChooser">
+        <button id="sideToggleBtn" type="button">Control: derecha</button>
+      </div>
+    </div>
+    <div class="touch" id="touchArea">
+      <div class="touchLabel">CONTROL</div>
+      <div class="touchHandle" id="touchHandle"></div>
+      <div class="touchArrows">▲<br>▼</div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  const consoleBackgrounds = Array.from({length:5}, (_,i) => `fondo_consola_${i+1}.webp`);
+  const gameBackgrounds = Array.from({length:5}, (_,i) => `fondo_juego_${i+1}.webp`);
+  let lastConsoleBg = -1;
+  let lastGameBg = -1;
+  let gameBackground = new Image();
+  let previousGameBackground = null;
+  let gameBackgroundReady = false;
+  let themeFadeStart = 0;
+  const themeFadeDuration = 900;
+  const imageCache = new Map();
+  const preloadCover = document.getElementById('preloadCover');
+  const consoleFade = document.getElementById('consoleFade');
+
+  function preloadImage(src) {
+    if (imageCache.has(src)) return imageCache.get(src);
+    const promise = new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+    imageCache.set(src, promise);
+    return promise;
+  }
+
+  function pickDifferent(length, last) {
+    if (length <= 1) return 0;
+    let n;
+    do { n = Math.floor(Math.random() * length); } while (n === last);
+    return n;
+  }
+
+  async function applyTheme(consoleIndex, gameIndex, animate = false) {
+    const consoleSrc = consoleBackgrounds[consoleIndex];
+    const gameSrc = gameBackgrounds[gameIndex];
+    const [consoleImg, gameImg] = await Promise.all([preloadImage(consoleSrc), preloadImage(gameSrc)]);
+    if (!consoleImg || !gameImg) return;
+
+    if (animate && lastConsoleBg >= 0) {
+      const oldConsole = consoleBackgrounds[lastConsoleBg];
+      consoleFade.style.transition = 'none';
+      consoleFade.style.backgroundImage = `url('${oldConsole}')`;
+      consoleFade.className = 'active';
+      document.documentElement.style.backgroundImage = `url('${consoleSrc}')`;
+      document.body.style.backgroundImage = `url('${consoleSrc}')`;
+      void consoleFade.offsetWidth;
+      consoleFade.style.transition = `opacity ${themeFadeDuration}ms ease`;
+      consoleFade.classList.add('fadeOut');
+      setTimeout(() => { consoleFade.className = ''; consoleFade.style.backgroundImage = ''; }, themeFadeDuration + 80);
+      previousGameBackground = gameBackgroundReady ? gameBackground : null;
+      themeFadeStart = performance.now();
+    } else {
+      document.documentElement.style.backgroundImage = `url('${consoleSrc}')`;
+      document.body.style.backgroundImage = `url('${consoleSrc}')`;
+      previousGameBackground = null;
+      themeFadeStart = 0;
+    }
+
+    gameBackground = gameImg;
+    gameBackgroundReady = true;
+    lastConsoleBg = consoleIndex;
+    lastGameBg = gameIndex;
+  }
+
+  async function randomizeVisualTheme(animate = false) {
+    const nextConsole = pickDifferent(consoleBackgrounds.length, lastConsoleBg);
+    const nextGame = pickDifferent(gameBackgrounds.length, lastGameBg);
+    await applyTheme(nextConsole, nextGame, animate);
+  }
+
+  async function initializeVisuals() {
+    await randomizeVisualTheme(false);
+    preloadCover.classList.add('ready');
+    setTimeout(() => preloadCover.remove(), 450);
+    // El resto se precarga en segundo plano para que los próximos cambios sean instantáneos.
+    [...consoleBackgrounds, ...gameBackgrounds].forEach(preloadImage);
+  }
+  initializeVisuals();
+
+  function drawImageCover(ctx, img, x, y, w, h) {
+    if (!img || !img.naturalWidth || !img.naturalHeight) return false;
+    const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+    const sw = w / scale;
+    const sh = h / scale;
+    const sx = (img.naturalWidth - sw) / 2;
+    const sy = (img.naturalHeight - sh) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    return true;
+  }
+  const statusEl = document.getElementById('status');
+  const peerBadge = document.getElementById('peerBadge');
+  const roleText = document.getElementById('roleText');
+  const touchArea = document.getElementById('touchArea');
+  const touchHandle = document.getElementById('touchHandle');
+  const roomInput = document.getElementById('roomInput');
+  const hostBtn = document.getElementById('hostBtn');
+  const joinBtn = document.getElementById('joinBtn');
+  const soloBtn = document.getElementById('soloBtn');
+  const multiBtn = document.getElementById('multiBtn');
+  const shareGameBtn = document.getElementById('shareGameBtn');
+  const shareCodeBtn = document.getElementById('shareCodeBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const endSessionBtn = document.getElementById('endSessionBtn');
+  const rematchBtn = document.getElementById('rematchBtn');
+  const levelBeginnerBtn = document.getElementById('levelBeginnerBtn');
+  const levelMediumBtn = document.getElementById('levelMediumBtn');
+  const levelProBtn = document.getElementById('levelProBtn');
+  const sideChooser = document.getElementById('sideChooser');
+  const sideToggleBtn = document.getElementById('sideToggleBtn');
+
+  let peer = null;
+  let conn = null;
+  let isHost = false;
+  let role = null; // left | right
+  let connected = false;
+  let mode = 'menu'; // menu | solo | multi
+  let countdownUntil = 0;
+  let gameReady = false;
+  let pointPauseUntil = 0;
+  let pendingServeDir = 1;
+  let matchOver = false;
+  let winner = null; // left | right
+  const WIN_SCORE = 10;
+  let difficulty = 'medium';
+
+  const difficultyConfig = {
+    beginner: { startSpeedMin:5.0, startSpeedExtra:0.8, verticalRange:4.2, accel:1.00075, maxSpeed:14.5, aiErrorScale:1.15, aiSpeedScale:0.92 },
+    medium:   { startSpeedMin:6.2, startSpeedExtra:1.2, verticalRange:5.6, accel:1.0017,  maxSpeed:19.0, aiErrorScale:1.00, aiSpeedScale:1.00 },
+    pro:      { startSpeedMin:7.4, startSpeedExtra:1.6, verticalRange:6.8, accel:1.0026,  maxSpeed:23.5, aiErrorScale:0.72, aiSpeedScale:1.12 }
+  };
+
+  let matchesLeft = 0;
+  let matchesRight = 0;
+  let obstacles = [];
+
+  // Predicción visual para el invitado: evita que la pelota se vea atrasada.
+  let remoteTargetX = 640;
+  let remoteTargetY = 360;
+  let remoteVX = 0;
+  let remoteVY = 0;
+  let lastRemoteStateAt = 0;
+
+  // Suavizado visual de la paleta remota en el invitado.
+  let remoteLeftTargetY = 280;
+  let remoteLeftVY = 0;
+  let lastRemoteLeftStateAt = 0;
+
+  // Efecto/spin de la pelota.
+  let ballSpin = 0;          // intensidad y signo
+  let ballSpinVisual = 0;    // animación visual de flechas
+  let lastLeftY = 280;
+  let lastRightY = 280;
+  let leftPaddleVY = 0;
+  let rightPaddleVY = 0;
+
+  // Rival virtual: deliberadamente imperfecto.
+  let aiTargetY = 280;
+  let aiNextThinkAt = 0;
+  let aiError = 0;
+  let aiHesitationUntil = 0;
+  let soloStartedAt = 0;
+
+  const state = {
+    leftY: 280,
+    rightY: 280,
+    ballX: 640,
+    ballY: 360,
+    ballVX: 7,
+    ballVY: 4.5,
+    scoreL: 0,
+    scoreR: 0,
+    rallyHits: 0,
+    flash: 0,
+    flashColor: null
+  };
+
+  const paddle = { w:22, h:150, margin:42, speed:15 };
+  const ballR = 15;
+
+  function setStatus(msg){ statusEl.textContent = msg; }
+
+  function updateModeButtons() {
+    soloBtn.classList.toggle('activeMode', mode === 'solo');
+    multiBtn.classList.toggle('activeMode', mode === 'multi');
+  }
+
+  function setDifficulty(level, fromNetwork = false) {
+    if (!difficultyConfig[level]) return;
+    difficulty = level;
+    levelBeginnerBtn.classList.toggle('activeLevel', level === 'beginner');
+    levelMediumBtn.classList.toggle('activeLevel', level === 'medium');
+    levelProBtn.classList.toggle('activeLevel', level === 'pro');
+
+    if (fromNetwork) return;
+
+    if (mode === 'solo') {
+      startSolo();
+      return;
+    }
+
+    if (mode === 'multi') {
+      createMultiplayerSession();
+      return;
+    }
+  }
+
+  levelBeginnerBtn.addEventListener('click', () => setDifficulty('beginner'));
+  levelMediumBtn.addEventListener('click', () => setDifficulty('medium'));
+  levelProBtn.addEventListener('click', () => setDifficulty('pro'));
+
+  let controlSide = 'right';
+
+  function setControlSide(side){
+    controlSide = side;
+    const left = side === 'left';
+    document.body.classList.toggle('control-left', left);
+    sideToggleBtn.textContent = left ? 'Control: izquierda' : 'Control: derecha';
+  }
+
+  sideToggleBtn.addEventListener('click', () => {
+    setControlSide(controlSide === 'right' ? 'left' : 'right');
+  });
+
+  function generateObstacles() {
+    if (typeof obstaclesEnabled !== 'undefined' && !obstaclesEnabled) { obstacles=[]; return; }
+    const list = [];
+    const count = 4; // dos aproximados por lado del centro
+    const centerX = canvas.width / 2;
+
+    for (let i = 0; i < count; i++) {
+      const side = i < 2 ? -1 : 1;
+      const x = centerX + side * (90 + Math.random() * 170);
+      const y = 120 + Math.random() * (canvas.height - 240);
+      const w = 30 + Math.random() * 40;
+      const h = 70 + Math.random() * 65;
+      const angle = (-28 + Math.random() * 56) * Math.PI / 180;
+
+      list.push({ x, y, w, h, angle });
+    }
+
+    obstacles = list;
+  }
+
+  function resetMatch(notifyPeer = false) {
+    randomizeVisualTheme(true);
+    state.scoreL = 0;
+    state.scoreR = 0;
+    winner = null;
+    matchOver = false;
+    rematchBtn.style.display = 'none';
+    generateObstacles();
+    resetBall(Math.random() > .5 ? 1 : -1);
+    startCountdown(3200, notifyPeer);
+
+    if (notifyPeer && conn && conn.open) {
+      conn.send({ type:'resetMatch' });
+    }
+  }
+
+  function startCountdown(ms = 3200, notifyPeer = false) {
+    countdownUntil = performance.now() + ms;
+    gameReady = false;
+    state.ballX = canvas.width / 2;
+    state.ballY = canvas.height / 2;
+
+    if (notifyPeer && conn && conn.open) {
+      conn.send({ type:'countdown', duration: ms });
+    }
+  }
+
+  function makeRoomCode() {
+    return 'pong-' + Math.random().toString(36).slice(2, 7);
+  }
+
+  function closeCurrentSession(goToMenu = true) {
+    connected = false;
+    gameReady = false;
+    countdownUntil = 0;
+    pointPauseUntil = 0;
+    matchOver = false;
+    winner = null;
+
+    if (conn) {
+      try { conn.close(); } catch(e) {}
+      conn = null;
+    }
+
+    if (peer) {
+      try { peer.destroy(); } catch(e) {}
+      peer = null;
+    }
+
+    roomInput.value = '';
+    roomInput.readOnly = false;
+    retryBtn.style.display = 'none';
+    endSessionBtn.style.display = 'none';
+    shareGameBtn.style.display = 'none';
+    shareCodeBtn.style.display = 'none';
+
+    if (goToMenu) {
+      mode = 'menu';
+      role = null;
+      isHost = false;
+      updateModeButtons();
+      peerBadge.textContent = 'elegí modo';
+      roleText.textContent = 'Rol: espectador local';
+      setStatus('Elegí 1 jugador o Multijugador.');
+      showMultiControls(false);
+    }
+  }
+
+  function createPeer(id) {
+    if (peer) {
+      try { peer.destroy(); } catch(e){}
+    }
+
+    peer = id
+      ? new Peer(id, { debug: 1 })
+      : new Peer({ debug: 1 });
+
+    peer.on('open', peerId => {
+      peerBadge.textContent = peerId;
+      if (isHost) {
+        roomInput.value = peerId;
+        setStatus('Sala creada. Pasale este código al otro celular.');
+      }
+    });
+
+    peer.on('connection', incoming => {
+      if (!isHost) return;
+      if (conn && conn.open) {
+        incoming.close();
+        return;
+      }
+      conn = incoming;
+      setupConnection();
+    });
+
+    peer.on('error', err => {
+      console.error(err);
+      if (mode === 'multi' && !isHost) {
+        retryBtn.style.display = '';
+        setStatus('La conexión no pudo completarse. Podés reintentar.');
+      } else {
+        setStatus('Error de conexión: ' + (err.type || err.message));
+      }
+    });
+  }
+
+  function setupConnection() {
+    if (!conn) return;
+
+    conn.on('open', () => {
+      connected = true;
+      endSessionBtn.style.display = '';
+      peerBadge.textContent = 'conectado';
+      if (isHost) {
+        role = 'left';
+        roleText.textContent = 'Rol: barra izquierda';
+        conn.send({ type:'role', role:'right' });
+        conn.send({ type:'difficulty', level:difficulty });
+        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles, ballSpin, ballSpinVisual });
+        startCountdown(3200, true);
+        setStatus('Jugador conectado. La partida comienza en 3…');
+      } else {
+        setStatus('Conectado al anfitrión. Preparando partida…');
+      }
+    });
+
+    conn.on('data', data => {
+      if (!data || typeof data !== 'object') return;
+
+      if (data.type === 'role') {
+        role = data.role;
+        roleText.textContent = role === 'right' ? 'Rol: barra derecha' : 'Rol: barra izquierda';
+        if (!isHost) {
+          remoteTargetX = state.ballX;
+          remoteTargetY = state.ballY;
+          lastRemoteStateAt = performance.now();
+          remoteLeftTargetY = state.leftY;
+          remoteLeftVY = 0;
+          lastRemoteLeftStateAt = performance.now();
+        }
+      }
+
+      if (data.type === 'countdown') {
+        startCountdown(Number(data.duration) || 3200, false);
+        setStatus('Partida encontrada. Preparados…');
+      }
+
+      if (data.type === 'difficulty' && difficultyConfig[data.level]) {
+        setDifficulty(data.level, true);
+      }
+
+      if (data.type === 'ballImpact' && !isHost) {
+        if (typeof data.x === 'number') {
+          state.ballX = data.x;
+          remoteTargetX = data.x;
+        }
+        if (typeof data.y === 'number') {
+          state.ballY = data.y;
+          remoteTargetY = data.y;
+        }
+        if (typeof data.vx === 'number') remoteVX = data.vx;
+        if (typeof data.vy === 'number') remoteVY = data.vy;
+        if (typeof data.spin === 'number') ballSpin = data.spin;
+        if (typeof data.spinVisual === 'number') ballSpinVisual = data.spinVisual;
+
+        lastRemoteStateAt = performance.now();
+      }
+
+      if (data.type === 'resetMatch') {
+        randomizeVisualTheme();
+        state.scoreL = 0;
+        state.scoreR = 0;
+        winner = null;
+        matchOver = false;
+        rematchBtn.style.display = 'none';
+        resetBall(Math.random() > .5 ? 1 : -1);
+      }
+
+      if (data.type === 'requestRematch' && isHost && matchOver) {
+        resetMatch(true);
+        setStatus('Revancha. Preparados…');
+      }
+
+      if (data.type === 'sessionEnded') {
+        closeCurrentSession(true);
+        return;
+      }
+
+      if (data.type === 'paddle' && isHost) {
+        if (data.role === 'right') {
+          state.rightY = clamp(data.y, 0, canvas.height - paddle.h);
+          rightPaddleVY = Number(data.vy) || 0;
+          lastRightY = state.rightY;
+        }
+      }
+
+      if (data.type === 'state' && !isHost) {
+        const incoming = data.state || {};
+
+        // El resto del estado sí se actualiza normalmente.
+        if (typeof incoming.leftY === 'number') {
+          const nowState = performance.now();
+          const dt = Math.max(1, nowState - lastRemoteLeftStateAt);
+          remoteLeftVY = (incoming.leftY - remoteLeftTargetY) / dt * 16.67;
+          remoteLeftTargetY = incoming.leftY;
+          lastRemoteLeftStateAt = nowState;
+        }
+        if (typeof incoming.rightY === 'number') state.rightY = incoming.rightY;
+        if (typeof incoming.scoreL === 'number') state.scoreL = incoming.scoreL;
+        if (typeof incoming.scoreR === 'number') state.scoreR = incoming.scoreR;
+        if (typeof incoming.rallyHits === 'number') state.rallyHits = incoming.rallyHits;
+        if (typeof incoming.flash === 'number') state.flash = incoming.flash;
+        if ('flashColor' in incoming) state.flashColor = incoming.flashColor;
+
+        // La pelota se interpola/predice en vez de saltar a cada paquete recibido.
+        if (typeof incoming.ballX === 'number') remoteTargetX = incoming.ballX;
+        if (typeof incoming.ballY === 'number') remoteTargetY = incoming.ballY;
+        if (typeof incoming.ballVX === 'number') remoteVX = incoming.ballVX;
+        if (typeof incoming.ballVY === 'number') remoteVY = incoming.ballVY;
+        lastRemoteStateAt = performance.now();
+
+        if (typeof data.matchesLeft === 'number') matchesLeft = data.matchesLeft;
+        if (typeof data.matchesRight === 'number') matchesRight = data.matchesRight;
+        if (typeof data.matchOver === 'boolean') matchOver = data.matchOver;
+        if (data.winner === 'left' || data.winner === 'right' || data.winner === null) winner = data.winner;
+        if (Array.isArray(data.obstacles)) obstacles = data.obstacles;
+        if (typeof data.ballSpin === 'number') ballSpin = data.ballSpin;
+        if (typeof data.ballSpinVisual === 'number') ballSpinVisual = data.ballSpinVisual;
+      }
+
+      if (data.type === 'restart' && isHost) {
+        resetBall(Math.random() > .5 ? 1 : -1);
+    startCountdown(3200, false);
+      }
+    });
+
+    conn.on('close', () => {
+      connected = false;
+      if (mode === 'multi') {
+        peerBadge.textContent = 'desconectado';
+        setStatus('Se cerró la conexión.');
+        endSessionBtn.style.display = '';
+      }
+    });
+  }
+
+
+  function showMultiControls(show) {
+    hostBtn.style.display = 'none';
+    roomInput.style.display = 'none';
+    joinBtn.style.display = 'none';
+    shareCodeBtn.style.display = 'none';
+    shareGameBtn.style.display = show ? '' : 'none';
+    retryBtn.style.display = 'none';
+  }
+
+  function createMultiplayerSession() {
+    closeCurrentSession(false);
+
+    mode = 'multi';
+    updateModeButtons();
+    connected = false;
+    gameReady = false;
+    countdownUntil = 0;
+    pointPauseUntil = 0;
+    physicsAccumulator = 0;
+    lastFrameTime = 0;
+    matchesLeft = 0;
+    matchesRight = 0;
+    isHost = true;
+    role = 'left';
+    roleText.textContent = 'Rol: barra izquierda';
+
+    generateObstacles();
+
+    const code = makeRoomCode();
+    roomInput.value = code;
+    roomInput.readOnly = true;
+
+    showMultiControls(true);
+    endSessionBtn.style.display = '';
+    peerBadge.textContent = 'creando sala';
+    setStatus('Partida creada. Tocá “Compartir juego” para invitar al otro jugador.');
+    createPeer(code);
+  }
+
+  function startSolo() {
+    closeCurrentSession(false);
+    mode = 'solo';
+    updateModeButtons();
+    pointPauseUntil = 0;
+    roomInput.readOnly = false;
+    showMultiControls(false);
+    connected = true;
+    isHost = true;
+    role = 'left';
+    roleText.textContent = 'Rol: barra izquierda · rival automático';
+    peerBadge.textContent = '1 jugador';
+    setStatus('Modo 1 jugador. Al principio el rival juega casi perfecto; después empieza a cometer errores.');
+    state.scoreL = 0;
+    state.scoreR = 0;
+    matchesLeft = 0;
+    matchesRight = 0;
+    matchOver = false;
+    winner = null;
+    rematchBtn.style.display = 'none';
+    state.leftY = 280;
+    state.rightY = 280;
+    aiTargetY = 280;
+    aiNextThinkAt = 0;
+    aiError = 0;
+    aiHesitationUntil = 0;
+    soloStartedAt = performance.now();
+    physicsAccumulator = 0;
+    lastFrameTime = 0;
+    generateObstacles();
+    resetBall(Math.random() > .5 ? 1 : -1);
+    startCountdown(3200, false);
+  }
+
+  soloBtn.addEventListener('click', startSolo);
+
+  multiBtn.addEventListener('click', () => {
+    createMultiplayerSession();
+  });
+
+  hostBtn.addEventListener('click', () => {
+    createMultiplayerSession();
+  });
+
+  shareGameBtn.addEventListener('click', async () => {
+    const code = roomInput.value.trim();
+    let inviteUrl = new URL(window.location.href);
+    inviteUrl.searchParams.delete('sala');
+
+    if (code) {
+      inviteUrl.searchParams.set('sala', code);
+    }
+
+    const url = inviteUrl.toString();
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Pong Doble',
+          url
+        });
+        setStatus(code ? 'Invitación enviada. Esperando al otro jugador…' : 'Juego compartido.');
+        return;
+      } catch (err) {
+        // Si se cancela o falla, mostramos el enlace.
+      }
+    }
+
+    setStatus(code
+      ? 'Compartí esta invitación: ' + url
+      : 'Compartí este enlace: ' + url);
+  });
+
+  shareCodeBtn.addEventListener('click', async () => {
+    const code = roomInput.value.trim();
+    if (!code) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          text: code
+        });
+        setStatus('Código listo para compartir.');
+        return;
+      } catch (err) {
+        // Si se cancela o falla, seleccionamos el código.
+      }
+    }
+
+    roomInput.focus();
+    roomInput.select();
+    roomInput.setSelectionRange(0, roomInput.value.length);
+    setStatus('Código seleccionado. Copialo y envialo al otro jugador.');
+  });
+
+  joinBtn.addEventListener('click', () => {
+    mode = 'multi';
+    roomInput.readOnly = false;
+    shareCodeBtn.style.display = 'none';
+    const code = roomInput.value.trim();
+    if (!code) {
+      setStatus('Escribí el código de sala del otro dispositivo.');
+      return;
+    }
+
+    isHost = false;
+    role = 'right';
+    roleText.textContent = 'Rol: barra derecha';
+    createPeer();
+
+    peer.on('open', () => {
+      conn = peer.connect(code, { reliable: true });
+      setupConnection();
+      setStatus('Intentando conectar...');
+    });
+  });
+
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+  function localMove(yNormalized) {
+    yNormalized = clamp(yNormalized, 0, 1);
+    touchHandle.style.top = (10 + yNormalized * 80) + '%';
+    const y = clamp(yNormalized * canvas.height - paddle.h/2, 0, canvas.height - paddle.h);
+
+    if (role === 'left') {
+      leftPaddleVY = y - lastLeftY;
+      lastLeftY = y;
+      state.leftY = y;
+    } else if (role === 'right') {
+      rightPaddleVY = y - lastRightY;
+      lastRightY = y;
+
+      if (isHost) {
+        state.rightY = y;
+      } else {
+        state.rightY = y;
+        if (conn && conn.open) conn.send({ type:'paddle', role:'right', y, vy:rightPaddleVY });
+      }
+    }
+  }
+
+  let touching = false;
+
+  function pointerMove(ev) {
+    const r = touchArea.getBoundingClientRect();
+    const norm = clamp((ev.clientY - r.top) / r.height, 0, 1);
+    localMove(norm);
+  }
+
+  touchArea.addEventListener('pointerdown', ev => {
+    touching = true;
+    touchArea.classList.add('active');
+    touchArea.setPointerCapture(ev.pointerId);
+    pointerMove(ev);
+  });
+
+  touchArea.addEventListener('pointermove', ev => {
+    if (touching) pointerMove(ev);
+  });
+
+  function endTouch(ev) {
+    touching = false;
+    touchArea.classList.remove('active');
+    try { touchArea.releasePointerCapture(ev.pointerId); } catch(e){}
+  }
+
+  touchArea.addEventListener('pointerup', endTouch);
+  touchArea.addEventListener('pointercancel', endTouch);
+
+  canvas.addEventListener('pointerup', () => {
+    if (matchOver) {
+      startRematchFromLocalTap();
+    }
+  });
+
+  function clearSpin() {
+    ballSpin = 0;
+    ballSpinVisual = 0;
+  }
+
+  function pauseAfterPoint(dir=1, ms=3000) {
+    pendingServeDir = dir;
+    pointPauseUntil = performance.now() + ms;
+    state.ballX = canvas.width/2;
+    state.ballY = canvas.height/2;
+    state.ballVX = 0;
+    state.ballVY = 0;
+    clearSpin();
+  }
+
+  function resetBall(dir=1){
+    const cfg = difficultyConfig[difficulty];
+    state.ballX = canvas.width/2;
+    state.ballY = canvas.height/2;
+    state.ballVX = dir * (cfg.startSpeedMin + Math.random()*cfg.startSpeedExtra);
+    state.ballVY = (Math.random() * cfg.verticalRange - cfg.verticalRange/2);
+    state.rallyHits = 0;
+    clearSpin();
+  }
+
+  function collideBallWithObstacle(o) {
+    const cos = Math.cos(-o.angle);
+    const sin = Math.sin(-o.angle);
+
+    const dx = state.ballX - o.x;
+    const dy = state.ballY - o.y;
+
+    const lx = dx * cos - dy * sin;
+    const ly = dx * sin + dy * cos;
+
+    const hw = o.w / 2;
+    const hh = o.h / 2;
+
+    const cx = clamp(lx, -hw, hw);
+    const cy = clamp(ly, -hh, hh);
+
+    const ddx = lx - cx;
+    const ddy = ly - cy;
+    const dist2 = ddx * ddx + ddy * ddy;
+
+    if (dist2 > ballR * ballR) return false;
+
+    // Normal local aproximada según el lado más cercano.
+    let nx = 0, ny = 0;
+    if (Math.abs(ddx) > Math.abs(ddy)) {
+      nx = ddx >= 0 ? 1 : -1;
+    } else {
+      ny = ddy >= 0 ? 1 : -1;
+    }
+
+    // Normal al mundo.
+    const c2 = Math.cos(o.angle);
+    const s2 = Math.sin(o.angle);
+    const wx = nx * c2 - ny * s2;
+    const wy = nx * s2 + ny * c2;
+
+    const dot = state.ballVX * wx + state.ballVY * wy;
+    state.ballVX = state.ballVX - 2 * dot * wx;
+    state.ballVY = state.ballVY - 2 * dot * wy;
+
+    // Pequeña ganancia arcade para que el rebote se sienta vivo.
+    state.ballVX *= 1.025;
+    state.ballVY *= 1.025;
+
+    // Sacar la pelota un poco del obstáculo para evitar rebotes repetidos.
+    state.ballX += wx * (ballR + 3);
+    state.ballY += wy * (ballR + 3);
+
+    clearSpin();
+    return true;
+  }
+
+  function sendBallImpact() {
+    if (mode === 'multi' && isHost && conn && conn.open) {
+      conn.send({
+        type:'ballImpact',
+        x:state.ballX,
+        y:state.ballY,
+        vx:state.ballVX,
+        vy:state.ballVY,
+        spin:ballSpin,
+        spinVisual:ballSpinVisual
+      });
+    }
+  }
+
+  function hostPhysics(stepScale = 1) {
+    if (mode === 'solo') {
+      const now = performance.now();
+      const ballSpeed = Math.hypot(state.ballVX, state.ballVY);
+      const speedFactor = clamp((ballSpeed - 6) / 13, 0, 1);
+      const elapsedSolo = Math.max(0, now - soloStartedAt);
+
+      // Durante los primeros ~4 segundos, la máquina juega casi perfecto.
+      const grace = clamp(elapsedSolo / 4000, 0, 1);
+
+      if (now >= aiNextThinkAt) {
+        // Error mínimo al inicio; luego aumenta progresivamente.
+        const errorRange = (2 + grace * (8 + speedFactor * 50)) * difficultyConfig[difficulty].aiErrorScale;
+        aiError = (Math.random() * 2 - 1) * errorRange;
+
+        // Casi no duda al principio. Luego la posibilidad de duda crece.
+        const hesitationChance = grace * (0.01 + speedFactor * 0.13);
+        if (Math.random() < hesitationChance) {
+          aiHesitationUntil = now + 70 + grace * speedFactor * (120 + Math.random() * 180);
+        }
+
+        let predictedY = state.ballY;
+
+        if (state.ballVX > 0) {
+          const distanceX = (canvas.width - paddle.margin - paddle.w) - state.ballX;
+          const framesAhead = distanceX / Math.max(1, state.ballVX);
+
+          // Al comienzo anticipa mucho mejor; después la predicción es menos precisa.
+          const predictionStrength = 0.72 - grace * 0.20;
+          predictedY = state.ballY + state.ballVY * framesAhead * predictionStrength;
+        }
+
+        aiTargetY = predictedY - paddle.h / 2 + aiError;
+
+        // Reacción muy rápida al comienzo y más humana después.
+        aiNextThinkAt = now + (35 + grace * 25) + Math.random() * (20 + grace * (30 + speedFactor * 70));
+      }
+
+      if (now >= aiHesitationUntil) {
+        const diff = aiTargetY - state.rightY;
+
+        // Arranca con buena movilidad; más adelante queda algo más limitada.
+        const maxStep = (8.5 - grace * (0.8 + speedFactor * 0.8)) * difficultyConfig[difficulty].aiSpeedScale;
+        state.rightY += clamp(diff, -maxStep, maxStep);
+        state.rightY = clamp(state.rightY, 0, canvas.height - paddle.h);
+      }
+    }
+    state.ballX += state.ballVX * stepScale;
+    state.ballY += state.ballVY * stepScale;
+
+    // Efecto curvo: rota el vector de velocidad sin cambiar su magnitud.
+    // Así el gesto de la paleta cambia la trayectoria, pero no acelera ni frena la pelota.
+    if (Math.abs(ballSpin) > 0.01) {
+      const spinAngle = ballSpin * 0.00085 * stepScale;
+      const c = Math.cos(spinAngle);
+      const s = Math.sin(spinAngle);
+      const vx = state.ballVX;
+      const vy = state.ballVY;
+      state.ballVX = vx * c - vy * s;
+      state.ballVY = vx * s + vy * c;
+
+      ballSpin *= Math.pow(0.992, stepScale);
+      ballSpinVisual = Math.min(1, Math.abs(ballSpin) / 9);
+    } else {
+      ballSpin = 0;
+      ballSpinVisual *= Math.pow(0.92, stepScale);
+    }
+
+    // Aceleración continua: empieza suave, pero ya a los pocos segundos se nota.
+    const currentSpeed = Math.hypot(state.ballVX, state.ballVY);
+    const cfg = difficultyConfig[difficulty];
+    const maxSpeed = cfg.maxSpeed;
+    if (currentSpeed < maxSpeed) {
+      const accel = Math.pow(cfg.accel, stepScale);
+      state.ballVX *= accel;
+      state.ballVY *= accel;
+    }
+
+    if (state.ballY - ballR < 0) {
+      state.ballY = ballR;
+      state.ballVY = Math.abs(state.ballVY);
+      clearSpin();
+    }
+    if (state.ballY + ballR > canvas.height) {
+      state.ballY = canvas.height - ballR;
+      state.ballVY = -Math.abs(state.ballVY);
+      clearSpin();
+    }
+
+    for (const o of obstacles) {
+      if (collideBallWithObstacle(o)) break;
+    }
+
+    const leftX = paddle.margin;
+    const rightX = canvas.width - paddle.margin - paddle.w;
+    const tip = 34; // zona inclinada superior/inferior de la paleta
+    const bevelReach = 18; // cuánto sobresale visualmente el bisel
+
+    // LEFT paddle collision with angled tips
+    if (
+      state.ballVX < 0 &&
+      state.ballX - ballR <= leftX + paddle.w + bevelReach &&
+      state.ballX > leftX - 8 &&
+      state.ballY >= state.leftY - 6 &&
+      state.ballY <= state.leftY + paddle.h + 6
+    ) {
+      const localY = state.ballY - state.leftY;
+      let hit = false;
+
+      if (localY >= 0 && localY <= paddle.h) {
+        hit = true;
+        clearSpin();
+        state.ballX = leftX + paddle.w + ballR;
+
+        if (localY < tip) {
+          // Punta superior: rebote marcado hacia arriba
+          state.ballVX = Math.abs(state.ballVX) * 1.07;
+          state.ballVY = -Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+        } else if (localY > paddle.h - tip) {
+          // Punta inferior: rebote marcado hacia abajo
+          state.ballVX = Math.abs(state.ballVX) * 1.07;
+          state.ballVY = Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+        } else {
+          const offset = (state.ballY - (state.leftY + paddle.h/2)) / (paddle.h/2);
+          state.ballVX = Math.abs(state.ballVX) * 1.045;
+          state.ballVY += offset * 3.2;
+        }
+
+        // Si la paleta venía barriendo fuerte en vertical, aplica efecto.
+        if (Math.abs(leftPaddleVY) > 7.5) {
+          ballSpin = clamp(-leftPaddleVY * 0.55, -11, 11);
+          ballSpinVisual = 1;
+        }
+      }
+
+      if (hit) {
+        state.rallyHits++;
+        sendBallImpact();
+      }
+    }
+
+    // RIGHT paddle collision with mirrored angled tips
+    if (
+      state.ballVX > 0 &&
+      state.ballX + ballR >= rightX - bevelReach &&
+      state.ballX < rightX + paddle.w + 8 &&
+      state.ballY >= state.rightY - 6 &&
+      state.ballY <= state.rightY + paddle.h + 6
+    ) {
+      const localY = state.ballY - state.rightY;
+      let hit = false;
+
+      if (localY >= 0 && localY <= paddle.h) {
+        hit = true;
+        clearSpin();
+        state.ballX = rightX - ballR;
+
+        if (localY < tip) {
+          state.ballVX = -Math.abs(state.ballVX) * 1.07;
+          state.ballVY = -Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+        } else if (localY > paddle.h - tip) {
+          state.ballVX = -Math.abs(state.ballVX) * 1.07;
+          state.ballVY = Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+        } else {
+          const offset = (state.ballY - (state.rightY + paddle.h/2)) / (paddle.h/2);
+          state.ballVX = -Math.abs(state.ballVX) * 1.045;
+          state.ballVY += offset * 3.2;
+        }
+
+        if (Math.abs(rightPaddleVY) > 7.5) {
+          ballSpin = clamp(-rightPaddleVY * 0.55, -11, 11);
+          ballSpinVisual = 1;
+        }
+      }
+
+      if (hit) {
+        state.rallyHits++;
+        sendBallImpact();
+      }
+    }
+
+    if (state.ballX < -50) {
+      state.scoreR++;
+      state.flash = 1;
+      state.flashColor = role === 'left' ? 'red' : 'green';
+
+      if (state.scoreR >= WIN_SCORE && !matchOver) {
+        matchOver = true;
+        winner = 'right';
+        matchesRight++;
+        gameReady = false;
+        rematchBtn.style.display = 'none';
+        setStatus('Partida terminada. Tocá el cartel para jugar otra vez.');
+      } else {
+        generateObstacles();
+        pauseAfterPoint(1, 300);
+      }
+    }
+
+    if (state.ballX > canvas.width + 50) {
+      state.scoreL++;
+      state.flash = 1;
+      state.flashColor = role === 'right' ? 'red' : 'green';
+
+      if (state.scoreL >= WIN_SCORE && !matchOver) {
+        matchOver = true;
+        winner = 'left';
+        matchesLeft++;
+        gameReady = false;
+        rematchBtn.style.display = 'none';
+        setStatus('Partida terminada. Tocá el cartel para jugar otra vez.');
+      } else {
+        generateObstacles();
+        pauseAfterPoint(-1, 300);
+      }
+    }
+
+    if (state.flash > 0) {
+      state.flash = Math.max(0, state.flash - 0.045 * stepScale);
+    }
+
+    leftPaddleVY *= Math.pow(0.72, stepScale);
+    rightPaddleVY *= Math.pow(0.72, stepScale);
+  }
+
+  let lastSync = 0;
+
+  function updateRemoteBallVisual() {
+    if (isHost || mode !== 'multi' || !connected) return;
+
+    const now = performance.now();
+    const age = Math.min(120, Math.max(0, now - lastRemoteStateAt));
+
+    // Extrapolamos apenas hacia adelante usando la velocidad conocida.
+    let leadAge = age;
+
+    // Cerca de una paleta reducimos apenas la extrapolación.
+    // Esto evita que en el invitado el rebote parezca ocurrir antes del contacto visual.
+    const leftContactX = paddle.margin + paddle.w + ballR + 28;
+    const rightContactX = canvas.width - paddle.margin - paddle.w - ballR - 28;
+    const nearLeft = remoteVX < 0 && remoteTargetX < leftContactX + 120;
+    const nearRight = remoteVX > 0 && remoteTargetX > rightContactX - 120;
+    if (nearLeft || nearRight) leadAge *= 0.45;
+
+    const predictedX = remoteTargetX + remoteVX * (leadAge / 16.67);
+    const predictedY = remoteTargetY + remoteVY * (leadAge / 16.67);
+
+    // Corrección suave. Si hay una diferencia enorme (gol, saque, choque fuerte),
+    // corregimos más agresivamente para no quedar desfasados.
+    const dx = predictedX - state.ballX;
+    const dy = predictedY - state.ballY;
+    const dist = Math.hypot(dx, dy);
+
+    const blend = dist > 120 ? 0.72 : 0.28;
+    state.ballX += dx * blend;
+    state.ballY += dy * blend;
+  }
+
+  function updateRemotePaddleVisual() {
+    if (isHost || mode !== 'multi' || !connected) return;
+
+    const now = performance.now();
+    const age = Math.min(100, Math.max(0, now - lastRemoteLeftStateAt));
+
+    // Extrapolación pequeña según la última tendencia recibida.
+    const predictedY = clamp(
+      remoteLeftTargetY + remoteLeftVY * (age / 16.67),
+      0,
+      canvas.height - paddle.h
+    );
+
+    const diff = predictedY - state.leftY;
+    const blend = Math.abs(diff) > 90 ? 0.60 : 0.24;
+
+    state.leftY += diff * blend;
+  }
+
+
+  function render() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    if (!gameBackgroundReady) {
+      ctx.fillStyle = '#10161d';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    } else if (previousGameBackground && themeFadeStart > 0) {
+      const fade = Math.min(1, (performance.now() - themeFadeStart) / themeFadeDuration);
+      ctx.save();
+      ctx.globalAlpha = 1;
+      drawImageCover(ctx, previousGameBackground, 0, 0, canvas.width, canvas.height);
+      ctx.globalAlpha = fade;
+      drawImageCover(ctx, gameBackground, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      if (fade >= 1) { previousGameBackground = null; themeFadeStart = 0; }
+    } else if (!drawImageCover(ctx, gameBackground, 0, 0, canvas.width, canvas.height)) {
+      ctx.fillStyle = '#10161d';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+
+    // Capa leve para conservar legibilidad del marcador, pelota y paletas.
+    ctx.fillStyle = 'rgba(2,7,14,.16)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    if (state.flash > 0 && state.flashColor) {
+      const a = 0.72 * state.flash;
+      ctx.fillStyle = state.flashColor === 'red'
+        ? `rgba(255,45,65,${a})`
+        : `rgba(55,220,110,${a})`;
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+
+    ctx.strokeStyle = 'rgba(255,255,255,.48)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([18,22]);
+    ctx.beginPath();
+    ctx.moveTo(canvas.width/2, 20);
+    ctx.lineTo(canvas.width/2, canvas.height-20);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Obstáculos centrales aleatorios: cambian en cada partida.
+    for (const o of obstacles) {
+      ctx.save();
+      ctx.translate(o.x, o.y);
+      ctx.rotate(o.angle);
+
+      ctx.fillStyle = 'rgba(125,211,252,.16)';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(-o.w/2, -o.h/2, o.w, o.h, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawBeveledPaddle(x, y, side) {
+      const w = paddle.w;
+      const h = paddle.h;
+      const bevel = 18;
+      ctx.fillStyle = '#f4f7fb';
+      ctx.beginPath();
+
+      if (side === 'left') {
+        ctx.moveTo(x, y + bevel);
+        ctx.lineTo(x + w, y);
+        ctx.lineTo(x + w, y + h);
+        ctx.lineTo(x, y + h - bevel);
+      } else {
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + w, y + bevel);
+        ctx.lineTo(x + w, y + h - bevel);
+        ctx.lineTo(x, y + h);
+      }
+
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    drawBeveledPaddle(paddle.margin, state.leftY, 'left');
+    drawBeveledPaddle(canvas.width - paddle.margin - paddle.w, state.rightY, 'right');
+
+    ctx.beginPath();
+
+    // v42 DOBLES: prototipo visual, paletas cortas y escalonadas.
+    if (typeof teamPlayMode !== 'undefined' && teamPlayMode === 'doubles') {
+      const dh=paddle.h*.58, dw=Math.max(5,paddle.w*.72);
+      const yL=clamp(state.leftY+paddle.h*.62,0,canvas.height-dh);
+      const yR=clamp(state.rightY-paddle.h*.20,0,canvas.height-dh);
+      ctx.save(); ctx.globalAlpha=.88; ctx.fillStyle='#fff';
+      ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=5;
+      ctx.fillRect(paddle.margin+paddle.w+16,yL,dw,dh);
+      ctx.fillRect(canvas.width-paddle.margin-paddle.w-dw-16,yR,dw,dh);
+      ctx.restore();
+    }
+    ctx.arc(state.ballX, state.ballY, ballR, 0, Math.PI*2);
+    ctx.fill();
+
+    if (ballSpinVisual > 0.08) {
+      const dir = ballSpin >= 0 ? 1 : -1;
+      const t = performance.now() * 0.006 * dir;
+
+      ctx.save();
+      ctx.translate(state.ballX, state.ballY);
+      ctx.rotate(t);
+
+      ctx.strokeStyle = `rgba(125,211,252,${0.25 + ballSpinVisual * 0.55})`;
+      ctx.fillStyle = `rgba(125,211,252,${0.25 + ballSpinVisual * 0.55})`;
+      ctx.lineWidth = 2.2;
+
+      const r = ballR + 10;
+
+      for (let i = 0; i < 2; i++) {
+        const a0 = i * Math.PI;
+        const a1 = a0 + dir * 1.25;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r, a0, a1, dir < 0);
+        ctx.stroke();
+
+        const ax = Math.cos(a1) * r;
+        const ay = Math.sin(a1) * r;
+        const tangent = a1 + (dir > 0 ? Math.PI/2 : -Math.PI/2);
+
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax - Math.cos(tangent - 0.65) * 7, ay - Math.sin(tangent - 0.65) * 7);
+        ctx.lineTo(ax - Math.cos(tangent + 0.65) * 7, ay - Math.sin(tangent + 0.65) * 7);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    ctx.font = '700 76px system-ui';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,.70)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = '#6f839a';
+    ctx.fillText(state.scoreL, canvas.width/2 - 90, 95);
+    ctx.fillText(state.scoreR, canvas.width/2 + 90, 95);
+
+    // Marcador de partidos ganados: persiste entre revanchas.
+    ctx.font = '700 22px system-ui';
+    ctx.fillStyle = '#9eb0c6';
+    ctx.fillText('PARTIDOS', canvas.width/2, 32);
+
+    ctx.font = '800 30px system-ui';
+    ctx.fillStyle = '#f4f7fb';
+    ctx.fillText(matchesLeft + '  —  ' + matchesRight, canvas.width/2, 64);
+
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    if (state.rallyHits >= 6) {
+      ctx.font = '700 22px system-ui';
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText('RALLY ' + state.rallyHits, canvas.width/2, 145);
+    }
+
+
+    if (matchOver && winner) {
+      ctx.fillStyle = 'rgba(2,7,14,.78)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      const boxW = 680;
+      const boxH = 320;
+      const bx = canvas.width/2 - boxW/2;
+      const by = canvas.height/2 - boxH/2;
+
+      ctx.fillStyle = 'rgba(14,27,47,.97)';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 30);
+      ctx.fill();
+      ctx.stroke();
+
+      let winnerText = '';
+      if (mode === 'solo') {
+        winnerText = winner === 'left' ? '¡GANASTE!' : 'GANÓ LA MÁQUINA';
+      } else {
+        const localWon =
+          (role === 'left' && winner === 'left') ||
+          (role === 'right' && winner === 'right');
+        winnerText = localWon ? '¡GANASTE!' : 'GANÓ TU OPONENTE';
+      }
+
+      ctx.font = '800 58px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillText(winnerText, canvas.width/2, canvas.height/2 - 42);
+
+      ctx.font = '600 26px system-ui';
+      ctx.fillStyle = '#9eb0c6';
+      ctx.fillText('Felicitaciones al ganador', canvas.width/2, canvas.height/2 + 12);
+
+      ctx.font = '700 34px system-ui';
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText(state.scoreL + '  —  ' + state.scoreR, canvas.width/2, canvas.height/2 + 62);
+
+      ctx.font = '600 22px system-ui';
+      ctx.fillStyle = '#9eb0c6';
+      ctx.fillText('PARTIDOS: ' + matchesLeft + '  —  ' + matchesRight, canvas.width/2, canvas.height/2 + 104);
+
+      ctx.font = '600 22px system-ui';
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillText('TOCÁ PARA JUGAR OTRA PARTIDA', canvas.width/2, canvas.height/2 + 126);
+    }
+
+    if (countdownUntil > performance.now()) {
+      const remaining = countdownUntil - performance.now();
+      const number = Math.max(1, Math.ceil(remaining / 1000));
+
+      ctx.fillStyle = 'rgba(2,7,14,.48)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      const boxW = 190;
+      const boxH = 190;
+      const bx = canvas.width/2 - boxW/2;
+      const by = canvas.height/2 - boxH/2;
+
+      ctx.fillStyle = 'rgba(14,27,47,.94)';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 28);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = '800 110px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillText(String(number), canvas.width/2, canvas.height/2 + 4);
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    ctx.font = '600 24px system-ui';
+    ctx.fillStyle = '#8396ab';
+    const footerText = matchOver
+      ? 'PARTIDA FINALIZADA · PRIMERO A 10'
+      : (mode === 'solo'
+        ? '1 JUGADOR · PRIMERO A 10'
+        : (connected ? 'MULTIJUGADOR · PRIMERO A 10' : 'MODO DE CONEXIÓN'));
+    ctx.fillText(footerText, canvas.width/2, canvas.height-34);
+  }
+
+  let lastFrameTime = 0;
+  let physicsAccumulator = 0;
+  const PHYSICS_STEP_MS = 1000 / 60;
+
+  function loop(t) {
+    if (!lastFrameTime) lastFrameTime = t;
+
+    const now = performance.now();
+    const frameDelta = Math.min(50, Math.max(0, t - lastFrameTime));
+    lastFrameTime = t;
+
+    if (countdownUntil > 0 && now >= countdownUntil) {
+      countdownUntil = 0;
+      gameReady = true;
+      physicsAccumulator = 0;
+      setStatus(mode === 'solo' ? '¡Jugando!' : '¡Partida en marcha!');
+    }
+
+    if (pointPauseUntil > 0 && now >= pointPauseUntil) {
+      pointPauseUntil = 0;
+      resetBall(pendingServeDir);
+      physicsAccumulator = 0;
+      setStatus('¡Sigue!');
+    }
+
+    if (isHost && connected && gameReady && !matchOver && pointPauseUntil === 0) {
+      physicsAccumulator += frameDelta;
+
+      let safety = 0;
+      while (physicsAccumulator >= PHYSICS_STEP_MS && safety < 5) {
+        hostPhysics(1);
+        physicsAccumulator -= PHYSICS_STEP_MS;
+        safety++;
+      }
+
+      // Si el navegador estuvo ocupado, no intentamos "recuperar" demasiado tiempo.
+      if (physicsAccumulator > PHYSICS_STEP_MS * 5) {
+        physicsAccumulator = 0;
+      }
+
+      if (conn && conn.open && t - lastSync > 50) {
+        conn.send({
+          type:'state',
+          state,
+          matchesLeft,
+          matchesRight,
+          matchOver,
+          winner,
+          obstacles,
+          ballSpin,
+          ballSpinVisual,
+          difficulty
+        });
+        lastSync = t;
+      }
+    } else {
+      // Evita acumular tiempo mientras el juego está detenido o en cuenta regresiva.
+      physicsAccumulator = 0;
+
+      if (isHost && connected && conn && conn.open && t - lastSync > 120) {
+        conn.send({
+          type:'state',
+          state,
+          matchesLeft,
+          matchesRight,
+          matchOver,
+          winner,
+          obstacles,
+          ballSpin,
+          ballSpinVisual,
+          difficulty
+        });
+        lastSync = t;
+      }
+    }
+
+    updateRemoteBallVisual();
+    updateRemotePaddleVisual();
+    render();
+  
+  let teamPlayMode='single';
+  let obstaclesEnabled=true;
+  const singleModeBtn=document.getElementById('singleModeBtn');
+  const doubleModeBtn=document.getElementById('doubleModeBtn');
+  const obstaclesToggle=document.getElementById('obstaclesToggle');
+  function setTeamPlayMode(v){
+    teamPlayMode=v==='doubles'?'doubles':'single';
+    singleModeBtn?.classList.toggle('activeTeamMode',teamPlayMode==='single');
+    doubleModeBtn?.classList.toggle('activeTeamMode',teamPlayMode==='doubles');
+    setStatus(teamPlayMode==='doubles'?'DOBLES seleccionado · prototipo de 4 paletas':'SINGLE seleccionado');
+  }
+  singleModeBtn?.addEventListener('click',()=>setTeamPlayMode('single'));
+  doubleModeBtn?.addEventListener('click',()=>setTeamPlayMode('doubles'));
+  obstaclesToggle?.addEventListener('change',()=>{
+    obstaclesEnabled=obstaclesToggle.checked;
+    if(!obstaclesEnabled) obstacles=[];
+    else generateObstacles();
+  });
+
+  requestAnimationFrame(loop);
+  }
+
+  function autoJoinRoom(code) {
+    closeCurrentSession(false);
+
+    mode = 'multi';
+    updateModeButtons();
+    connected = false;
+    gameReady = false;
+    countdownUntil = 0;
+    isHost = false;
+    role = 'right';
+    remoteTargetX = state.ballX;
+    remoteTargetY = state.ballY;
+    remoteVX = 0;
+    remoteVY = 0;
+    lastRemoteStateAt = performance.now();
+
+    remoteLeftTargetY = state.leftY;
+    remoteLeftVY = 0;
+    lastRemoteLeftStateAt = performance.now();
+    roomInput.value = code;
+    roomInput.readOnly = true;
+    showMultiControls(false);
+    endSessionBtn.style.display = '';
+
+    peerBadge.textContent = 'conectando…';
+    roleText.textContent = 'Rol: barra derecha';
+    setStatus('Invitación detectada. Conectando automáticamente…');
+
+    createPeer();
+
+    const tryConnect = () => {
+      if (!peer || !peer.id) return;
+      conn = peer.connect(code, { reliable: true });
+      setupConnection();
+
+
+    };
+
+    peer.on('open', tryConnect);
+  }
+
+  function startRematchFromLocalTap() {
+    if (!matchOver) return;
+
+    if (mode === 'solo') {
+      resetMatch(false);
+      setStatus('Nueva partida. Preparados…');
+      return;
+    }
+
+    if (mode === 'multi' && isHost) {
+      resetMatch(true);
+      setStatus('Revancha. Preparados…');
+      return;
+    }
+
+    if (mode === 'multi' && !isHost) {
+      if (conn && conn.open) {
+        conn.send({ type:'requestRematch' });
+        setStatus('Revancha solicitada. Esperando al anfitrión…');
+      }
+    }
+  }
+
+  rematchBtn.addEventListener('click', () => {
+    startRematchFromLocalTap();
+  });
+
+  endSessionBtn.addEventListener('click', () => {
+    if (conn && conn.open) {
+      try { conn.send({ type:'sessionEnded' }); } catch(e) {}
+    }
+    closeCurrentSession(true);
+  });
+
+  retryBtn.addEventListener('click', () => {
+    const code = roomInput.value.trim();
+    if (!code) return;
+    retryBtn.style.display = 'none';
+    autoJoinRoom(code);
+  });
+
+  function applyInvitationFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const invitedRoom = (params.get('sala') || '').trim();
+
+    if (!invitedRoom) return false;
+
+    autoJoinRoom(invitedRoom);
+    return true;
+  }
+
+  showMultiControls(false);
+  updateModeButtons();
+
+  if (!applyInvitationFromUrl()) {
+    peerBadge.textContent = 'elegí modo';
+    setStatus('Elegí 1 jugador o Multijugador.');
+  }
+
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
