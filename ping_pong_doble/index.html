@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v40 paleta remota fluida</title>
+  <title>Pong Doble v41 impacto sincronizado</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -497,7 +497,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v40</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v41</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -937,6 +937,23 @@
         setDifficulty(data.level, true);
       }
 
+      if (data.type === 'ballImpact' && !isHost) {
+        if (typeof data.x === 'number') {
+          state.ballX = data.x;
+          remoteTargetX = data.x;
+        }
+        if (typeof data.y === 'number') {
+          state.ballY = data.y;
+          remoteTargetY = data.y;
+        }
+        if (typeof data.vx === 'number') remoteVX = data.vx;
+        if (typeof data.vy === 'number') remoteVY = data.vy;
+        if (typeof data.spin === 'number') ballSpin = data.spin;
+        if (typeof data.spinVisual === 'number') ballSpinVisual = data.spinVisual;
+
+        lastRemoteStateAt = performance.now();
+      }
+
       if (data.type === 'resetMatch') {
         randomizeVisualTheme();
         state.scoreL = 0;
@@ -1307,6 +1324,20 @@
     return true;
   }
 
+  function sendBallImpact() {
+    if (mode === 'multi' && isHost && conn && conn.open) {
+      conn.send({
+        type:'ballImpact',
+        x:state.ballX,
+        y:state.ballY,
+        vx:state.ballVX,
+        vy:state.ballVY,
+        spin:ballSpin,
+        spinVisual:ballSpinVisual
+      });
+    }
+  }
+
   function hostPhysics(stepScale = 1) {
     if (mode === 'solo') {
       const now = performance.now();
@@ -1442,7 +1473,10 @@
         }
       }
 
-      if (hit) state.rallyHits++;
+      if (hit) {
+        state.rallyHits++;
+        sendBallImpact();
+      }
     }
 
     // RIGHT paddle collision with mirrored angled tips
@@ -1479,7 +1513,10 @@
         }
       }
 
-      if (hit) state.rallyHits++;
+      if (hit) {
+        state.rallyHits++;
+        sendBallImpact();
+      }
     }
 
     if (state.ballX < -50) {
@@ -1535,8 +1572,18 @@
     const age = Math.min(120, Math.max(0, now - lastRemoteStateAt));
 
     // Extrapolamos apenas hacia adelante usando la velocidad conocida.
-    const predictedX = remoteTargetX + remoteVX * (age / 16.67);
-    const predictedY = remoteTargetY + remoteVY * (age / 16.67);
+    let leadAge = age;
+
+    // Cerca de una paleta reducimos apenas la extrapolación.
+    // Esto evita que en el invitado el rebote parezca ocurrir antes del contacto visual.
+    const leftContactX = paddle.margin + paddle.w + ballR + 28;
+    const rightContactX = canvas.width - paddle.margin - paddle.w - ballR - 28;
+    const nearLeft = remoteVX < 0 && remoteTargetX < leftContactX + 120;
+    const nearRight = remoteVX > 0 && remoteTargetX > rightContactX - 120;
+    if (nearLeft || nearRight) leadAge *= 0.45;
+
+    const predictedX = remoteTargetX + remoteVX * (leadAge / 16.67);
+    const predictedY = remoteTargetY + remoteVY * (leadAge / 16.67);
 
     // Corrección suave. Si hay una diferencia enorme (gol, saque, choque fuerte),
     // corregimos más agresivamente para no quedar desfasados.
