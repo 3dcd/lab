@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v51 pausa visual de gol</title>
+  <title>Pong Doble v52 Dobles 4 jugadores</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -626,7 +626,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v51</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v52</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -842,8 +842,17 @@
   let teamPlayMode = 'single';
   let obstaclesEnabled = true;
   let matchRulesLocked = false;
-  let doublesLeft2Y = 360;
-  let doublesRight2Y = 360;
+  let doublesLeft2Y = 280;
+  let doublesRight2Y = 280;
+  let left2PaddleVY = 0;
+  let right2PaddleVY = 0;
+  let lastLeft2Y = 280;
+  let lastRight2Y = 280;
+
+  // Host mantiene hasta 3 invitados en 2 VS 2.
+  let hostConnections = [];
+  let expectedGuests = 1;
+  let countdownStartedForRoom = false;
 
   let matchesLeft = 0;
   let matchesRight = 0;
@@ -1140,8 +1149,8 @@
     resetBall(Math.random() > .5 ? 1 : -1);
     startCountdown(3200, notifyPeer);
 
-    if (notifyPeer && conn && conn.open) {
-      conn.send({ type:'resetMatch' });
+    if (notifyPeer && isHost) {
+      hostBroadcast({ type:'resetMatch' });
     }
   }
 
@@ -1165,6 +1174,9 @@
   function closeCurrentSession(goToMenu = true) {
     connected = false;
     gameReady = false;
+    hostConnections = [];
+    countdownStartedForRoom = false;
+    expectedGuests = requiredGuestCount();
     goalHoldUntil = 0;
     remoteStateSnapshots = [];
     remoteGuestPaddleSnapshots = [];
@@ -1178,6 +1190,12 @@
       try { conn.close(); } catch(e) {}
       conn = null;
     }
+
+    for (const item of hostConnections) {
+      try { item.conn.close(); } catch(e) {}
+    }
+    hostConnections = [];
+    countdownStartedForRoom = false;
 
     if (peer) {
       try { peer.destroy(); } catch(e) {}
@@ -1205,6 +1223,137 @@
     }
   }
 
+  function hostBroadcast(data) {
+    if (!isHost) return;
+    hostConnections = hostConnections.filter(item => item.conn && item.conn.open);
+    for (const item of hostConnections) {
+      try { item.conn.send(data); } catch(e) {}
+    }
+  }
+
+  function requiredGuestCount() {
+    return teamPlayMode === 'doubles' ? 3 : 1;
+  }
+
+  function assignedRoleForGuestIndex(index) {
+    if (teamPlayMode !== 'doubles') return 'right';
+    // Orden simple: 1º compañero, 2º rival principal, 3º rival compañero.
+    return ['left2', 'right', 'right2'][index] || null;
+  }
+
+  function humanRoleLabel(r) {
+    if (r === 'left') return 'Equipo A · Jugador 1';
+    if (r === 'left2') return 'Equipo A · Jugador 2';
+    if (r === 'right') return 'Equipo B · Jugador 1';
+    if (r === 'right2') return 'Equipo B · Jugador 2';
+    return 'Espectador';
+  }
+
+  function maybeStartMultiplayerCountdown() {
+    if (!isHost || mode !== 'multi' || countdownStartedForRoom) return;
+
+    expectedGuests = requiredGuestCount();
+    const openCount = hostConnections.filter(item => item.conn && item.conn.open).length;
+
+    if (openCount >= expectedGuests) {
+      countdownStartedForRoom = true;
+      connected = true;
+      setGameplayUI(true);
+      generateObstacles();
+      resetBall(Math.random() > .5 ? 1 : -1);
+
+      hostBroadcast({ type:'countdown', duration:3200 });
+      startCountdown(3200, false);
+
+      setStatus(teamPlayMode === 'doubles'
+        ? 'Los 4 jugadores están conectados. Preparados…'
+        : 'Jugador conectado. Preparados…');
+    } else {
+      setStatus(teamPlayMode === 'doubles'
+        ? `Esperando jugadores: ${openCount + 1}/4 conectados`
+        : 'Esperando al rival…');
+    }
+  }
+
+  function setupHostConnection(incoming, assignedRole) {
+    const item = { conn: incoming, role: assignedRole };
+    hostConnections.push(item);
+
+    incoming.on('open', () => {
+      connected = true;
+      endSessionBtn.style.display = '';
+      peerBadge.textContent = teamPlayMode === 'doubles'
+        ? `${hostConnections.filter(x => x.conn && x.conn.open).length + 1}/4`
+        : 'conectado';
+
+      incoming.send({ type:'role', role:assignedRole });
+      incoming.send({ type:'difficulty', level:difficulty });
+      incoming.send({ type:'matchConfig', teamPlayMode, obstaclesEnabled });
+      incoming.send({
+        type:'state',
+        state,
+        doublesLeft2Y,
+        doublesRight2Y,
+        matchesLeft,
+        matchesRight,
+        matchOver,
+        winner,
+        obstacles,
+        ballSpin,
+        ballSpinVisual
+      });
+
+      maybeStartMultiplayerCountdown();
+    });
+
+    incoming.on('data', data => {
+      if (!data || typeof data !== 'object') return;
+
+      if (data.type === 'paddle') {
+        const y = Number(data.y);
+        const vy = Number(data.vy) || 0;
+        if (!Number.isFinite(y)) return;
+
+        if (assignedRole === 'left2') {
+          doublesLeft2Y = clamp(y, 0, canvas.height - paddle.h);
+          left2PaddleVY = vy;
+          lastLeft2Y = doublesLeft2Y;
+        } else if (assignedRole === 'right') {
+          state.rightY = clamp(y, 0, canvas.height - paddle.h);
+          rightPaddleVY = vy;
+          lastRightY = state.rightY;
+          pushGuestPaddleSnapshot(state.rightY);
+        } else if (assignedRole === 'right2') {
+          doublesRight2Y = clamp(y, 0, canvas.height - paddle.h);
+          right2PaddleVY = vy;
+          lastRight2Y = doublesRight2Y;
+        }
+      }
+
+      if (data.type === 'requestRematch' && matchOver) {
+        resetMatch(true);
+      }
+
+      if (data.type === 'sessionEnded') {
+        try { incoming.close(); } catch(e) {}
+      }
+    });
+
+    incoming.on('close', () => {
+      hostConnections = hostConnections.filter(x => x.conn !== incoming);
+      countdownStartedForRoom = false;
+
+      if (mode === 'multi' && teamPlayMode === 'doubles') {
+        gameReady = false;
+        setGameplayUI(false);
+        returnToReadyState('Un jugador salió. Compartí nuevamente la invitación para completar los 4.');
+        mode = 'multi';
+        updateModeButtons();
+        refreshTeamSlots();
+      }
+    });
+  }
+
   function createPeer(id) {
     if (peer) {
       try { peer.destroy(); } catch(e){}
@@ -1224,12 +1373,22 @@
 
     peer.on('connection', incoming => {
       if (!isHost) return;
-      if (conn && conn.open) {
+
+      const maxGuests = requiredGuestCount();
+      const activeGuests = hostConnections.filter(item => item.conn && item.conn.open).length;
+
+      if (activeGuests >= maxGuests) {
         incoming.close();
         return;
       }
-      conn = incoming;
-      setupConnection();
+
+      const assignedRole = assignedRoleForGuestIndex(activeGuests);
+      if (!assignedRole) {
+        incoming.close();
+        return;
+      }
+
+      setupHostConnection(incoming, assignedRole);
     });
 
     peer.on('error', err => {
@@ -1251,16 +1410,9 @@
       endSessionBtn.style.display = '';
       peerBadge.textContent = 'conectado';
       if (isHost) {
-        role = 'left';
-        roleText.textContent = 'Rol: barra izquierda';
-        conn.send({ type:'role', role:'right' });
-        conn.send({ type:'difficulty', level:difficulty });
-        conn.send({ type:'matchConfig', teamPlayMode, obstaclesEnabled });
-        conn.send({ type:'state', state, matchesLeft, matchesRight, matchOver, winner, obstacles, ballSpin, ballSpinVisual });
-        startCountdown(3200, true);
-        setStatus('Jugador conectado. La partida comienza en 3…');
+        setStatus('Conexión anfitrión preparada.');
       } else {
-        setStatus('Conectado al anfitrión. Preparando partida…');
+        setStatus('Conectado al anfitrión. Esperando jugadores…');
       }
     });
 
@@ -1269,7 +1421,7 @@
 
       if (data.type === 'role') {
         role = data.role;
-        roleText.textContent = role === 'right' ? 'Rol: barra derecha' : 'Rol: barra izquierda';
+        roleText.textContent = 'Rol: ' + humanRoleLabel(role);
         if (!isHost) {
           remoteTargetX = state.ballX;
           remoteTargetY = state.ballY;
@@ -1362,11 +1514,13 @@
 
         // El resto del estado sí se actualiza normalmente.
         if (typeof incoming.leftY === 'number') {
-          remoteLeftTargetY = incoming.leftY;
-          remoteLeftVY = 0;
-          lastRemoteLeftStateAt = performance.now();
+          if (role !== 'left') {
+            remoteLeftTargetY = incoming.leftY;
+            remoteLeftVY = 0;
+            lastRemoteLeftStateAt = performance.now();
+          }
         }
-        if (typeof incoming.rightY === 'number') state.rightY = incoming.rightY;
+        if (typeof incoming.rightY === 'number' && role !== 'right') state.rightY = incoming.rightY;
         if (typeof incoming.scoreL === 'number') state.scoreL = incoming.scoreL;
         if (typeof incoming.scoreR === 'number') state.scoreR = incoming.scoreR;
         if (typeof incoming.rallyHits === 'number') state.rallyHits = incoming.rallyHits;
@@ -1408,6 +1562,8 @@
         if (typeof data.matchOver === 'boolean') matchOver = data.matchOver;
         if (data.winner === 'left' || data.winner === 'right' || data.winner === null) winner = data.winner;
         if (Array.isArray(data.obstacles)) obstacles = data.obstacles;
+        if (typeof data.doublesLeft2Y === 'number' && role !== 'left2') doublesLeft2Y = data.doublesLeft2Y;
+        if (typeof data.doublesRight2Y === 'number' && role !== 'right2') doublesRight2Y = data.doublesRight2Y;
         if (typeof data.ballSpin === 'number') ballSpin = data.ballSpin;
         if (typeof data.ballSpinVisual === 'number') ballSpinVisual = data.ballSpinVisual;
       }
@@ -1470,7 +1626,9 @@
     gameReady = false;
     countdownUntil = 0;
     pointPauseUntil = 0;
-    setStatus('Partida creada. Tocá “Compartir juego” para invitar al otro jugador.');
+    setStatus(teamPlayMode === 'doubles'
+      ? 'Sala 2 VS 2 creada. Compartí el mismo enlace con tres personas.'
+      : 'Partida creada. Tocá “Compartir juego” para invitar al rival.');
     createPeer(code);
   }
 
@@ -1534,7 +1692,7 @@
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Pong Doble',
+          title: teamPlayMode === 'doubles' ? 'Pong Doble · 2 VS 2' : 'Pong Doble',
           url
         });
         setStatus(code ? 'Invitación enviada. Esperando al otro jugador…' : 'Juego compartido.');
@@ -1582,8 +1740,8 @@
     }
 
     isHost = false;
-    role = 'right';
-    roleText.textContent = 'Rol: barra derecha';
+    role = null;
+    roleText.textContent = 'Rol: esperando asignación';
     createPeer();
 
     peer.on('open', () => {
@@ -1604,16 +1762,21 @@
       leftPaddleVY = y - lastLeftY;
       lastLeftY = y;
       state.leftY = y;
+    } else if (role === 'left2') {
+      left2PaddleVY = y - lastLeft2Y;
+      lastLeft2Y = y;
+      doublesLeft2Y = y;
+      if (!isHost && conn && conn.open) conn.send({ type:'paddle', role:'left2', y, vy:left2PaddleVY });
     } else if (role === 'right') {
       rightPaddleVY = y - lastRightY;
       lastRightY = y;
-
-      if (isHost) {
-        state.rightY = y;
-      } else {
-        state.rightY = y;
-        if (conn && conn.open) conn.send({ type:'paddle', role:'right', y, vy:rightPaddleVY });
-      }
+      state.rightY = y;
+      if (!isHost && conn && conn.open) conn.send({ type:'paddle', role:'right', y, vy:rightPaddleVY });
+    } else if (role === 'right2') {
+      right2PaddleVY = y - lastRight2Y;
+      lastRight2Y = y;
+      doublesRight2Y = y;
+      if (!isHost && conn && conn.open) conn.send({ type:'paddle', role:'right2', y, vy:right2PaddleVY });
     }
   }
 
@@ -1737,8 +1900,8 @@
   }
 
   function sendBallImpact() {
-    if (mode === 'multi' && isHost && conn && conn.open) {
-      conn.send({
+    if (mode === 'multi' && isHost) {
+      hostBroadcast({
         type:'ballImpact',
         x:state.ballX,
         y:state.ballY,
@@ -1854,12 +2017,13 @@
       state.ballX - ballR <= leftX + paddle.w + bevelReach &&
       state.ballX > leftX - 8 &&
       state.ballY >= state.leftY - 6 &&
-      state.ballY <= state.leftY + paddle.h + 6
+      state.ballY <= state.leftY + (teamPlayMode === 'doubles' ? paddle.h * 0.78 : paddle.h) + 6
     ) {
       const localY = state.ballY - state.leftY;
       let hit = false;
 
-      if (localY >= 0 && localY <= paddle.h) {
+      const activeLeftH = teamPlayMode === 'doubles' ? paddle.h * 0.78 : paddle.h;
+      if (localY >= 0 && localY <= activeLeftH) {
         hit = true;
         clearSpin();
         state.ballX = leftX + paddle.w + ballR;
@@ -1868,12 +2032,12 @@
           // Punta superior: rebote marcado hacia arriba
           state.ballVX = Math.abs(state.ballVX) * 1.07;
           state.ballVY = -Math.max(5.5, Math.abs(state.ballVY) + 2.8);
-        } else if (localY > paddle.h - tip) {
+        } else if (localY > activeLeftH - tip) {
           // Punta inferior: rebote marcado hacia abajo
           state.ballVX = Math.abs(state.ballVX) * 1.07;
           state.ballVY = Math.max(5.5, Math.abs(state.ballVY) + 2.8);
         } else {
-          const offset = (state.ballY - (state.leftY + paddle.h/2)) / (paddle.h/2);
+          const offset = (state.ballY - (state.leftY + activeLeftH/2)) / (activeLeftH/2);
           state.ballVX = Math.abs(state.ballVX) * 1.045;
           state.ballVY += offset * 3.2;
         }
@@ -1891,18 +2055,66 @@
       }
     }
 
+
+    // DOBLES · segunda paleta izquierda, adelantada y con el mismo bisel.
+    if (teamPlayMode === 'doubles') {
+      const dh = paddle.h * 0.78;
+      const left2X = leftX + paddle.w + 18;
+
+      if (
+        state.ballVX < 0 &&
+        state.ballX - ballR <= left2X + paddle.w + bevelReach &&
+        state.ballX > left2X - 8 &&
+        state.ballY >= doublesLeft2Y - 6 &&
+        state.ballY <= doublesLeft2Y + dh + 6
+      ) {
+        const localY = state.ballY - doublesLeft2Y;
+        let hit = false;
+        const dTip = Math.min(tip, dh * 0.25);
+
+        if (localY >= 0 && localY <= dh) {
+          hit = true;
+          clearSpin();
+          state.ballX = left2X + paddle.w + ballR;
+
+          if (localY < dTip) {
+            state.ballVX = Math.abs(state.ballVX) * 1.07;
+            state.ballVY = -Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+          } else if (localY > dh - dTip) {
+            state.ballVX = Math.abs(state.ballVX) * 1.07;
+            state.ballVY = Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+          } else {
+            const offset = (state.ballY - (doublesLeft2Y + dh/2)) / (dh/2);
+            state.ballVX = Math.abs(state.ballVX) * 1.045;
+            state.ballVY += offset * 3.2;
+          }
+
+          if (Math.abs(left2PaddleVY) > 7.5) {
+            ballSpin = clamp(-left2PaddleVY * 0.55, -11, 11);
+            ballSpinVisual = 1;
+          }
+        }
+
+        if (hit) {
+          state.rallyHits++;
+          sendBallImpact();
+        }
+      }
+    }
+
     // RIGHT paddle collision with mirrored angled tips
     if (
       state.ballVX > 0 &&
       state.ballX + ballR >= rightX - bevelReach &&
       state.ballX < rightX + paddle.w + 8 &&
       state.ballY >= state.rightY - 6 &&
-      state.ballY <= state.rightY + paddle.h + 6
+      state.ballY <= state.rightY + (teamPlayMode === 'doubles' ? paddle.h * 0.78 : paddle.h) + 6
     ) {
       const localY = state.ballY - state.rightY;
       let hit = false;
 
-      if (localY >= 0 && localY <= paddle.h) {
+      const activeRightH = teamPlayMode === 'doubles' ? paddle.h * 0.78 : paddle.h;
+      if (localY >= 0 && localY <= activeRightH) {
         hit = true;
         clearSpin();
         state.ballX = rightX - ballR;
@@ -1910,11 +2122,11 @@
         if (localY < tip) {
           state.ballVX = -Math.abs(state.ballVX) * 1.07;
           state.ballVY = -Math.max(5.5, Math.abs(state.ballVY) + 2.8);
-        } else if (localY > paddle.h - tip) {
+        } else if (localY > activeRightH - tip) {
           state.ballVX = -Math.abs(state.ballVX) * 1.07;
           state.ballVY = Math.max(5.5, Math.abs(state.ballVY) + 2.8);
         } else {
-          const offset = (state.ballY - (state.rightY + paddle.h/2)) / (paddle.h/2);
+          const offset = (state.ballY - (state.rightY + activeRightH/2)) / (activeRightH/2);
           state.ballVX = -Math.abs(state.ballVX) * 1.045;
           state.ballVY += offset * 3.2;
         }
@@ -1928,6 +2140,53 @@
       if (hit) {
         state.rallyHits++;
         sendBallImpact();
+      }
+    }
+
+
+    // DOBLES · segunda paleta derecha, adelantada y con el mismo bisel.
+    if (teamPlayMode === 'doubles') {
+      const dh = paddle.h * 0.78;
+      const right2X = rightX - paddle.w - 18;
+
+      if (
+        state.ballVX > 0 &&
+        state.ballX + ballR >= right2X - bevelReach &&
+        state.ballX < right2X + paddle.w + 8 &&
+        state.ballY >= doublesRight2Y - 6 &&
+        state.ballY <= doublesRight2Y + dh + 6
+      ) {
+        const localY = state.ballY - doublesRight2Y;
+        let hit = false;
+        const dTip = Math.min(tip, dh * 0.25);
+
+        if (localY >= 0 && localY <= dh) {
+          hit = true;
+          clearSpin();
+          state.ballX = right2X - ballR;
+
+          if (localY < dTip) {
+            state.ballVX = -Math.abs(state.ballVX) * 1.07;
+            state.ballVY = -Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+          } else if (localY > dh - dTip) {
+            state.ballVX = -Math.abs(state.ballVX) * 1.07;
+            state.ballVY = Math.max(5.5, Math.abs(state.ballVY) + 2.8);
+          } else {
+            const offset = (state.ballY - (doublesRight2Y + dh/2)) / (dh/2);
+            state.ballVX = -Math.abs(state.ballVX) * 1.045;
+            state.ballVY += offset * 3.2;
+          }
+
+          if (Math.abs(right2PaddleVY) > 7.5) {
+            ballSpin = clamp(-right2PaddleVY * 0.55, -11, 11);
+            ballSpinVisual = 1;
+          }
+        }
+
+        if (hit) {
+          state.rallyHits++;
+          sendBallImpact();
+        }
       }
     }
 
@@ -1975,6 +2234,8 @@
 
     leftPaddleVY *= Math.pow(0.72, stepScale);
     rightPaddleVY *= Math.pow(0.72, stepScale);
+    left2PaddleVY *= Math.pow(0.72, stepScale);
+    right2PaddleVY *= Math.pow(0.72, stepScale);
   }
 
   let lastSync = 0;
@@ -2118,10 +2379,10 @@
       ctx.restore();
     }
 
-    function drawBeveledPaddle(x, y, side) {
+    function drawBeveledPaddle(x, y, side, customH = paddle.h) {
       const w = paddle.w;
-      const h = paddle.h;
-      const bevel = 18;
+      const h = customH;
+      const bevel = Math.min(18, h * 0.22);
       ctx.fillStyle = '#f4f7fb';
       ctx.beginPath();
 
@@ -2141,45 +2402,23 @@
       ctx.fill();
     }
 
-    drawBeveledPaddle(paddle.margin, drawLeftY, 'left');
-    drawBeveledPaddle(canvas.width - paddle.margin - paddle.w, drawRightY, 'right');
+    if (mode === 'multi' && teamPlayMode === 'doubles') {
+      const dh = paddle.h * 0.78;
+      const leftBackX = paddle.margin;
+      const leftFrontX = paddle.margin + paddle.w + 18;
+      const rightBackX = canvas.width - paddle.margin - paddle.w;
+      const rightFrontX = rightBackX - paddle.w - 18;
+
+      drawBeveledPaddle(leftBackX, clamp(drawLeftY, 0, canvas.height-dh), 'left', dh);
+      drawBeveledPaddle(leftFrontX, clamp(doublesLeft2Y, 0, canvas.height-dh), 'left', dh);
+      drawBeveledPaddle(rightBackX, clamp(drawRightY, 0, canvas.height-dh), 'right', dh);
+      drawBeveledPaddle(rightFrontX, clamp(doublesRight2Y, 0, canvas.height-dh), 'right', dh);
+    } else {
+      drawBeveledPaddle(paddle.margin, drawLeftY, 'left');
+      drawBeveledPaddle(canvas.width - paddle.margin - paddle.w, drawRightY, 'right');
+    }
 
     ctx.beginPath();
-
-    // 2 VS 2: segunda paleta por equipo, mismo estilo y algo más corta.
-    if (mode === 'multi' && teamPlayMode === 'doubles') {
-      const dh = paddle.h * 0.72;
-      const dw = paddle.w;
-
-      const targetL = clamp(drawLeftY + paddle.h * 0.48, 0, canvas.height - dh);
-      const targetR = clamp(drawRightY - paddle.h * 0.20, 0, canvas.height - dh);
-
-      doublesLeft2Y += (targetL - doublesLeft2Y) * 0.10;
-      doublesRight2Y += (targetR - doublesRight2Y) * 0.10;
-
-      ctx.save();
-      ctx.globalAlpha = 0.92;
-      ctx.fillStyle = '#fff';
-      ctx.shadowColor = 'rgba(0,0,0,.28)';
-      ctx.shadowBlur = 5;
-
-      // Adelantadas respecto de las paletas principales para que no se pisen.
-      ctx.fillRect(
-        paddle.margin + paddle.w + 18,
-        doublesLeft2Y,
-        dw,
-        dh
-      );
-
-      ctx.fillRect(
-        canvas.width - paddle.margin - paddle.w - dw - 18,
-        doublesRight2Y,
-        dw,
-        dh
-      );
-
-      ctx.restore();
-    }
 
     if (state.ballVisible !== false) {
       ctx.beginPath();
@@ -2408,10 +2647,12 @@
         physicsAccumulator = 0;
       }
 
-      if (conn && conn.open && t - lastSync > 33) {
-        conn.send({
+      if (t - lastSync > 33) {
+        hostBroadcast({
           type:'state',
           state,
+          doublesLeft2Y,
+          doublesRight2Y,
           matchesLeft,
           matchesRight,
           matchOver,
@@ -2419,7 +2660,9 @@
           obstacles,
           ballSpin,
           ballSpinVisual,
-          difficulty
+          difficulty,
+          teamPlayMode,
+          obstaclesEnabled
         });
         lastSync = t;
       }
@@ -2427,10 +2670,12 @@
       // Evita acumular tiempo mientras el juego está detenido o en cuenta regresiva.
       physicsAccumulator = 0;
 
-      if (isHost && connected && conn && conn.open && t - lastSync > 80) {
-        conn.send({
+      if (isHost && connected && t - lastSync > 80) {
+        hostBroadcast({
           type:'state',
           state,
+          doublesLeft2Y,
+          doublesRight2Y,
           matchesLeft,
           matchesRight,
           matchOver,
@@ -2438,7 +2683,9 @@
           obstacles,
           ballSpin,
           ballSpinVisual,
-          difficulty
+          difficulty,
+          teamPlayMode,
+          obstaclesEnabled
         });
         lastSync = t;
       }
@@ -2461,7 +2708,7 @@
     gameReady = false;
     countdownUntil = 0;
     isHost = false;
-    role = 'right';
+    role = null;
     remoteTargetX = state.ballX;
     remoteTargetY = state.ballY;
     remoteVX = 0;
@@ -2486,7 +2733,7 @@
     endSessionBtn.style.display = '';
 
     peerBadge.textContent = 'conectando…';
-    roleText.textContent = 'Rol: barra derecha';
+    roleText.textContent = 'Rol: esperando asignación';
     setStatus('Invitación detectada. Conectando automáticamente…');
 
     createPeer();
@@ -2531,7 +2778,9 @@
 
   endSessionBtn.addEventListener('click', () => {
     if (mode === 'multi') {
-      if (conn && conn.open) {
+      if (isHost) {
+        hostBroadcast({ type:'sessionEnded' });
+      } else if (conn && conn.open) {
         try { conn.send({ type:'sessionEnded' }); } catch(e) {}
       }
       closeCurrentSession(true);
