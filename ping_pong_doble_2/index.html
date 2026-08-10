@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v48 multijugador corregido</title>
+  <title>Pong Doble v49 buffer de red estable</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -626,7 +626,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v48</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v49</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -866,6 +866,57 @@
   let visualBallY = 360;
   let visualBallInitialized = false;
 
+  // Buffer corto de estados reales de red.
+  // Reproducimos unos milisegundos "detrás" para interpolar entre datos reales
+  // y evitar el efecto de acelerar/frenar cuando los paquetes llegan irregulares.
+  const REMOTE_RENDER_DELAY = 70;
+  let remoteStateSnapshots = [];
+  let remoteGuestPaddleSnapshots = [];
+
+  function pushRemoteStateSnapshot(ballX, ballY, leftY) {
+    const t = performance.now();
+    remoteStateSnapshots.push({ t, ballX, ballY, leftY });
+    if (remoteStateSnapshots.length > 12) remoteStateSnapshots.shift();
+  }
+
+  function pushGuestPaddleSnapshot(y) {
+    const t = performance.now();
+    remoteGuestPaddleSnapshots.push({ t, y });
+    if (remoteGuestPaddleSnapshots.length > 12) remoteGuestPaddleSnapshots.shift();
+  }
+
+  function sampleSnapshots(buffer, renderTime, fields) {
+    if (!buffer.length) return null;
+    if (buffer.length === 1) return buffer[0];
+
+    while (buffer.length > 2 && buffer[1].t < renderTime - 120) {
+      buffer.shift();
+    }
+
+    let a = buffer[0];
+    let b = buffer[buffer.length - 1];
+
+    for (let i = 0; i < buffer.length - 1; i++) {
+      if (buffer[i].t <= renderTime && buffer[i + 1].t >= renderTime) {
+        a = buffer[i];
+        b = buffer[i + 1];
+        break;
+      }
+    }
+
+    if (renderTime <= buffer[0].t) return buffer[0];
+    if (renderTime >= buffer[buffer.length - 1].t) return buffer[buffer.length - 1];
+
+    const span = Math.max(1, b.t - a.t);
+    const p = Math.max(0, Math.min(1, (renderTime - a.t) / span));
+    const out = { t: renderTime };
+
+    for (const field of fields) {
+      out[field] = a[field] + (b[field] - a[field]) * p;
+    }
+    return out;
+  }
+
   // Efecto/spin de la pelota.
   let ballSpin = 0;          // intensidad y signo
   let ballSpinVisual = 0;    // animación visual de flechas
@@ -1096,6 +1147,8 @@
   function closeCurrentSession(goToMenu = true) {
     connected = false;
     gameReady = false;
+    remoteStateSnapshots = [];
+    remoteGuestPaddleSnapshots = [];
     countdownUntil = 0;
     pointPauseUntil = 0;
     matchOver = false;
@@ -1243,6 +1296,12 @@
         if (typeof data.spinVisual === 'number') ballSpinVisual = data.spinVisual;
 
         visualBallInitialized = true;
+        remoteStateSnapshots = [];
+        pushRemoteStateSnapshot(
+          visualBallX,
+          visualBallY,
+          remoteLeftTargetY
+        );
         lastRemoteStateAt = performance.now();
       }
 
@@ -1272,6 +1331,7 @@
           state.rightY = clamp(data.y, 0, canvas.height - paddle.h);
           rightPaddleVY = Number(data.vy) || 0;
           lastRightY = state.rightY;
+          pushGuestPaddleSnapshot(state.rightY);
         }
       }
 
@@ -1297,6 +1357,14 @@
         if (typeof incoming.ballVX === 'number') remoteVX = incoming.ballVX;
         if (typeof incoming.ballVY === 'number') remoteVY = incoming.ballVY;
         lastRemoteStateAt = performance.now();
+
+        if (
+          typeof incoming.ballX === 'number' &&
+          typeof incoming.ballY === 'number' &&
+          typeof incoming.leftY === 'number'
+        ) {
+          pushRemoteStateSnapshot(incoming.ballX, incoming.ballY, incoming.leftY);
+        }
 
         if (typeof data.matchesLeft === 'number') matchesLeft = data.matchesLeft;
         if (typeof data.matchesRight === 'number') matchesRight = data.matchesRight;
@@ -1876,25 +1944,21 @@
       return;
     }
 
-    if (!visualBallInitialized) {
+    const sample = sampleSnapshots(
+      remoteStateSnapshots,
+      performance.now() - REMOTE_RENDER_DELAY,
+      ['ballX', 'ballY', 'leftY']
+    );
+
+    if (sample) {
+      visualBallX = sample.ballX;
+      visualBallY = sample.ballY;
+      visualBallInitialized = true;
+    } else if (!visualBallInitialized) {
       visualBallX = remoteTargetX;
       visualBallY = remoteTargetY;
       visualBallInitialized = true;
     }
-
-    // Sólo interpolamos hacia la última posición real recibida.
-    // No adelantamos la pelota: así evitamos rebotes "antes de tocar".
-    const dx = remoteTargetX - visualBallX;
-    const dy = remoteTargetY - visualBallY;
-    const dist = Math.hypot(dx, dy);
-
-    const blend = dist > 150 ? 0.58 : (dist > 70 ? 0.34 : 0.20);
-
-    visualBallX += dx * blend;
-    visualBallY += dy * blend;
-
-    if (Math.abs(dx) < 0.3) visualBallX = remoteTargetX;
-    if (Math.abs(dy) < 0.3) visualBallY = remoteTargetY;
   }
 
   function updateRemotePaddleVisual() {
@@ -1904,22 +1968,31 @@
       return;
     }
 
+    const renderTime = performance.now() - REMOTE_RENDER_DELAY;
+
     if (isHost) {
-      // El anfitrión ve su paleta local perfecta y suaviza sólo la del invitado.
+      // Propia paleta local, rival interpolado desde mensajes reales.
       visualRemoteLeftY = state.leftY;
 
-      const diff = state.rightY - visualRemoteRightY;
-      const blend = Math.abs(diff) > 100 ? 0.40 : 0.17;
-      visualRemoteRightY += diff * blend;
-      if (Math.abs(diff) < 0.35) visualRemoteRightY = state.rightY;
+      const sample = sampleSnapshots(
+        remoteGuestPaddleSnapshots,
+        renderTime,
+        ['y']
+      );
+
+      visualRemoteRightY = sample ? sample.y : state.rightY;
     } else {
-      // El invitado ve su paleta local perfecta y suaviza sólo la del anfitrión.
+      // Propia paleta local, anfitrión interpolado desde los mismos snapshots
+      // que usa la pelota. Ambos quedan temporalmente alineados.
       visualRemoteRightY = state.rightY;
 
-      const diff = remoteLeftTargetY - visualRemoteLeftY;
-      const blend = Math.abs(diff) > 100 ? 0.40 : 0.17;
-      visualRemoteLeftY += diff * blend;
-      if (Math.abs(diff) < 0.35) visualRemoteLeftY = remoteLeftTargetY;
+      const sample = sampleSnapshots(
+        remoteStateSnapshots,
+        renderTime,
+        ['ballX', 'ballY', 'leftY']
+      );
+
+      visualRemoteLeftY = sample ? sample.leftY : remoteLeftTargetY;
     }
   }
 
@@ -2325,6 +2398,10 @@
     visualBallX = state.ballX;
     visualBallY = state.ballY;
     visualBallInitialized = true;
+    remoteStateSnapshots = [];
+    remoteGuestPaddleSnapshots = [];
+    pushRemoteStateSnapshot(state.ballX, state.ballY, state.leftY);
+    pushGuestPaddleSnapshot(state.rightY);
     roomInput.value = code;
     roomInput.readOnly = true;
     showMultiControls(false);
