@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v49 buffer de red estable</title>
+  <title>Pong Doble v50 red suave sin salto</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -626,7 +626,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v49</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v50</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -869,20 +869,20 @@
   // Buffer corto de estados reales de red.
   // Reproducimos unos milisegundos "detrás" para interpolar entre datos reales
   // y evitar el efecto de acelerar/frenar cuando los paquetes llegan irregulares.
-  const REMOTE_RENDER_DELAY = 70;
+  const REMOTE_RENDER_DELAY = 105;
   let remoteStateSnapshots = [];
   let remoteGuestPaddleSnapshots = [];
 
   function pushRemoteStateSnapshot(ballX, ballY, leftY) {
     const t = performance.now();
     remoteStateSnapshots.push({ t, ballX, ballY, leftY });
-    if (remoteStateSnapshots.length > 12) remoteStateSnapshots.shift();
+    if (remoteStateSnapshots.length > 20) remoteStateSnapshots.shift();
   }
 
   function pushGuestPaddleSnapshot(y) {
     const t = performance.now();
     remoteGuestPaddleSnapshots.push({ t, y });
-    if (remoteGuestPaddleSnapshots.length > 12) remoteGuestPaddleSnapshots.shift();
+    if (remoteGuestPaddleSnapshots.length > 20) remoteGuestPaddleSnapshots.shift();
   }
 
   function sampleSnapshots(buffer, renderTime, fields) {
@@ -905,7 +905,20 @@
     }
 
     if (renderTime <= buffer[0].t) return buffer[0];
-    if (renderTime >= buffer[buffer.length - 1].t) return buffer[buffer.length - 1];
+
+    if (renderTime >= buffer[buffer.length - 1].t) {
+      const last = buffer[buffer.length - 1];
+      const prev = buffer[buffer.length - 2];
+      const span = Math.max(1, last.t - prev.t);
+      const extra = Math.min(22, Math.max(0, renderTime - last.t));
+      const out = { t: renderTime };
+
+      for (const field of fields) {
+        const velocityPerMs = (last[field] - prev[field]) / span;
+        out[field] = last[field] + velocityPerMs * extra;
+      }
+      return out;
+    }
 
     const span = Math.max(1, b.t - a.t);
     const p = Math.max(0, Math.min(1, (renderTime - a.t) / span));
@@ -1283,28 +1296,31 @@
         if (typeof data.x === 'number') {
           state.ballX = data.x;
           remoteTargetX = data.x;
-          visualBallX = data.x;
         }
         if (typeof data.y === 'number') {
           state.ballY = data.y;
           remoteTargetY = data.y;
-          visualBallY = data.y;
         }
         if (typeof data.vx === 'number') remoteVX = data.vx;
         if (typeof data.vy === 'number') remoteVY = data.vy;
         if (typeof data.spin === 'number') ballSpin = data.spin;
         if (typeof data.spinVisual === 'number') ballSpinVisual = data.spinVisual;
 
-        visualBallInitialized = true;
-        remoteStateSnapshots = [];
-        pushRemoteStateSnapshot(
-          visualBallX,
-          visualBallY,
-          remoteLeftTargetY
-        );
+        // No hacemos snap visual. El contacto entra al mismo buffer temporal,
+        // para que la pelota llegue físicamente hasta la paleta y recién ahí rebote.
+        if (
+          typeof data.x === 'number' &&
+          typeof data.y === 'number'
+        ) {
+          pushRemoteStateSnapshot(
+            data.x,
+            data.y,
+            remoteLeftTargetY
+          );
+        }
+
         lastRemoteStateAt = performance.now();
       }
-
       if (data.type === 'resetMatch') {
         randomizeVisualTheme();
         state.scoreL = 0;
@@ -1952,7 +1968,7 @@
 
     if (sample) {
       visualBallX = sample.ballX;
-      visualBallY = sample.ballY;
+      visualBallY = clamp(sample.ballY, ballR, canvas.height - ballR);
       visualBallInitialized = true;
     } else if (!visualBallInitialized) {
       visualBallX = remoteTargetX;
@@ -1980,7 +1996,9 @@
         ['y']
       );
 
-      visualRemoteRightY = sample ? sample.y : state.rightY;
+      visualRemoteRightY = sample
+        ? clamp(sample.y, 0, canvas.height - paddle.h)
+        : state.rightY;
     } else {
       // Propia paleta local, anfitrión interpolado desde los mismos snapshots
       // que usa la pelota. Ambos quedan temporalmente alineados.
@@ -1992,7 +2010,9 @@
         ['ballX', 'ballY', 'leftY']
       );
 
-      visualRemoteLeftY = sample ? sample.leftY : remoteLeftTargetY;
+      visualRemoteLeftY = sample
+        ? clamp(sample.leftY, 0, canvas.height - paddle.h)
+        : remoteLeftTargetY;
     }
   }
 
@@ -2330,7 +2350,7 @@
         physicsAccumulator = 0;
       }
 
-      if (conn && conn.open && t - lastSync > 50) {
+      if (conn && conn.open && t - lastSync > 33) {
         conn.send({
           type:'state',
           state,
@@ -2349,7 +2369,7 @@
       // Evita acumular tiempo mientras el juego está detenido o en cuenta regresiva.
       physicsAccumulator = 0;
 
-      if (isHost && connected && conn && conn.open && t - lastSync > 120) {
+      if (isHost && connected && conn && conn.open && t - lastSync > 80) {
         conn.send({
           type:'state',
           state,
