@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v53 Dobles roles únicos</title>
+  <title>Pong Doble v54 Dobles slots reales</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -626,7 +626,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v53</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v54</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -849,10 +849,11 @@
   let lastLeft2Y = 280;
   let lastRight2Y = 280;
 
-  // Host mantiene hasta 3 invitados en 2 VS 2.
-  let hostConnections = [];
+  // Slots reales: cada invitado ocupa una paleta única.
+  let roomSlots = { left2:null, right:null, right2:null };
   let expectedGuests = 1;
   let countdownStartedForRoom = false;
+  const localClientId = 'c-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36);
 
   let matchesLeft = 0;
   let matchesRight = 0;
@@ -1174,7 +1175,7 @@
   function closeCurrentSession(goToMenu = true) {
     connected = false;
     gameReady = false;
-    hostConnections = [];
+    resetRoomSlots();
     countdownStartedForRoom = false;
     expectedGuests = requiredGuestCount();
 
@@ -1196,10 +1197,13 @@
       conn = null;
     }
 
-    for (const item of hostConnections) {
-      try { item.conn.close(); } catch(e) {}
+    for (const roleName of ['left2','right','right2']) {
+      const slot = roomSlots[roleName];
+      if (slot && slot.conn) {
+        try { slot.conn.close(); } catch(e) {}
+      }
     }
-    hostConnections = [];
+    resetRoomSlots();
     countdownStartedForRoom = false;
 
     if (peer) {
@@ -1228,11 +1232,24 @@
     }
   }
 
+  function slotRolesForCurrentMode() {
+    return teamPlayMode === 'doubles' ? ['left2','right','right2'] : ['right'];
+  }
+
+  function resetRoomSlots() {
+    roomSlots = { left2:null, right:null, right2:null };
+  }
+
+  function openSlotEntries() {
+    return slotRolesForCurrentMode()
+      .map(roleName => ({ role:roleName, slot:roomSlots[roleName] }))
+      .filter(item => item.slot && item.slot.opened && item.slot.conn && item.slot.conn.open);
+  }
+
   function hostBroadcast(data) {
     if (!isHost) return;
-    hostConnections = hostConnections.filter(item => item.conn && item.conn.open);
-    for (const item of hostConnections) {
-      try { item.conn.send(data); } catch(e) {}
+    for (const item of openSlotEntries()) {
+      try { item.slot.conn.send(data); } catch(e) {}
     }
   }
 
@@ -1240,44 +1257,116 @@
     return teamPlayMode === 'doubles' ? 3 : 1;
   }
 
-  function assignedRoleForGuestIndex(index) {
-    if (teamPlayMode !== 'doubles') return 'right';
-    // Orden simple: 1º compañero, 2º rival principal, 3º rival compañero.
-    return ['left2', 'right', 'right2'][index] || null;
-  }
-
   function humanRoleLabel(r) {
     if (r === 'left') return 'Equipo A · Jugador 1';
     if (r === 'left2') return 'Equipo A · Jugador 2';
     if (r === 'right') return 'Equipo B · Jugador 1';
     if (r === 'right2') return 'Equipo B · Jugador 2';
-    return 'Espectador';
+    return 'Esperando asignación';
+  }
+
+  function findRoleForClient(clientId) {
+    for (const roleName of ['left2','right','right2']) {
+      const slot = roomSlots[roleName];
+      if (slot && slot.clientId === clientId) return roleName;
+    }
+    return null;
+  }
+
+  function reserveRoleForClient(clientId) {
+    const existing = findRoleForClient(clientId);
+    if (existing) return existing;
+
+    for (const roleName of slotRolesForCurrentMode()) {
+      if (!roomSlots[roleName]) return roleName;
+    }
+    return null;
+  }
+
+  function connectedPlayerCount() {
+    return 1 + openSlotEntries().length;
   }
 
   function maybeStartMultiplayerCountdown() {
     if (!isHost || mode !== 'multi' || countdownStartedForRoom) return;
 
-    expectedGuests = requiredGuestCount();
+    const requiredRoles = slotRolesForCurrentMode();
+    const allReady = requiredRoles.every(roleName => {
+      const slot = roomSlots[roleName];
+      return !!(slot && slot.opened && slot.conn && slot.conn.open);
+    });
 
-    const opened = hostConnections.filter(
-      item => item.opened && item.conn && item.conn.open
-    );
-    const openRoles = new Set(opened.map(item => item.role));
-    const openCount = openRoles.size;
+    const total = connectedPlayerCount();
+    const target = teamPlayMode === 'doubles' ? 4 : 2;
+    peerBadge.textContent = `${total}/${target}`;
 
-    if (openCount >= expectedGuests) {
-      countdownStartedForRoom = true;
+    if (!allReady) {
+      setStatus(teamPlayMode === 'doubles'
+        ? `Esperando jugadores: ${total}/4 conectados`
+        : `Esperando rival: ${total}/2 conectados`);
+      return;
+    }
+
+    countdownStartedForRoom = true;
+    connected = true;
+
+    state.scoreL = 0;
+    state.scoreR = 0;
+    matchOver = false;
+    winner = null;
+
+    generateObstacles();
+    resetBall(Math.random() > .5 ? 1 : -1);
+
+    hostBroadcast({
+      type:'state',
+      state,
+      doublesLeft2Y,
+      doublesRight2Y,
+      matchesLeft,
+      matchesRight,
+      matchOver,
+      winner,
+      obstacles,
+      ballSpin,
+      ballSpinVisual,
+      difficulty,
+      teamPlayMode,
+      obstaclesEnabled
+    });
+
+    hostBroadcast({ type:'countdown', duration:3200 });
+    startCountdown(3200, false);
+    setGameplayUI(true);
+
+    setStatus(teamPlayMode === 'doubles'
+      ? '4/4 detectados · Preparados…'
+      : '2/2 detectados · Preparados…');
+  }
+
+  function setupHostConnection(incoming, assignedRole, clientId) {
+    const previous = roomSlots[assignedRole];
+    if (previous && previous.conn && previous.conn !== incoming) {
+      try { previous.conn.close(); } catch(e) {}
+    }
+
+    const slot = { conn:incoming, role:assignedRole, clientId, opened:false };
+    roomSlots[assignedRole] = slot;
+
+    incoming.on('open', () => {
+      if (roomSlots[assignedRole] !== slot) {
+        try { incoming.close(); } catch(e) {}
+        return;
+      }
+
+      slot.opened = true;
       connected = true;
+      endSessionBtn.style.display = '';
 
-      state.scoreL = 0;
-      state.scoreR = 0;
-      matchOver = false;
-      winner = null;
-
-      generateObstacles();
-      resetBall(Math.random() > .5 ? 1 : -1);
-
-      hostBroadcast({
+      incoming.send({ type:'role', role:assignedRole });
+      incoming.send({ type:'difficulty', level:difficulty });
+      incoming.send({ type:'matchConfig', teamPlayMode, obstaclesEnabled });
+      incoming.send({
         type:'state',
         state,
         doublesLeft2Y,
@@ -1294,66 +1383,12 @@
         obstaclesEnabled
       });
 
-      hostBroadcast({ type:'countdown', duration:3200 });
-      startCountdown(3200, false);
-      setGameplayUI(true);
-
-      setStatus(teamPlayMode === 'doubles'
-        ? '4/4 conectados · Preparados…'
-        : '2/2 conectados · Preparados…');
-    } else {
-      const totalPlayers = openCount + 1;
-      setStatus(teamPlayMode === 'doubles'
-        ? `Esperando jugadores: ${totalPlayers}/4 conectados`
-        : `Esperando rival: ${totalPlayers}/2 conectados`);
-    }
-  }
-
-  function setupHostConnection(incoming, assignedRole) {
-    if (hostConnections.some(item => item.role === assignedRole)) {
-      try { incoming.close(); } catch(e) {}
-      return;
-    }
-
-    const item = { conn: incoming, role: assignedRole, opened:false };
-    hostConnections.push(item);
-
-    incoming.on('open', () => {
-      item.opened = true;
-      connected = true;
-      endSessionBtn.style.display = '';
-      const openedRoles = new Set(
-        hostConnections
-          .filter(x => x.opened && x.conn && x.conn.open)
-          .map(x => x.role)
-      );
-
-      peerBadge.textContent = teamPlayMode === 'doubles'
-        ? `${openedRoles.size + 1}/4`
-        : 'conectado';
-
-      incoming.send({ type:'role', role:assignedRole });
-      incoming.send({ type:'difficulty', level:difficulty });
-      incoming.send({ type:'matchConfig', teamPlayMode, obstaclesEnabled });
-      incoming.send({
-        type:'state',
-        state,
-        doublesLeft2Y,
-        doublesRight2Y,
-        matchesLeft,
-        matchesRight,
-        matchOver,
-        winner,
-        obstacles,
-        ballSpin,
-        ballSpinVisual
-      });
-
       maybeStartMultiplayerCountdown();
     });
 
     incoming.on('data', data => {
       if (!data || typeof data !== 'object') return;
+      if (roomSlots[assignedRole] !== slot) return;
 
       if (data.type === 'paddle') {
         const y = Number(data.y);
@@ -1376,33 +1411,29 @@
         }
       }
 
-      if (data.type === 'requestRematch' && matchOver) {
-        resetMatch(true);
-      }
-
+      if (data.type === 'requestRematch' && matchOver) resetMatch(true);
       if (data.type === 'sessionEnded') {
         try { incoming.close(); } catch(e) {}
       }
     });
 
     incoming.on('close', () => {
-      hostConnections = hostConnections.filter(x => x.conn !== incoming);
+      if (roomSlots[assignedRole] === slot) roomSlots[assignedRole] = null;
       countdownStartedForRoom = false;
 
-      if (mode === 'multi' && teamPlayMode === 'doubles') {
+      if (mode === 'multi') {
         gameReady = false;
         setGameplayUI(false);
 
-        const remaining = new Set(
-          hostConnections
-            .filter(x => x.opened && x.conn && x.conn.open)
-            .map(x => x.role)
-        ).size + 1;
+        const total = connectedPlayerCount();
+        const target = teamPlayMode === 'doubles' ? 4 : 2;
 
-        returnToReadyState(`Un jugador salió · ${remaining}/4 conectados. Esperando reemplazo…`);
+        returnToReadyState(`Jugador desconectado · ${total}/${target}. Esperando conexión…`);
         mode = 'multi';
+        role = 'left';
         updateModeButtons();
         refreshTeamSlots();
+        maybeStartMultiplayerCountdown();
       }
     });
   }
@@ -1427,24 +1458,20 @@
     peer.on('connection', incoming => {
       if (!isHost) return;
 
-      const maxGuests = requiredGuestCount();
+      const clientId =
+        incoming.metadata && incoming.metadata.clientId
+          ? String(incoming.metadata.clientId)
+          : ('legacy-' + Math.random().toString(36).slice(2));
 
-      // Reservamos el rol apenas llega la conexión.
-      // Así dos dispositivos que entran casi juntos no reciben la misma paleta.
-      const reservedGuests = hostConnections.length;
+      const assignedRole = reserveRoleForClient(clientId);
 
-      if (reservedGuests >= maxGuests) {
-        incoming.close();
-        return;
-      }
-
-      const assignedRole = assignedRoleForGuestIndex(reservedGuests);
       if (!assignedRole) {
+        try { incoming.send({ type:'roomFull' }); } catch(e) {}
         incoming.close();
         return;
       }
 
-      setupHostConnection(incoming, assignedRole);
+      setupHostConnection(incoming, assignedRole, clientId);
     });
 
     peer.on('error', err => {
@@ -1475,10 +1502,17 @@
     conn.on('data', data => {
       if (!data || typeof data !== 'object') return;
 
+      if (data.type === 'roomFull') {
+        setStatus('La sala ya tiene todos sus jugadores.');
+        peerBadge.textContent = 'sala completa';
+        return;
+      }
+
       if (data.type === 'role') {
         if (role && role !== data.role) return;
         role = data.role;
         roleText.textContent = 'Rol: ' + humanRoleLabel(role);
+        peerBadge.textContent = role;
         if (!isHost) {
           remoteTargetX = state.ballX;
           remoteTargetY = state.ballY;
@@ -1804,7 +1838,7 @@
     createPeer();
 
     peer.on('open', () => {
-      conn = peer.connect(code, { reliable: true });
+      conn = peer.connect(code, { reliable: true, metadata:{ clientId:localClientId } });
       setupConnection();
       setStatus('Intentando conectar...');
     });
@@ -2799,7 +2833,7 @@
 
     const tryConnect = () => {
       if (!peer || !peer.id) return;
-      conn = peer.connect(code, { reliable: true });
+      conn = peer.connect(code, { reliable: true, metadata:{ clientId:localClientId } });
       setupConnection();
 
 
