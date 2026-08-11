@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v52 Dobles 4 jugadores</title>
+  <title>Pong Doble v53 Dobles roles únicos</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -626,7 +626,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v52</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v53</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -1177,6 +1177,11 @@
     hostConnections = [];
     countdownStartedForRoom = false;
     expectedGuests = requiredGuestCount();
+
+    doublesLeft2Y = canvas.height / 2 - paddle.h / 2;
+    doublesRight2Y = canvas.height / 2 - paddle.h / 2;
+    left2PaddleVY = 0;
+    right2PaddleVY = 0;
     goalHoldUntil = 0;
     remoteStateSnapshots = [];
     remoteGuestPaddleSnapshots = [];
@@ -1253,37 +1258,78 @@
     if (!isHost || mode !== 'multi' || countdownStartedForRoom) return;
 
     expectedGuests = requiredGuestCount();
-    const openCount = hostConnections.filter(item => item.conn && item.conn.open).length;
+
+    const opened = hostConnections.filter(
+      item => item.opened && item.conn && item.conn.open
+    );
+    const openRoles = new Set(opened.map(item => item.role));
+    const openCount = openRoles.size;
 
     if (openCount >= expectedGuests) {
       countdownStartedForRoom = true;
       connected = true;
-      setGameplayUI(true);
+
+      state.scoreL = 0;
+      state.scoreR = 0;
+      matchOver = false;
+      winner = null;
+
       generateObstacles();
       resetBall(Math.random() > .5 ? 1 : -1);
 
+      hostBroadcast({
+        type:'state',
+        state,
+        doublesLeft2Y,
+        doublesRight2Y,
+        matchesLeft,
+        matchesRight,
+        matchOver,
+        winner,
+        obstacles,
+        ballSpin,
+        ballSpinVisual,
+        difficulty,
+        teamPlayMode,
+        obstaclesEnabled
+      });
+
       hostBroadcast({ type:'countdown', duration:3200 });
       startCountdown(3200, false);
+      setGameplayUI(true);
 
       setStatus(teamPlayMode === 'doubles'
-        ? 'Los 4 jugadores están conectados. Preparados…'
-        : 'Jugador conectado. Preparados…');
+        ? '4/4 conectados · Preparados…'
+        : '2/2 conectados · Preparados…');
     } else {
+      const totalPlayers = openCount + 1;
       setStatus(teamPlayMode === 'doubles'
-        ? `Esperando jugadores: ${openCount + 1}/4 conectados`
-        : 'Esperando al rival…');
+        ? `Esperando jugadores: ${totalPlayers}/4 conectados`
+        : `Esperando rival: ${totalPlayers}/2 conectados`);
     }
   }
 
   function setupHostConnection(incoming, assignedRole) {
-    const item = { conn: incoming, role: assignedRole };
+    if (hostConnections.some(item => item.role === assignedRole)) {
+      try { incoming.close(); } catch(e) {}
+      return;
+    }
+
+    const item = { conn: incoming, role: assignedRole, opened:false };
     hostConnections.push(item);
 
     incoming.on('open', () => {
+      item.opened = true;
       connected = true;
       endSessionBtn.style.display = '';
+      const openedRoles = new Set(
+        hostConnections
+          .filter(x => x.opened && x.conn && x.conn.open)
+          .map(x => x.role)
+      );
+
       peerBadge.textContent = teamPlayMode === 'doubles'
-        ? `${hostConnections.filter(x => x.conn && x.conn.open).length + 1}/4`
+        ? `${openedRoles.size + 1}/4`
         : 'conectado';
 
       incoming.send({ type:'role', role:assignedRole });
@@ -1346,7 +1392,14 @@
       if (mode === 'multi' && teamPlayMode === 'doubles') {
         gameReady = false;
         setGameplayUI(false);
-        returnToReadyState('Un jugador salió. Compartí nuevamente la invitación para completar los 4.');
+
+        const remaining = new Set(
+          hostConnections
+            .filter(x => x.opened && x.conn && x.conn.open)
+            .map(x => x.role)
+        ).size + 1;
+
+        returnToReadyState(`Un jugador salió · ${remaining}/4 conectados. Esperando reemplazo…`);
         mode = 'multi';
         updateModeButtons();
         refreshTeamSlots();
@@ -1375,14 +1428,17 @@
       if (!isHost) return;
 
       const maxGuests = requiredGuestCount();
-      const activeGuests = hostConnections.filter(item => item.conn && item.conn.open).length;
 
-      if (activeGuests >= maxGuests) {
+      // Reservamos el rol apenas llega la conexión.
+      // Así dos dispositivos que entran casi juntos no reciben la misma paleta.
+      const reservedGuests = hostConnections.length;
+
+      if (reservedGuests >= maxGuests) {
         incoming.close();
         return;
       }
 
-      const assignedRole = assignedRoleForGuestIndex(activeGuests);
+      const assignedRole = assignedRoleForGuestIndex(reservedGuests);
       if (!assignedRole) {
         incoming.close();
         return;
@@ -1420,6 +1476,7 @@
       if (!data || typeof data !== 'object') return;
 
       if (data.type === 'role') {
+        if (role && role !== data.role) return;
         role = data.role;
         roleText.textContent = 'Rol: ' + humanRoleLabel(role);
         if (!isHost) {
@@ -1598,6 +1655,8 @@
     closeCurrentSession(false);
 
     mode = 'multi';
+    role = 'left';
+    roleText.textContent = 'Rol: ' + humanRoleLabel(role);
     updateModeButtons();
     refreshTeamSlots();
     setGameplayUI(false);
