@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v56 Sala de jugadores</title>
+  <title>Pong Doble v57 arranque estable</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -638,7 +638,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v56</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v57</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -1066,6 +1066,13 @@
     if (mode !== 'multi' && !fromNetwork) return;
     if (matchRulesLocked && !fromNetwork) return;
     teamPlayMode = value === 'doubles' ? 'doubles' : 'single';
+    if (teamPlayMode === 'single') {
+      hidePlayerLobby();
+      lobbyTeamsLocked = false;
+      lobbyPlayers = {};
+      if (teamLobbyBar) teamLobbyBar.classList.remove('show');
+      if (lobbyStartBtn) lobbyStartBtn.classList.remove('show');
+    }
 
     if (singleModeBtn) singleModeBtn.classList.toggle('activeTeamMode', teamPlayMode === 'single');
     if (doubleModeBtn) doubleModeBtn.classList.toggle('activeTeamMode', teamPlayMode === 'doubles');
@@ -1164,7 +1171,12 @@
     rematchBtn.style.display = 'none';
     generateObstacles();
     resetBall(Math.random() > .5 ? 1 : -1);
-    startCountdown(3200, notifyPeer);
+    if (notifyPeer && isHost && mode === 'multi') {
+      hostBroadcast({ type:'countdown', duration:3200, startedAt:Date.now() });
+      startCountdown(3200, false);
+    } else {
+      startCountdown(3200, notifyPeer);
+    }
 
     if (notifyPeer && isHost) {
       hostBroadcast({ type:'resetMatch' });
@@ -1330,13 +1342,52 @@
     }
 
     connected = true;
+
+    // 1 VS 1: conserva el flujo estable de las versiones anteriores.
+    // No depende de nombres, avatares ni botón Listo.
+    if (teamPlayMode !== 'doubles') {
+      countdownStartedForRoom = true;
+      state.scoreL = 0;
+      state.scoreR = 0;
+      matchOver = false;
+      winner = null;
+
+      generateObstacles();
+      resetBall(Math.random() > .5 ? 1 : -1);
+
+      hostBroadcast({
+        type:'state',
+        state,
+        doublesLeft2Y,
+        doublesRight2Y,
+        matchesLeft,
+        matchesRight,
+        matchOver,
+        winner,
+        obstacles,
+        ballSpin,
+        ballSpinVisual,
+        difficulty,
+        teamPlayMode,
+        obstaclesEnabled
+      });
+
+      // La misma orden de cuenta regresiva para anfitrión e invitado.
+      hostBroadcast({ type:'countdown', duration:3200, startedAt:Date.now() });
+      startCountdown(3200, false);
+      setGameplayUI(true);
+      setStatus('2/2 detectados · Preparados…');
+      return;
+    }
+
+    // 2 VS 2: recién acá usamos la nueva sala de jugadores.
     ensureHostLobbyPlayer();
     showPlayerLobby();
-    hostBroadcast({type:'openPlayerLobby'});
+    hostBroadcast({ type:'openPlayerLobby' });
     hostBroadcastLobby();
-    setStatus(teamPlayMode === 'doubles' ? '4/4 detectados · Preparar jugadores' : '2/2 detectados · Preparar jugadores');
-
+    setStatus('4/4 detectados · Preparar jugadores');
   }
+
 
   function setupHostConnection(incoming, assignedRole, clientId) {
     const previous = roomSlots[assignedRole];
@@ -1724,6 +1775,11 @@
   }
 
   function startSolo() {
+    hidePlayerLobby();
+    lobbyTeamsLocked = false;
+    lobbyPlayers = {};
+    if (teamLobbyBar) teamLobbyBar.classList.remove('show');
+    if (lobbyStartBtn) lobbyStartBtn.classList.remove('show');
     closeCurrentSession(false);
     mode = 'solo';
     teamPlayMode = 'single';
