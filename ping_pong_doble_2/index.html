@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55 Dobles + voz</title>
+  <title>Pong Doble v56 Sala de jugadores</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -621,16 +621,24 @@
     }
 
   
-    #voiceBtn{border-color:rgba(255,255,255,.38);background:rgba(18,28,42,.48);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.18)}
-    #voiceBtn.voiceOn{background:rgba(35,145,92,.72);border-color:rgba(255,255,255,.62)}
-    #voiceBtn.voiceMuted{background:rgba(110,110,110,.52)}
-  </style>
+#playerLobby{position:absolute;inset:0;z-index:45;display:none;align-items:center;justify-content:center;background:rgba(4,9,16,.62);backdrop-filter:blur(7px);padding:14px}
+#playerLobby.show{display:flex}.lobbyCard{width:min(430px,94vw);background:rgba(19,31,45,.9);border:1px solid rgba(255,255,255,.24);border-radius:20px;padding:16px;box-shadow:0 16px 42px rgba(0,0,0,.36);color:white}
+.lobbyTitle{font-weight:800;font-size:18px}.lobbySub{font-size:12px;opacity:.8;margin:4px 0 12px}
+#playerName{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);color:white;padding:10px 12px;font-size:16px}
+.avatarGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.avatarChoice{aspect-ratio:1;border-radius:14px;border:2px solid transparent;background:rgba(255,255,255,.09);font-size:38px}.avatarChoice.selected{border-color:white;background:rgba(255,255,255,.22)}
+#playerReadyBtn{width:100%}#teamLobbyBar{display:none;gap:8px;align-items:stretch;justify-content:center;margin:6px auto 8px;width:min(560px,96%)}#teamLobbyBar.show{display:flex}
+.teamBox{flex:1;min-width:0;display:flex;gap:5px;justify-content:center;padding:6px;border-radius:13px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18)}
+.playerChip{width:58px;min-height:62px;border-radius:11px;background:rgba(7,14,23,.48);border:1px solid rgba(255,255,255,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;touch-action:none}
+.playerChip.me{outline:2px solid rgba(255,255,255,.75)}.playerChip .face{font-size:28px;line-height:30px}.playerChip .abbr{font-size:10px;font-weight:800;letter-spacing:.7px;margin-top:3px}
+#lobbyStartBtn{display:none;margin:0 auto 8px}#lobbyStartBtn.show{display:block}
+
+</style>
 </head>
-<body>
+<body><div id="playerLobby"><div class="lobbyCard"><div class="lobbyTitle">Tu jugador</div><div class="lobbySub">Escribí tu nombre, elegí tu alter ego y tocá Listo.</div><input id="playerName" maxlength="24" placeholder="Tu nombre"><div class="avatarGrid"><button class="avatarChoice selected" data-avatar="0">👨🏻</button><button class="avatarChoice" data-avatar="1">👨🏼</button><button class="avatarChoice" data-avatar="2">👨🏽</button><button class="avatarChoice" data-avatar="3">👨🏾</button></div><button id="playerReadyBtn" type="button">Listo</button></div></div>
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v56</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -650,7 +658,6 @@
     </div>
     <button id="shareGameBtn" style="display:none">Compartir juego</button>
     <button id="retryBtn" style="display:none">Reintentar conexión</button>
-    <button id="voiceBtn" type="button">🎙 Voz</button>
     <button id="endSessionBtn" style="display:none">Terminar partida</button>
     <button id="rematchBtn" style="display:none">Revancha</button>
     <input id="roomInput" style="display:none" placeholder="Código de sala" autocomplete="off" autocapitalize="off" />
@@ -808,7 +815,6 @@
   const shareCodeBtn = document.getElementById('shareCodeBtn');
   const retryBtn = document.getElementById('retryBtn');
   const endSessionBtn = document.getElementById('endSessionBtn');
-  const voiceBtn = document.getElementById('voiceBtn');
   const rematchBtn = document.getElementById('rematchBtn');
   const singleModeBtn = document.getElementById('singleModeBtn');
   const doubleModeBtn = document.getElementById('doubleModeBtn');
@@ -860,14 +866,9 @@
   let expectedGuests = 1;
   let countdownStartedForRoom = false;
   const localClientId = 'c-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36);
-
-  // Voz WebRTC opcional. Cada jugador decide si habilita su micrófono.
-  let localVoiceStream = null;
-  let voiceEnabled = false;
-  let voiceMuted = false;
-  let voicePeerRoster = [];
-  const mediaCalls = new Map();
-  const remoteAudioEls = new Map();
+  const avatarFaces=['👨🏻','👨🏼','👨🏽','👨🏾']; let selectedAvatar=0,localPlayerReady=false,lobbyTeamsLocked=false; let lobbyPlayers={};
+  function cleanPlayerName(v){return String(v||'').trim().replace(/\s+/g,' ').slice(0,24)}
+  function playerAbbr(v){return (cleanPlayerName(v).toUpperCase()||'JUG').slice(0,3)}
 
 
   let matchesLeft = 0;
@@ -1188,7 +1189,6 @@
   }
 
   function closeCurrentSession(goToMenu = true) {
-    stopVoice();
     connected = false;
     gameReady = false;
     resetRoomSlots();
@@ -1303,6 +1303,12 @@
     return 1 + openSlotEntries().length;
   }
 
+  function forceSynchronizedCountdown(duration=3200){
+    if(!isHost)return;countdownStartedForRoom=true;connected=true;lobbyTeamsLocked=true;state.scoreL=0;state.scoreR=0;matchOver=false;winner=null;generateObstacles();resetBall(Math.random()>.5?1:-1);
+    hostBroadcast({type:'state',state,doublesLeft2Y,doublesRight2Y,matchesLeft,matchesRight,matchOver,winner,obstacles,ballSpin,ballSpinVisual,difficulty,teamPlayMode,obstaclesEnabled});
+    hostBroadcast({type:'countdown',duration,startedAt:Date.now()});startCountdown(duration,false);setGameplayUI(true);setStatus('Preparados…');
+  }
+
   function maybeStartMultiplayerCountdown() {
     if (!isHost || mode !== 'multi' || countdownStartedForRoom) return;
 
@@ -1323,41 +1329,13 @@
       return;
     }
 
-    countdownStartedForRoom = true;
     connected = true;
+    ensureHostLobbyPlayer();
+    showPlayerLobby();
+    hostBroadcast({type:'openPlayerLobby'});
+    hostBroadcastLobby();
+    setStatus(teamPlayMode === 'doubles' ? '4/4 detectados · Preparar jugadores' : '2/2 detectados · Preparar jugadores');
 
-    state.scoreL = 0;
-    state.scoreR = 0;
-    matchOver = false;
-    winner = null;
-
-    generateObstacles();
-    resetBall(Math.random() > .5 ? 1 : -1);
-
-    hostBroadcast({
-      type:'state',
-      state,
-      doublesLeft2Y,
-      doublesRight2Y,
-      matchesLeft,
-      matchesRight,
-      matchOver,
-      winner,
-      obstacles,
-      ballSpin,
-      ballSpinVisual,
-      difficulty,
-      teamPlayMode,
-      obstaclesEnabled
-    });
-
-    hostBroadcast({ type:'countdown', duration:3200 });
-    startCountdown(3200, false);
-    setGameplayUI(true);
-
-    setStatus(teamPlayMode === 'doubles'
-      ? '4/4 detectados · Preparados…'
-      : '2/2 detectados · Preparados…');
   }
 
   function setupHostConnection(incoming, assignedRole, clientId) {
@@ -1366,7 +1344,7 @@
       try { previous.conn.close(); } catch(e) {}
     }
 
-    const slot = { conn:incoming, role:assignedRole, clientId, peerId:(incoming.peer || null), opened:false };
+    const slot = { conn:incoming, role:assignedRole, clientId, opened:false };
     roomSlots[assignedRole] = slot;
 
     incoming.on('open', () => {
@@ -1399,7 +1377,6 @@
         obstaclesEnabled
       });
 
-      broadcastVoiceRoster();
       maybeStartMultiplayerCountdown();
     });
 
@@ -1407,22 +1384,26 @@
       if (!data || typeof data !== 'object') return;
       if (roomSlots[assignedRole] !== slot) return;
 
+      if(data.type==='playerProfile'&&data.profile){
+        lobbyPlayers[clientId]={clientId,name:cleanPlayerName(data.profile.name)||'Jugador',avatar:Math.max(0,Math.min(3,+data.profile.avatar||0)),ready:!!data.profile.ready,role:assignedRole};hostBroadcastLobby();return;
+      }
+
       if (data.type === 'paddle') {
         const y = Number(data.y);
         const vy = Number(data.vy) || 0;
         if (!Number.isFinite(y)) return;
 
         if (assignedRole === 'left2') {
-          doublesLeft2Y = clamp(y, 0, canvas.height - (teamPlayMode === 'doubles' ? paddle.h * 0.78 : paddle.h));
+          doublesLeft2Y = clamp(y, 0, canvas.height - paddle.h);
           left2PaddleVY = vy;
           lastLeft2Y = doublesLeft2Y;
         } else if (assignedRole === 'right') {
-          state.rightY = clamp(y, 0, canvas.height - (teamPlayMode === 'doubles' ? paddle.h * 0.78 : paddle.h));
+          state.rightY = clamp(y, 0, canvas.height - paddle.h);
           rightPaddleVY = vy;
           lastRightY = state.rightY;
           pushGuestPaddleSnapshot(state.rightY);
         } else if (assignedRole === 'right2') {
-          doublesRight2Y = clamp(y, 0, canvas.height - (teamPlayMode === 'doubles' ? paddle.h * 0.78 : paddle.h));
+          doublesRight2Y = clamp(y, 0, canvas.height - paddle.h);
           right2PaddleVY = vy;
           lastRight2Y = doublesRight2Y;
         }
@@ -1437,7 +1418,6 @@
     incoming.on('close', () => {
       if (roomSlots[assignedRole] === slot) roomSlots[assignedRole] = null;
       countdownStartedForRoom = false;
-      broadcastVoiceRoster();
 
       if (mode === 'multi') {
         gameReady = false;
@@ -1454,128 +1434,6 @@
         maybeStartMultiplayerCountdown();
       }
     });
-  }
-
-  function attachRemoteAudio(remotePeerId, stream) {
-    let audio = remoteAudioEls.get(remotePeerId);
-    if (!audio) {
-      audio = document.createElement('audio');
-      audio.autoplay = true;
-      audio.playsInline = true;
-      audio.style.display = 'none';
-      document.body.appendChild(audio);
-      remoteAudioEls.set(remotePeerId, audio);
-    }
-    audio.srcObject = stream;
-    audio.play().catch(() => {});
-  }
-
-  function cleanupMediaCall(remotePeerId) {
-    const call = mediaCalls.get(remotePeerId);
-    if (call) {
-      try { call.close(); } catch(e) {}
-      mediaCalls.delete(remotePeerId);
-    }
-    const audio = remoteAudioEls.get(remotePeerId);
-    if (audio) {
-      try { audio.srcObject = null; audio.remove(); } catch(e) {}
-      remoteAudioEls.delete(remotePeerId);
-    }
-  }
-
-  function setupMediaCall(call) {
-    if (!call) return;
-    const remotePeerId = call.peer;
-    const oldCall = mediaCalls.get(remotePeerId);
-    if (oldCall && oldCall !== call) {
-      try { oldCall.close(); } catch(e) {}
-    }
-    mediaCalls.set(remotePeerId, call);
-    call.on('stream', stream => attachRemoteAudio(remotePeerId, stream));
-    call.on('close', () => cleanupMediaCall(remotePeerId));
-    call.on('error', () => cleanupMediaCall(remotePeerId));
-  }
-
-  function refreshVoiceMesh() {
-    if (!voiceEnabled || !localVoiceStream || !peer || !peer.id) return;
-    const me = peer.id;
-    const others = [...new Set(voicePeerRoster)].filter(id => id && id !== me);
-
-    // Para evitar llamadas duplicadas, sólo llama el peer cuyo ID ordena primero.
-    for (const remotePeerId of others) {
-      if (mediaCalls.has(remotePeerId)) continue;
-      if (me < remotePeerId) {
-        try {
-          const call = peer.call(remotePeerId, localVoiceStream, {metadata:{voice:true}});
-          setupMediaCall(call);
-        } catch(e) {}
-      }
-    }
-
-    for (const remotePeerId of [...mediaCalls.keys()]) {
-      if (!others.includes(remotePeerId)) cleanupMediaCall(remotePeerId);
-    }
-  }
-
-  function broadcastVoiceRoster() {
-    if (!isHost || !peer || !peer.id) return;
-    const roster = [peer.id];
-    for (const roleName of slotRolesForCurrentMode()) {
-      const slot = roomSlots[roleName];
-      if (slot && slot.opened && slot.conn && slot.conn.open && slot.peerId) roster.push(slot.peerId);
-    }
-    voicePeerRoster = [...new Set(roster)];
-    hostBroadcast({type:'voiceRoster', peers:voicePeerRoster});
-    refreshVoiceMesh();
-  }
-
-  async function toggleVoice() {
-    if (voiceEnabled) {
-      voiceMuted = !voiceMuted;
-      if (localVoiceStream) {
-        for (const track of localVoiceStream.getAudioTracks()) track.enabled = !voiceMuted;
-      }
-      if (voiceBtn) {
-        voiceBtn.classList.toggle('voiceMuted', voiceMuted);
-        voiceBtn.textContent = voiceMuted ? '🔇 Voz' : '🎙 Voz';
-      }
-      return;
-    }
-
-    try {
-      localVoiceStream = await navigator.mediaDevices.getUserMedia({
-        audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},
-        video:false
-      });
-      voiceEnabled = true;
-      voiceMuted = false;
-      if (voiceBtn) {
-        voiceBtn.classList.add('voiceOn');
-        voiceBtn.textContent = '🎙 Voz';
-      }
-      if (isHost) broadcastVoiceRoster();
-      else refreshVoiceMesh();
-      setStatus('Voz activada.');
-    } catch(e) {
-      setStatus('No se pudo habilitar el micrófono.');
-    }
-  }
-
-  function stopVoice() {
-    for (const remotePeerId of [...mediaCalls.keys()]) cleanupMediaCall(remotePeerId);
-    if (localVoiceStream) {
-      for (const track of localVoiceStream.getTracks()) {
-        try { track.stop(); } catch(e) {}
-      }
-    }
-    localVoiceStream = null;
-    voiceEnabled = false;
-    voiceMuted = false;
-    voicePeerRoster = [];
-    if (voiceBtn) {
-      voiceBtn.classList.remove('voiceOn','voiceMuted');
-      voiceBtn.textContent = '🎙 Voz';
-    }
   }
 
   function createPeer(id) {
@@ -1614,19 +1472,6 @@
       setupHostConnection(incoming, assignedRole, clientId);
     });
 
-    peer.on('call', call => {
-      if (!voiceEnabled || !localVoiceStream) {
-        try { call.close(); } catch(e) {}
-        return;
-      }
-      try {
-        call.answer(localVoiceStream);
-        setupMediaCall(call);
-      } catch(e) {
-        try { call.close(); } catch(_) {}
-      }
-    });
-
     peer.on('error', err => {
       console.error(err);
       if (mode === 'multi' && !isHost) {
@@ -1655,12 +1500,6 @@
     conn.on('data', data => {
       if (!data || typeof data !== 'object') return;
 
-      if (data.type === 'voiceRoster' && Array.isArray(data.peers)) {
-        voicePeerRoster = [...new Set(data.peers.filter(Boolean))];
-        refreshVoiceMesh();
-        return;
-      }
-
       if (data.type === 'roomFull') {
         setStatus('La sala ya tiene todos sus jugadores.');
         peerBadge.textContent = 'sala completa';
@@ -1683,17 +1522,7 @@
       }
 
       if (data.type === 'countdown') {
-        const duration = Number(data.duration) || 3200;
-        remoteStateSnapshots = [];
-        remoteGuestPaddleSnapshots = [];
-        state.ballX = canvas.width / 2;
-        state.ballY = canvas.height / 2;
-        state.ballVX = 0;
-        state.ballVY = 0;
-        visualBallX = state.ballX;
-        visualBallY = state.ballY;
-        visualBallInitialized = true;
-        startCountdown(duration, false);
+        startCountdown(Number(data.duration) || 3200, false);
         setStatus('Partida encontrada. Preparados…');
       }
 
@@ -2018,8 +1847,7 @@
   function localMove(yNormalized) {
     yNormalized = clamp(yNormalized, 0, 1);
     touchHandle.style.top = (10 + yNormalized * 80) + '%';
-    const activePaddleH = (mode === 'multi' && teamPlayMode === 'doubles') ? paddle.h * 0.78 : paddle.h;
-    const y = clamp(yNormalized * canvas.height - activePaddleH/2, 0, canvas.height - activePaddleH);
+    const y = clamp(yNormalized * canvas.height - paddle.h/2, 0, canvas.height - paddle.h);
 
     if (role === 'left') {
       leftPaddleVY = y - lastLeftY;
@@ -3039,8 +2867,6 @@
     startRematchFromLocalTap();
   });
 
-  if (voiceBtn) voiceBtn.addEventListener('click', toggleVoice);
-
   endSessionBtn.addEventListener('click', () => {
     if (mode === 'multi') {
       if (isHost) {
@@ -3111,5 +2937,5 @@
   requestAnimationFrame(loop);
 })();
 </script>
-</body>
+<div id="teamLobbyBar"><div class="teamBox" id="teamABox"></div><div class="teamBox" id="teamBBox"></div></div><button id="lobbyStartBtn" type="button">Empezar</button></body>
 </html>
