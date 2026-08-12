@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.21 compacto móvil</title>
+  <title>Pong Doble v55.22 red estable</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -1231,7 +1231,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.21</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.22</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -2373,22 +2373,8 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
         slot.ready = true;
         lobbyProfiles[assignedRole] = normalizedLobbyProfile(data.profile, assignedRole);
 
-        try {
-          incoming.send({ type:'playerReadyAck', role:assignedRole });
-        } catch(e) {}
-
-        // Enviar el estado completo primero al jugador que acaba de entrar.
-        sendLobbyStateToConnection(incoming);
-
-        // Y luego sincronizar la misma lista en todos los dispositivos.
+        // Un solo cambio de roster por evento real.
         broadcastLobbyProfiles();
-
-        // Segundo envío corto para absorber diferencias de timing en móviles.
-        setTimeout(() => {
-          try { sendLobbyStateToConnection(incoming); } catch(e) {}
-          broadcastLobbyProfiles();
-        }, 120);
-
         maybeStartMultiplayerCountdown();
         return;
       }
