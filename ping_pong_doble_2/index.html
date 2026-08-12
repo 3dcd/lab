@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.11 sala lista</title>
+  <title>Pong Doble v55.12 fichas persistentes</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -831,6 +831,42 @@ body > #entryScreen.hidden{display:none !important;}
 .playerLobbyCard.waiting .lobbyName{opacity:.48}
 .teamSlots.singleLobby .secondarySlot{display:none}
 
+
+/* v55.12 · estabilidad de viewport, especialmente iPad apaisado */
+html{
+  width:100%;
+  min-height:100%;
+  height:auto;
+  overflow-x:hidden;
+  -webkit-text-size-adjust:100%;
+}
+body{
+  width:100%;
+  min-height:100svh;
+  margin:0;
+  position:relative;
+  overflow-x:hidden;
+  transform:none !important;
+  translate:none !important;
+}
+@supports(height:100dvh){
+  body{min-height:100dvh}
+}
+
+/* Evita que Safari reposicione visualmente el documento al cambiar barras/teclado */
+body.viewportLock{
+  top:0 !important;
+  left:0 !important;
+  right:0 !important;
+}
+
+/* Las fichas no empujan ni recalculan el layout */
+#teamSlots.playerLobbySlots{
+  position:relative;
+  transform:none !important;
+  translate:none !important;
+}
+
 </style>
 </head>
 <body>
@@ -855,7 +891,7 @@ body > #entryScreen.hidden{display:none !important;}
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.11</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.12</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -1250,6 +1286,17 @@ body > #entryScreen.hidden{display:none !important;}
     });
   }
 
+  // v55.12: las fichas se mantienen como información visual durante toda la sesión.
+  function keepLobbyVisible(){
+    if (!teamSlots) return;
+    if (mode === 'multi') {
+      teamSlots.style.display = '';
+      teamSlots.classList.add('show');
+      teamSlots.classList.toggle('singleLobby', teamPlayMode !== 'doubles');
+      renderLobbyProfiles();
+    }
+  }
+
   function returnToReadyState(message = 'Configurá el juego y elegí cómo empezar.') {
     gameReady = false;
     countdownUntil = 0;
@@ -1313,6 +1360,51 @@ body > #entryScreen.hidden{display:none !important;}
     if (name) name.textContent = profile.name || fallbackNameForRole(profile.role);
   }
 
+
+  function renderSoloLobby(){
+    if (!teamSlots) return;
+
+    teamSlots.style.display = '';
+    teamSlots.classList.add('show');
+    teamSlots.classList.add('singleLobby');
+
+    const localProfile = normalizedLobbyProfile(
+      localEntryProfile || {name:'', avatarIndex:0},
+      'left'
+    );
+
+    const robotProfile = {
+      name:'CPU',
+      avatarIndex:-1,
+      role:'right',
+      ready:true,
+      robot:true
+    };
+
+    setLobbyCard(lobbySlotLeft, localProfile);
+
+    if (lobbySlotRight) {
+      lobbySlotRight.classList.add('ready');
+      lobbySlotRight.classList.remove('waiting');
+      const face = lobbySlotRight.querySelector('.lobbyFace');
+      const name = lobbySlotRight.querySelector('.lobbyName');
+      if (face) face.textContent = '🤖';
+      if (name) name.textContent = 'CPU';
+    }
+
+    if (lobbySlotLeft2) {
+      lobbySlotLeft2.style.display = 'none';
+    }
+    if (lobbySlotRight2) {
+      lobbySlotRight2.style.display = 'none';
+    }
+  }
+
+  function restoreLobbySlotVisibility(){
+    if (lobbySlotLeft2) lobbySlotLeft2.style.display = '';
+    if (lobbySlotRight2) lobbySlotRight2.style.display = '';
+  }
+
   function renderLobbyProfiles(){
     const leftProfile = lobbyProfiles.left || null;
     const left2Profile = lobbyProfiles.left2 || null;
@@ -1346,6 +1438,7 @@ body > #entryScreen.hidden{display:none !important;}
 
   function refreshTeamSlots(){
     const multiVisible = mode === 'multi';
+    const soloVisible = mode === 'solo';
 
     if (teamModePanel) {
       teamModePanel.classList.toggle('soloHidden', !multiVisible);
@@ -1353,12 +1446,20 @@ body > #entryScreen.hidden{display:none !important;}
     }
 
     if (teamSlots) {
-      teamSlots.classList.toggle('show', multiVisible);
-      teamSlots.classList.toggle('soloHidden', !multiVisible);
-      teamSlots.classList.toggle('singleLobby', teamPlayMode !== 'doubles');
-      if (!multiVisible) teamSlots.style.display = 'none';
-      else teamSlots.style.display = '';
-      renderLobbyProfiles();
+      if (soloVisible) {
+        renderSoloLobby();
+      } else if (multiVisible) {
+        restoreLobbySlotVisibility();
+        teamSlots.classList.add('show');
+        teamSlots.classList.remove('soloHidden');
+        teamSlots.classList.toggle('singleLobby', teamPlayMode !== 'doubles');
+        teamSlots.style.display = '';
+        renderLobbyProfiles();
+      } else {
+        teamSlots.classList.remove('show');
+        teamSlots.classList.add('soloHidden');
+        teamSlots.style.display = 'none';
+      }
     }
 
     if (doubleHint) {
@@ -1692,6 +1793,7 @@ body > #entryScreen.hidden{display:none !important;}
     hostBroadcast({ type:'countdown', duration:3200 });
     startCountdown(3200, false);
     setGameplayUI(true);
+    keepLobbyVisible();
 
     setStatus(teamPlayMode === 'doubles'
       ? '4/4 listos · Preparados…'
@@ -2231,6 +2333,7 @@ body > #entryScreen.hidden{display:none !important;}
     closeCurrentSession(false);
 
     mode = 'multi';
+    restoreLobbySlotVisibility();
     role = 'left';
     roleText.textContent = 'Rol: ' + humanRoleLabel(role);
     updateModeButtons();
@@ -2275,6 +2378,8 @@ body > #entryScreen.hidden{display:none !important;}
   function startSolo() {
     closeCurrentSession(false);
     mode = 'solo';
+    restoreLobbySlotVisibility();
+    renderSoloLobby();
     teamPlayMode = 'single';
     updateModeButtons();
     refreshTeamSlots();
@@ -3469,6 +3574,30 @@ body > #entryScreen.hidden{display:none !important;}
         profile:localEntryProfile
       });
     }
+    if (mode === 'solo') {
+      renderSoloLobby();
+    }
+
+  });
+
+  function stabilizeViewport(){
+    // Safari/iPad puede conservar un pequeño offset visual al cambiar barras u orientación.
+    // No hacemos scroll animado: sólo normalizamos cuando el documento quedó desplazado.
+    if (window.scrollY < 0 || window.scrollY > 4) {
+      window.scrollTo(0, 0);
+    }
+    document.body.classList.add('viewportLock');
+    setTimeout(() => document.body.classList.remove('viewportLock'), 120);
+  }
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(stabilizeViewport, 120);
+    setTimeout(stabilizeViewport, 360);
+  });
+
+  window.addEventListener('resize', () => {
+    clearTimeout(window.__pongViewportTimer);
+    window.__pongViewportTimer = setTimeout(stabilizeViewport, 140);
   });
 
   function applyInvitationFromUrl() {
