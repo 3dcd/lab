@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.7 selector avatar</title>
+  <title>Pong Doble v55.8 overlay micro</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -87,7 +87,6 @@
     #consoleFade.fadeOut{opacity:0}
     body > *:not(#preloadCover):not(#consoleFade){position:relative;z-index:1}
     .gameWrap{
-      position:relative;
       flex:1;
       min-height:0;
       display:flex;
@@ -626,157 +625,110 @@
     #voiceBtn.voiceOn{background:rgba(35,145,92,.72);border-color:rgba(255,255,255,.62)}
     #voiceBtn.voiceMuted{background:rgba(110,110,110,.52)}
   
-#avatarEntryOverlay{
-  position:absolute;
+/* v55.8: capa de entrada TOTALMENTE independiente del juego */
+#microEntryOverlay{
+  position:fixed;
   inset:0;
-  z-index:50;
+  z-index:100000;
   display:flex;
   align-items:center;
   justify-content:center;
-  background:rgba(2,8,16,.48);
-  backdrop-filter:blur(4px);
+  background:rgba(3,8,15,.40);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
   pointer-events:auto;
   touch-action:none;
 }
-#avatarEntryOverlay.hidden{display:none}
+#microEntryOverlay.microHidden{display:none}
 
-.avatarEntryCard{
-  width:min(330px,84%);
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,.24);
-  background:rgba(16,28,42,.94);
-  color:white;
+#microEntryCard{
+  width:min(320px,86vw);
   padding:14px;
-  box-shadow:0 14px 38px rgba(0,0,0,.42);
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.26);
+  background:rgba(18,30,43,.95);
+  color:#fff;
+  box-shadow:0 16px 42px rgba(0,0,0,.45);
   text-align:center;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
 }
-.avatarEntryCard h3{margin:0 0 4px;font-size:18px}
-.avatarEntryCard p{margin:0 0 10px;font-size:11px;opacity:.8}
+#microEntryCard h3{margin:0 0 4px;font-size:18px}
+#microEntryCard p{margin:0 0 11px;font-size:11px;opacity:.80}
 
-.avatarChooser{
-  display:grid;
-  grid-template-columns:1fr 46px;
-  gap:8px;
+#microAvatarRow{
+  display:flex;
+  justify-content:center;
   align-items:center;
-  margin:6px auto 10px;
-  width:150px;
+  gap:10px;
+  margin-bottom:4px;
 }
-#avatarPreview{
-  width:100px;
-  height:100px;
-  margin:auto;
+#microAvatar{
+  width:96px;
+  height:96px;
   border-radius:16px;
   border:1px solid rgba(255,255,255,.22);
   background:rgba(255,255,255,.08);
   display:flex;
   align-items:center;
   justify-content:center;
-  overflow:hidden;
-  font-size:60px;
+  font-size:58px;
+  line-height:1;
 }
-#avatarPreview img{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  display:block;
-}
-#avatarNextBtn{
-  width:46px;
-  height:46px;
+#microNext{
+  width:44px;
+  height:44px;
+  padding:0;
   border-radius:50%;
-  border:1px solid rgba(255,255,255,.26);
-  background:rgba(255,255,255,.11);
-  color:white;
-  font-size:24px;
-  font-weight:900;
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  font-size:23px;
+  font-weight:800;
 }
-#avatarCounter{
+#microCount{
   font-size:10px;
   font-weight:800;
-  opacity:.78;
-  margin-bottom:8px;
+  opacity:.75;
+  margin:4px 0 9px;
 }
-#avatarNameInput{
+#microName{
   width:100%;
   box-sizing:border-box;
   border-radius:11px;
   border:1px solid rgba(255,255,255,.25);
   background:rgba(255,255,255,.10);
-  color:white;
+  color:#fff;
   padding:9px 11px;
   font-size:15px;
   margin-bottom:9px;
 }
-#avatarPlayBtn{width:100%}
-
-/* prepared player chips, floating on top of field */
-#avatarPlayersStrip{
-  position:absolute;
-  top:8px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:25;
-  display:none;
-  gap:7px;
-  align-items:center;
-  pointer-events:none;
-}
-#avatarPlayersStrip.show{display:flex}
-.avatarTeam{
-  display:flex;
-  gap:5px;
-  padding:5px;
-  border-radius:11px;
-  background:rgba(5,13,23,.38);
-  border:1px solid rgba(255,255,255,.18);
-}
-.avatarVs{
-  color:white;
-  font-size:10px;
-  font-weight:900;
-  opacity:.8;
-}
-.avatarChip{
-  width:48px;
-  height:52px;
-  border-radius:9px;
-  border:1px solid rgba(255,255,255,.22);
-  background:rgba(8,16,26,.50);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-}
-.avatarChip .miniFace{
-  width:27px;
-  height:27px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-  font-size:22px;
-}
-.avatarChip .miniFace img{
+#microPlay{
   width:100%;
-  height:100%;
-  object-fit:contain;
+  min-height:38px;
 }
-.avatarChip .abbr{
-  font-size:9px;
-  font-weight:900;
-  letter-spacing:.5px;
-  margin-top:3px;
-}
-.avatarChip.empty{opacity:.25}
-.avatarChip.robot{background:rgba(42,77,115,.46)}
 
 </style>
 </head>
 <body>
+
+<div id="microEntryOverlay">
+  <div id="microEntryCard">
+    <h3>Tu jugador</h3>
+    <p>Podés elegir una carita o entrar directamente.</p>
+    <div id="microAvatarRow">
+      <div id="microAvatar">🙂</div>
+      <button id="microNext" type="button" aria-label="Siguiente carita">↻</button>
+    </div>
+    <div id="microCount">1 / 5</div>
+    <input id="microName" maxlength="24" placeholder="Tu nombre (opcional)">
+    <button id="microPlay" type="button">Jugar</button>
+  </div>
+</div>
+
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.7</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.8</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -806,31 +758,7 @@
     <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
   </div>
 
-
   <div class="gameWrap">
-    <div id="avatarEntryOverlay">
-      <div class="avatarEntryCard">
-        <h3>Tu jugador</h3>
-        <p>Elegí una carita o entrá directamente.</p>
-
-        <div class="avatarChooser">
-          <div id="avatarPreview">🙂</div>
-          <button id="avatarNextBtn" type="button" aria-label="Siguiente avatar">↻</button>
-        </div>
-
-        <div id="avatarCounter">1 / 5</div>
-
-        <input id="avatarNameInput" maxlength="24" placeholder="Tu nombre (opcional)">
-        <button id="avatarPlayBtn" type="button">Jugar</button>
-      </div>
-    </div>
-
-    <div id="avatarPlayersStrip">
-      <div class="avatarTeam" id="avatarTeamA"></div>
-      <div class="avatarVs">VS</div>
-      <div class="avatarTeam" id="avatarTeamB"></div>
-    </div>
-
     <canvas id="game" width="1280" height="720"></canvas>
   </div>
 
@@ -979,124 +907,6 @@
   const retryBtn = document.getElementById('retryBtn');
   const endSessionBtn = document.getElementById('endSessionBtn');
   const voiceBtn = document.getElementById('voiceBtn');
-  const avatarEntryOverlay=document.getElementById('avatarEntryOverlay');
-  const avatarPreview=document.getElementById('avatarPreview');
-  const avatarNextBtn=document.getElementById('avatarNextBtn');
-  const avatarCounter=document.getElementById('avatarCounter');
-  const avatarNameInput=document.getElementById('avatarNameInput');
-  const avatarPlayBtn=document.getElementById('avatarPlayBtn');
-  const avatarPlayersStrip=document.getElementById('avatarPlayersStrip');
-  const avatarTeamA=document.getElementById('avatarTeamA');
-  const avatarTeamB=document.getElementById('avatarTeamB');
-
-  function renderAvatarPreview(){
-    const item=avatarSources[avatarIndex];
-    if(!avatarPreview||!item)return;
-
-    if(item.type==='png'){
-      avatarPreview.innerHTML=`<img src="${item.value}" alt="">`;
-    }else{
-      avatarPreview.textContent=item.value;
-    }
-
-    if(avatarCounter){
-      avatarCounter.textContent=`${avatarIndex+1} / ${avatarSources.length}`;
-    }
-  }
-
-  function renderMiniAvatar(container,index){
-    const item=avatarSources[index]||avatarSources[0];
-    if(item.type==='png'){
-      container.innerHTML=`<img src="${item.value}" alt="">`;
-    }else{
-      container.textContent=item.value;
-    }
-  }
-
-  avatarNextBtn?.addEventListener('click',()=>{
-    avatarIndex=(avatarIndex+1)%avatarSources.length;
-    renderAvatarPreview();
-  });
-
-  avatarPlayBtn?.addEventListener('click',()=>{
-    avatarDisplayName=cleanAvatarName(avatarNameInput?.value);
-    avatarProfileReady=true;
-    avatarEntryOverlay?.classList.add('hidden');
-  });
-
-  function makeAvatarChip(profile,extra=''){
-    const chip=document.createElement('div');
-    chip.className='avatarChip '+extra;
-
-    const face=document.createElement('div');
-    face.className='miniFace';
-    if(profile) renderMiniAvatar(face,profile.avatarIndex);
-    else face.textContent='·';
-
-    const abbr=document.createElement('div');
-    abbr.className='abbr';
-    abbr.textContent=profile?avatarAbbr(profile.name):'---';
-
-    chip.appendChild(face);
-    chip.appendChild(abbr);
-    return chip;
-  }
-
-  function makeRobotChip(){
-    return makeAvatarChip(
-      {clientId:'cpu',name:'CPU',avatarIndex:0},
-      'robot'
-    );
-  }
-
-  function renderAvatarPlayers(){
-    if(!avatarPlayersStrip||!avatarTeamA||!avatarTeamB)return;
-
-    avatarTeamA.innerHTML='';
-    avatarTeamB.innerHTML='';
-
-    if(mode==='solo'){
-      avatarTeamA.appendChild(makeAvatarChip(localAvatarProfile()));
-
-      const robot=makeRobotChip();
-      robot.querySelector('.miniFace').textContent='🤖';
-      avatarTeamB.appendChild(robot);
-
-      avatarPlayersStrip.classList.add('show');
-      return;
-    }
-
-    if(mode!=='multi'){
-      avatarPlayersStrip.classList.remove('show');
-      return;
-    }
-
-    const roles=teamPlayMode==='doubles'
-      ? ['left','left2','right','right2']
-      : ['left','right'];
-
-    for(const r of roles){
-      const p=Object.values(avatarProfiles).find(x=>x.role===r);
-      const chip=p?makeAvatarChip(p):makeAvatarChip(null,'empty');
-
-      if(r==='left'||r==='left2') avatarTeamA.appendChild(chip);
-      else avatarTeamB.appendChild(chip);
-    }
-
-    avatarPlayersStrip.classList.add('show');
-  }
-
-  function broadcastAvatarProfiles(){
-    if(isHost){
-      hostBroadcast({
-        type:'avatarProfiles',
-        profiles:Object.values(avatarProfiles)
-      });
-    }
-  }
-
-  renderAvatarPreview();
-
   const rematchBtn = document.getElementById('rematchBtn');
   const singleModeBtn = document.getElementById('singleModeBtn');
   const doubleModeBtn = document.getElementById('doubleModeBtn');
@@ -1148,39 +958,6 @@
   let expectedGuests = 1;
   let countdownStartedForRoom = false;
   const localClientId = 'c-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36);
-  // When PNGs exist, replace these placeholders with:
-  // avatar_1.png ... avatar_5.png
-  const avatarSources = [
-    {type:'emoji', value:'🙂'},
-    {type:'emoji', value:'😎'},
-    {type:'emoji', value:'🤓'},
-    {type:'emoji', value:'🧔'},
-    {type:'emoji', value:'👨‍🦲'}
-  ];
-
-  let avatarIndex = Math.floor(Math.random()*avatarSources.length);
-  let avatarDisplayName = 'J1';
-  let avatarProfileReady = false;
-  let avatarProfiles = {};
-
-  function cleanAvatarName(v){
-    const n = String(v||'').trim().replace(/\s+/g,' ').slice(0,24);
-    return n || 'J1';
-  }
-
-  function avatarAbbr(v){
-    return cleanAvatarName(v).toUpperCase().slice(0,3);
-  }
-
-  function localAvatarProfile(){
-    return {
-      clientId:localClientId,
-      name:avatarDisplayName,
-      avatarIndex,
-      role:role||(isHost?'left':null)
-    };
-  }
-
 
   // Voz WebRTC opcional. Cada jugador decide si habilita su micrófono.
   let localVoiceStream = null;
@@ -1706,7 +1483,6 @@
       incoming.send({ type:'role', role:assignedRole });
       incoming.send({ type:'difficulty', level:difficulty });
       incoming.send({ type:'matchConfig', teamPlayMode, obstaclesEnabled });
-      incoming.send({type:'avatarProfiles',profiles:Object.values(avatarProfiles)});
       incoming.send({
         type:'state',
         state,
@@ -1731,18 +1507,6 @@
     incoming.on('data', data => {
       if (!data || typeof data !== 'object') return;
       if (roomSlots[assignedRole] !== slot) return;
-
-      if(data.type==='avatarProfile'&&data.profile){
-        avatarProfiles[clientId]={
-          clientId,
-          name:cleanAvatarName(data.profile.name),
-          avatarIndex:Number(data.profile.avatarIndex)||0,
-          role:assignedRole
-        };
-        broadcastAvatarProfiles();
-        renderAvatarPlayers();
-        return;
-      }
 
       if (data.type === 'paddle') {
         const y = Number(data.y);
@@ -1773,7 +1537,6 @@
 
     incoming.on('close', () => {
       if (roomSlots[assignedRole] === slot) roomSlots[assignedRole] = null;
-      delete avatarProfiles[clientId];broadcastAvatarProfiles();renderAvatarPlayers();
       countdownStartedForRoom = false;
       broadcastVoiceRoster();
 
@@ -1993,15 +1756,6 @@
     conn.on('data', data => {
       if (!data || typeof data !== 'object') return;
 
-      if(data.type==='avatarProfiles'&&Array.isArray(data.profiles)){
-        avatarProfiles={};
-        for(const p of data.profiles){
-          if(p?.clientId) avatarProfiles[p.clientId]=p;
-        }
-        renderAvatarPlayers();
-        return;
-      }
-
       if (data.type === 'voiceRoster' && Array.isArray(data.peers)) {
         voicePeerRoster = [...new Set(data.peers.filter(Boolean))];
         refreshVoiceMesh();
@@ -2017,11 +1771,6 @@
       if (data.type === 'role') {
         if (role && role !== data.role) return;
         role = data.role;
-        if(avatarProfileReady&&conn&&conn.open){
-          const p=localAvatarProfile();
-          p.role=role;
-          conn.send({type:'avatarProfile',profile:p});
-        }
         roleText.textContent = 'Rol: ' + humanRoleLabel(role);
         peerBadge.textContent = role;
         if (!isHost) {
@@ -2210,11 +1959,6 @@
     closeCurrentSession(false);
 
     mode = 'multi';
-    avatarProfiles={};
-    const hostAvatarProfile=localAvatarProfile();
-    hostAvatarProfile.role='left';
-    avatarProfiles[localClientId]=hostAvatarProfile;
-    renderAvatarPlayers();
     role = 'left';
     roleText.textContent = 'Rol: ' + humanRoleLabel(role);
     updateModeButtons();
@@ -2254,10 +1998,6 @@
   function startSolo() {
     closeCurrentSession(false);
     mode = 'solo';
-    role='left';
-    avatarProfiles={};
-    avatarProfiles[localClientId]=localAvatarProfile();
-    renderAvatarPlayers();
     teamPlayMode = 'single';
     updateModeButtons();
     refreshTeamSlots();
@@ -3472,5 +3212,54 @@
   requestAnimationFrame(loop);
 })();
 </script>
+
+<script>
+(function(){
+  'use strict';
+
+  var faces = ['🙂','😎','🤓','🧔','👨‍🦲'];
+  var index = Math.floor(Math.random() * faces.length);
+
+  var overlay = document.getElementById('microEntryOverlay');
+  var avatar = document.getElementById('microAvatar');
+  var next = document.getElementById('microNext');
+  var count = document.getElementById('microCount');
+  var name = document.getElementById('microName');
+  var play = document.getElementById('microPlay');
+
+  function draw(){
+    if (avatar) avatar.textContent = faces[index];
+    if (count) count.textContent = (index + 1) + ' / ' + faces.length;
+  }
+
+  if (next) {
+    next.addEventListener('click', function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      index = (index + 1) % faces.length;
+      draw();
+    });
+  }
+
+  if (play) {
+    play.addEventListener('click', function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      var chosenName = (name && name.value ? name.value.trim() : '') || 'J1';
+
+      try {
+        localStorage.setItem('pong_player_name', chosenName);
+        localStorage.setItem('pong_avatar_index', String(index));
+      } catch(e) {}
+
+      if (overlay) overlay.classList.add('microHidden');
+    });
+  }
+
+  draw();
+})();
+</script>
+
 </body>
 </html>
