@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.6 perfil simple</title>
+  <title>Pong Doble v55.1 estable</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -87,7 +87,6 @@
     #consoleFade.fadeOut{opacity:0}
     body > *:not(#preloadCover):not(#consoleFade){position:relative;z-index:1}
     .gameWrap{
-      position:relative;
       flex:1;
       min-height:0;
       display:flex;
@@ -625,128 +624,13 @@
     #voiceBtn{border-color:rgba(255,255,255,.38);background:rgba(18,28,42,.48);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.18)}
     #voiceBtn.voiceOn{background:rgba(35,145,92,.72);border-color:rgba(255,255,255,.62)}
     #voiceBtn.voiceMuted{background:rgba(110,110,110,.52)}
-  
-/* v55.6 · perfil simple flotante */
-#simpleProfileOverlay{
-  position:absolute;
-  inset:0;
-  z-index:50;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:12px;
-  background:rgba(3,9,17,.52);
-  backdrop-filter:blur(4px);
-  pointer-events:auto;
-  touch-action:none;
-}
-#simpleProfileOverlay.hidden{display:none}
-
-.simpleProfileCard{
-  width:min(330px,86%);
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,.24);
-  background:rgba(16,28,42,.94);
-  color:white;
-  padding:14px;
-  box-shadow:0 14px 38px rgba(0,0,0,.42);
-  text-align:center;
-}
-.simpleProfileCard h3{
-  margin:0 0 4px;
-  font-size:18px;
-}
-.simpleProfileCard p{
-  margin:0 0 10px;
-  font-size:11px;
-  opacity:.8;
-}
-#simpleAvatarPreview{
-  width:104px;
-  height:104px;
-  margin:4px auto 10px;
-  border-radius:18px;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.20);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:64px;
-  line-height:1;
-}
-#simplePlayerName{
-  width:100%;
-  box-sizing:border-box;
-  border-radius:11px;
-  border:1px solid rgba(255,255,255,.25);
-  background:rgba(255,255,255,.10);
-  color:white;
-  padding:9px 11px;
-  font-size:15px;
-  margin-bottom:9px;
-}
-#simpleProfilePlay{
-  width:100%;
-}
-
-/* Fichas visuales flotantes: tampoco afectan el layout */
-#simplePlayersStrip{
-  position:absolute;
-  top:8px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:25;
-  display:none;
-  gap:7px;
-  align-items:center;
-  pointer-events:none;
-}
-#simplePlayersStrip.show{display:flex}
-.simpleTeam{
-  display:flex;
-  gap:5px;
-  padding:5px;
-  border-radius:11px;
-  background:rgba(5,13,23,.38);
-  border:1px solid rgba(255,255,255,.18);
-}
-.simpleVs{
-  color:white;
-  font-size:10px;
-  font-weight:900;
-  opacity:.8;
-}
-.simplePlayerTile{
-  width:48px;
-  height:52px;
-  border-radius:9px;
-  border:1px solid rgba(255,255,255,.22);
-  background:rgba(8,16,26,.5);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-}
-.simplePlayerTile .face{
-  font-size:25px;
-  line-height:25px;
-}
-.simplePlayerTile .abbr{
-  font-size:9px;
-  font-weight:900;
-  letter-spacing:.6px;
-  margin-top:3px;
-}
-.simplePlayerTile.empty{opacity:.25}
-.simplePlayerTile.robot{background:rgba(42,77,115,.46)}
-
-</style>
+  </style>
 </head>
 <body>
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.6</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.1</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -776,24 +660,7 @@
     <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
   </div>
 
-
   <div class="gameWrap">
-    <div id="simpleProfileOverlay">
-      <div class="simpleProfileCard">
-        <h3>Tu jugador</h3>
-        <p>El nombre es opcional. Si no escribís nada, entrás como J1.</p>
-        <div id="simpleAvatarPreview">🙂</div>
-        <input id="simplePlayerName" maxlength="24" placeholder="Tu nombre (opcional)">
-        <button id="simpleProfilePlay" type="button">Jugar</button>
-      </div>
-    </div>
-
-    <div id="simplePlayersStrip">
-      <div class="simpleTeam" id="simpleTeamA"></div>
-      <div class="simpleVs">VS</div>
-      <div class="simpleTeam" id="simpleTeamB"></div>
-    </div>
-
     <canvas id="game" width="1280" height="720"></canvas>
   </div>
 
@@ -942,88 +809,6 @@
   const retryBtn = document.getElementById('retryBtn');
   const endSessionBtn = document.getElementById('endSessionBtn');
   const voiceBtn = document.getElementById('voiceBtn');
-  const simpleProfileOverlay=document.getElementById('simpleProfileOverlay');
-  const simpleAvatarPreview=document.getElementById('simpleAvatarPreview');
-  const simplePlayerName=document.getElementById('simplePlayerName');
-  const simpleProfilePlay=document.getElementById('simpleProfilePlay');
-  const simplePlayersStrip=document.getElementById('simplePlayersStrip');
-  const simpleTeamA=document.getElementById('simpleTeamA');
-  const simpleTeamB=document.getElementById('simpleTeamB');
-
-  if(simpleAvatarPreview) simpleAvatarPreview.textContent=simpleAvatar;
-
-  function simpleMakeTile(profile,extra=''){
-    const tile=document.createElement('div');
-    tile.className='simplePlayerTile '+extra;
-
-    const face=document.createElement('div');
-    face.className='face';
-    face.textContent=profile ? profile.avatar : '·';
-
-    const abbr=document.createElement('div');
-    abbr.className='abbr';
-    abbr.textContent=profile ? simpleAbbr(profile.name) : '---';
-
-    tile.appendChild(face);
-    tile.appendChild(abbr);
-    return tile;
-  }
-
-  function simpleRobotTile(){
-    return simpleMakeTile(
-      {clientId:'cpu',name:'CPU',avatar:'🤖'},
-      'robot'
-    );
-  }
-
-  function renderSimplePlayers(){
-    if(!simplePlayersStrip||!simpleTeamA||!simpleTeamB) return;
-
-    simpleTeamA.innerHTML='';
-    simpleTeamB.innerHTML='';
-
-    if(mode==='solo'){
-      simpleTeamA.appendChild(simpleMakeTile(simpleLocalProfile()));
-      simpleTeamB.appendChild(simpleRobotTile());
-      simplePlayersStrip.classList.add('show');
-      return;
-    }
-
-    if(mode!=='multi'){
-      simplePlayersStrip.classList.remove('show');
-      return;
-    }
-
-    const expectedRoles=teamPlayMode==='doubles'
-      ? ['left','left2','right','right2']
-      : ['left','right'];
-
-    for(const r of expectedRoles){
-      const p=Object.values(simpleProfiles).find(x=>x.role===r);
-      const tile=p ? simpleMakeTile(p) : simpleMakeTile(null,'empty');
-
-      if(r==='left'||r==='left2') simpleTeamA.appendChild(tile);
-      else simpleTeamB.appendChild(tile);
-    }
-
-    simplePlayersStrip.classList.add('show');
-  }
-
-  function broadcastSimpleProfiles(){
-    if(isHost){
-      hostBroadcast({
-        type:'simpleProfiles',
-        profiles:Object.values(simpleProfiles)
-      });
-    }
-  }
-
-  simpleProfilePlay?.addEventListener('click',()=>{
-    simpleDisplayName=simpleCleanName(simplePlayerName?.value);
-    simpleProfileReady=true;
-    simpleProfileOverlay?.classList.add('hidden');
-  });
-
   const rematchBtn = document.getElementById('rematchBtn');
   const singleModeBtn = document.getElementById('singleModeBtn');
   const doubleModeBtn = document.getElementById('doubleModeBtn');
@@ -1075,30 +860,6 @@
   let expectedGuests = 1;
   let countdownStartedForRoom = false;
   const localClientId = 'c-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36);
-  const simpleAvatarFaces=['🙂','😎','🤓','🧔','👨‍🦲','👨‍🦱'];
-  let simpleAvatar=simpleAvatarFaces[Math.floor(Math.random()*simpleAvatarFaces.length)];
-  let simpleDisplayName='J1';
-  let simpleProfileReady=false;
-  let simpleProfiles={};
-
-  function simpleCleanName(v){
-    const n=String(v||'').trim().replace(/\s+/g,' ').slice(0,24);
-    return n || 'J1';
-  }
-
-  function simpleAbbr(v){
-    return simpleCleanName(v).toUpperCase().slice(0,3);
-  }
-
-  function simpleLocalProfile(){
-    return {
-      clientId:localClientId,
-      name:simpleDisplayName,
-      avatar:simpleAvatar,
-      role:role||(isHost?'left':null)
-    };
-  }
-
 
   // Voz WebRTC opcional. Cada jugador decide si habilita su micrófono.
   let localVoiceStream = null;
@@ -1624,7 +1385,6 @@
       incoming.send({ type:'role', role:assignedRole });
       incoming.send({ type:'difficulty', level:difficulty });
       incoming.send({ type:'matchConfig', teamPlayMode, obstaclesEnabled });
-      incoming.send({type:'simpleProfiles',profiles:Object.values(simpleProfiles)});
       incoming.send({
         type:'state',
         state,
@@ -1649,18 +1409,6 @@
     incoming.on('data', data => {
       if (!data || typeof data !== 'object') return;
       if (roomSlots[assignedRole] !== slot) return;
-
-      if(data.type==='simpleProfile'&&data.profile){
-        simpleProfiles[clientId]={
-          clientId,
-          name:simpleCleanName(data.profile.name),
-          avatar:data.profile.avatar||'🙂',
-          role:assignedRole
-        };
-        broadcastSimpleProfiles();
-        renderSimplePlayers();
-        return;
-      }
 
       if (data.type === 'paddle') {
         const y = Number(data.y);
@@ -1691,7 +1439,6 @@
 
     incoming.on('close', () => {
       if (roomSlots[assignedRole] === slot) roomSlots[assignedRole] = null;
-      delete simpleProfiles[clientId];broadcastSimpleProfiles();renderSimplePlayers();
       countdownStartedForRoom = false;
       broadcastVoiceRoster();
 
@@ -1911,15 +1658,6 @@
     conn.on('data', data => {
       if (!data || typeof data !== 'object') return;
 
-      if(data.type==='simpleProfiles'&&Array.isArray(data.profiles)){
-        simpleProfiles={};
-        for(const p of data.profiles){
-          if(p?.clientId) simpleProfiles[p.clientId]=p;
-        }
-        renderSimplePlayers();
-        return;
-      }
-
       if (data.type === 'voiceRoster' && Array.isArray(data.peers)) {
         voicePeerRoster = [...new Set(data.peers.filter(Boolean))];
         refreshVoiceMesh();
@@ -1935,11 +1673,6 @@
       if (data.type === 'role') {
         if (role && role !== data.role) return;
         role = data.role;
-        if(simpleProfileReady&&conn&&conn.open){
-          const p=simpleLocalProfile();
-          p.role=role;
-          conn.send({type:'simpleProfile',profile:p});
-        }
         roleText.textContent = 'Rol: ' + humanRoleLabel(role);
         peerBadge.textContent = role;
         if (!isHost) {
@@ -2128,11 +1861,6 @@
     closeCurrentSession(false);
 
     mode = 'multi';
-    simpleProfiles={};
-    const simpleHostProfile=simpleLocalProfile();
-    simpleHostProfile.role='left';
-    simpleProfiles[localClientId]=simpleHostProfile;
-    renderSimplePlayers();
     role = 'left';
     roleText.textContent = 'Rol: ' + humanRoleLabel(role);
     updateModeButtons();
@@ -2172,10 +1900,6 @@
   function startSolo() {
     closeCurrentSession(false);
     mode = 'solo';
-    role='left';
-    simpleProfiles={};
-    simpleProfiles[localClientId]=simpleLocalProfile();
-    renderSimplePlayers();
     teamPlayMode = 'single';
     updateModeButtons();
     refreshTeamSlots();
