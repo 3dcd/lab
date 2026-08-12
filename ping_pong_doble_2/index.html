@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.8 overlay micro</title>
+  <title>Pong Doble v55.9 entrada separada</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -625,110 +625,140 @@
     #voiceBtn.voiceOn{background:rgba(35,145,92,.72);border-color:rgba(255,255,255,.62)}
     #voiceBtn.voiceMuted{background:rgba(110,110,110,.52)}
   
-/* v55.8: capa de entrada TOTALMENTE independiente del juego */
-#microEntryOverlay{
+/* v55.9 · pantalla de entrada totalmente separada */
+#entryScreen{
   position:fixed;
   inset:0;
   z-index:100000;
   display:flex;
   align-items:center;
   justify-content:center;
-  background:rgba(3,8,15,.40);
-  backdrop-filter:blur(3px);
-  -webkit-backdrop-filter:blur(3px);
-  pointer-events:auto;
-  touch-action:none;
-}
-#microEntryOverlay.microHidden{display:none}
-
-#microEntryCard{
-  width:min(320px,86vw);
-  padding:14px;
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,.26);
-  background:rgba(18,30,43,.95);
-  color:#fff;
-  box-shadow:0 16px 42px rgba(0,0,0,.45);
-  text-align:center;
+  padding:20px;
+  background:
+    linear-gradient(rgba(5,10,16,.08), rgba(5,10,16,.08)),
+    var(--entry-bg, #08111f);
+  background-size:cover;
+  background-position:center;
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
 }
-#microEntryCard h3{margin:0 0 4px;font-size:18px}
-#microEntryCard p{margin:0 0 11px;font-size:11px;opacity:.80}
+#entryScreen.hidden{display:none}
 
-#microAvatarRow{
+#entryCard{
+  width:min(390px,90vw);
+  padding:20px;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(18,30,43,.88);
+  color:white;
+  box-shadow:0 18px 46px rgba(0,0,0,.42);
+  text-align:center;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+#entryCard h2{
+  margin:0 0 5px;
+  font-size:22px;
+}
+
+#entryCard .sub{
+  margin:0 0 15px;
+  font-size:12px;
+  opacity:.80;
+}
+
+#entryAvatarRow{
   display:flex;
   justify-content:center;
   align-items:center;
-  gap:10px;
-  margin-bottom:4px;
+  gap:13px;
+  margin-bottom:5px;
 }
-#microAvatar{
-  width:96px;
-  height:96px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.22);
+
+#entryAvatar{
+  width:136px;
+  height:136px;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.24);
   background:rgba(255,255,255,.08);
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:58px;
+  font-size:82px;
   line-height:1;
+  overflow:hidden;
 }
-#microNext{
-  width:44px;
-  height:44px;
+
+#entryNext{
+  width:52px;
+  height:52px;
   padding:0;
   border-radius:50%;
-  border:1px solid rgba(255,255,255,.28);
+  border:1px solid rgba(255,255,255,.30);
   background:rgba(255,255,255,.12);
-  color:#fff;
-  font-size:23px;
-  font-weight:800;
+  color:white;
+  font-size:28px;
+  font-weight:900;
 }
-#microCount{
-  font-size:10px;
+
+#entryCounter{
+  margin:3px 0 12px;
+  font-size:11px;
   font-weight:800;
-  opacity:.75;
-  margin:4px 0 9px;
+  opacity:.78;
 }
-#microName{
+
+#entryName{
   width:100%;
   box-sizing:border-box;
-  border-radius:11px;
-  border:1px solid rgba(255,255,255,.25);
+  padding:11px 13px;
+  margin-bottom:10px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.24);
   background:rgba(255,255,255,.10);
-  color:#fff;
-  padding:9px 11px;
-  font-size:15px;
-  margin-bottom:9px;
+  color:white;
+  font-size:16px;
 }
-#microPlay{
+
+#entryPlay{
   width:100%;
-  min-height:38px;
+  min-height:42px;
+  border-radius:12px;
+  font-size:15px;
+  font-weight:800;
+}
+
+@media(max-width:520px){
+  #entryCard{padding:16px;width:min(350px,92vw)}
+  #entryAvatar{width:112px;height:112px;font-size:68px}
+  #entryNext{width:48px;height:48px}
 }
 
 </style>
 </head>
 <body>
 
-<div id="microEntryOverlay">
-  <div id="microEntryCard">
-    <h3>Tu jugador</h3>
-    <p>Podés elegir una carita o entrar directamente.</p>
-    <div id="microAvatarRow">
-      <div id="microAvatar">🙂</div>
-      <button id="microNext" type="button" aria-label="Siguiente carita">↻</button>
+<div id="entryScreen">
+  <div id="entryCard">
+    <h2>Tu jugador</h2>
+    <div class="sub">Elegí una carita o entrá directamente.</div>
+
+    <div id="entryAvatarRow">
+      <div id="entryAvatar">🙂</div>
+      <button id="entryNext" type="button" aria-label="Siguiente carita">↻</button>
     </div>
-    <div id="microCount">1 / 5</div>
-    <input id="microName" maxlength="24" placeholder="Tu nombre (opcional)">
-    <button id="microPlay" type="button">Jugar</button>
+
+    <div id="entryCounter">1 / 5</div>
+
+    <input id="entryName" maxlength="24" placeholder="Tu nombre (opcional)">
+    <button id="entryPlay" type="button">Jugar</button>
   </div>
 </div>
 
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.8</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.9</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -3220,44 +3250,48 @@
   var faces = ['🙂','😎','🤓','🧔','👨‍🦲'];
   var index = Math.floor(Math.random() * faces.length);
 
-  var overlay = document.getElementById('microEntryOverlay');
-  var avatar = document.getElementById('microAvatar');
-  var next = document.getElementById('microNext');
-  var count = document.getElementById('microCount');
-  var name = document.getElementById('microName');
-  var play = document.getElementById('microPlay');
+  var screen = document.getElementById('entryScreen');
+  var avatar = document.getElementById('entryAvatar');
+  var next = document.getElementById('entryNext');
+  var counter = document.getElementById('entryCounter');
+  var nameInput = document.getElementById('entryName');
+  var play = document.getElementById('entryPlay');
 
-  function draw(){
+  function render(){
     if (avatar) avatar.textContent = faces[index];
-    if (count) count.textContent = (index + 1) + ' / ' + faces.length;
+    if (counter) counter.textContent = (index + 1) + ' / ' + faces.length;
   }
 
   if (next) {
-    next.addEventListener('click', function(ev){
-      ev.preventDefault();
-      ev.stopPropagation();
+    next.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
       index = (index + 1) % faces.length;
-      draw();
+      render();
     });
   }
 
   if (play) {
-    play.addEventListener('click', function(ev){
-      ev.preventDefault();
-      ev.stopPropagation();
+    play.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
 
-      var chosenName = (name && name.value ? name.value.trim() : '') || 'J1';
+      var chosenName = '';
+      if (nameInput && nameInput.value) {
+        chosenName = nameInput.value.trim();
+      }
+      if (!chosenName) chosenName = 'J1';
 
       try {
         localStorage.setItem('pong_player_name', chosenName);
         localStorage.setItem('pong_avatar_index', String(index));
-      } catch(e) {}
+      } catch(err) {}
 
-      if (overlay) overlay.classList.add('microHidden');
+      if (screen) screen.classList.add('hidden');
     });
   }
 
-  draw();
+  render();
 })();
 </script>
 
