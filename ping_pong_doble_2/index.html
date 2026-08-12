@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.14 fichas e invitación</title>
+  <title>Pong Doble v55.15 casilleros reales</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -930,6 +930,43 @@ body.game-active #teamSlots.playerLobbySlots{
   display:grid !important;
 }
 
+
+/* v55.15 · cada ficha es un puesto real */
+#teamSlots.playerLobbySlots{
+  display:none;
+}
+#teamSlots.playerLobbySlots.rosterVisible{
+  display:grid !important;
+}
+#teamSlots.playerLobbySlots.rosterPre{
+  display:flex !important;
+  justify-content:center;
+}
+#teamSlots.rosterPre .versus,
+#teamSlots.rosterPre .teamCol:last-child,
+#teamSlots.rosterPre #lobbySlotLeft2{
+  display:none !important;
+}
+#teamSlots.rosterSolo #lobbySlotLeft2,
+#teamSlots.rosterSolo #lobbySlotRight2,
+#teamSlots.rosterSingle #lobbySlotLeft2,
+#teamSlots.rosterSingle #lobbySlotRight2{
+  display:none !important;
+}
+#teamSlots.rosterSolo .versus,
+#teamSlots.rosterSingle .versus,
+#teamSlots.rosterDoubles .versus{
+  display:block !important;
+}
+#teamSlots.rosterSolo .teamCol:last-child,
+#teamSlots.rosterSingle .teamCol:last-child,
+#teamSlots.rosterDoubles .teamCol:last-child{
+  display:grid !important;
+}
+body.game-active #teamSlots.playerLobbySlots.rosterVisible{
+  display:grid !important;
+}
+
 </style>
 </head>
 <body>
@@ -954,7 +991,7 @@ body.game-active #teamSlots.playerLobbySlots{
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.14</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.15</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -1350,18 +1387,20 @@ body.game-active #teamSlots.playerLobbySlots{
 
     // Las fichas son información de la partida y deben permanecer visibles.
     refreshTeamSlots();
+    keepLobbyVisible();
   }
 
   // v55.12: las fichas se mantienen como información visual durante toda la sesión.
   function keepLobbyVisible(){
     if (!teamSlots) return;
-    if (mode === 'multi') {
-      teamSlots.style.display = '';
-      teamSlots.classList.add('show');
-      teamSlots.classList.toggle('singleLobby', teamPlayMode !== 'doubles');
+
+    if (mode === 'solo') {
+      renderSoloLobby();
+    } else if (mode === 'multi') {
       renderLobbyProfiles();
     }
   }
+
 
   function returnToReadyState(message = 'Configurá el juego y elegí cómo empezar.') {
     gameReady = false;
@@ -1454,59 +1493,91 @@ body.game-active #teamSlots.playerLobbySlots{
   }
 
 
+  function clearRosterStructureClasses(){
+    if (!teamSlots) return;
+    teamSlots.classList.remove(
+      'preModeLobby','singleLobby','soloHidden',
+      'rosterVisible','rosterPre','rosterSolo','rosterSingle','rosterDoubles'
+    );
+
+    if (lobbySlotLeft) lobbySlotLeft.style.display = '';
+    if (lobbySlotLeft2) lobbySlotLeft2.style.display = '';
+    if (lobbySlotRight) lobbySlotRight.style.display = '';
+    if (lobbySlotRight2) lobbySlotRight2.style.display = '';
+  }
+
+  function configureRosterStructure(kind){
+    if (!teamSlots) return;
+
+    clearRosterStructureClasses();
+    teamSlots.style.display = '';
+
+    if (kind === 'pre') {
+      teamSlots.classList.add('rosterVisible','rosterPre');
+      if (lobbySlotLeft2) lobbySlotLeft2.style.display = 'none';
+      if (lobbySlotRight) lobbySlotRight.style.display = 'none';
+      if (lobbySlotRight2) lobbySlotRight2.style.display = 'none';
+      return;
+    }
+
+    if (kind === 'solo') {
+      teamSlots.classList.add('rosterVisible','rosterSolo','singleLobby');
+      if (lobbySlotLeft2) lobbySlotLeft2.style.display = 'none';
+      if (lobbySlotRight2) lobbySlotRight2.style.display = 'none';
+      return;
+    }
+
+    if (kind === 'single') {
+      teamSlots.classList.add('rosterVisible','rosterSingle','singleLobby');
+      if (lobbySlotLeft2) lobbySlotLeft2.style.display = 'none';
+      if (lobbySlotRight2) lobbySlotRight2.style.display = 'none';
+      return;
+    }
+
+    if (kind === 'doubles') {
+      teamSlots.classList.add('rosterVisible','rosterDoubles');
+      return;
+    }
+
+    teamSlots.style.display = 'none';
+  }
+
   function renderSoloLobby(){
     if (!teamSlots) return;
 
-    teamSlots.style.display = '';
-    teamSlots.classList.add('show');
-    teamSlots.classList.add('singleLobby');
+    configureRosterStructure('solo');
 
     const localProfile = normalizedLobbyProfile(
       localEntryProfile || {name:'', avatarIndex:0},
       'left'
     );
 
-    const robotProfile = {
-      name:'CPU',
-      avatarIndex:-1,
-      role:'right',
-      ready:true,
-      robot:true
-    };
-
     setLobbyCard(lobbySlotLeft, localProfile, 'left');
 
     if (lobbySlotRight) {
+      lobbySlotRight.classList.remove('inviteSlot','waiting');
       lobbySlotRight.classList.add('ready');
-      lobbySlotRight.classList.remove('waiting');
+
       const face = lobbySlotRight.querySelector('.lobbyFace');
       const name = lobbySlotRight.querySelector('.lobbyName');
+
       if (face) face.textContent = '🤖';
       if (name) name.textContent = 'CPU';
     }
-
-    if (lobbySlotLeft2) {
-      lobbySlotLeft2.style.display = 'none';
-    }
-    if (lobbySlotRight2) {
-      lobbySlotRight2.style.display = 'none';
-    }
   }
 
+
   function restoreLobbySlotVisibility(){
+    if (lobbySlotLeft) lobbySlotLeft.style.display = '';
     if (lobbySlotLeft2) lobbySlotLeft2.style.display = '';
+    if (lobbySlotRight) lobbySlotRight.style.display = '';
     if (lobbySlotRight2) lobbySlotRight2.style.display = '';
   }
 
   function renderPreModeLobby(){
     if (!teamSlots) return;
 
-    // Antes de elegir 1 jugador / multijugador sólo existe el usuario.
-    teamSlots.style.display = '';
-    teamSlots.classList.add('show','preModeLobby');
-    teamSlots.classList.remove('soloHidden');
-
-    restoreLobbySlotVisibility();
+    configureRosterStructure('pre');
 
     const p = normalizedLobbyProfile(
       localEntryProfile || {name:'', avatarIndex:0},
@@ -1514,36 +1585,46 @@ body.game-active #teamSlots.playerLobbySlots{
     );
 
     setLobbyCard(lobbySlotLeft, p, 'left');
-
-    if (lobbySlotLeft2) lobbySlotLeft2.style.display = 'none';
-    if (lobbySlotRight) lobbySlotRight.style.display = 'none';
-    if (lobbySlotRight2) lobbySlotRight2.style.display = 'none';
   }
+
 
   function clearPreModeLobby(){
     if (!teamSlots) return;
-    teamSlots.classList.remove('preModeLobby');
-
-    if (lobbySlotLeft2) lobbySlotLeft2.style.display = '';
-    if (lobbySlotRight) lobbySlotRight.style.display = '';
-    if (lobbySlotRight2) lobbySlotRight2.style.display = '';
+    clearRosterStructureClasses();
+    restoreLobbySlotVisibility();
   }
 
+
   function renderLobbyProfiles(){
+    if (!teamSlots) return;
+
+    if (mode !== 'multi') return;
+
+    configureRosterStructure(teamPlayMode === 'doubles' ? 'doubles' : 'single');
+
     const leftProfile = lobbyProfiles.left || null;
     const left2Profile = lobbyProfiles.left2 || null;
     const rightProfile = lobbyProfiles.right || null;
     const right2Profile = lobbyProfiles.right2 || null;
 
-    setLobbyCard(lobbySlotLeft, leftProfile, 'left');
-    setLobbyCard(lobbySlotLeft2, left2Profile, 'left2');
-    setLobbyCard(lobbySlotRight, rightProfile, 'right');
-    setLobbyCard(lobbySlotRight2, right2Profile, 'right2');
+    // El anfitrión siempre ocupa su propio puesto desde el ingreso.
+    const localHostProfile = isHost && localEntryReady
+      ? normalizedLobbyProfile(localEntryProfile, 'left')
+      : leftProfile;
 
-    if (teamSlots) {
-      teamSlots.classList.toggle('singleLobby', teamPlayMode !== 'doubles');
+    setLobbyCard(lobbySlotLeft, localHostProfile || leftProfile, 'left');
+
+    if (teamPlayMode === 'doubles') {
+      // 2 VS 2 = vos + 3 puestos reales invitables.
+      setLobbyCard(lobbySlotLeft2, left2Profile, 'left2');
+      setLobbyCard(lobbySlotRight, rightProfile, 'right');
+      setLobbyCard(lobbySlotRight2, right2Profile, 'right2');
+    } else {
+      // 1 VS 1 = vos + un único puesto rival invitable.
+      setLobbyCard(lobbySlotRight, rightProfile, 'right');
     }
   }
+
 
   function broadcastLobbyProfiles(){
     if (!isHost) return;
@@ -1562,7 +1643,6 @@ body.game-active #teamSlots.playerLobbySlots{
 
   function refreshTeamSlots(){
     const multiVisible = mode === 'multi';
-    const soloVisible = mode === 'solo';
 
     if (teamModePanel) {
       teamModePanel.classList.toggle('soloHidden', !multiVisible);
@@ -1570,20 +1650,14 @@ body.game-active #teamSlots.playerLobbySlots{
     }
 
     if (teamSlots) {
-      if (soloVisible) {
+      if (mode === 'solo') {
         renderSoloLobby();
-      } else if (multiVisible) {
-        restoreLobbySlotVisibility();
-        teamSlots.classList.add('show');
-        teamSlots.classList.remove('soloHidden');
-        teamSlots.classList.toggle('singleLobby', teamPlayMode !== 'doubles');
-        teamSlots.style.display = '';
+      } else if (mode === 'multi') {
         renderLobbyProfiles();
       } else if (localEntryReady) {
         renderPreModeLobby();
       } else {
-        teamSlots.classList.remove('show');
-        teamSlots.classList.add('soloHidden');
+        clearRosterStructureClasses();
         teamSlots.style.display = 'none';
       }
     }
@@ -1594,6 +1668,7 @@ body.game-active #teamSlots.playerLobbySlots{
       else doubleHint.style.display = '';
     }
   }
+
 
   function setRulesLocked(locked){
     matchRulesLocked = !!locked;
@@ -1613,6 +1688,7 @@ body.game-active #teamSlots.playerLobbySlots{
     if (doubleModeBtn) doubleModeBtn.classList.toggle('activeTeamMode', teamPlayMode === 'doubles');
     refreshTeamSlots();
     renderLobbyProfiles();
+    keepLobbyVisible();
 
     if (!fromNetwork) {
       setStatus(teamPlayMode === 'doubles'
@@ -1790,6 +1866,7 @@ body.game-active #teamSlots.playerLobbySlots{
       isHost = false;
       updateModeButtons();
       refreshTeamSlots();
+      if (localEntryReady) renderPreModeLobby();
       peerBadge.textContent = 'elegí modo';
       roleText.textContent = 'Rol: espectador local';
       setStatus('Elegí 1 jugador o Multijugador.');
@@ -2473,6 +2550,7 @@ body.game-active #teamSlots.playerLobbySlots{
     closeCurrentSession(false);
 
     mode = 'multi';
+    configureRosterStructure(teamPlayMode === 'doubles' ? 'doubles' : 'single');
     restoreLobbySlotVisibility();
     role = 'left';
     roleText.textContent = 'Rol: ' + humanRoleLabel(role);
@@ -2552,6 +2630,7 @@ body.game-active #teamSlots.playerLobbySlots{
     generateObstacles();
     resetBall(Math.random() > .5 ? 1 : -1);
     startCountdown(3200, false);
+    keepLobbyVisible();
   }
 
   soloBtn.addEventListener('click', startSolo);
@@ -3718,7 +3797,7 @@ body.game-active #teamSlots.playerLobbySlots{
       returnToReadyState('Partida terminada. Podés cambiar nivel u obstáculos y volver a jugar.');
       mode = 'menu';
       updateModeButtons();
-      refreshTeamSlots();
+      renderPreModeLobby();
       return;
     }
 
