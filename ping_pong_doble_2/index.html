@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.2 perfiles</title>
+  <title>Pong Doble v55.3 alter ego</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -625,24 +625,126 @@
     #voiceBtn.voiceOn{background:rgba(35,145,92,.72);border-color:rgba(255,255,255,.62)}
     #voiceBtn.voiceMuted{background:rgba(110,110,110,.52)}
   
-#profileOverlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,8,16,.68);backdrop-filter:blur(8px)}
-#profileOverlay.hidden{display:none}.profileCard{width:min(430px,94vw);border:1px solid rgba(255,255,255,.25);background:rgba(18,30,43,.92);border-radius:20px;padding:16px;color:#fff;box-shadow:0 18px 46px rgba(0,0,0,.4)}
-.profileCard h3{margin:0 0 4px;font-size:20px}.profileCard p{margin:0 0 12px;font-size:12px;opacity:.82}
-#playerNameInput{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;padding:10px 12px;font-size:16px}
-.avatarSelector{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.avatarOption{aspect-ratio:1;border-radius:14px;border:2px solid transparent;background:rgba(255,255,255,.09);font-size:38px}.avatarOption.selected{border-color:#fff;background:rgba(255,255,255,.2)}
+/* PERFIL / ALTER EGO */
+#profileOverlay{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  padding:16px; background:rgba(2,8,16,.68);
+  backdrop-filter:blur(8px);
+}
+#profileOverlay.hidden{display:none}
+.profileCard{
+  width:min(455px,94vw);
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(18,30,43,.93);
+  border-radius:20px; padding:16px; color:#fff;
+  box-shadow:0 18px 46px rgba(0,0,0,.4);
+}
+.profileCard h3{margin:0 0 4px;font-size:20px}
+.profileCard p{margin:0 0 12px;font-size:12px;opacity:.82}
+#playerNameInput{
+  width:100%; box-sizing:border-box;
+  border-radius:12px; border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.10); color:#fff;
+  padding:10px 12px; font-size:16px;
+}
+.avatarBuilder{
+  display:grid; grid-template-columns:150px 1fr;
+  gap:14px; align-items:center; margin:12px 0 14px;
+}
+#bigAvatarPreview{
+  width:146px; height:146px; border-radius:20px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.22);
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+#bigAvatarPreview svg{width:132px;height:132px;display:block}
+.avatarControls{display:grid;gap:7px}
+.avatarControl{
+  display:grid; grid-template-columns:70px 1fr;
+  align-items:center; gap:7px;
+}
+.avatarControl span{font-size:11px;font-weight:800;opacity:.85}
+.avatarCycle,.avatarRandom{
+  width:100%; min-height:35px; border-radius:10px;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.10); color:#fff;
+  font-size:11px; font-weight:800;
+}
 #profilePlayBtn{width:100%}
-#playersStrip{display:none;width:min(620px,96%);margin:7px auto 8px;gap:8px;align-items:stretch}#playersStrip.show{display:flex}
-.teamGroup{flex:1;min-width:0;display:flex;justify-content:center;gap:6px;padding:6px;border-radius:13px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18)}
-.teamDivider{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:11px;opacity:.8}
-.playerTile{width:58px;height:64px;border-radius:11px;border:1px solid rgba(255,255,255,.22);background:rgba(8,16,26,.48);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 2px 7px rgba(0,0,0,.18)}
-.playerTile.local{outline:2px solid rgba(255,255,255,.78)}.playerTile .face{font-size:28px;line-height:29px}.playerTile .abbr{font-size:10px;font-weight:900;letter-spacing:.7px;margin-top:4px}.playerTile.empty{opacity:.28}.playerTile.robot{background:rgba(42,77,115,.46)}
+
+/* FICHAS: PEGADAS ARRIBA DE LA CANCHA */
+#playersStrip{
+  display:none;
+  width:min(620px,96%);
+  margin:6px auto 6px;
+  gap:8px; align-items:stretch;
+}
+#playersStrip.show{display:flex}
+.teamGroup{
+  flex:1; min-width:0;
+  display:flex; justify-content:center; gap:6px;
+  padding:6px; border-radius:13px;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.18);
+}
+.teamDivider{
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:900; font-size:11px; opacity:.8;
+}
+.playerTile{
+  width:58px; height:64px; border-radius:11px;
+  border:1px solid rgba(255,255,255,.22);
+  background:rgba(8,16,26,.48);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  box-shadow:0 2px 7px rgba(0,0,0,.18);
+}
+.playerTile.local{outline:2px solid rgba(255,255,255,.78)}
+.playerTile .face{width:32px;height:32px}
+.playerTile .face svg{width:32px;height:32px;display:block}
+.playerTile .abbr{
+  font-size:10px; font-weight:900;
+  letter-spacing:.7px; margin-top:4px;
+}
+.playerTile.empty{opacity:.28}
+.playerTile.robot{background:rgba(42,77,115,.46)}
+
+@media(max-width:520px){
+  .avatarBuilder{grid-template-columns:122px 1fr;gap:10px}
+  #bigAvatarPreview{width:118px;height:118px}
+  #bigAvatarPreview svg{width:108px;height:108px}
+  .avatarControl{grid-template-columns:55px 1fr}
+}
+
 </style>
 </head>
-<body><div id="profileOverlay"><div class="profileCard"><h3>Tu jugador</h3><p>Escribí tu nombre y elegí tu alter ego.</p><input id="playerNameInput" maxlength="24" placeholder="Tu nombre"><div class="avatarSelector"><button class="avatarOption selected" data-avatar="0" type="button">👨🏻</button><button class="avatarOption" data-avatar="1" type="button">👨🏼</button><button class="avatarOption" data-avatar="2" type="button">👨🏽</button><button class="avatarOption" data-avatar="3" type="button">👨🏾</button></div><button id="profilePlayBtn" type="button">Jugar</button></div></div>
+<body>
+
+<div id="profileOverlay">
+  <div class="profileCard">
+    <h3>Tu jugador</h3>
+    <p>Escribí tu nombre y prepará tu alter ego.</p>
+    <input id="playerNameInput" maxlength="24" placeholder="Tu nombre">
+    <div class="avatarBuilder">
+      <div id="bigAvatarPreview"></div>
+      <div class="avatarControls">
+        <div class="avatarControl"><span>Pelo</span><button id="hairBtn" class="avatarCycle" type="button"></button></div>
+        <div class="avatarControl"><span>Barba</span><button id="beardBtn" class="avatarCycle" type="button"></button></div>
+        <div class="avatarControl"><span>Bigote</span><button id="moustacheBtn" class="avatarCycle" type="button"></button></div>
+        <div class="avatarControl"><span>Piel</span><button id="skinBtn" class="avatarCycle" type="button"></button></div>
+        <button id="randomAvatarBtn" class="avatarRandom" type="button">🎲 Otro al azar</button>
+      </div>
+    </div>
+    <button id="profilePlayBtn" type="button">Jugar</button>
+  </div>
+</div>
+
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.2</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.3</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -671,6 +773,13 @@
     <button id="joinBtn" style="display:none">Unirme a partida</button>
     <div class="status" id="status">Abrí este mismo HTML en dos dispositivos. Uno crea la sala y el otro escribe el código.</div>
   </div>
+
+
+<div id="playersStrip">
+  <div class="teamGroup" id="teamAPlayers"></div>
+  <div class="teamDivider">VS</div>
+  <div class="teamGroup" id="teamBPlayers"></div>
+</div>
 
   <div class="gameWrap">
     <canvas id="game" width="1280" height="720"></canvas>
@@ -824,26 +933,116 @@
   const profileOverlay=document.getElementById('profileOverlay');
   const playerNameInput=document.getElementById('playerNameInput');
   const profilePlayBtn=document.getElementById('profilePlayBtn');
-  const avatarOptions=[...document.querySelectorAll('.avatarOption')];
   const playersStrip=document.getElementById('playersStrip');
   const teamAPlayers=document.getElementById('teamAPlayers');
   const teamBPlayers=document.getElementById('teamBPlayers');
+  const bigAvatarPreview=document.getElementById('bigAvatarPreview');
+  const hairBtn=document.getElementById('hairBtn');
+  const beardBtn=document.getElementById('beardBtn');
+  const moustacheBtn=document.getElementById('moustacheBtn');
+  const skinBtn=document.getElementById('skinBtn');
+  const randomAvatarBtn=document.getElementById('randomAvatarBtn');
 
-  avatarOptions.forEach(btn=>btn.addEventListener('click',()=>{selectedAvatarIndex=Number(btn.dataset.avatar)||0;avatarOptions.forEach(x=>x.classList.toggle('selected',x===btn))}));
+  function updateAvatarBuilder(){
+    if(bigAvatarPreview)bigAvatarPreview.innerHTML=avatarSVG(avatarConfig);
+    if(hairBtn)hairBtn.textContent=avatarConfig.hair==='normal'?'Pelo':avatarConfig.hair==='rulos'?'Rulos':'Pelado';
+    if(beardBtn)beardBtn.textContent=avatarConfig.beard?'Con barba':'Sin barba';
+    if(moustacheBtn)moustacheBtn.textContent=avatarConfig.moustache?'Con bigote':'Sin bigote';
+    if(skinBtn)skinBtn.textContent=avatarConfig.skin==='clara'?'Clara':avatarConfig.skin==='media'?'Media':'Oscura';
+  }
+
+  hairBtn?.addEventListener('click',()=>{
+    const i=hairOptions.indexOf(avatarConfig.hair);
+    avatarConfig.hair=hairOptions[(i+1)%hairOptions.length];
+    updateAvatarBuilder();
+  });
+  beardBtn?.addEventListener('click',()=>{avatarConfig.beard=!avatarConfig.beard;updateAvatarBuilder()});
+  moustacheBtn?.addEventListener('click',()=>{avatarConfig.moustache=!avatarConfig.moustache;updateAvatarBuilder()});
+  skinBtn?.addEventListener('click',()=>{
+    const i=skinOptions.indexOf(avatarConfig.skin);
+    avatarConfig.skin=skinOptions[(i+1)%skinOptions.length];
+    updateAvatarBuilder();
+  });
+  randomAvatarBtn?.addEventListener('click',()=>{randomAvatarConfig();updateAvatarBuilder()});
+
   function hideProfileOverlay(){profileOverlay?.classList.add('hidden')}
-  function makePlayerTile(profile,extra=''){const tile=document.createElement('div');tile.className='playerTile '+extra;if(profile?.clientId===localClientId)tile.classList.add('local');tile.innerHTML='<div class="face">'+(profile?(avatarFaces[profile.avatar]||avatarFaces[0]):'·')+'</div><div class="abbr">'+(profile?playerAbbr(profile.name):'---')+'</div>';return tile}
-  function makeRobotTile(){const t=makePlayerTile({clientId:'robot',name:'CPU',avatar:0},'robot');t.querySelector('.face').textContent='🤖';return t}
+
+  function makePlayerTile(profile,extra=''){
+    const tile=document.createElement('div');
+    tile.className='playerTile '+extra;
+    if(profile?.clientId===localClientId)tile.classList.add('local');
+
+    const face=document.createElement('div');
+    face.className='face';
+    face.innerHTML=profile?avatarSVG(profile.avatarConfig||avatarConfig):'';
+
+    const abbr=document.createElement('div');
+    abbr.className='abbr';
+    abbr.textContent=profile?playerAbbr(profile.name):'---';
+
+    tile.appendChild(face); tile.appendChild(abbr);
+    return tile;
+  }
+
+  function makeRobotTile(){
+    const tile=document.createElement('div');
+    tile.className='playerTile robot';
+
+    const face=document.createElement('div');
+    face.className='face';
+    face.innerHTML=avatarSVG(null,true);
+
+    const abbr=document.createElement('div');
+    abbr.className='abbr';
+    abbr.textContent='CPU';
+
+    tile.appendChild(face); tile.appendChild(abbr);
+    return tile;
+  }
+
   function renderPlayersStrip(){
     if(!playersStrip||!teamAPlayers||!teamBPlayers)return;
-    teamAPlayers.innerHTML='';teamBPlayers.innerHTML='';
-    if(mode==='solo'){teamAPlayers.appendChild(makePlayerTile(currentLocalProfile()));teamBPlayers.appendChild(makeRobotTile());playersStrip.classList.add('show');return}
-    if(mode!=='multi'){playersStrip.classList.remove('show');return}
-    const roles=teamPlayMode==='doubles'?['left','left2','right','right2']:['left','right'];
-    for(const r of roles){const p=Object.values(playerProfiles).find(x=>x.role===r);const tile=p?makePlayerTile(p):makePlayerTile(null,'empty');(r==='left'||r==='left2'?teamAPlayers:teamBPlayers).appendChild(tile)}
+
+    teamAPlayers.innerHTML='';
+    teamBPlayers.innerHTML='';
+
+    if(mode==='solo'){
+      teamAPlayers.appendChild(makePlayerTile(currentLocalProfile()));
+      teamBPlayers.appendChild(makeRobotTile());
+      playersStrip.classList.add('show');
+      return;
+    }
+
+    if(mode!=='multi'){
+      playersStrip.classList.remove('show');
+      return;
+    }
+
+    const roles=teamPlayMode==='doubles'
+      ? ['left','left2','right','right2']
+      : ['left','right'];
+
+    for(const r of roles){
+      const p=Object.values(playerProfiles).find(x=>x.role===r);
+      const tile=p?makePlayerTile(p):makePlayerTile(null,'empty');
+      (r==='left'||r==='left2'?teamAPlayers:teamBPlayers).appendChild(tile);
+    }
+
     playersStrip.classList.add('show');
   }
-  function broadcastProfiles(){if(isHost)hostBroadcast({type:'playerProfiles',profiles:Object.values(playerProfiles)})}
-  profilePlayBtn?.addEventListener('click',()=>{localDisplayName=normalizePlayerName(playerNameInput?.value)||'Jugador';localProfileReady=true;hideProfileOverlay();});
+
+  function broadcastProfiles(){
+    if(isHost)hostBroadcast({type:'playerProfiles',profiles:Object.values(playerProfiles)});
+  }
+
+  randomAvatarConfig();
+  updateAvatarBuilder();
+
+  profilePlayBtn?.addEventListener('click',()=>{
+    localDisplayName=normalizePlayerName(playerNameInput?.value)||'Jugador';
+    localProfileReady=true;
+    hideProfileOverlay();
+  });
 
   const rematchBtn = document.getElementById('rematchBtn');
   const singleModeBtn = document.getElementById('singleModeBtn');
@@ -896,14 +1095,84 @@
   let expectedGuests = 1;
   let countdownStartedForRoom = false;
   const localClientId = 'c-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36);
-  const avatarFaces=['👨🏻','👨🏼','👨🏽','👨🏾'];
-  let selectedAvatarIndex=0;
+  const hairOptions=['normal','rulos','pelado'];
+  const skinOptions=['clara','media','oscura'];
+  let avatarConfig={hair:'normal',beard:false,moustache:false,skin:'media'};
   let localDisplayName='';
   let localProfileReady=false;
   let playerProfiles={};
-  function normalizePlayerName(v){return String(v||'').trim().replace(/\s+/g,' ').slice(0,24)}
-  function playerAbbr(v){return (normalizePlayerName(v).toUpperCase()||'JUG').slice(0,3)}
-  function currentLocalProfile(){return {clientId:localClientId,name:localDisplayName||'Jugador',avatar:selectedAvatarIndex,role:role||(isHost?'left':null)}}
+
+  function normalizePlayerName(v){
+    return String(v||'').trim().replace(/\s+/g,' ').slice(0,24);
+  }
+
+  function playerAbbr(v){
+    return (normalizePlayerName(v).toUpperCase()||'JUG').slice(0,3);
+  }
+
+  function randomAvatarConfig(){
+    avatarConfig={
+      hair:hairOptions[Math.floor(Math.random()*hairOptions.length)],
+      beard:Math.random()>.55,
+      moustache:Math.random()>.55,
+      skin:skinOptions[Math.floor(Math.random()*skinOptions.length)]
+    };
+  }
+
+  function avatarSVG(cfg,robot=false){
+    if(robot){
+      return `<svg viewBox="0 0 100 100">
+        <rect x="19" y="24" width="62" height="58" rx="15" fill="#a9c6dc"/>
+        <rect x="27" y="37" width="46" height="29" rx="10" fill="#172735"/>
+        <circle cx="40" cy="51" r="5" fill="#e7fbff"/>
+        <circle cx="60" cy="51" r="5" fill="#e7fbff"/>
+        <rect x="40" y="71" width="20" height="5" rx="2.5" fill="#172735"/>
+        <line x1="50" y1="24" x2="50" y2="13" stroke="#a9c6dc" stroke-width="5"/>
+        <circle cx="50" cy="10" r="5" fill="#d7edf7"/>
+      </svg>`;
+    }
+
+    const skins={clara:'#f4c8a6',media:'#c9875c',oscura:'#885232'};
+    const skin=skins[cfg?.skin]||skins.media;
+    const hair='#2c211d';
+
+    let hairShape='';
+    if(cfg?.hair==='normal'){
+      hairShape=`<path d="M24 40 Q25 13 50 13 Q76 13 78 41 Q65 29 47 29 Q34 29 24 40Z" fill="${hair}"/>`;
+    }else if(cfg?.hair==='rulos'){
+      hairShape=`<g fill="${hair}">
+        <circle cx="30" cy="26" r="12"/><circle cx="44" cy="20" r="13"/>
+        <circle cx="58" cy="20" r="13"/><circle cx="70" cy="28" r="12"/>
+        <circle cx="22" cy="38" r="10"/><circle cx="78" cy="39" r="10"/>
+      </g>`;
+    }
+
+    const beard=cfg?.beard
+      ? `<path d="M29 64 Q31 88 50 91 Q70 87 72 64 Q62 77 50 78 Q38 77 29 64Z" fill="${hair}" opacity=".95"/>`
+      : '';
+
+    const moustache=cfg?.moustache
+      ? `<path d="M49 61 Q41 55 33 61 Q40 68 49 64 Q59 68 67 61 Q59 55 51 61Z" fill="${hair}"/>`
+      : '';
+
+    return `<svg viewBox="0 0 100 100">
+      <circle cx="50" cy="51" r="34" fill="${skin}"/>
+      ${hairShape}
+      <circle cx="38" cy="50" r="3.2" fill="#24211f"/>
+      <circle cx="62" cy="50" r="3.2" fill="#24211f"/>
+      <path d="M46 59 Q50 62 54 59" fill="none" stroke="#8f563e" stroke-width="2.4" stroke-linecap="round"/>
+      ${beard}${moustache}
+    </svg>`;
+  }
+
+  function currentLocalProfile(){
+    return {
+      clientId:localClientId,
+      name:localDisplayName||'Jugador',
+      avatarConfig:{...avatarConfig},
+      role:role||(isHost?'left':null)
+    };
+  }
 
 
   // Voz WebRTC opcional. Cada jugador decide si habilita su micrófono.
@@ -1114,7 +1383,6 @@
     if (singleModeBtn) singleModeBtn.classList.toggle('activeTeamMode', teamPlayMode === 'single');
     if (doubleModeBtn) doubleModeBtn.classList.toggle('activeTeamMode', teamPlayMode === 'doubles');
     refreshTeamSlots();
-    renderPlayersStrip();
 
     if (!fromNetwork) {
       setStatus(teamPlayMode === 'doubles'
@@ -1458,8 +1726,15 @@
       if (roomSlots[assignedRole] !== slot) return;
 
       if(data.type==='playerProfile'&&data.profile){
-        playerProfiles[clientId]={clientId,name:normalizePlayerName(data.profile.name)||'Jugador',avatar:Math.max(0,Math.min(3,Number(data.profile.avatar)||0)),role:assignedRole};
-        broadcastProfiles();renderPlayersStrip();return;
+        playerProfiles[clientId]={
+          clientId,
+          name:normalizePlayerName(data.profile.name)||'Jugador',
+          avatarConfig:data.profile.avatarConfig||{hair:'normal',beard:false,moustache:false,skin:'media'},
+          role:assignedRole
+        };
+        broadcastProfiles();
+        renderPlayersStrip();
+        return;
       }
 
       if (data.type === 'paddle') {
@@ -1711,7 +1986,14 @@
     conn.on('data', data => {
       if (!data || typeof data !== 'object') return;
 
-      if(data.type==='playerProfiles'&&Array.isArray(data.profiles)){playerProfiles={};for(const p of data.profiles){if(p?.clientId)playerProfiles[p.clientId]=p}renderPlayersStrip();return;}
+      if(data.type==='playerProfiles'&&Array.isArray(data.profiles)){
+        playerProfiles={};
+        for(const p of data.profiles){
+          if(p?.clientId)playerProfiles[p.clientId]=p;
+        }
+        renderPlayersStrip();
+        return;
+      }
 
       if (data.type === 'voiceRoster' && Array.isArray(data.peers)) {
         voicePeerRoster = [...new Set(data.peers.filter(Boolean))];
@@ -1728,7 +2010,11 @@
       if (data.type === 'role') {
         if (role && role !== data.role) return;
         role = data.role;
-        if(localProfileReady&&conn&&conn.open){const p=currentLocalProfile();p.role=role;conn.send({type:'playerProfile',profile:p});}
+        if(localProfileReady&&conn&&conn.open){
+          const p=currentLocalProfile();
+          p.role=role;
+          conn.send({type:'playerProfile',profile:p});
+        }
         roleText.textContent = 'Rol: ' + humanRoleLabel(role);
         peerBadge.textContent = role;
         if (!isHost) {
