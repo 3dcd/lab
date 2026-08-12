@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.19 roster sincronizado</title>
+  <title>Pong Doble v55.21 compacto móvil</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -1154,6 +1154,59 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   transform:none !important;
 }
 
+
+.playerLobbyCard.inviteSlot{
+  pointer-events:auto !important;
+  cursor:pointer !important;
+  touch-action:manipulation !important;
+}
+.playerLobbyCard.inviteSlot *{
+  pointer-events:none !important;
+}
+
+/* v55.21 · ocultamos texto redundante de rol/multijugador */
+#roleText{
+  display:none !important;
+}
+
+
+/* Fila normal: cuatro juntos */
+#teamSlots.rosterDoubles{
+  grid-template-columns:repeat(4,48px) !important;
+  grid-template-rows:48px !important;
+}
+
+/* Celular apaisado: 2 arriba + 2 abajo */
+@media (orientation:landscape) and (max-width:900px) and (max-height:500px){
+  #teamSlots.playerLobbySlots.rosterDoubles{
+    grid-template-columns:48px 48px !important;
+    grid-template-rows:48px 48px !important;
+    gap:5px !important;
+  }
+
+  #teamSlots.rosterDoubles #lobbySlotLeft{
+    grid-column:1 !important;
+    grid-row:1 !important;
+  }
+  #teamSlots.rosterDoubles #lobbySlotLeft2{
+    grid-column:2 !important;
+    grid-row:1 !important;
+  }
+  #teamSlots.rosterDoubles #lobbySlotRight{
+    grid-column:1 !important;
+    grid-row:2 !important;
+  }
+  #teamSlots.rosterDoubles #lobbySlotRight2{
+    grid-column:2 !important;
+    grid-row:2 !important;
+  }
+
+  #teamSlots.playerLobbySlots{
+    margin-top:4px !important;
+    margin-bottom:5px !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1178,7 +1231,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.19</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.21</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -1214,7 +1267,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
 
   <div class="controls" id="controlsPanel">
     <div>
-      <div class="role" id="roleText">Rol: espectador local</div>
+      <div class="role" id="roleText"></div>
       <div class="hint">Mové el dedo hacia arriba y abajo dentro del recuadro. La barrita celeste te muestra la posición de tu paleta.</div>
       
       <div class="teamMode" id="teamModePanel">
@@ -2108,7 +2161,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
       refreshTeamSlots();
       if (localEntryReady) renderPreModeLobby();
       peerBadge.textContent = 'elegí modo';
-      roleText.textContent = 'Rol: espectador local';
+      roleText.textContent = '';
       setStatus('Elegí 1 jugador o Multijugador.');
       showMultiControls(false);
     }
@@ -2324,7 +2377,18 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
           incoming.send({ type:'playerReadyAck', role:assignedRole });
         } catch(e) {}
 
+        // Enviar el estado completo primero al jugador que acaba de entrar.
+        sendLobbyStateToConnection(incoming);
+
+        // Y luego sincronizar la misma lista en todos los dispositivos.
         broadcastLobbyProfiles();
+
+        // Segundo envío corto para absorber diferencias de timing en móviles.
+        setTimeout(() => {
+          try { sendLobbyStateToConnection(incoming); } catch(e) {}
+          broadcastLobbyProfiles();
+        }, 120);
+
         maybeStartMultiplayerCountdown();
         return;
       }
@@ -2599,7 +2663,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
       if (data.type === 'role') {
         if (role && role !== data.role) return;
         role = data.role;
-        roleText.textContent = 'Rol: ' + humanRoleLabel(role);
+        roleText.textContent = '';
         peerBadge.textContent = role;
         if (conn && conn.open) {
           try { conn.send({type:'requestLobbyState'}); } catch(e) {}
@@ -2836,7 +2900,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
     matchesRight = 0;
     isHost = true;
     role = 'left';
-    roleText.textContent = 'Rol: barra izquierda';
+    roleText.textContent = '';
     lobbyProfiles = {};
     if (localEntryReady) {
       lobbyProfiles.left = normalizedLobbyProfile(localEntryProfile, 'left');
@@ -2876,7 +2940,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
     connected = true;
     isHost = true;
     role = 'left';
-    roleText.textContent = 'Rol: barra izquierda · rival automático';
+    roleText.textContent = '';
     peerBadge.textContent = '1 jugador';
     setStatus('Modo 1 jugador. Al principio el rival juega casi perfecto; después empieza a cometer errores.');
     state.scoreL = 0;
@@ -2916,13 +2980,11 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   async function shareGameInvitation(targetRole = null) {
     let roomCode = '';
 
-    // Host conoce su código directamente.
     if (isHost) {
       roomCode = roomInput.value.trim();
     } else {
-      // Invitados recuperan la sala desde la URL actual.
-      const currentParams = new URLSearchParams(window.location.search);
-      roomCode = (currentParams.get('sala') || '').trim();
+      const params = new URLSearchParams(window.location.search);
+      roomCode = (params.get('sala') || '').trim();
     }
 
     if (!roomCode) {
@@ -2930,7 +2992,9 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
       return;
     }
 
-    let inviteUrl = new URL(window.location.href);
+    const inviteUrl = new URL(window.location.href);
+
+    // Limpiamos parámetros de una invitación anterior.
     inviteUrl.searchParams.set('sala', roomCode);
     inviteUrl.searchParams.delete('puesto');
 
@@ -2940,15 +3004,16 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
 
     const url = inviteUrl.toString();
 
-    let slotLabel = '';
-    if (targetRole === 'left2') slotLabel = ' · compañero';
-    if (targetRole === 'right') slotLabel = ' · rival';
-    if (targetRole === 'right2') slotLabel = ' · rival 2';
+    let label = 'Invitación al juego';
+    if (targetRole === 'left2') label = 'Invitación como compañero';
+    if (targetRole === 'right') label = 'Invitación como rival';
+    if (targetRole === 'right2') label = 'Invitación como rival 2';
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title:(teamPlayMode === 'doubles' ? 'Pong Doble · 2 VS 2' : 'Pong Doble') + slotLabel,
+          title: label,
+          text: label,
           url
         });
 
@@ -2956,10 +3021,22 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
           ? 'Invitación enviada para ese puesto.'
           : 'Invitación enviada.');
         return;
-      } catch(err) {}
+      } catch (err) {
+        // Si el usuario cancela el panel de compartir, no hacemos nada raro.
+        if (err && err.name === 'AbortError') {
+          setStatus('Invitación cancelada.');
+          return;
+        }
+      }
     }
 
-    setStatus('Compartí esta invitación: ' + url);
+    // Fallback: copiar enlace al portapapeles.
+    try {
+      await navigator.clipboard.writeText(url);
+      setStatus('Enlace de invitación copiado.');
+    } catch (e) {
+      setStatus('Compartí esta invitación: ' + url);
+    }
   }
 
 
@@ -2967,19 +3044,24 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
     await shareGameInvitation(null);
   });
 
-  [lobbySlotLeft2, lobbySlotRight, lobbySlotRight2].forEach(slotEl => {
-    if (!slotEl) return;
+  // Cada casillero vacío funciona como una invitación para ESE puesto.
+  if (teamSlots) {
+    teamSlots.addEventListener('click', async (ev) => {
+      const slotEl = ev.target.closest('.playerLobbyCard.inviteSlot');
+      if (!slotEl) return;
+      if (mode !== 'multi') return;
 
-    slotEl.addEventListener('click', async () => {
-      if (!slotEl.classList.contains('inviteSlot')) return;
-      if (mode !== 'multi' || !connected) return;
+      ev.preventDefault();
+      ev.stopPropagation();
 
       const requestedRole = slotEl.dataset.role;
       if (!requestedRole) return;
 
       await shareGameInvitation(requestedRole);
     });
-  });
+  }
+
+
 
   shareCodeBtn.addEventListener('click', async () => {
     const code = roomInput.value.trim();
@@ -3015,7 +3097,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
 
     isHost = false;
     role = null;
-    roleText.textContent = 'Rol: esperando asignación';
+    roleText.textContent = '';
     createPeer();
 
     peer.on('open', () => {
@@ -4025,7 +4107,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
     endSessionBtn.style.display = '';
 
     peerBadge.textContent = 'conectando…';
-    roleText.textContent = 'Rol: esperando asignación';
+    roleText.textContent = '';
     setStatus('Invitación detectada. Conectando automáticamente…');
 
     createPeer();
