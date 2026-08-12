@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.9 entrada separada</title>
+  <title>Pong Doble v55.10 entrada fullscreen</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -734,6 +734,60 @@
   #entryNext{width:48px;height:48px}
 }
 
+
+body > #entryScreen{
+  position:fixed !important;
+  inset:0 !important;
+  width:100vw !important;
+  height:100dvh !important;
+  min-height:100dvh !important;
+  margin:0 !important;
+  padding:20px !important;
+  z-index:100000 !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:auto;
+  touch-action:none;
+  background-color:#08111f;
+  background-size:cover !important;
+  background-position:center center !important;
+  background-repeat:no-repeat !important;
+}
+body > #entryScreen.hidden{display:none !important;}
+
+#chosenPlayerChip{
+  position:fixed !important;
+  z-index:9000 !important;
+  display:none;
+  min-width:62px;
+  height:58px;
+  padding:5px 8px;
+  border-radius:11px;
+  border:1px solid rgba(255,255,255,.30);
+  background:rgba(10,20,32,.60);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  box-shadow:0 3px 10px rgba(0,0,0,.26);
+  color:white;
+  pointer-events:none;
+  align-items:center;
+  gap:6px;
+}
+#chosenPlayerChip.show{display:flex}
+#chosenPlayerFace{font-size:29px;line-height:1}
+#chosenPlayerName{
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.5px;
+  max-width:64px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
 </style>
 </head>
 <body>
@@ -758,7 +812,7 @@
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.9</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.10</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -3257,9 +3311,29 @@
   var nameInput = document.getElementById('entryName');
   var play = document.getElementById('entryPlay');
 
+  var chip = document.getElementById('chosenPlayerChip');
+  var chipFace = document.getElementById('chosenPlayerFace');
+  var chipName = document.getElementById('chosenPlayerName');
+
+  function syncEntryBackground(){
+    if (!screen) return;
+    var bodyStyle = window.getComputedStyle(document.body);
+    var bg = bodyStyle.backgroundImage;
+    if (bg && bg !== 'none') screen.style.backgroundImage = bg;
+  }
+
   function render(){
     if (avatar) avatar.textContent = faces[index];
     if (counter) counter.textContent = (index + 1) + ' / ' + faces.length;
+  }
+
+  function placeChip(){
+    if (!chip || !chip.classList.contains('show')) return;
+    var canvas = document.getElementById('game');
+    if (!canvas) return;
+    var r = canvas.getBoundingClientRect();
+    chip.style.left = Math.round(r.left + 10) + 'px';
+    chip.style.top = Math.round(r.top + 10) + 'px';
   }
 
   if (next) {
@@ -3276,24 +3350,43 @@
       e.preventDefault();
       e.stopPropagation();
 
-      var chosenName = '';
-      if (nameInput && nameInput.value) {
-        chosenName = nameInput.value.trim();
-      }
-      if (!chosenName) chosenName = 'J1';
+      var chosenName = (nameInput && nameInput.value ? nameInput.value.trim() : '') || 'J1';
 
       try {
         localStorage.setItem('pong_player_name', chosenName);
         localStorage.setItem('pong_avatar_index', String(index));
       } catch(err) {}
 
+      if (chipFace) chipFace.textContent = faces[index];
+      if (chipName) chipName.textContent = chosenName.substring(0, 10);
+      if (chip) chip.classList.add('show');
+
       if (screen) screen.classList.add('hidden');
+
+      requestAnimationFrame(function(){
+        placeChip();
+        setTimeout(placeChip, 100);
+      });
     });
   }
+
+  window.addEventListener('resize', placeChip);
+  window.addEventListener('orientationchange', function(){ setTimeout(placeChip, 200); });
+
+  syncEntryBackground();
+  setTimeout(syncEntryBackground, 80);
+  setTimeout(syncEntryBackground, 250);
+  setTimeout(syncEntryBackground, 700);
 
   render();
 })();
 </script>
+
+
+<div id="chosenPlayerChip">
+  <div id="chosenPlayerFace">🙂</div>
+  <div id="chosenPlayerName">J1</div>
+</div>
 
 </body>
 </html>
