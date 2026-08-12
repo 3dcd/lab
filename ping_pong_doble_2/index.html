@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.15 casilleros reales</title>
+  <title>Pong Doble v55.16 fila compacta</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -967,6 +967,73 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   display:grid !important;
 }
 
+
+/* v55.16 · roster compacto: una sola fila, cuadrados iguales */
+#teamSlots.playerLobbySlots{
+  display:none;
+  grid-template-columns:repeat(4, 48px) !important;
+  gap:6px !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:auto !important;
+  max-width:100% !important;
+  margin:6px auto 8px !important;
+}
+#teamSlots.playerLobbySlots.rosterVisible{
+  display:grid !important;
+}
+#teamSlots.playerLobbySlots .teamCol{
+  display:contents !important;
+}
+#teamSlots.playerLobbySlots .teamTitle,
+#teamSlots.playerLobbySlots .versus{
+  display:none !important;
+}
+#teamSlots.playerLobbySlots .playerLobbyCard{
+  width:48px !important;
+  height:48px !important;
+  min-height:48px !important;
+  padding:3px !important;
+  border-radius:9px !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:1px !important;
+}
+#teamSlots.playerLobbySlots .playerLobbyCard .lobbyFace{
+  font-size:23px !important;
+  line-height:23px !important;
+  min-height:23px !important;
+}
+#teamSlots.playerLobbySlots .playerLobbyCard .lobbyName{
+  width:42px !important;
+  max-width:42px !important;
+  font-size:8px !important;
+  line-height:9px !important;
+  text-align:center !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+#teamSlots.rosterPre{
+  grid-template-columns:48px !important;
+}
+#teamSlots.rosterSolo,
+#teamSlots.rosterSingle{
+  grid-template-columns:repeat(2,48px) !important;
+}
+#teamSlots.rosterDoubles{
+  grid-template-columns:repeat(4,48px) !important;
+}
+
+
+#lobbySlotLeft{order:1}
+#lobbySlotLeft2{order:2}
+#lobbySlotRight{order:3}
+#lobbySlotRight2{order:4}
+
 </style>
 </head>
 <body>
@@ -991,7 +1058,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.15</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.16</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -1462,21 +1529,26 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
       el.classList.remove('ready');
       el.classList.add('waiting');
 
+      const reservedRoles = window.__pongReservedRoles || {};
+      const roleReserved = !!reservedRoles[roleName];
+
       const canInvite =
         mode === 'multi' &&
-        isHost &&
+        connected &&
         !gameReady &&
         countdownUntil === 0 &&
         roleName &&
-        roleName !== 'left';
+        roleName !== 'left' &&
+        !profile &&
+        !roleReserved;
 
       if (canInvite) {
         el.classList.add('inviteSlot');
         if (face) face.textContent = '＋';
         if (name) {
-          if (roleName === 'left2') name.textContent = 'Invitar compañero';
-          else if (roleName === 'right') name.textContent = 'Invitar rival';
-          else if (roleName === 'right2') name.textContent = 'Invitar rival';
+          if (roleName === 'left2') name.textContent = 'Invitar';
+          else if (roleName === 'right') name.textContent = 'Invitar';
+          else if (roleName === 'right2') name.textContent = 'Invitar';
           else name.textContent = 'Invitar';
         }
       } else {
@@ -1628,10 +1700,20 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
 
   function broadcastLobbyProfiles(){
     if (!isHost) return;
+
+    const reservedRoles = {};
+    for (const r of ['left2','right','right2']) {
+      const slot = roomSlots[r];
+      reservedRoles[r] = !!(slot && slot.conn && slot.conn.open);
+    }
+
     hostBroadcast({
       type:'lobbyProfiles',
-      profiles:lobbyProfiles
+      profiles:lobbyProfiles,
+      reservedRoles
     });
+
+    window.__pongReservedRoles = reservedRoles;
     renderLobbyProfiles();
   }
 
@@ -1921,12 +2003,14 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
 
     const allowedRoles = slotRolesForCurrentMode();
 
+    // Invitación desde un casillero = puesto obligatorio.
     if (desiredRole) {
       if (!allowedRoles.includes(desiredRole)) return null;
       if (roomSlots[desiredRole]) return null;
       return desiredRole;
     }
 
+    // Sólo las invitaciones genéricas usan el primer hueco libre.
     for (const roleName of allowedRoles) {
       if (!roomSlots[roleName]) return roleName;
     }
@@ -2060,6 +2144,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
       });
 
       broadcastVoiceRoster();
+      broadcastLobbyProfiles();
       renderLobbyProfiles();
       maybeStartMultiplayerCountdown();
     });
@@ -2366,6 +2451,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
 
       if (data.type === 'lobbyProfiles' && data.profiles) {
         lobbyProfiles = data.profiles || {};
+        window.__pongReservedRoles = data.reservedRoles || {};
         renderLobbyProfiles();
         const readyCount = Object.values(lobbyProfiles).filter(p => p && p.ready).length;
         const target = teamPlayMode === 'doubles' ? 4 : 2;
@@ -2646,15 +2732,25 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   });
 
   async function shareGameInvitation(targetRole = null) {
-    const code = roomInput.value.trim();
-    let inviteUrl = new URL(window.location.href);
+    let roomCode = '';
 
-    inviteUrl.searchParams.delete('sala');
-    inviteUrl.searchParams.delete('puesto');
-
-    if (code) {
-      inviteUrl.searchParams.set('sala', code);
+    // Host conoce su código directamente.
+    if (isHost) {
+      roomCode = roomInput.value.trim();
+    } else {
+      // Invitados recuperan la sala desde la URL actual.
+      const currentParams = new URLSearchParams(window.location.search);
+      roomCode = (currentParams.get('sala') || '').trim();
     }
+
+    if (!roomCode) {
+      setStatus('Todavía no hay una sala activa para compartir.');
+      return;
+    }
+
+    let inviteUrl = new URL(window.location.href);
+    inviteUrl.searchParams.set('sala', roomCode);
+    inviteUrl.searchParams.delete('puesto');
 
     if (targetRole) {
       inviteUrl.searchParams.set('puesto', targetRole);
@@ -2670,20 +2766,20 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
     if (navigator.share) {
       try {
         await navigator.share({
-          title: (teamPlayMode === 'doubles' ? 'Pong Doble · 2 VS 2' : 'Pong Doble') + slotLabel,
+          title:(teamPlayMode === 'doubles' ? 'Pong Doble · 2 VS 2' : 'Pong Doble') + slotLabel,
           url
         });
+
         setStatus(targetRole
-          ? 'Invitación enviada para ese lugar. Esperando jugador…'
-          : 'Invitación enviada. Esperando jugador…');
+          ? 'Invitación enviada para ese puesto.'
+          : 'Invitación enviada.');
         return;
-      } catch (err) {
-        // Si se cancela o falla, mostramos el enlace.
-      }
+      } catch(err) {}
     }
 
     setStatus('Compartí esta invitación: ' + url);
   }
+
 
   shareGameBtn.addEventListener('click', async () => {
     await shareGameInvitation(null);
@@ -2694,7 +2790,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
 
     slotEl.addEventListener('click', async () => {
       if (!slotEl.classList.contains('inviteSlot')) return;
-      if (!isHost || mode !== 'multi') return;
+      if (mode !== 'multi' || !connected) return;
 
       const requestedRole = slotEl.dataset.role;
       if (!requestedRole) return;
