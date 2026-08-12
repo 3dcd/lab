@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.13 identidad previa</title>
+  <title>Pong Doble v55.14 fichas e invitación</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -894,6 +894,42 @@ body{
   min-height:var(--pong-vh) !important;
 }
 
+
+/* v55.14 · las fichas permanecen durante toda la partida */
+body.game-active .teamSlots.playerLobbySlots{
+  display:grid !important;
+}
+body.game-active .teamSlots.playerLobbySlots.singleLobby{
+  display:grid !important;
+}
+
+/* Vacío = lugar para invitar */
+.playerLobbyCard.inviteSlot{
+  cursor:pointer;
+  pointer-events:auto;
+  border-style:dashed;
+  border-color:rgba(255,255,255,.34);
+  background:rgba(255,255,255,.07);
+}
+.playerLobbyCard.inviteSlot .lobbyFace{
+  font-size:22px;
+  opacity:.85;
+}
+.playerLobbyCard.inviteSlot .lobbyName{
+  opacity:.9;
+}
+.playerLobbyCard.inviteSlot:active{
+  transform:scale(.97);
+}
+body.game-active .playerLobbyCard.inviteSlot{
+  pointer-events:none;
+}
+
+
+body.game-active #teamSlots.playerLobbySlots{
+  display:grid !important;
+}
+
 </style>
 </head>
 <body>
@@ -918,7 +954,7 @@ body{
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.13</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.14</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -1311,6 +1347,9 @@ body{
     controls.forEach(el => {
       if (el) el.disabled = !!active;
     });
+
+    // Las fichas son información de la partida y deben permanecer visibles.
+    refreshTeamSlots();
   }
 
   // v55.12: las fichas se mantienen como información visual durante toda la sesión.
@@ -1372,16 +1411,39 @@ body{
     };
   }
 
-  function setLobbyCard(el, profile){
+  function setLobbyCard(el, profile, roleName = null){
     if (!el) return;
     const face = el.querySelector('.lobbyFace');
     const name = el.querySelector('.lobbyName');
 
+    el.dataset.role = roleName || '';
+    el.classList.remove('inviteSlot');
+
     if (!profile || !profile.ready) {
       el.classList.remove('ready');
       el.classList.add('waiting');
-      if (face) face.textContent = '·';
-      if (name) name.textContent = 'Esperando';
+
+      const canInvite =
+        mode === 'multi' &&
+        isHost &&
+        !gameReady &&
+        countdownUntil === 0 &&
+        roleName &&
+        roleName !== 'left';
+
+      if (canInvite) {
+        el.classList.add('inviteSlot');
+        if (face) face.textContent = '＋';
+        if (name) {
+          if (roleName === 'left2') name.textContent = 'Invitar compañero';
+          else if (roleName === 'right') name.textContent = 'Invitar rival';
+          else if (roleName === 'right2') name.textContent = 'Invitar rival';
+          else name.textContent = 'Invitar';
+        }
+      } else {
+        if (face) face.textContent = '·';
+        if (name) name.textContent = 'Esperando';
+      }
       return;
     }
 
@@ -1412,7 +1474,7 @@ body{
       robot:true
     };
 
-    setLobbyCard(lobbySlotLeft, localProfile);
+    setLobbyCard(lobbySlotLeft, localProfile, 'left');
 
     if (lobbySlotRight) {
       lobbySlotRight.classList.add('ready');
@@ -1451,7 +1513,7 @@ body{
       'left'
     );
 
-    setLobbyCard(lobbySlotLeft, p);
+    setLobbyCard(lobbySlotLeft, p, 'left');
 
     if (lobbySlotLeft2) lobbySlotLeft2.style.display = 'none';
     if (lobbySlotRight) lobbySlotRight.style.display = 'none';
@@ -1473,10 +1535,10 @@ body{
     const rightProfile = lobbyProfiles.right || null;
     const right2Profile = lobbyProfiles.right2 || null;
 
-    setLobbyCard(lobbySlotLeft, leftProfile);
-    setLobbyCard(lobbySlotLeft2, left2Profile);
-    setLobbyCard(lobbySlotRight, rightProfile);
-    setLobbyCard(lobbySlotRight2, right2Profile);
+    setLobbyCard(lobbySlotLeft, leftProfile, 'left');
+    setLobbyCard(lobbySlotLeft2, left2Profile, 'left2');
+    setLobbyCard(lobbySlotRight, rightProfile, 'right');
+    setLobbyCard(lobbySlotRight2, right2Profile, 'right2');
 
     if (teamSlots) {
       teamSlots.classList.toggle('singleLobby', teamPlayMode !== 'doubles');
@@ -1776,11 +1838,19 @@ body{
     return null;
   }
 
-  function reserveRoleForClient(clientId) {
+  function reserveRoleForClient(clientId, desiredRole = null) {
     const existing = findRoleForClient(clientId);
     if (existing) return existing;
 
-    for (const roleName of slotRolesForCurrentMode()) {
+    const allowedRoles = slotRolesForCurrentMode();
+
+    if (desiredRole) {
+      if (!allowedRoles.includes(desiredRole)) return null;
+      if (roomSlots[desiredRole]) return null;
+      return desiredRole;
+    }
+
+    for (const roleName of allowedRoles) {
       if (!roomSlots[roleName]) return roleName;
     }
     return null;
@@ -2127,7 +2197,12 @@ body{
           ? String(incoming.metadata.clientId)
           : ('legacy-' + Math.random().toString(36).slice(2));
 
-      const assignedRole = reserveRoleForClient(clientId);
+      const desiredRole =
+        incoming.metadata && incoming.metadata.desiredRole
+          ? String(incoming.metadata.desiredRole)
+          : null;
+
+      const assignedRole = reserveRoleForClient(clientId, desiredRole);
 
       if (!assignedRole) {
         try { incoming.send({ type:'roomFull' }); } catch(e) {}
@@ -2491,33 +2566,62 @@ body{
     createMultiplayerSession();
   });
 
-  shareGameBtn.addEventListener('click', async () => {
+  async function shareGameInvitation(targetRole = null) {
     const code = roomInput.value.trim();
     let inviteUrl = new URL(window.location.href);
+
     inviteUrl.searchParams.delete('sala');
+    inviteUrl.searchParams.delete('puesto');
 
     if (code) {
       inviteUrl.searchParams.set('sala', code);
     }
 
+    if (targetRole) {
+      inviteUrl.searchParams.set('puesto', targetRole);
+    }
+
     const url = inviteUrl.toString();
+
+    let slotLabel = '';
+    if (targetRole === 'left2') slotLabel = ' · compañero';
+    if (targetRole === 'right') slotLabel = ' · rival';
+    if (targetRole === 'right2') slotLabel = ' · rival 2';
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: teamPlayMode === 'doubles' ? 'Pong Doble · 2 VS 2' : 'Pong Doble',
+          title: (teamPlayMode === 'doubles' ? 'Pong Doble · 2 VS 2' : 'Pong Doble') + slotLabel,
           url
         });
-        setStatus(code ? 'Invitación enviada. Esperando al otro jugador…' : 'Juego compartido.');
+        setStatus(targetRole
+          ? 'Invitación enviada para ese lugar. Esperando jugador…'
+          : 'Invitación enviada. Esperando jugador…');
         return;
       } catch (err) {
         // Si se cancela o falla, mostramos el enlace.
       }
     }
 
-    setStatus(code
-      ? 'Compartí esta invitación: ' + url
-      : 'Compartí este enlace: ' + url);
+    setStatus('Compartí esta invitación: ' + url);
+  }
+
+  shareGameBtn.addEventListener('click', async () => {
+    await shareGameInvitation(null);
+  });
+
+  [lobbySlotLeft2, lobbySlotRight, lobbySlotRight2].forEach(slotEl => {
+    if (!slotEl) return;
+
+    slotEl.addEventListener('click', async () => {
+      if (!slotEl.classList.contains('inviteSlot')) return;
+      if (!isHost || mode !== 'multi') return;
+
+      const requestedRole = slotEl.dataset.role;
+      if (!requestedRole) return;
+
+      await shareGameInvitation(requestedRole);
+    });
   });
 
   shareCodeBtn.addEventListener('click', async () => {
@@ -2558,7 +2662,13 @@ body{
     createPeer();
 
     peer.on('open', () => {
-      conn = peer.connect(code, { reliable: true, metadata:{ clientId:localClientId } });
+      conn = peer.connect(code, {
+        reliable: true,
+        metadata:{
+          clientId:localClientId,
+          desiredRole:desiredRole || null
+        }
+      });
       setupConnection();
       setStatus('Intentando conectar...');
     });
@@ -3511,7 +3621,7 @@ body{
     requestAnimationFrame(loop);
   }
 
-  function autoJoinRoom(code) {
+  function autoJoinRoom(code, desiredRole = null) {
     closeCurrentSession(false);
 
     mode = 'multi';
@@ -3682,10 +3792,11 @@ body{
   function applyInvitationFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const invitedRoom = (params.get('sala') || '').trim();
+    const invitedRole = (params.get('puesto') || '').trim();
 
     if (!invitedRoom) return false;
 
-    autoJoinRoom(invitedRoom);
+    autoJoinRoom(invitedRoom, invitedRole || null);
     return true;
   }
 
