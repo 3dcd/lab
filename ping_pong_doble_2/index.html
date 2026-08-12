@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.18 fila horizontal estable</title>
+  <title>Pong Doble v55.19 roster sincronizado</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -1178,7 +1178,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.18</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.19</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -1654,7 +1654,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
 
       const canInvite =
         mode === 'multi' &&
-        connected &&
+        (isHost || connected) &&
         !gameReady &&
         countdownUntil === 0 &&
         roleName &&
@@ -1833,14 +1833,30 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   }
 
 
-  function broadcastLobbyProfiles(){
-    if (!isHost) return;
-
+  function currentReservedRoles(){
     const reservedRoles = {};
     for (const r of ['left2','right','right2']) {
       const slot = roomSlots[r];
       reservedRoles[r] = !!(slot && slot.conn && slot.conn.open);
     }
+    return reservedRoles;
+  }
+
+  function sendLobbyStateToConnection(targetConn){
+    if (!targetConn || !targetConn.open) return;
+    try {
+      targetConn.send({
+        type:'lobbyProfiles',
+        profiles:lobbyProfiles,
+        reservedRoles:currentReservedRoles()
+      });
+    } catch(e) {}
+  }
+
+  function broadcastLobbyProfiles(){
+    if (!isHost) return;
+
+    const reservedRoles = currentReservedRoles();
 
     hostBroadcast({
       type:'lobbyProfiles',
@@ -1851,6 +1867,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
     window.__pongReservedRoles = reservedRoles;
     renderLobbyProfiles();
   }
+
 
   function markHostReadyProfile(){
     if (!isHost || !localEntryReady) return;
@@ -2266,7 +2283,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
       incoming.send({ type:'role', role:assignedRole });
       incoming.send({ type:'difficulty', level:difficulty });
       incoming.send({ type:'matchConfig', teamPlayMode, obstaclesEnabled });
-      incoming.send({ type:'lobbyProfiles', profiles:lobbyProfiles });
+      sendLobbyStateToConnection(incoming);
       incoming.send({
         type:'state',
         state,
@@ -2294,9 +2311,19 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
       if (!data || typeof data !== 'object') return;
       if (roomSlots[assignedRole] !== slot) return;
 
+      if (data.type === 'requestLobbyState') {
+        sendLobbyStateToConnection(incoming);
+        return;
+      }
+
       if (data.type === 'playerReady') {
         slot.ready = true;
         lobbyProfiles[assignedRole] = normalizedLobbyProfile(data.profile, assignedRole);
+
+        try {
+          incoming.send({ type:'playerReadyAck', role:assignedRole });
+        } catch(e) {}
+
         broadcastLobbyProfiles();
         maybeStartMultiplayerCountdown();
         return;
@@ -2574,6 +2601,9 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
         role = data.role;
         roleText.textContent = 'Rol: ' + humanRoleLabel(role);
         peerBadge.textContent = role;
+        if (conn && conn.open) {
+          try { conn.send({type:'requestLobbyState'}); } catch(e) {}
+        }
         if (localEntryReady && conn && conn.open) {
           conn.send({
             type:'playerReady',
@@ -2588,6 +2618,13 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
           remoteLeftVY = 0;
           lastRemoteLeftStateAt = performance.now();
         }
+      }
+
+      if (data.type === 'playerReadyAck') {
+        if (conn && conn.open) {
+          try { conn.send({type:'requestLobbyState'}); } catch(e) {}
+        }
+        return;
       }
 
       if (data.type === 'lobbyProfiles' && data.profiles) {
@@ -3938,7 +3975,18 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
     updateRemoteBallVisual();
     updateRemotePaddleVisual();
     render();
-    requestAnimationFrame(loop);
+  
+  setInterval(() => {
+    if (mode !== 'multi' || gameReady || countdownUntil > 0) return;
+
+    if (isHost) {
+      broadcastLobbyProfiles();
+    } else if (conn && conn.open) {
+      try { conn.send({type:'requestLobbyState'}); } catch(e) {}
+    }
+  }, 1200);
+
+  requestAnimationFrame(loop);
   }
 
   function autoJoinRoom(code, desiredRole = null) {
@@ -4079,6 +4127,11 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
         type:'playerReady',
         profile:localEntryProfile
       });
+      setTimeout(() => {
+        try {
+          if (conn && conn.open) conn.send({type:'requestLobbyState'});
+        } catch(e) {}
+      }, 120);
     }
     if (mode === 'solo') {
       renderSoloLobby();
