@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.16 fila compacta</title>
+  <title>Pong Doble v55.17 layout compacto</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -1034,6 +1034,49 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
 #lobbySlotRight{order:3}
 #lobbySlotRight2{order:4}
 
+
+#teamSlots.playerLobbySlots{
+  grid-auto-flow:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+#teamSlots.rosterPre{grid-template-columns:48px !important}
+#teamSlots.rosterSolo,#teamSlots.rosterSingle{grid-template-columns:48px 48px !important}
+#teamSlots.rosterDoubles{grid-template-columns:repeat(4,48px) !important}
+#lobbySlotLeft{order:1 !important}
+#lobbySlotLeft2{order:2 !important}
+#lobbySlotRight{order:3 !important}
+#lobbySlotRight2{order:4 !important}
+#teamSlots.rosterSolo #lobbySlotLeft,
+#teamSlots.rosterSolo #lobbySlotRight{display:flex !important}
+
+/* Nivel + obstáculos en la misma línea */
+.difficulty{
+  display:flex !important;
+  align-items:center !important;
+  gap:6px !important;
+  flex-wrap:nowrap !important;
+}
+.obstacleConfig{
+  display:flex !important;
+  align-items:center !important;
+  margin:0 0 0 8px !important;
+  padding:0 !important;
+}
+.obstacleToggle{
+  display:flex !important;
+  align-items:center !important;
+  gap:3px !important;
+  margin:0 !important;
+  padding:0 !important;
+  white-space:nowrap !important;
+  font-size:10px !important;
+}
+.obstacleToggle input{
+  margin:0 !important;
+  width:15px !important;
+  height:15px !important;
+}
 </style>
 </head>
 <body>
@@ -1058,7 +1101,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.16</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.17</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -1069,14 +1112,14 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
       <button id="levelBeginnerBtn" type="button">Principiante</button>
       <button id="levelMediumBtn" type="button" class="activeLevel">Medio</button>
       <button id="levelProBtn" type="button">Pro</button>
-    </div>
+    
     <div class="obstacleConfig" id="obstacleConfig">
       <label class="obstacleToggle">
         <input id="obstaclesToggle" type="checkbox" checked>
         OBSTÁCULOS
       </label>
     </div>
-    <button id="shareGameBtn" style="display:none">Compartir juego</button>
+    </div><button id="shareGameBtn" style="display:none">Compartir juego</button>
     <button id="retryBtn" style="display:none">Reintentar conexión</button>
     <button id="voiceBtn" type="button">🎙 Voz</button>
     <button id="endSessionBtn" style="display:none">Terminar partida</button>
@@ -1629,10 +1672,9 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
     if (lobbySlotRight) {
       lobbySlotRight.classList.remove('inviteSlot','waiting');
       lobbySlotRight.classList.add('ready');
-
+      lobbySlotRight.dataset.role = 'right';
       const face = lobbySlotRight.querySelector('.lobbyFace');
       const name = lobbySlotRight.querySelector('.lobbyName');
-
       if (face) face.textContent = '🤖';
       if (name) name.textContent = 'CPU';
     }
@@ -1680,7 +1722,7 @@ body.game-active #teamSlots.playerLobbySlots.rosterVisible{
     const right2Profile = lobbyProfiles.right2 || null;
 
     // El anfitrión siempre ocupa su propio puesto desde el ingreso.
-    const localHostProfile = isHost && localEntryReady
+    const localHostProfile = localEntryReady
       ? normalizedLobbyProfile(localEntryProfile, 'left')
       : leftProfile;
 
