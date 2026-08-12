@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pong Doble v55.1 estable</title>
+  <title>Pong Doble v55.2 perfiles</title>
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <style>
     :root{
@@ -624,13 +624,25 @@
     #voiceBtn{border-color:rgba(255,255,255,.38);background:rgba(18,28,42,.48);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.18)}
     #voiceBtn.voiceOn{background:rgba(35,145,92,.72);border-color:rgba(255,255,255,.62)}
     #voiceBtn.voiceMuted{background:rgba(110,110,110,.52)}
-  </style>
+  
+#profileOverlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,8,16,.68);backdrop-filter:blur(8px)}
+#profileOverlay.hidden{display:none}.profileCard{width:min(430px,94vw);border:1px solid rgba(255,255,255,.25);background:rgba(18,30,43,.92);border-radius:20px;padding:16px;color:#fff;box-shadow:0 18px 46px rgba(0,0,0,.4)}
+.profileCard h3{margin:0 0 4px;font-size:20px}.profileCard p{margin:0 0 12px;font-size:12px;opacity:.82}
+#playerNameInput{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;padding:10px 12px;font-size:16px}
+.avatarSelector{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.avatarOption{aspect-ratio:1;border-radius:14px;border:2px solid transparent;background:rgba(255,255,255,.09);font-size:38px}.avatarOption.selected{border-color:#fff;background:rgba(255,255,255,.2)}
+#profilePlayBtn{width:100%}
+#playersStrip{display:none;width:min(620px,96%);margin:7px auto 8px;gap:8px;align-items:stretch}#playersStrip.show{display:flex}
+.teamGroup{flex:1;min-width:0;display:flex;justify-content:center;gap:6px;padding:6px;border-radius:13px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18)}
+.teamDivider{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:11px;opacity:.8}
+.playerTile{width:58px;height:64px;border-radius:11px;border:1px solid rgba(255,255,255,.22);background:rgba(8,16,26,.48);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 2px 7px rgba(0,0,0,.18)}
+.playerTile.local{outline:2px solid rgba(255,255,255,.78)}.playerTile .face{font-size:28px;line-height:29px}.playerTile .abbr{font-size:10px;font-weight:900;letter-spacing:.7px;margin-top:4px}.playerTile.empty{opacity:.28}.playerTile.robot{background:rgba(42,77,115,.46)}
+</style>
 </head>
-<body>
+<body><div id="profileOverlay"><div class="profileCard"><h3>Tu jugador</h3><p>Escribí tu nombre y elegí tu alter ego.</p><input id="playerNameInput" maxlength="24" placeholder="Tu nombre"><div class="avatarSelector"><button class="avatarOption selected" data-avatar="0" type="button">👨🏻</button><button class="avatarOption" data-avatar="1" type="button">👨🏼</button><button class="avatarOption" data-avatar="2" type="button">👨🏽</button><button class="avatarOption" data-avatar="3" type="button">👨🏾</button></div><button id="profilePlayBtn" type="button">Jugar</button></div></div>
   <div id="preloadCover"></div>
   <div id="consoleFade"></div>
   <div class="top">
-    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.1</span></div>
+    <div class="title">Pong Doble <span style="font-weight:500;color:var(--muted)">v55.2</span></div>
     <div class="badge" id="peerBadge">sin conexión</div>
     <div class="modeButtons">
       <button id="soloBtn">1 jugador</button>
@@ -809,6 +821,30 @@
   const retryBtn = document.getElementById('retryBtn');
   const endSessionBtn = document.getElementById('endSessionBtn');
   const voiceBtn = document.getElementById('voiceBtn');
+  const profileOverlay=document.getElementById('profileOverlay');
+  const playerNameInput=document.getElementById('playerNameInput');
+  const profilePlayBtn=document.getElementById('profilePlayBtn');
+  const avatarOptions=[...document.querySelectorAll('.avatarOption')];
+  const playersStrip=document.getElementById('playersStrip');
+  const teamAPlayers=document.getElementById('teamAPlayers');
+  const teamBPlayers=document.getElementById('teamBPlayers');
+
+  avatarOptions.forEach(btn=>btn.addEventListener('click',()=>{selectedAvatarIndex=Number(btn.dataset.avatar)||0;avatarOptions.forEach(x=>x.classList.toggle('selected',x===btn))}));
+  function hideProfileOverlay(){profileOverlay?.classList.add('hidden')}
+  function makePlayerTile(profile,extra=''){const tile=document.createElement('div');tile.className='playerTile '+extra;if(profile?.clientId===localClientId)tile.classList.add('local');tile.innerHTML='<div class="face">'+(profile?(avatarFaces[profile.avatar]||avatarFaces[0]):'·')+'</div><div class="abbr">'+(profile?playerAbbr(profile.name):'---')+'</div>';return tile}
+  function makeRobotTile(){const t=makePlayerTile({clientId:'robot',name:'CPU',avatar:0},'robot');t.querySelector('.face').textContent='🤖';return t}
+  function renderPlayersStrip(){
+    if(!playersStrip||!teamAPlayers||!teamBPlayers)return;
+    teamAPlayers.innerHTML='';teamBPlayers.innerHTML='';
+    if(mode==='solo'){teamAPlayers.appendChild(makePlayerTile(currentLocalProfile()));teamBPlayers.appendChild(makeRobotTile());playersStrip.classList.add('show');return}
+    if(mode!=='multi'){playersStrip.classList.remove('show');return}
+    const roles=teamPlayMode==='doubles'?['left','left2','right','right2']:['left','right'];
+    for(const r of roles){const p=Object.values(playerProfiles).find(x=>x.role===r);const tile=p?makePlayerTile(p):makePlayerTile(null,'empty');(r==='left'||r==='left2'?teamAPlayers:teamBPlayers).appendChild(tile)}
+    playersStrip.classList.add('show');
+  }
+  function broadcastProfiles(){if(isHost)hostBroadcast({type:'playerProfiles',profiles:Object.values(playerProfiles)})}
+  profilePlayBtn?.addEventListener('click',()=>{localDisplayName=normalizePlayerName(playerNameInput?.value)||'Jugador';localProfileReady=true;hideProfileOverlay();});
+
   const rematchBtn = document.getElementById('rematchBtn');
   const singleModeBtn = document.getElementById('singleModeBtn');
   const doubleModeBtn = document.getElementById('doubleModeBtn');
@@ -860,6 +896,15 @@
   let expectedGuests = 1;
   let countdownStartedForRoom = false;
   const localClientId = 'c-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36);
+  const avatarFaces=['👨🏻','👨🏼','👨🏽','👨🏾'];
+  let selectedAvatarIndex=0;
+  let localDisplayName='';
+  let localProfileReady=false;
+  let playerProfiles={};
+  function normalizePlayerName(v){return String(v||'').trim().replace(/\s+/g,' ').slice(0,24)}
+  function playerAbbr(v){return (normalizePlayerName(v).toUpperCase()||'JUG').slice(0,3)}
+  function currentLocalProfile(){return {clientId:localClientId,name:localDisplayName||'Jugador',avatar:selectedAvatarIndex,role:role||(isHost?'left':null)}}
+
 
   // Voz WebRTC opcional. Cada jugador decide si habilita su micrófono.
   let localVoiceStream = null;
@@ -1069,6 +1114,7 @@
     if (singleModeBtn) singleModeBtn.classList.toggle('activeTeamMode', teamPlayMode === 'single');
     if (doubleModeBtn) doubleModeBtn.classList.toggle('activeTeamMode', teamPlayMode === 'doubles');
     refreshTeamSlots();
+    renderPlayersStrip();
 
     if (!fromNetwork) {
       setStatus(teamPlayMode === 'doubles'
@@ -1385,6 +1431,7 @@
       incoming.send({ type:'role', role:assignedRole });
       incoming.send({ type:'difficulty', level:difficulty });
       incoming.send({ type:'matchConfig', teamPlayMode, obstaclesEnabled });
+      incoming.send({type:'playerProfiles',profiles:Object.values(playerProfiles)});
       incoming.send({
         type:'state',
         state,
@@ -1409,6 +1456,11 @@
     incoming.on('data', data => {
       if (!data || typeof data !== 'object') return;
       if (roomSlots[assignedRole] !== slot) return;
+
+      if(data.type==='playerProfile'&&data.profile){
+        playerProfiles[clientId]={clientId,name:normalizePlayerName(data.profile.name)||'Jugador',avatar:Math.max(0,Math.min(3,Number(data.profile.avatar)||0)),role:assignedRole};
+        broadcastProfiles();renderPlayersStrip();return;
+      }
 
       if (data.type === 'paddle') {
         const y = Number(data.y);
@@ -1439,6 +1491,7 @@
 
     incoming.on('close', () => {
       if (roomSlots[assignedRole] === slot) roomSlots[assignedRole] = null;
+      delete playerProfiles[clientId];broadcastProfiles();renderPlayersStrip();
       countdownStartedForRoom = false;
       broadcastVoiceRoster();
 
@@ -1658,6 +1711,8 @@
     conn.on('data', data => {
       if (!data || typeof data !== 'object') return;
 
+      if(data.type==='playerProfiles'&&Array.isArray(data.profiles)){playerProfiles={};for(const p of data.profiles){if(p?.clientId)playerProfiles[p.clientId]=p}renderPlayersStrip();return;}
+
       if (data.type === 'voiceRoster' && Array.isArray(data.peers)) {
         voicePeerRoster = [...new Set(data.peers.filter(Boolean))];
         refreshVoiceMesh();
@@ -1673,6 +1728,7 @@
       if (data.type === 'role') {
         if (role && role !== data.role) return;
         role = data.role;
+        if(localProfileReady&&conn&&conn.open){const p=currentLocalProfile();p.role=role;conn.send({type:'playerProfile',profile:p});}
         roleText.textContent = 'Rol: ' + humanRoleLabel(role);
         peerBadge.textContent = role;
         if (!isHost) {
@@ -1861,6 +1917,11 @@
     closeCurrentSession(false);
 
     mode = 'multi';
+    playerProfiles={};
+    const hostProfile=currentLocalProfile();
+    hostProfile.role='left';
+    playerProfiles[localClientId]=hostProfile;
+    renderPlayersStrip();
     role = 'left';
     roleText.textContent = 'Rol: ' + humanRoleLabel(role);
     updateModeButtons();
@@ -1900,6 +1961,10 @@
   function startSolo() {
     closeCurrentSession(false);
     mode = 'solo';
+    role='left';
+    playerProfiles={};
+    playerProfiles[localClientId]=currentLocalProfile();
+    renderPlayersStrip();
     teamPlayMode = 'single';
     updateModeButtons();
     refreshTeamSlots();
