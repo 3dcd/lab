@@ -493,6 +493,12 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   line-height:26px;
 }
 
+
+/* Integración suave del diseño grande con la textura/sombra de la prenda */
+.garment-section[data-preset="grafica"] .logo-slot img{
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.10)) contrast(.99);
+}
+
 </style>
 </head>
 <body>
@@ -918,9 +924,9 @@ const PRESETS={
     espalda:{left:'51.4665%',top:'18.5056%',width:'4.6454%',height:'3.9517%'}
   },
   grafica:{
-    pecho:{left:'51.12%',top:'43%',width:'31.73%',height:'31.05%'},
+    pecho:{left:'51.12%',top:'43%',width:'30.14%',height:'29.50%'},
     hombro:{left:'48.1145%',top:'40.7123%',width:'4.6454%',height:'3.9517%'},
-    espalda:{left:'51.12%',top:'40.21%',width:'33.75%',height:'32.4%'}
+    espalda:{left:'51.12%',top:'37.42%',width:'32.06%',height:'30.78%'}
   }
 };
 
@@ -1064,7 +1070,34 @@ async function renderCard(card,size){
  const base=document.createElement('canvas');base.width=base.height=size;const b=base.getContext('2d');b.save();b.beginPath();b.rect(m[0]*size,0,(m[2]-m[0])*size,size);b.clip();b.filter=`brightness(${brightness})`;b.drawImage(shirtImg,0,0,size,size);b.restore();
  const tint=document.createElement('canvas');tint.width=tint.height=size;const t=tint.getContext('2d');t.drawImage(base,0,0);t.globalCompositeOperation='source-in';t.fillStyle=shirtColor;t.fillRect(0,0,size,size);
  ctx.drawImage(base,0,0);ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.92;ctx.drawImage(tint,0,0);ctx.restore();
- const slot=card.querySelector('.logo-slot'),logo=await loadImg(slot.querySelector('img').src),left=parseFloat(slot.style.left)/100*size,top=parseFloat(slot.style.top)/100*size,sw=parseFloat(slot.style.width)/100*size,sh=parseFloat(slot.style.height)/100*size,f=fitContain(logo.naturalWidth||logo.width,logo.naturalHeight||logo.height,sw,sh);ctx.drawImage(logo,left-f.w/2,top-f.h/2,f.w,f.h);
+ const slot=card.querySelector('.logo-slot'),logo=await loadImg(slot.querySelector('img').src),left=parseFloat(slot.style.left)/100*size,top=parseFloat(slot.style.top)/100*size,sw=parseFloat(slot.style.width)/100*size,sh=parseFloat(slot.style.height)/100*size,f=fitContain(logo.naturalWidth||logo.width,logo.naturalHeight||logo.height,sw,sh);
+
+ ctx.imageSmoothingEnabled=true;
+ ctx.imageSmoothingQuality='high';
+
+ const lx=left-f.w/2,ly=top-f.h/2;
+ ctx.drawImage(logo,lx,ly,f.w,f.h);
+
+ // En la remera gráfica, recuperar suavemente las luces/sombras de la tela
+ // sobre el dibujo, sin deformar ni cambiar el arte.
+ if(section.dataset.preset==='grafica' && f.w>0 && f.h>0){
+   ctx.save();
+   ctx.beginPath();
+   ctx.rect(lx,ly,f.w,f.h);
+   ctx.clip();
+
+   // Multiply muy leve: pliegues/sombras de la remera atraviesan el dibujo.
+   ctx.globalCompositeOperation='multiply';
+   ctx.globalAlpha=.14;
+   ctx.drawImage(base,0,0,size,size);
+
+   // Recuperar también una pizca de las luces del tejido.
+   ctx.globalCompositeOperation='screen';
+   ctx.globalAlpha=.055;
+   ctx.drawImage(base,0,0,size,size);
+   ctx.restore();
+ }
+
  const lab=card.querySelector('.name')?.textContent?.trim();if(lab){ctx.font=`${Math.round(size*.031)}px Arial`;const px=size*.022,lh=size*.052,tw=ctx.measureText(lab).width,x=size*.038,y=size-lh-size*.03;ctx.fillStyle='rgba(0,0,0,.48)';roundedRect(ctx,x,y,tw+px*2,lh,size*.026);ctx.fill();ctx.fillStyle='#f3f3f3';ctx.textBaseline='middle';ctx.fillText(lab,x+px,y+lh/2)}ctx.restore();return c
 }
 
@@ -1111,7 +1144,7 @@ function invalidatePreparedShare(){
   if(hadPrepared){
     const btn=document.getElementById('exportPng');
     if(btn && !btn.disabled && btn.textContent!=='Exportar PNG'){
-      btn.textContent='Exportar PNG';
+      btn.textContent='Compartir PNG';
     }
   }
 }
@@ -1144,31 +1177,11 @@ if(exportObservedRoot){
 document.getElementById('exportPng').addEventListener('click',async()=>{
   const btn=document.getElementById('exportPng');
 
-  // Segundo toque: compartir el archivo ya preparado mientras el gesto del usuario está activo.
-  if(preparedShareFile){
-    try{
-      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[preparedShareFile]}))){
-        await navigator.share({files:[preparedShareFile],title:'Propuesta de prendas'});
-        return;
-      }
-    }catch(err){
-      if(err && err.name==='AbortError')return;
-      console.warn(err);
-    }
-
-    // Respaldo si el navegador no soporta compartir archivos.
-    const a=document.createElement('a');
-    a.href=preparedShareUrl;
-    a.download='propuestas-prendas.png';
-    a.click();
-    return;
-  }
-
   const old=btn.textContent;
-  btn.textContent='Generando…';btn.disabled=true;
+  btn.textContent='Preparando para compartir…';btn.disabled=true;
   try{
     const ss=[...document.querySelectorAll('.garment-section')];
-    const size=900;
+    const size=1400;
     const gap=Math.round(size*(14/358));
     const outer=Math.round(gap/2);
     const rowGap=gap;
@@ -1268,22 +1281,27 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       y+=r.height+(i<rows.length-1?rowGap:0);
     });
 
-    out.toBlob(b=>{
-      if(!b)return;
+    const b=await new Promise(resolve=>out.toBlob(resolve,'image/png'));
+    if(!b)throw new Error('No se pudo generar el PNG.');
 
-      if(preparedShareUrl){
-        try{URL.revokeObjectURL(preparedShareUrl)}catch(_){}
+    const file=new File([b],'propuestas-prendas.png',{type:'image/png'});
+    try{
+      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+        await navigator.share({files:[file],title:'Propuesta de prendas'});
+      }else{
+        const u=URL.createObjectURL(b),a=document.createElement('a');
+        a.href=u;
+        a.download='propuestas-prendas.png';
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(u),1800);
       }
-      preparedShareFile=new File([b],'propuestas-prendas.png',{type:'image/png'});
-      preparedShareUrl=URL.createObjectURL(b);
-
-      btn.textContent='Compartir PNG';
-      btn.disabled=false;
-    },'image/png');
+    }catch(err){
+      if(err && err.name!=='AbortError')throw err;
+    }
   }catch(e){
-    console.error(e);alert('No se pudo exportar el PNG.');
+    console.error(e);alert('No se pudo compartir el PNG.');
   }finally{
-    if(!preparedShareFile)btn.textContent=old;
+    btn.textContent=old;
     btn.disabled=false;
   }
 });
