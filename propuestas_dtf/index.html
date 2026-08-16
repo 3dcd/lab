@@ -603,6 +603,21 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   .pricing-note-field{grid-column:1 / -1}
 }
 
+
+/* Bancos vacíos: no mostrar icono roto ni placeholder visual */
+#symbolPreview:not([src]),
+#graphicPreview:not([src]){
+  display:none!important;
+}
+#logoPreviewLight img[src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="],
+#logoPreviewDark img[src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="]{
+  visibility:hidden!important;
+}
+#symbolDrop:not(.has-symbol) #symbolPreview,
+#graphicDrop:not(.has-graphic) #graphicPreview{
+  display:none!important;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
@@ -1501,6 +1516,15 @@ async function renderCard(card,size){
  const lab=card.querySelector('.name')?.textContent?.trim();if(lab){ctx.font=`${Math.round(size*.031)}px Arial`;const px=size*.022,lh=size*.052,tw=ctx.measureText(lab).width,x=size*.038,y=size-lh-size*.03;ctx.fillStyle='rgba(0,0,0,.48)';roundedRect(ctx,x,y,tw+px*2,lh,size*.026);ctx.fill();ctx.fillStyle='#f3f3f3';ctx.textBaseline='middle';ctx.fillText(lab,x+px,y+lh/2)}ctx.restore();return c
 }
 
+
+function imageBankHasContent(imgEl){
+  return !!(
+    imgEl &&
+    imgEl.src &&
+    imgEl.src!=='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='
+  );
+}
+
 async function renderLogoCard(imgEl,bg,size,shape='rounded'){
   const c=document.createElement('canvas');c.width=c.height=size;
   const x=c.getContext('2d');
@@ -1707,72 +1731,133 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
 
     const logoSize=Math.round(size/2);
     const textW=Math.round(size*1.28);
-    const hasSymbol=symbolDrop.classList.contains('has-symbol') && symbolPreview.src;
-    const hasGraphic=graphicDrop.classList.contains('has-graphic') && graphicPreview.src;
 
-    // Reserve a dedicated right column for the optional symbol.
-    const symbolColW=hasSymbol ? Math.round(logoSize*1.22) : 0;
+    const hasLight=imageBankHasContent(lightImg);
+    const hasDark=imageBankHasContent(darkImg);
+    const hasSymbol=
+      symbolDrop.classList.contains('has-symbol') &&
+      imageBankHasContent(symbolPreview);
+    const hasGraphic=
+      graphicDrop.classList.contains('has-graphic') &&
+      imageBankHasContent(graphicPreview);
 
-    const logoRow=document.createElement('canvas');
-    logoRow.width=2*logoSize+gap+textW+symbolColW+outer*2;
-    logoRow.height=logoSize+outer*2;
-    const lr=logoRow.getContext('2d');
-    lr.clearRect(0,0,logoRow.width,logoRow.height);
+    const brandCards=[];
+    if(hasLight)brandCards.push({img:lightImg,bg:'#ededed',shape:'rounded'});
+    if(hasDark)brandCards.push({img:darkImg,bg:'#26282d',shape:'rounded'});
 
-    lr.drawImage(await renderLogoCard(lightImg,'#ededed',logoSize),outer,outer);
-    lr.drawImage(await renderLogoCard(darkImg,'#26282d',logoSize),outer+logoSize+gap,outer);
+    // La fila superior sólo existe si realmente hay algún recurso cargado.
+    const hasAnyBrand=hasLight||hasDark||hasSymbol||hasGraphic;
 
-    const tx=outer+2*logoSize+2*gap;
-    const ty=outer+Math.round(logoSize*.12);
-    const maxW=textW-Math.round(gap*.6);
+    if(hasAnyBrand){
+      const showText=!hasGraphic && (hasLight||hasDark);
+      const graphicW=hasGraphic ? logoSize : 0;
+      const textBlockW=showText ? textW : 0;
+      const symbolW=hasSymbol ? logoSize : 0;
 
-    if(hasGraphic){
-      // Si hay un dibujo gráfico, ocupa el lugar que normalmente usa la explicación.
-      const graphicCardSize=Math.min(textW-Math.round(gap*.5),logoSize);
-      const gx=tx+Math.max(0,(textW-graphicCardSize)/2);
-      const gy=outer+Math.max(0,(logoSize-graphicCardSize)/2);
-      lr.drawImage(await renderLogoCard(graphicPreview,'#ededed',graphicCardSize),gx,gy);
-    }else{
-      lr.fillStyle='#2a2a2d';
-      lr.font=`700 ${Math.round(logoSize*.115)}px Arial, Helvetica, sans-serif`;
-      lr.textBaseline='top';
-      lr.fillText('Versiones del logo',tx,ty);
+      let contentW=brandCards.length*logoSize;
+      if(brandCards.length>1)contentW+=(brandCards.length-1)*gap;
+      if(graphicW){
+        if(contentW>0)contentW+=gap;
+        contentW+=graphicW;
+      }else if(textBlockW){
+        if(contentW>0)contentW+=gap;
+        contentW+=textBlockW;
+      }
+      if(symbolW){
+        if(contentW>0)contentW+=gap;
+        contentW+=symbolW;
+      }
 
-      lr.fillStyle='#56565c';
-      lr.font=`${Math.round(logoSize*.080)}px Arial, Helvetica, sans-serif`;
+      const logoRow=document.createElement('canvas');
+      logoRow.width=contentW+outer*2;
+      logoRow.height=logoSize+outer*2;
+      const lr=logoRow.getContext('2d');
+      lr.clearRect(0,0,logoRow.width,logoRow.height);
 
-      const lines=[
-        'Se presentan dos versiones del logo para asegurar',
-        'una correcta lectura sobre distintos colores de prenda.',
-        '',
-        'La versión clara se utiliza sobre prendas claras y la',
-        'versión oscura cuando hace falta mayor contraste.'
-      ];
+      let cursorX=outer;
+
+      for(const card of brandCards){
+        lr.drawImage(
+          await renderLogoCard(card.img,card.bg,logoSize,card.shape),
+          cursorX,outer
+        );
+        cursorX+=logoSize+gap;
+      }
+
+      if(hasGraphic){
+        lr.drawImage(
+          await renderLogoCard(graphicPreview,'#ededed',logoSize,'rounded'),
+          cursorX,outer
+        );
+        cursorX+=logoSize+gap;
+      }else if(showText){
+        const tx=cursorX;
+        const ty=outer+Math.round(logoSize*.12);
+        const maxW=textW-Math.round(gap*.6);
+
+        lr.fillStyle='#2a2a2d';
+        lr.font=`700 ${Math.round(logoSize*.115)}px Arial, Helvetica, sans-serif`;
+        lr.textBaseline='top';
+
+        let title='Versión del logo';
+        if(hasLight&&hasDark)title='Versiones del logo';
+        lr.fillText(title,tx,ty);
+
+        lr.fillStyle='#56565c';
+        lr.font=`${Math.round(logoSize*.080)}px Arial, Helvetica, sans-serif`;
+
+        const lines=[];
+        if(hasLight&&hasDark){
+          lines.push(
+            'Se presentan dos versiones del logo para asegurar',
+            'una correcta lectura sobre distintos colores de prenda.',
+            '',
+            'La versión clara se utiliza sobre prendas claras y la',
+            'versión oscura cuando hace falta mayor contraste.'
+          );
+        }else if(hasLight){
+          lines.push(
+            'Se presenta la versión del logo preparada para',
+            'vestimenta clara.'
+          );
+        }else if(hasDark){
+          lines.push(
+            'Se presenta la versión del logo preparada para',
+            'vestimenta oscura.'
+          );
+        }
+
+        if(hasSymbol){
+          lines.push(
+            '',
+            'También puede utilizarse un símbolo complementario',
+            'en espalda o manga.'
+          );
+        }
+
+        let yy=ty+Math.round(logoSize*.17);
+        const lh=Math.round(logoSize*.112);
+        lines.forEach(line=>{
+          if(line===''){
+            yy+=Math.round(lh*.38);
+            return;
+          }
+          lr.fillText(line,tx,yy,maxW);
+          yy+=lh;
+        });
+
+        cursorX+=textW+gap;
+      }
 
       if(hasSymbol){
-        lines.push(
-          '',
-          'También puede utilizarse un símbolo temático de la marca',
-          'como recurso complementario en espalda o manga.'
+        lr.drawImage(
+          await renderLogoCard(symbolPreview,'#f1f1f1',logoSize,'circle'),
+          cursorX,outer
         );
       }
 
-      let yy=ty+Math.round(logoSize*.17);
-      const lh=Math.round(logoSize*.112);
-      lines.forEach(line=>{
-        if(line===''){yy+=Math.round(lh*.38);return;}
-        lr.fillText(line,tx,yy,maxW);
-        yy+=lh;
-      });
+      rows.push(logoRow);
     }
-
-    if(hasSymbol){
-      // Anchor symbol to the far-right edge with only the same alpha margin.
-      const sx=logoRow.width-logoSize; // flush to the absolute right edge
-      lr.drawImage(await renderLogoCard(symbolPreview,'#f1f1f1',logoSize,'circle'),sx,outer);
-    }
-
-    rows.push(logoRow);
 
     for(const s of ss){
       const allCards=[...s.querySelectorAll('.card')];
