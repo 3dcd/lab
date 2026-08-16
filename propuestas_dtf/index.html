@@ -359,6 +359,23 @@ body{padding:24px}
   }
 }
 
+
+html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
+.section-wrap,.section-toolbar,.toolbar,button,label,span,strong,small{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-touch-callout:none;
+}
+img{-webkit-user-drag:none;user-drag:none}
+.card{cursor:pointer}
+.touch-toast{
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);
+  z-index:99999;background:rgba(20,20,22,.94);color:#fff;border:1px solid #3c3c42;
+  border-radius:999px;padding:9px 14px;font:12px Arial,Helvetica,sans-serif;
+  opacity:0;pointer-events:none;transition:.16s ease;white-space:nowrap
+}
+.touch-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
 </style>
 </head>
 <body>
@@ -961,5 +978,125 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
   }
 });
 </script>
+<input id="garmentTapPicker" type="file" accept=".svg,image/svg+xml,.png,image/png" style="display:none">
+<div class="touch-toast" id="touchToast"></div>
+
+<script>
+window.addEventListener('load',function(){
+  const picker=document.getElementById('garmentTapPicker');
+  const toast=document.getElementById('touchToast');
+  let tapTargetImg=null;
+  let copiedDesignSrc='';
+  let copiedDesignName='';
+
+  function showToast(msg){
+    if(!toast)return;
+    toast.textContent=msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t=setTimeout(()=>toast.classList.remove('show'),1200);
+  }
+
+  function installLongPress(el,onLongPress,canRun){
+    if(!el || el.dataset.longPressBound==='1')return;
+    el.dataset.longPressBound='1';
+    let timer=null,startX=0,startY=0,active=false;
+
+    function cancel(){
+      if(timer){clearTimeout(timer);timer=null;}
+      active=false;
+    }
+
+    el.addEventListener('pointerdown',function(e){
+      if(e.pointerType==='mouse')return;
+      if(e.target.closest('button,input,label,select,a'))return;
+      if(canRun && !canRun())return;
+      active=true;
+      startX=e.clientX;startY=e.clientY;
+      timer=setTimeout(function(){
+        timer=null;
+        if(active){
+          onLongPress(e);
+          active=false;
+          if(navigator.vibrate)try{navigator.vibrate(25)}catch(_){}
+        }
+      },650);
+    },{passive:true});
+
+    el.addEventListener('pointermove',function(e){
+      if(!active)return;
+      if(Math.hypot(e.clientX-startX,e.clientY-startY)>12)cancel();
+    },{passive:true});
+    el.addEventListener('pointerup',cancel,{passive:true});
+    el.addEventListener('pointercancel',cancel,{passive:true});
+    el.addEventListener('pointerleave',function(e){
+      if(e.pointerType!=='mouse')cancel();
+    },{passive:true});
+  }
+
+  function bindGarmentCard(card){
+    if(card.dataset.tapLoadBound==='1')return;
+    card.dataset.tapLoadBound='1';
+    let pastedByLongPress=false;
+
+    card.addEventListener('click',function(e){
+      if(e.target.closest('button,input,label,select,a'))return;
+      if(pastedByLongPress){
+        pastedByLongPress=false;
+        return;
+      }
+      tapTargetImg=card.querySelector('.logo-slot img');
+      if(tapTargetImg)picker.click();
+    });
+
+    installLongPress(card,function(){
+      if(!copiedDesignSrc)return;
+      const img=card.querySelector('.logo-slot img');
+      if(img){
+        img.src=copiedDesignSrc;
+        pastedByLongPress=true;
+        showToast((copiedDesignName||'Diseño')+' pegado');
+      }
+    },function(){return !!copiedDesignSrc;});
+  }
+
+  picker.addEventListener('change',function(){
+    const f=picker.files&&picker.files[0];
+    if(f&&tapTargetImg&&typeof readLogo==='function'){
+      readLogo(f,function(src){tapTargetImg.src=src;});
+    }
+    picker.value='';
+    tapTargetImg=null;
+  });
+
+  [
+    ['logoPreviewLight','Logo claro'],
+    ['logoPreviewDark','Logo oscuro'],
+    ['symbolPreviewWrap','Símbolo']
+  ].forEach(function(pair){
+    const el=document.getElementById(pair[0]);
+    installLongPress(el,function(){
+      const img=el&&el.querySelector('img');
+      if(img&&img.src){
+        copiedDesignSrc=img.src;
+        copiedDesignName=pair[1];
+        showToast(pair[1]+' copiado');
+      }
+    },function(){
+      const img=el&&el.querySelector('img');
+      return !!(img&&img.src);
+    });
+  });
+
+  function bindAllCards(){
+    document.querySelectorAll('.card').forEach(bindGarmentCard);
+  }
+  bindAllCards();
+
+  const sections=document.getElementById('sections');
+  if(sections)new MutationObserver(bindAllCards).observe(sections,{childList:true,subtree:true});
+});
+</script>
+
 </body>
 </html>
