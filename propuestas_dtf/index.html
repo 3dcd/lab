@@ -691,8 +691,141 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   }
 }
 
+
+/* ===== MÓVIL DEFINITIVO: 4 bancos iguales en 2 x 2 ===== */
+@media(max-width:560px){
+  .logo-master{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    grid-auto-rows:auto!important;
+    gap:10px!important;
+    align-items:stretch!important;
+  }
+
+  /* Orden: claro / oscuro ; símbolo / dibujo */
+  #logoDropLight{ }
+  #logoDropDark{ }
+
+  .logo-choice:has(#logoDropLight){
+    grid-column:1!important;
+    grid-row:1!important;
+  }
+  .logo-choice:has(#logoDropDark){
+    grid-column:2!important;
+    grid-row:1!important;
+  }
+  #symbolDrop{
+    grid-column:1!important;
+    grid-row:2!important;
+  }
+  #graphicDrop{
+    grid-column:2!important;
+    grid-row:2!important;
+  }
+
+  .logo-choice,
+  #symbolDrop,
+  #graphicDrop{
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    min-height:0!important;
+    height:auto!important;
+    box-sizing:border-box!important;
+    padding:0!important;
+    margin:0!important;
+    border-radius:18px!important;
+    overflow:hidden!important;
+    display:block!important;
+  }
+
+  .logo-choice .dropzone,
+  #symbolDrop .dropzone,
+  #graphicDrop .dropzone{
+    width:100%!important;
+    min-width:0!important;
+    min-height:82px!important;
+    box-sizing:border-box!important;
+    padding:10px 7px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+  }
+
+  .logo-preview,
+  #symbolPreviewWrap,
+  #graphicPreviewWrap{
+    width:100%!important;
+    height:112px!important;
+    min-height:112px!important;
+    box-sizing:border-box!important;
+    padding:8px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+
+  #symbolPreview,
+  #graphicPreview,
+  #logoPreviewLight img,
+  #logoPreviewDark img{
+    max-width:82%!important;
+    max-height:82px!important;
+    object-fit:contain!important;
+  }
+
+  .top-export{
+    grid-column:1 / -1!important;
+    grid-row:3!important;
+    width:100%!important;
+    justify-content:flex-end!important;
+  }
+  .logo-note{
+    grid-column:1 / -1!important;
+    width:100%!important;
+  }
+
+  /* Prendas: una debajo de la otra */
+  .garment-section .grid,
+  .section-wrap .grid{
+    grid-template-columns:1fr!important;
+  }
+}
+
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
+window.addEventListener('load',()=>{
+  const banks=[
+    {el:document.querySelector('.logo-choice:has(#logoDropLight)'),target:'light'},
+    {el:document.querySelector('.logo-choice:has(#logoDropDark)'),target:'dark'}
+  ];
+
+  banks.forEach(({el,target})=>{
+    if(!el)return;
+
+    el.addEventListener('dragover',e=>{
+      if(draggedLibraryLogo){
+        e.preventDefault();
+        e.dataTransfer.dropEffect='copy';
+      }
+    });
+
+    el.addEventListener('drop',e=>{
+      if(!draggedLibraryLogo)return;
+
+      // If a real file is present, let the existing drop-zone handler deal with it.
+      if(e.dataTransfer.files&&e.dataTransfer.files.length)return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      setBankFromSrc(draggedLibraryLogo,target);
+    });
+  });
+});
+
+</script>
 <script>
 if(window.pdfjsLib){
   window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1108,6 +1241,44 @@ function setLibraryLogo(file,preview){
     }
   });
 }
+
+function setBankFromSrc(src,target){
+  if(!src)return;
+
+  if(target==='light'){
+    lightBaseSrc=src;
+    lightOutlineLevelValue=0;
+    lightBlackMode=false;
+    logoPreviewLight.querySelector('img').src=src;
+    renderLightLogo();
+    return;
+  }
+
+  if(target==='dark'){
+    darkBaseSrc=src;
+    darkOutlineLevel=0;
+    darkWhiteMode=false;
+    logoPreviewDark.querySelector('img').src=src;
+    renderDarkLogo();
+    return;
+  }
+
+  if(target==='symbol'){
+    symbolBaseSrc=src;
+    symbolBlackMode=false;
+    symbolPreview.src=src;
+    symbolDrop.classList.add('has-symbol');
+    return;
+  }
+
+  if(target==='graphic'){
+    graphicBaseSrc=src;
+    graphicInverted=false;
+    graphicPreview.src=src;
+    graphicDrop.classList.add('has-graphic');
+  }
+}
+
 function initLibrary(drop,input,preview){
   input.addEventListener('change',e=>setLibraryLogo(e.target.files[0],preview));
   ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{
@@ -1116,7 +1287,17 @@ function initLibrary(drop,input,preview){
   ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{
     e.preventDefault();e.stopPropagation();drop.classList.remove('dragover');
   }));
-  drop.addEventListener('drop',e=>setLibraryLogo(e.dataTransfer.files[0],preview));
+  drop.addEventListener('drop',e=>{
+    const file=e.dataTransfer.files&&e.dataTransfer.files[0];
+    if(file){
+      setLibraryLogo(file,preview);
+      return;
+    }
+    if(draggedLibraryLogo){
+      const target=preview===logoPreviewLight?'light':'dark';
+      setBankFromSrc(draggedLibraryLogo,target);
+    }
+  });
   preview.addEventListener('dragstart',e=>{
     const img=preview.querySelector('img');
     if(!img || !img.src || img.src==='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='){
@@ -1326,7 +1507,14 @@ graphicInvertToggle.addEventListener('click',async e=>{
 ['dragleave','drop'].forEach(ev=>graphicDrop.addEventListener(ev,e=>{
   e.preventDefault();e.stopPropagation();graphicDrop.classList.remove('dragover');
 }));
-graphicDrop.addEventListener('drop',e=>setOptionalGraphic(e.dataTransfer.files[0]));
+graphicDrop.addEventListener('drop',e=>{
+  const file=e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(file){
+    setOptionalGraphic(file);
+  }else if(draggedLibraryLogo){
+    setBankFromSrc(draggedLibraryLogo,'graphic');
+  }
+});
 graphicRemove.addEventListener('click',e=>{
   e.preventDefault();e.stopPropagation();
   graphicPreview.removeAttribute('src');
@@ -1392,7 +1580,14 @@ symbolColorToggle.addEventListener('click',async e=>{
 ['dragleave','drop'].forEach(ev=>symbolDrop.addEventListener(ev,e=>{
   e.preventDefault();e.stopPropagation();symbolDrop.classList.remove('dragover');
 }));
-symbolDrop.addEventListener('drop',e=>setOptionalSymbol(e.dataTransfer.files[0]));
+symbolDrop.addEventListener('drop',e=>{
+  const file=e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(file){
+    setOptionalSymbol(file);
+  }else if(draggedLibraryLogo){
+    setBankFromSrc(draggedLibraryLogo,'symbol');
+  }
+});
 
 const symbolRemove=document.getElementById('symbolRemove');
 symbolRemove.addEventListener('click',e=>{
