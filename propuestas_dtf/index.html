@@ -1102,13 +1102,18 @@ let preparedShareFile=null;
 let preparedShareUrl='';
 
 function invalidatePreparedShare(){
+  const hadPrepared=!!preparedShareFile || !!preparedShareUrl;
   if(preparedShareUrl){
     try{URL.revokeObjectURL(preparedShareUrl)}catch(_){}
   }
   preparedShareFile=null;
   preparedShareUrl='';
-  const btn=document.getElementById('exportPng');
-  if(btn && !btn.disabled)btn.textContent='Exportar PNG';
+  if(hadPrepared){
+    const btn=document.getElementById('exportPng');
+    if(btn && !btn.disabled && btn.textContent!=='Exportar PNG'){
+      btn.textContent='Exportar PNG';
+    }
+  }
 }
 
 const exportTopRoot=document.querySelector('.logo-master');
@@ -1118,7 +1123,6 @@ if(exportTopRoot){
   });
   exportTopObserver.observe(exportTopRoot,{
     subtree:true,
-    childList:true,
     attributes:true,
     attributeFilter:['src','class','style']
   });
