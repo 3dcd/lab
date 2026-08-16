@@ -918,9 +918,9 @@ const PRESETS={
     espalda:{left:'51.4665%',top:'18.5056%',width:'4.6454%',height:'3.9517%'}
   },
   grafica:{
-    pecho:{left:'50%',top:'43%',width:'35.25%',height:'34.5%'},
+    pecho:{left:'51.12%',top:'43%',width:'31.73%',height:'31.05%'},
     hombro:{left:'48.1145%',top:'40.7123%',width:'4.6454%',height:'3.9517%'},
-    espalda:{left:'50%',top:'43%',width:'37.5%',height:'36%'}
+    espalda:{left:'51.12%',top:'40.21%',width:'33.75%',height:'32.4%'}
   }
 };
 
@@ -1100,6 +1100,42 @@ async function renderLogoCard(imgEl,bg,size,shape='rounded'){
 }
 let preparedShareFile=null;
 let preparedShareUrl='';
+
+function invalidatePreparedShare(){
+  if(preparedShareUrl){
+    try{URL.revokeObjectURL(preparedShareUrl)}catch(_){}
+  }
+  preparedShareFile=null;
+  preparedShareUrl='';
+  const btn=document.getElementById('exportPng');
+  if(btn && !btn.disabled)btn.textContent='Exportar PNG';
+}
+
+const exportTopRoot=document.querySelector('.logo-master');
+if(exportTopRoot){
+  const exportTopObserver=new MutationObserver(()=>{
+    invalidatePreparedShare();
+  });
+  exportTopObserver.observe(exportTopRoot,{
+    subtree:true,
+    childList:true,
+    attributes:true,
+    attributeFilter:['src','class','style']
+  });
+}
+
+const exportObservedRoot=document.getElementById('sections');
+if(exportObservedRoot){
+  const exportObserver=new MutationObserver(()=>{
+    invalidatePreparedShare();
+  });
+  exportObserver.observe(exportObservedRoot,{
+    subtree:true,
+    childList:true,
+    attributes:true,
+    attributeFilter:['style','class','src','data-preset']
+  });
+}
 
 document.getElementById('exportPng').addEventListener('click',async()=>{
   const btn=document.getElementById('exportPng');
