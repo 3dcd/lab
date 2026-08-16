@@ -794,6 +794,20 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   }
 }
 
+
+/* Auto-scroll durante arrastre en celular/tablet */
+.drag-scroll-zone{
+  position:fixed;
+  left:0;
+  right:0;
+  height:88px;
+  z-index:999998;
+  pointer-events:none;
+  opacity:0;
+}
+.drag-scroll-zone.top{top:0}
+.drag-scroll-zone.bottom{bottom:0}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -2364,6 +2378,83 @@ window.addEventListener('load',function(){
   ['pointerup','pointercancel'].forEach(function(ev){
     document.addEventListener(ev,cancelPress,{passive:true,capture:true});
   });
+});
+</script>
+
+
+<div class="drag-scroll-zone top" id="dragScrollTop"></div>
+<div class="drag-scroll-zone bottom" id="dragScrollBottom"></div>
+
+
+<script>
+window.addEventListener('load',()=>{
+  let autoScrollRaf=0;
+  let autoScrollSpeed=0;
+  let draggingActive=false;
+
+  const EDGE_ZONE=120;
+  const MAX_SPEED=18;
+
+  function stopAutoScroll(){
+    autoScrollSpeed=0;
+    if(autoScrollRaf){
+      cancelAnimationFrame(autoScrollRaf);
+      autoScrollRaf=0;
+    }
+  }
+
+  function autoScrollTick(){
+    if(!draggingActive || !autoScrollSpeed){
+      autoScrollRaf=0;
+      return;
+    }
+    window.scrollBy(0,autoScrollSpeed);
+    autoScrollRaf=requestAnimationFrame(autoScrollTick);
+  }
+
+  function updateAutoScroll(clientY){
+    if(!draggingActive)return;
+
+    const h=window.innerHeight;
+    let speed=0;
+
+    if(clientY < EDGE_ZONE){
+      const strength=(EDGE_ZONE-clientY)/EDGE_ZONE;
+      speed=-Math.max(3,Math.round(MAX_SPEED*strength));
+    }else if(clientY > h-EDGE_ZONE){
+      const strength=(clientY-(h-EDGE_ZONE))/EDGE_ZONE;
+      speed=Math.max(3,Math.round(MAX_SPEED*strength));
+    }
+
+    autoScrollSpeed=speed;
+
+    if(speed && !autoScrollRaf){
+      autoScrollRaf=requestAnimationFrame(autoScrollTick);
+    }else if(!speed){
+      stopAutoScroll();
+    }
+  }
+
+  document.addEventListener('dragstart',e=>{
+    const bank=e.target.closest?.(
+      '#logoPreviewLight,#logoPreviewDark,#symbolPreviewWrap,#graphicPreviewWrap'
+    );
+    if(!bank)return;
+    draggingActive=true;
+  },true);
+
+  document.addEventListener('dragover',e=>{
+    if(!draggingActive)return;
+    updateAutoScroll(e.clientY);
+  },true);
+
+  function finishDrag(){
+    draggingActive=false;
+    stopAutoScroll();
+  }
+
+  document.addEventListener('dragend',finishDrag,true);
+  document.addEventListener('drop',finishDrag,true);
 });
 </script>
 
