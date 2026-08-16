@@ -553,6 +553,56 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   .logo-note{grid-column:1 / 5!important;grid-row:auto!important}
 }
 
+
+.pricing-panel{
+  margin:14px 0 6px;
+  padding:14px;
+  border:1px solid #28282d;
+  border-radius:18px;
+  background:#111114;
+}
+.pricing-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.pricing-head strong{font-size:14px}
+.pricing-head small{font-size:11px;color:#85858c}
+.pricing-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.pricing-grid label{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-width:0;
+}
+.pricing-grid label span{
+  font-size:11px;
+  color:#a3a3aa;
+}
+.pricing-grid input{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid #35353b;
+  border-radius:10px;
+  background:#1a1a1e;
+  color:#f2f2f3;
+  padding:9px 10px;
+  font-size:13px;
+  outline:none;
+}
+.pricing-grid input:focus{border-color:#696971}
+.pricing-note-field{grid-column:1 / -1}
+@media(max-width:760px){
+  .pricing-grid{grid-template-columns:1fr 1fr}
+  .pricing-note-field{grid-column:1 / -1}
+}
+
 </style>
 </head>
 <body>
@@ -677,7 +727,37 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
     </div>
   </div>
 </div></div>
-  <div class="add-wrap"><button class="add-section" id="addSection" type="button" title="Agregar prenda">+</button></div>
+  
+<div class="pricing-panel" id="pricingPanel">
+  <div class="pricing-head">
+    <strong>Precios opcionales</strong>
+    <small>Si dejás todo vacío, no aparece nada en el PNG.</small>
+  </div>
+
+  <div class="pricing-grid">
+    <label>
+      <span>Estampado chico</span>
+      <input id="priceSmall" type="text" inputmode="decimal" placeholder="Ej.: 3000">
+    </label>
+
+    <label>
+      <span>Estampado grande</span>
+      <input id="priceLarge" type="text" inputmode="decimal" placeholder="Ej.: 6000">
+    </label>
+
+    <label>
+      <span>Combo 3 detalles</span>
+      <input id="priceCombo" type="text" inputmode="decimal" placeholder="Ej.: 5000">
+    </label>
+
+    <label class="pricing-note-field">
+      <span>Nota opcional</span>
+      <input id="priceNote" type="text" placeholder="Ej.: Consultá por cantidad para obtener descuento">
+    </label>
+  </div>
+</div>
+
+<div class="add-wrap"><button class="add-section" id="addSection" type="button" title="Agregar prenda">+</button></div>
   
 </div>
 <script>
@@ -1282,6 +1362,121 @@ if(exportObservedRoot){
   });
 }
 
+
+function readPricing(){
+  return {
+    small:(document.getElementById('priceSmall')?.value||'').trim(),
+    large:(document.getElementById('priceLarge')?.value||'').trim(),
+    combo:(document.getElementById('priceCombo')?.value||'').trim(),
+    note:(document.getElementById('priceNote')?.value||'').trim()
+  };
+}
+
+function formatPrice(v){
+  const raw=(v||'').trim();
+  if(!raw)return '';
+  const compact=raw.replace(/\s/g,'');
+  if(/^\$?\d+(?:[.,]\d+)?$/.test(compact)){
+    const numeric=Number(compact.replace('$','').replace(/\./g,'').replace(',','.'));
+    if(Number.isFinite(numeric)){
+      return '$'+new Intl.NumberFormat('es-AR',{maximumFractionDigits:2}).format(numeric);
+    }
+  }
+  return raw.startsWith('$') ? raw : '$'+raw;
+}
+
+function pricingHasContent(p){
+  return !!(p.small||p.large||p.combo||p.note);
+}
+
+function drawWrappedText(ctx,text,x,y,maxWidth,lineHeight){
+  const words=(text||'').split(/\s+/);
+  let line='';
+  let yy=y;
+  for(const word of words){
+    const test=line?line+' '+word:word;
+    if(ctx.measureText(test).width>maxWidth && line){
+      ctx.fillText(line,x,yy);
+      line=word;
+      yy+=lineHeight;
+    }else{
+      line=test;
+    }
+  }
+  if(line)ctx.fillText(line,x,yy);
+  return yy+lineHeight;
+}
+
+function renderPricingFooter(pricing,width){
+  const pad=Math.round(width*.018);
+  const cardH=Math.round(width*.145);
+  const c=document.createElement('canvas');
+  c.width=width;
+  c.height=cardH;
+  const x=c.getContext('2d');
+  x.clearRect(0,0,c.width,c.height);
+
+  const innerX=pad;
+  const innerY=Math.round(pad*.65);
+  const innerW=width-pad*2;
+  const innerH=cardH-pad;
+
+  x.fillStyle='#f2f2f2';
+  roundedRect(x,innerX,innerY,innerW,innerH,Math.round(width*.014));
+  x.fill();
+
+  const titleSize=Math.round(width*.017);
+  const valueSize=Math.round(width*.019);
+  const labelSize=Math.round(width*.0105);
+  const noteSize=Math.round(width*.011);
+
+  x.fillStyle='#242428';
+  x.textBaseline='top';
+  x.font=`700 ${titleSize}px Arial,Helvetica,sans-serif`;
+  x.fillText('Precios por unidad',innerX+pad,innerY+Math.round(pad*.75));
+
+  const items=[];
+  if(pricing.small)items.push(['Estampado chico',formatPrice(pricing.small)]);
+  if(pricing.large)items.push(['Estampado grande',formatPrice(pricing.large)]);
+  if(pricing.combo)items.push(['Combo 3 detalles',formatPrice(pricing.combo)]);
+
+  const contentTop=innerY+Math.round(pad*2.7);
+  const noteReserve=pricing.note?Math.round(cardH*.27):0;
+  const availableW=innerW-pad*2;
+  const colW=items.length ? availableW/items.length : availableW;
+
+  items.forEach((item,i)=>{
+    const cx=innerX+pad+i*colW;
+    x.fillStyle='#68686f';
+    x.font=`${labelSize}px Arial,Helvetica,sans-serif`;
+    x.fillText(item[0],cx,contentTop);
+
+    x.fillStyle='#202024';
+    x.font=`700 ${valueSize}px Arial,Helvetica,sans-serif`;
+    x.fillText(item[1],cx,contentTop+Math.round(labelSize*1.75));
+  });
+
+  if(pricing.note){
+    const ny=innerY+innerH-noteReserve+Math.round(pad*.25);
+    x.fillStyle='#4b4b50';
+    x.font=`${noteSize}px Arial,Helvetica,sans-serif`;
+    drawWrappedText(x,pricing.note,innerX+pad,ny,availableW,Math.round(noteSize*1.35));
+  }
+
+  return c;
+}
+
+
+
+['priceSmall','priceLarge','priceCombo','priceNote'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el){
+    el.addEventListener('input',()=>{
+      if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+    });
+  }
+});
+
 document.getElementById('exportPng').addEventListener('click',async()=>{
   const btn=document.getElementById('exportPng');
 
@@ -1386,9 +1581,19 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       rows.push(row);
     }
 
+    const pricing=readPricing();
+    const hasPricing=pricingHasContent(pricing);
+
+    const baseWidth=Math.max(...rows.map(r=>r.width));
+    const pricingFooter=hasPricing ? renderPricingFooter(pricing,baseWidth) : null;
+
     const out=document.createElement('canvas');
-    out.width=Math.max(...rows.map(r=>r.width));
-    out.height=rows.reduce((a,r)=>a+r.height,0)+(rows.length-1)*rowGap;
+    out.width=baseWidth;
+    out.height=
+      rows.reduce((a,r)=>a+r.height,0)+
+      (rows.length-1)*rowGap+
+      (pricingFooter ? rowGap+pricingFooter.height : 0);
+
     const o=out.getContext('2d');
     o.clearRect(0,0,out.width,out.height);
 
@@ -1397,6 +1602,11 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       o.drawImage(r,0,y);
       y+=r.height+(i<rows.length-1?rowGap:0);
     });
+
+    if(pricingFooter){
+      y+=rowGap;
+      o.drawImage(pricingFooter,0,y);
+    }
 
     const b=await new Promise(resolve=>out.toBlob(resolve,'image/png'));
     if(!b)throw new Error('No se pudo generar el PNG.');
