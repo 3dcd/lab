@@ -250,11 +250,6 @@ body{padding:24px}
   z-index:6;
 }
 
-
-.card{cursor:pointer}
-@media (hover:none){
-  .card-hint{opacity:.72}
-}
 </style>
 </head>
 <body>
@@ -618,14 +613,6 @@ symbolColorToggle.addEventListener('click',async e=>{
   }
 });
 
-
-symbolDrop.addEventListener('click',e=>{
-  if(e.target.closest('button')) return;
-  if(e.target===symbolInput) return;
-  e.preventDefault();
-  symbolInput.click();
-});
-
 ['dragenter','dragover'].forEach(ev=>symbolDrop.addEventListener(ev,e=>{
   e.preventDefault();e.stopPropagation();symbolDrop.classList.add('dragover');
 }));
@@ -654,30 +641,13 @@ symbolDrop.addEventListener('dragstart',e=>{
 });
 symbolDrop.setAttribute('draggable','true');
 
-let tappedCardTarget=null;
-const cardFilePicker=document.getElementById('cardFilePicker');
-
-cardFilePicker.addEventListener('change',e=>{
-  const f=e.target.files&&e.target.files[0];
-  if(f&&tappedCardTarget){
-    readLogo(f,src=>tappedCardTarget.src=src);
-  }
-  e.target.value='';
-  tappedCardTarget=null;
-});
-
 function initSection(section){
   section.querySelectorAll('[data-shirt]').forEach(b=>b.addEventListener('click',()=>{section.style.setProperty('--shirt-color',b.dataset.shirt);section.style.setProperty('--shirt-brightness',b.dataset.brightness||'1');section.querySelectorAll('[data-shirt]').forEach(x=>x.classList.remove('active'));b.classList.add('active')}));
   section.querySelectorAll('[data-bg]').forEach(b=>b.addEventListener('click',()=>section.style.setProperty('--bg-color',b.dataset.bg)));
   section.querySelectorAll('.card').forEach(card=>{
     ['dragenter','dragover'].forEach(ev=>card.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();card.classList.add('logo-dragover')}));
     ['dragleave','drop'].forEach(ev=>card.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();card.classList.remove('logo-dragover')}));
-    card.addEventListener('drop',e=>{const target=card.querySelector('.logo-slot img'),f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f){readLogo(f,src=>target.src=src)}else if(draggedLibraryLogo){target.src=draggedLibraryLogo}});
-    card.addEventListener('click',e=>{
-      if(e.target.closest('button,input,label,select')) return;
-      tappedCardTarget=card.querySelector('.logo-slot img');
-      cardFilePicker.click();
-    });
+    card.addEventListener('drop',e=>{const target=card.querySelector('.logo-slot img'),f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f){readLogo(f,src=>target.src=src)}else if(draggedLibraryLogo){target.src=draggedLibraryLogo}})
   });
   section.querySelector('.duplicate-section').addEventListener('click',()=>{const c=section.cloneNode(true);sections.appendChild(c);initSection(c)});
 }
@@ -827,21 +797,7 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       y+=r.height+(i<rows.length-1?rowGap:0);
     });
 
-    out.toBlob(async b=>{
-      if(!b) throw new Error('No se pudo generar el PNG');
-      const file=new File([b],'propuestas-prendas.png',{type:'image/png'});
-      try{
-        if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-          await navigator.share({
-            files:[file],
-            title:'Propuesta de prendas'
-          });
-          return;
-        }
-      }catch(err){
-        if(err && err.name==='AbortError') return;
-        console.warn('Compartir no disponible, se descarga el PNG.',err);
-      }
+    out.toBlob(b=>{
       const u=URL.createObjectURL(b),a=document.createElement('a');
       a.href=u;a.download='propuestas-prendas.png';a.click();
       setTimeout(()=>URL.revokeObjectURL(u),1500);
@@ -853,8 +809,76 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
   }
 });
 </script>
+<input id="tapGarmentFile" type="file" accept=".svg,image/svg+xml,.png,image/png" style="display:none">
 
-<input id="cardFilePicker" type="file" accept=".svg,image/svg+xml,.png,image/png" style="display:none">
+<script>
+window.addEventListener('load',function(){
+  const picker=document.getElementById('tapGarmentFile');
+  let targetImg=null;
+
+  function bindTapToGarments(root){
+    (root||document).querySelectorAll('.card').forEach(function(card){
+      if(card.dataset.tapPickerBound==='1') return;
+      card.dataset.tapPickerBound='1';
+
+      card.addEventListener('click',function(e){
+        // Do not interfere with any existing buttons/controls.
+        if(e.target.closest('button,input,label,select,a')) return;
+
+        // A click generated immediately after a drag/drop must not open Files.
+        if(window.__logoWasDragging){
+          window.__logoWasDragging=false;
+          return;
+        }
+
+        targetImg=card.querySelector('.logo-slot img');
+        if(targetImg) picker.click();
+      });
+    });
+  }
+
+  picker.addEventListener('change',function(){
+    const f=picker.files && picker.files[0];
+    if(f && targetImg && typeof readLogo==='function'){
+      readLogo(f,function(src){ targetImg.src=src; });
+    }
+    picker.value='';
+    targetImg=null;
+  });
+
+  // Preserve original drag behavior and merely mark drag activity.
+  document.addEventListener('dragstart',function(){
+    window.__logoWasDragging=true;
+  },true);
+  document.addEventListener('dragend',function(){
+    setTimeout(function(){window.__logoWasDragging=false;},250);
+  },true);
+  document.addEventListener('drop',function(){
+    setTimeout(function(){window.__logoWasDragging=false;},250);
+  },true);
+
+  bindTapToGarments(document);
+
+  // Original + / duplicate creates new cards. Bind tap support to those new cards,
+  // without replacing or touching the original duplication code.
+  const sections=document.getElementById('sections');
+  if(sections){
+    new MutationObserver(function(){bindTapToGarments(sections);})
+      .observe(sections,{childList:true,subtree:true});
+  }
+
+  // Symbol: its original label/input already handles choosing a file.
+  // This only makes a tap on the empty/preview area explicitly open the same SVG/PNG picker.
+  const symbolDrop=document.getElementById('symbolDrop');
+  const symbolInput=document.getElementById('symbolInput');
+  if(symbolDrop && symbolInput){
+    symbolDrop.addEventListener('click',function(e){
+      if(e.target.closest('button')) return;
+      // Let the native label/input behavior work; don't prevent it.
+    });
+  }
+});
+</script>
 
 </body>
 </html>
