@@ -376,6 +376,71 @@ img{-webkit-user-drag:none;user-drag:none}
 }
 .touch-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+
+/* ===== Android / celular: interacción y bancos de logo ===== */
+html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
+.section-wrap,.section-toolbar,.toolbar,button,label,span,strong,small{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-touch-callout:none!important;
+}
+.logo-preview > img,
+.card img,
+#symbolPreview{
+  pointer-events:none!important;
+  -webkit-user-drag:none!important;
+  user-drag:none!important;
+}
+
+/* En celular, los dos logos superiores ocupan todo el ancho útil. */
+@media(max-width:600px){
+  .logo-master{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    gap:10px!important;
+  }
+  .logo-master > .logo-choice:not(.symbol-bank){
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+  }
+  .logo-master > .logo-info,
+  .logo-master > .symbol-bank,
+  .logo-master > .top-export,
+  .logo-master > .logo-note{
+    grid-column:1 / -1!important;
+  }
+  .logo-master > .logo-choice:not(.symbol-bank) .logo-preview{
+    width:100%!important;
+    min-height:150px!important;
+  }
+  .logo-master > .logo-choice:not(.symbol-bank) .dropzone{
+    width:100%!important;
+  }
+}
+
+.touch-toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%) translateY(18px);
+  z-index:999999;
+  background:rgba(18,18,20,.96);
+  color:white;
+  border:1px solid #3b3b40;
+  border-radius:999px;
+  padding:10px 15px;
+  font:13px Arial,Helvetica,sans-serif;
+  opacity:0;
+  pointer-events:none;
+  transition:.16s ease;
+  white-space:nowrap;
+}
+.touch-toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
 </style>
 </head>
 <body>
@@ -981,120 +1046,158 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
 <input id="garmentTapPicker" type="file" accept=".svg,image/svg+xml,.png,image/png" style="display:none">
 <div class="touch-toast" id="touchToast"></div>
 
+
+
+
 <script>
 window.addEventListener('load',function(){
   const picker=document.getElementById('garmentTapPicker');
   const toast=document.getElementById('touchToast');
-  let tapTargetImg=null;
-  let copiedDesignSrc='';
-  let copiedDesignName='';
 
-  function showToast(msg){
+  let copiedSrc='';
+  let copiedName='';
+  let tapTarget=null;
+  let suppressClickUntil=0;
+  let dragging=false;
+
+  function toastMsg(msg){
     if(!toast)return;
     toast.textContent=msg;
     toast.classList.add('show');
-    clearTimeout(showToast._t);
-    showToast._t=setTimeout(()=>toast.classList.remove('show'),1200);
+    clearTimeout(toastMsg._t);
+    toastMsg._t=setTimeout(()=>toast.classList.remove('show'),1200);
   }
 
-  function installLongPress(el,onLongPress,canRun){
-    if(!el || el.dataset.longPressBound==='1')return;
-    el.dataset.longPressBound='1';
-    let timer=null,startX=0,startY=0,active=false;
+  function bankFromTarget(target){
+    const preview=target.closest('#logoPreviewLight,#logoPreviewDark,#symbolPreviewWrap');
+    if(!preview)return null;
 
-    function cancel(){
-      if(timer){clearTimeout(timer);timer=null;}
-      active=false;
+    const img=preview.querySelector('img');
+    if(!img || !img.src)return null;
+
+    let name='Diseño';
+    if(preview.id==='logoPreviewLight')name='Logo claro';
+    if(preview.id==='logoPreviewDark')name='Logo oscuro';
+    if(preview.id==='symbolPreviewWrap')name='Símbolo';
+    return {preview,img,name};
+  }
+
+  function cardFromTarget(target){
+    return target.closest('.card');
+  }
+
+  // Stop Android/browser image context menus on the areas we manipulate.
+  document.addEventListener('contextmenu',function(e){
+    if(
+      e.target.closest('#logoPreviewLight,#logoPreviewDark,#symbolPreviewWrap,.card')
+    ){
+      e.preventDefault();
     }
+  },true);
 
-    el.addEventListener('pointerdown',function(e){
-      if(e.pointerType==='mouse')return;
-      if(e.target.closest('button,input,label,select,a'))return;
-      if(canRun && !canRun())return;
-      active=true;
-      startX=e.clientX;startY=e.clientY;
-      timer=setTimeout(function(){
-        timer=null;
-        if(active){
-          onLongPress(e);
-          active=false;
-          if(navigator.vibrate)try{navigator.vibrate(25)}catch(_){}
-        }
-      },650);
-    },{passive:true});
+  // Keep original drag/drop behavior untouched.
+  document.addEventListener('dragstart',function(e){
+    if(bankFromTarget(e.target))dragging=true;
+  },true);
+  document.addEventListener('dragend',function(){
+    setTimeout(()=>dragging=false,250);
+  },true);
+  document.addEventListener('drop',function(){
+    setTimeout(()=>dragging=false,250);
+  },true);
 
-    el.addEventListener('pointermove',function(e){
-      if(!active)return;
-      if(Math.hypot(e.clientX-startX,e.clientY-startY)>12)cancel();
-    },{passive:true});
-    el.addEventListener('pointerup',cancel,{passive:true});
-    el.addEventListener('pointercancel',cancel,{passive:true});
-    el.addEventListener('pointerleave',function(e){
-      if(e.pointerType!=='mouse')cancel();
-    },{passive:true});
-  }
+  // Short tap on ANY garment card (including clones) => choose SVG/PNG for that view.
+  document.addEventListener('click',function(e){
+    const card=cardFromTarget(e.target);
+    if(!card)return;
+    if(e.target.closest('button,input,label,select,a'))return;
+    if(dragging)return;
+    if(Date.now()<suppressClickUntil)return;
 
-  function bindGarmentCard(card){
-    if(card.dataset.tapLoadBound==='1')return;
-    card.dataset.tapLoadBound='1';
-    let pastedByLongPress=false;
-
-    card.addEventListener('click',function(e){
-      if(e.target.closest('button,input,label,select,a'))return;
-      if(pastedByLongPress){
-        pastedByLongPress=false;
-        return;
-      }
-      tapTargetImg=card.querySelector('.logo-slot img');
-      if(tapTargetImg)picker.click();
-    });
-
-    installLongPress(card,function(){
-      if(!copiedDesignSrc)return;
-      const img=card.querySelector('.logo-slot img');
-      if(img){
-        img.src=copiedDesignSrc;
-        pastedByLongPress=true;
-        showToast((copiedDesignName||'Diseño')+' pegado');
-      }
-    },function(){return !!copiedDesignSrc;});
-  }
+    tapTarget=card.querySelector('.logo-slot img');
+    if(tapTarget)picker.click();
+  },true);
 
   picker.addEventListener('change',function(){
     const f=picker.files&&picker.files[0];
-    if(f&&tapTargetImg&&typeof readLogo==='function'){
-      readLogo(f,function(src){tapTargetImg.src=src;});
+    if(f&&tapTarget&&typeof readLogo==='function'){
+      readLogo(f,function(src){tapTarget.src=src;});
     }
     picker.value='';
-    tapTargetImg=null;
+    tapTarget=null;
   });
 
-  [
-    ['logoPreviewLight','Logo claro'],
-    ['logoPreviewDark','Logo oscuro'],
-    ['symbolPreviewWrap','Símbolo']
-  ].forEach(function(pair){
-    const el=document.getElementById(pair[0]);
-    installLongPress(el,function(){
-      const img=el&&el.querySelector('img');
-      if(img&&img.src){
-        copiedDesignSrc=img.src;
-        copiedDesignName=pair[1];
-        showToast(pair[1]+' copiado');
-      }
-    },function(){
-      const img=el&&el.querySelector('img');
-      return !!(img&&img.src);
-    });
-  });
+  // One delegated long-press engine: no cloned data-* flags, so duplicated rows work too.
+  let pressTimer=null;
+  let pressStartX=0,pressStartY=0;
+  let pressTarget=null;
+  let pressKind='';
+  const LONG_MS=650;
+  const MOVE_TOL=12;
 
-  function bindAllCards(){
-    document.querySelectorAll('.card').forEach(bindGarmentCard);
+  function cancelPress(){
+    if(pressTimer){clearTimeout(pressTimer);pressTimer=null;}
+    pressTarget=null;
+    pressKind='';
   }
-  bindAllCards();
 
-  const sections=document.getElementById('sections');
-  if(sections)new MutationObserver(bindAllCards).observe(sections,{childList:true,subtree:true});
+  document.addEventListener('pointerdown',function(e){
+    if(e.pointerType==='mouse')return;
+    if(e.target.closest('button,input,label,select,a'))return;
+
+    const bank=bankFromTarget(e.target);
+    const card=cardFromTarget(e.target);
+
+    if(bank){
+      pressTarget=bank;
+      pressKind='copy';
+    }else if(card && copiedSrc){
+      pressTarget=card;
+      pressKind='paste';
+    }else{
+      return;
+    }
+
+    pressStartX=e.clientX;
+    pressStartY=e.clientY;
+
+    pressTimer=setTimeout(function(){
+      pressTimer=null;
+
+      if(pressKind==='copy' && pressTarget){
+        copiedSrc=pressTarget.img.src;
+        copiedName=pressTarget.name;
+        toastMsg(copiedName+' copiado');
+        suppressClickUntil=Date.now()+800;
+      }
+
+      if(pressKind==='paste' && pressTarget && copiedSrc){
+        const targetImg=pressTarget.querySelector('.logo-slot img');
+        if(targetImg){
+          targetImg.src=copiedSrc;
+          toastMsg((copiedName||'Diseño')+' pegado');
+          suppressClickUntil=Date.now()+800;
+        }
+      }
+
+      if(navigator.vibrate){
+        try{navigator.vibrate(25)}catch(_){}
+      }
+      pressTarget=null;
+      pressKind='';
+    },LONG_MS);
+  },{passive:true,capture:true});
+
+  document.addEventListener('pointermove',function(e){
+    if(!pressTimer)return;
+    if(Math.hypot(e.clientX-pressStartX,e.clientY-pressStartY)>MOVE_TOL){
+      cancelPress();
+    }
+  },{passive:true,capture:true});
+
+  ['pointerup','pointercancel'].forEach(function(ev){
+    document.addEventListener(ev,cancelPress,{passive:true,capture:true});
+  });
 });
 </script>
 
