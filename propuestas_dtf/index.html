@@ -1046,7 +1046,7 @@ if(window.pdfjsLib){
   </div>
 </div>
 
-<div class="top-export"><button class="export-btn" id="exportPng" type="button">Compartir PNG</button></div>
+<div class="top-export" style="gap:8px;flex-wrap:wrap"><button class="export-btn" id="exportPng" type="button">Compartir PNG</button><button class="export-btn" id="downloadPngHd" type="button">Descargar PNG HD</button></div>
   <div class="logo-note">Los dos logos quedan guardados arriba como opciones. No cambian ninguna prenda automáticamente: arrastrá el claro o el oscuro sobre Pecho, Hombro o Espalda.</div>
   </div>
   <div id="sections"><div class="section-wrap garment-section" data-garment="remera" data-preset="remera" style="--shirt-color:#d9d9d9;--shirt-brightness:1;--bg-color:#171717">
@@ -2334,14 +2334,15 @@ async function renderModelRow(imgEls,width){
   return row;
 }
 
-document.getElementById('exportPng').addEventListener('click',async()=>{
-  const btn=document.getElementById('exportPng');
+async function exportProposalPng(mode='share'){
+  const btn=document.getElementById(mode==='hd'?'downloadPngHd':'exportPng');
 
   const old=btn.textContent;
-  btn.textContent='Preparando para compartir…';btn.disabled=true;
+  btn.textContent=mode==='hd'?'Generando PNG HD…':'Preparando para compartir…';btn.disabled=true;
   try{
     const ss=[...document.querySelectorAll('.garment-section')];
-    const size=1400;
+    // Compartir usa una versión más liviana; HD conserva la resolución alta.
+    const size=mode==='hd'?1400:900;
     const gap=Math.round(size*(14/358));
     const outer=Math.round(gap/2);
     const rowGap=gap;
@@ -2544,27 +2545,47 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
     const b=await new Promise(resolve=>out.toBlob(resolve,'image/png'));
     if(!b)throw new Error('No se pudo generar el PNG.');
 
-    const file=new File([b],'propuestas-prendas.png',{type:'image/png'});
-    try{
-      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-        await navigator.share({files:[file],title:'Propuesta de prendas'});
-      }else{
-        const u=URL.createObjectURL(b),a=document.createElement('a');
-        a.href=u;
-        a.download='propuestas-prendas.png';
-        a.click();
-        setTimeout(()=>URL.revokeObjectURL(u),1800);
+    const filename=mode==='hd'?'propuestas-prendas-HD.png':'propuestas-prendas.png';
+    const file=new File([b],filename,{type:'image/png'});
+
+    if(mode==='hd'){
+      // HD nunca intenta abrir WhatsApp: se descarga al dispositivo.
+      const u=URL.createObjectURL(b),a=document.createElement('a');
+      a.href=u;
+      a.download=filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(u),2500);
+      if(typeof showTouchToast==='function')showTouchToast('PNG HD descargado');
+    }else{
+      try{
+        if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+          await navigator.share({files:[file],title:'Propuesta de prendas'});
+        }else{
+          const u=URL.createObjectURL(b),a=document.createElement('a');
+          a.href=u;
+          a.download=filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(()=>URL.revokeObjectURL(u),1800);
+        }
+      }catch(err){
+        if(err && err.name!=='AbortError')throw err;
       }
-    }catch(err){
-      if(err && err.name!=='AbortError')throw err;
     }
   }catch(e){
-    console.error(e);alert('No se pudo compartir el PNG.');
+    console.error(e);
+    alert(mode==='hd'?'No se pudo descargar el PNG HD.':'No se pudo compartir el PNG.');
   }finally{
     btn.textContent=old;
     btn.disabled=false;
   }
-});
+}
+
+document.getElementById('exportPng').addEventListener('click',()=>exportProposalPng('share'));
+document.getElementById('downloadPngHd').addEventListener('click',()=>exportProposalPng('hd'));
 </script>
 <input id="garmentTapPicker" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf" style="display:none">
 <div class="touch-toast" id="touchToast"></div>
