@@ -1047,6 +1047,35 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   display:none!important;
 }
 
+
+.bank-label{
+  position:absolute;
+  z-index:35;
+  left:10px;
+  top:10px;
+  max-width:calc(100% - 54px);
+  padding:5px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:.01em;
+  background:rgba(0,0,0,.38);
+  color:#fff;
+  backdrop-filter:blur(5px);
+  pointer-events:none;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#bankLight .bank-label,
+#graphicDrop .bank-label,
+#symbolDrop .bank-label{
+  background:rgba(255,255,255,.74);
+  color:#242428;
+  border:1px solid rgba(0,0,0,.08);
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1088,7 +1117,7 @@ if(window.pdfjsLib){
 <body>
 <div class="app">
   <div class="logo-master">
-    <div class="logo-choice light" id="bankLight"><button class="bank-hide-top" data-bank-hide="light" type="button" title="Ocultar logo">×</button>
+    <div class="logo-choice light" id="bankLight"><button class="bank-hide-top" data-bank-hide="light" type="button" title="Ocultar logo">×</button><div class="bank-label">Logo claro</div>
       <label class="dropzone" id="logoDropLight">Logo para prendas claras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputLight" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
       <div class="logo-preview" id="logoPreviewLight" draggable="true" title="Arrastrá este logo sobre una vista">
         <div class="white-toggle-wrap">
@@ -1101,7 +1130,7 @@ if(window.pdfjsLib){
         <div class="outline-level" id="lightOutlineLevel">Filete 0</div>
 <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Logo para prendas claras"></div>
     </div>
-    <div class="logo-choice dark" id="bankDark"><button class="bank-hide-top" data-bank-hide="dark" type="button" title="Ocultar logo">×</button>
+    <div class="logo-choice dark" id="bankDark"><button class="bank-hide-top" data-bank-hide="dark" type="button" title="Ocultar logo">×</button><div class="bank-label">Logo oscuro</div>
       <label class="dropzone" id="logoDropDark">Logo para prendas oscuras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputDark" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
       <div class="logo-preview" id="logoPreviewDark" draggable="true" title="Arrastrá este logo sobre una vista">
         <div class="white-toggle-wrap">
@@ -1115,7 +1144,7 @@ if(window.pdfjsLib){
 <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Logo para prendas oscuras"></div>
     </div>
     
-<div class="logo-choice light graphic-bank symbol-bank" id="graphicDrop"><button class="bank-hide-top" id="graphicRemove" data-bank-hide="graphic" type="button" title="Ocultar dibujo gráfico">×</button>
+<div class="logo-choice light graphic-bank symbol-bank" id="graphicDrop"><button class="bank-hide-top" id="graphicRemove" data-bank-hide="graphic" type="button" title="Ocultar dibujo gráfico">×</button><div class="bank-label">Dibujo gráfico</div>
   <label class="dropzone" for="graphicInput">
     Dibujo gráfico
     <small>Arrastrá o elegí SVG / PNG / JPG / PDF</small>
@@ -1135,7 +1164,7 @@ if(window.pdfjsLib){
   </div>
 </div>
 
-<div class="logo-choice light symbol-bank" id="symbolDrop"><button class="bank-hide-top" id="symbolRemove" data-bank-hide="symbol" type="button" title="Ocultar símbolo">×</button>
+<div class="logo-choice light symbol-bank" id="symbolDrop"><button class="bank-hide-top" id="symbolRemove" data-bank-hide="symbol" type="button" title="Ocultar símbolo">×</button><div class="bank-label">Símbolo</div>
   <label class="dropzone" for="symbolInput">
     Símbolo
     <small>Arrastrá o elegí SVG / PNG / JPG / PDF</small>
