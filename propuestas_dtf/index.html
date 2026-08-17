@@ -1201,6 +1201,40 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   .model-text{padding:44px 10px 10px;font-size:12px}
 }
 
+
+.background-file{display:inline-flex;align-items:center;justify-content:center}
+.background-file input{display:none}
+.background-clear{
+  display:none;
+  width:34px;height:34px;min-width:34px;min-height:34px;
+  border-radius:50%;border:1px solid #3b3b40;background:#18181b;
+  color:#fff;font-size:19px;cursor:pointer;
+}
+.background-clear.show{display:inline-flex;align-items:center;justify-content:center}
+@media(max-width:560px){
+  .company-export{grid-template-columns:1fr auto auto auto!important}
+  .background-file{font-size:10px!important;padding:7px 8px!important}
+}
+
+
+.model-slot[data-mode="text"]{
+  border-color:transparent!important;
+  background:transparent!important;
+  overflow:visible!important;
+}
+.model-slot[data-mode="text"] .model-text{
+  background:transparent!important;
+  color:#dcdce0!important;
+  border:0!important;
+  border-radius:0!important;
+  padding:48px 10px 10px!important;
+}
+.model-slot.has-text:not(.model-hidden-slot){
+  flex-grow:var(--text-weight,1.15)!important;
+  aspect-ratio:auto!important;
+  min-height:180px;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1308,7 +1342,12 @@ if(window.pdfjsLib){
 </div>
 
 <div class="bank-hidden-tools" id="bankHiddenTools"></div>
-<div class="top-export"><div class="company-export"><input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa"><button class="export-btn" id="exportPng" type="button">Compartir imagen</button></div></div>
+<div class="top-export"><div class="company-export">
+<input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa">
+<label class="export-btn background-file" id="backgroundLabel">Agregar fondo<input id="backgroundInput" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg"></label>
+<button class="background-clear" id="backgroundClear" type="button" title="Quitar fondo">×</button>
+<button class="export-btn" id="exportPng" type="button">Compartir imagen</button>
+</div></div>
   <div class="logo-note">Los dos logos quedan guardados arriba como opciones. No cambian ninguna prenda automáticamente: arrastrá el claro o el oscuro sobre Pecho, Hombro o Espalda.</div>
   </div>
   <div id="sections"><div class="section-wrap garment-section" data-garment="remera" data-preset="remera" style="--shirt-color:#d9d9d9;--shirt-brightness:1;--bg-color:#171717">
@@ -2430,48 +2469,60 @@ function drawWrappedText(ctx,text,x,y,maxWidth,lineHeight){
 
 function renderPricingFooter(pricing,width){
   const pad=Math.round(width*.022);
-  const cardH=Math.round(width*.145);
+  const cardH=Math.round(width*.075);
   const c=document.createElement('canvas');
   c.width=width;c.height=cardH;
   const x=c.getContext('2d');
   x.clearRect(0,0,c.width,c.height);
 
-  // La tarjeta ocupa todo el ancho disponible: su borde queda alineado
-  // con el mismo margen exterior que prendas, modelos y encabezado.
-  const innerX=0,innerY=0,innerW=width,innerH=cardH;
   x.fillStyle='#f2f2f2';
-  roundedRect(x,innerX,innerY,innerW,innerH,Math.round(width*.014));x.fill();
+  roundedRect(x,0,0,width,cardH,Math.round(width*.014));x.fill();
 
-  const titleSize=Math.round(width*.017);
-  const valueSize=Math.round(width*.019);
-  const labelSize=Math.round(width*.0105);
-  const noteSize=Math.round(width*.011);
-  x.fillStyle='#242428';x.textBaseline='top';
-  x.font=`700 ${titleSize}px Arial,Helvetica,sans-serif`;
-  x.fillText('Precios por unidad',pad,Math.round(pad*.75));
+  const titleSize=Math.round(width*.0145);
+  const itemSize=Math.round(width*.0115);
+  const noteSize=Math.round(width*.0095);
+  const cy=Math.round(cardH*.29);
+
+  x.textBaseline='middle';
+  x.fillStyle='#242428';
+  x.font=`800 ${titleSize}px Arial,Helvetica,sans-serif`;
+  x.fillText('Precios por unidad',pad,cy);
+
+  let cursor=pad+x.measureText('Precios por unidad').width+Math.round(pad*.85);
 
   const items=[];
-  if(pricing.small)items.push(['Estampado chico',formatPrice(pricing.small)]);
-  if(pricing.large)items.push(['Estampado grande',formatPrice(pricing.large)]);
-  if(pricing.combo)items.push(['Combo 3 detalles',formatPrice(pricing.combo)]);
+  if(pricing.small)items.push(`Chico ${formatPrice(pricing.small)}`);
+  if(pricing.large)items.push(`Grande ${formatPrice(pricing.large)}`);
+  if(pricing.combo)items.push(`Combo 3 ${formatPrice(pricing.combo)}`);
 
-  const contentTop=Math.round(pad*2.7);
-  const noteReserve=pricing.note?Math.round(cardH*.27):0;
-  const availableW=innerW-pad*2;
-  const colW=items.length?availableW/items.length:availableW;
-  items.forEach((item,i)=>{
-    const cx=pad+i*colW;
-    x.fillStyle='#68686f';x.font=`${labelSize}px Arial,Helvetica,sans-serif`;x.fillText(item[0],cx,contentTop);
-    x.fillStyle='#202024';x.font=`700 ${valueSize}px Arial,Helvetica,sans-serif`;x.fillText(item[1],cx,contentTop+Math.round(labelSize*1.75));
+  x.font=`700 ${itemSize}px Arial,Helvetica,sans-serif`;
+  items.forEach((txt,i)=>{
+    if(i){
+      x.fillStyle='#a0a0a5';
+      x.fillText('•',cursor,cy);
+      cursor+=Math.round(pad*.45);
+    }
+    x.fillStyle='#444449';
+    x.fillText(txt,cursor,cy);
+    cursor+=x.measureText(txt).width+Math.round(pad*.55);
   });
+
   if(pricing.note){
-    const ny=innerH-noteReserve+Math.round(pad*.25);
-    x.fillStyle='#4b4b50';x.font=`${noteSize}px Arial,Helvetica,sans-serif`;
-    drawWrappedText(x,pricing.note,pad,ny,availableW,Math.round(noteSize*1.35));
+    x.textBaseline='top';
+    x.fillStyle='#68686e';
+    x.font=`${noteSize}px Arial,Helvetica,sans-serif`;
+    drawWrappedText(
+      x,
+      pricing.note,
+      pad,
+      Math.round(cardH*.58),
+      width-pad*2,
+      Math.round(noteSize*1.25)
+    );
   }
+
   return c;
 }
-
 
 
 ['priceSmall','priceLarge','priceCombo','priceNote'].forEach(id=>{
@@ -2482,6 +2533,53 @@ function renderPricingFooter(pricing,width){
     });
   }
 });
+
+
+let exportBackgroundSrc='';
+const backgroundInput=document.getElementById('backgroundInput');
+const backgroundLabel=document.getElementById('backgroundLabel');
+const backgroundClear=document.getElementById('backgroundClear');
+
+if(backgroundInput){
+  backgroundInput.addEventListener('change',()=>{
+    const file=backgroundInput.files&&backgroundInput.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      exportBackgroundSrc=reader.result;
+      if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
+      backgroundClear?.classList.add('show');
+      if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+if(backgroundClear){
+  backgroundClear.addEventListener('click',()=>{
+    exportBackgroundSrc='';
+    if(backgroundInput)backgroundInput.value='';
+    if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Agregar fondo ';
+    backgroundClear.classList.remove('show');
+    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+  });
+}
+
+async function drawExportBackground(ctx,width,height){
+  if(!exportBackgroundSrc){
+    ctx.fillStyle='#d8d8da';
+    ctx.fillRect(0,0,width,height);
+    return;
+  }
+  const im=await loadImg(exportBackgroundSrc);
+  const iw=im.naturalWidth||im.width;
+  const ih=im.naturalHeight||im.height;
+  const scale=Math.max(width/iw,height/ih);
+  const dw=iw*scale,dh=ih*scale;
+  ctx.drawImage(im,(width-dw)/2,(height-dh)/2,dw,dh);
+  // Velo muy suave para que títulos y textos sigan siendo legibles.
+  ctx.fillStyle='rgba(230,230,232,.18)';
+  ctx.fillRect(0,0,width,height);
+}
 
 const companyNameInput=document.getElementById('companyName');
 if(companyNameInput){companyNameInput.addEventListener('input',()=>{if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();});}
@@ -2596,19 +2694,26 @@ function setupModelSlot(n){
 
 [1,2,3].forEach(setupModelSlot);
 
+
 function getModelBlocks(){
   return [1,2,3].map(n=>{
     const slot=document.getElementById('modelSlot'+n);
     if(!slot || slot.classList.contains('model-hidden-slot'))return null;
     const mode=slot.dataset.mode||'image';
+
     if(mode==='text'){
       const text=slot.querySelector('.model-text')?.value.trim()||'';
-      return text?{type:'text',text,ratio:.9}:null;
+      if(!text)return null;
+      // Más texto = más peso horizontal. El texto tiene prioridad.
+      const weight=Math.max(.90,Math.min(1.75,.82+text.length/260));
+      slot.style.setProperty('--text-weight',weight);
+      return {type:'text',text,weight};
     }
+
     const img=slot.querySelector('img');
     if(!img?.getAttribute('src'))return null;
     const w=img.naturalWidth||1,h=img.naturalHeight||1;
-    return {type:'image',img,ratio:Math.max(.45,Math.min(3,w/h))};
+    return {type:'image',img,naturalRatio:Math.max(.55,Math.min(2.6,w/h))};
   }).filter(Boolean);
 }
 
@@ -2622,8 +2727,7 @@ function wrapTextLines(ctx,text,maxWidth){
     for(const word of words){
       const test=line?line+' '+word:word;
       if(ctx.measureText(test).width>maxWidth && line){
-        lines.push(line);
-        line=word;
+        lines.push(line);line=word;
       }else line=test;
     }
     if(line)lines.push(line);
@@ -2631,68 +2735,97 @@ function wrapTextLines(ctx,text,maxWidth){
   return lines;
 }
 
+function textMetricsForBox(ctx,text,width,maxHeight){
+  const pad=Math.max(28,Math.round(width*.06));
+  let fontSize=Math.max(28,Math.round(width*.055));
+  const minFont=22;
+  let lines=[],lineH=0;
+
+  while(fontSize>=minFont){
+    ctx.font=`700 ${fontSize}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+    lines=wrapTextLines(ctx,text,width-pad*2);
+    lineH=Math.round(fontSize*1.35);
+    if(lines.length*lineH<=maxHeight-pad*2)break;
+    fontSize-=2;
+  }
+  return {pad,fontSize,lines,lineH,needed:lines.length*lineH+pad*2};
+}
+
 async function renderModelBlocks(blocks,width,margin,gap){
   if(!blocks.length)return null;
 
   const innerW=width-margin*2;
-  const usable=innerW-(blocks.length-1)*gap;
-  const ratioSum=blocks.reduce((s,b)=>s+b.ratio,0);
-  const commonH=Math.max(1,Math.floor(usable/ratioSum));
+  const count=blocks.length;
+  const usableW=innerW-(count-1)*gap;
+
+  // Primero se reservan anchos. Texto largo recibe más espacio;
+  // las imágenes ceden un poco, sin desaparecer ni deformarse.
+  const textBlocks=blocks.filter(b=>b.type==='text');
+  const imageBlocks=blocks.filter(b=>b.type==='image');
+
+  let weights=blocks.map(b=>{
+    if(b.type==='text')return b.weight;
+    // Con texto presente, las imágenes se vuelven un poco más compactas.
+    return textBlocks.length ? Math.max(.72,Math.min(1.15,b.naturalRatio*.72)) :
+      Math.max(.80,Math.min(1.5,b.naturalRatio));
+  });
+
+  const weightSum=weights.reduce((a,b)=>a+b,0);
+  const widths=weights.map(w=>Math.floor(usableW*w/weightSum));
+
+  // Altura base armoniosa. Si el texto no entra, la fila crece.
+  let rowH=Math.round(innerW*(count===1?.34:count===2?.30:.27));
+  rowH=Math.max(380,Math.min(760,rowH));
+
+  const scratch=document.createElement('canvas').getContext('2d');
+  for(let i=0;i<blocks.length;i++){
+    if(blocks[i].type!=='text')continue;
+    const metrics=textMetricsForBox(scratch,blocks[i].text,widths[i],rowH);
+    if(metrics.needed>rowH)rowH=Math.min(980,metrics.needed);
+  }
 
   const row=document.createElement('canvas');
   row.width=width;
-  row.height=commonH;
+  row.height=rowH;
   const ctx=row.getContext('2d');
   ctx.clearRect(0,0,row.width,row.height);
 
   let x=margin;
-  for(const block of blocks){
-    const boxW=Math.max(1,Math.round(commonH*block.ratio));
-    const boxH=commonH;
-    const radius=Math.round(Math.min(boxW,boxH)*.045);
-
-    ctx.save();
-    roundedRect(ctx,x,0,boxW,boxH,radius);
-    ctx.clip();
+  for(let i=0;i<blocks.length;i++){
+    const block=blocks[i];
+    const boxW=widths[i];
+    const boxH=rowH;
 
     if(block.type==='image'){
-      ctx.fillStyle='#ffffff';ctx.fillRect(x,0,boxW,boxH);
       const im=await loadImg(block.img.src);
-      const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
+      const iw=im.naturalWidth||im.width;
+      const ih=im.naturalHeight||im.height;
+
+      // Imagen encapsulada y redondeada, manteniendo proporción por cover.
+      ctx.save();
+      roundedRect(ctx,x,0,boxW,boxH,Math.round(Math.min(boxW,boxH)*.045));
+      ctx.clip();
       const scale=Math.max(boxW/iw,boxH/ih);
       const dw=iw*scale,dh=ih*scale;
       ctx.drawImage(im,x+(boxW-dw)/2,(boxH-dh)/2,dw,dh);
+      ctx.restore();
     }else{
-      ctx.fillStyle='#f2f2f1';ctx.fillRect(x,0,boxW,boxH);
+      // Texto directo sobre el fondo general, sin tarjeta ni cuadrado.
+      const metrics=textMetricsForBox(ctx,block.text,boxW,boxH);
+      const totalH=metrics.lines.length*metrics.lineH;
+      let ty=Math.max(metrics.pad,Math.round((boxH-totalH)/2));
 
-      const pad=Math.round(boxW*.085);
-      const maxW=boxW-pad*2;
-      let fontSize=Math.round(Math.min(boxW*.065,boxH*.055));
-      const minFont=Math.max(22,Math.round(fontSize*.68));
-      let lines=[];
-
-      while(fontSize>=minFont){
-        ctx.font=`700 ${fontSize}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
-        lines=wrapTextLines(ctx,block.text,maxW);
-        const lineH=Math.round(fontSize*1.34);
-        if(lines.length*lineH<=boxH-pad*2)break;
-        fontSize-=2;
-      }
-
-      const lineH=Math.round(fontSize*1.34);
-      const totalH=lines.length*lineH;
-      let ty=Math.max(pad,Math.round((boxH-totalH)/2));
-      ctx.fillStyle='#2b2b2f';
+      ctx.fillStyle='#29292d';
       ctx.textAlign='left';
       ctx.textBaseline='top';
-      ctx.font=`700 ${fontSize}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
-      for(const line of lines){
-        if(line)ctx.fillText(line,x+pad,ty,maxW);
-        ty+=lineH;
+      ctx.font=`700 ${metrics.fontSize}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+
+      for(const line of metrics.lines){
+        if(line)ctx.fillText(line,x+metrics.pad,ty,boxW-metrics.pad*2);
+        ty+=metrics.lineH;
       }
     }
 
-    ctx.restore();
     x+=boxW+gap;
   }
   return row;
@@ -2748,7 +2881,7 @@ function drawCompanyMark(ctx,name,x,y,maxW,maxH){
   if(!p.bottom){
     const f=fitRoundedFont(ctx,p.top,maxW,Math.round(maxH*.42));
     ctx.font=`900 ${f.size}px ${f.family}`;
-    ctx.fillText(p.top,x,y+Math.round((maxH-f.size)*.42),maxW);
+    ctx.fillText(p.top,x,y+Math.round((maxH-f.size)*.32),maxW);
   }else{
     const start=Math.round(maxH*.28);
     const f1=fitRoundedFont(ctx,p.top,maxW,start);
@@ -2757,7 +2890,7 @@ function drawCompanyMark(ctx,name,x,y,maxW,maxH){
     const family=f1.family;
     const lineH=Math.round(size*.82); // líneas deliberadamente cercanas, tipo logotipo
     let total=lineH*2;
-    let sy=y+Math.max(0,Math.round((maxH-total)/2));
+    let sy=y+Math.max(0,Math.round((maxH-total)/2)-Math.round(maxH*.06));
     ctx.font=`900 ${size}px ${family}`;
     ctx.fillText(p.top,x,sy,maxW);
     if(p.joiner){
@@ -2858,8 +2991,8 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
 
     const resourceCount=(hasLight?1:0)+(hasDark?1:0)+(hasGraphic?1:0)+(hasSymbol?1:0);
     if(companyName||resourceCount){
-      const headerH=Math.round(cardSize*.62);
-      const resourceSize=Math.round(headerH*.96);
+      const headerH=Math.round(cardSize*.70);
+      const resourceSize=Math.round(headerH*.84);
       const header=document.createElement('canvas');
       header.width=baseWidth;header.height=headerH;
       const h=header.getContext('2d');h.clearRect(0,0,header.width,header.height);
@@ -2877,17 +3010,24 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       }
       const textX=margin;
       const available=Math.max(0,rightX-textX-gap);
-      if(available>Math.round(cardSize*.48)){
-        const nameH=Math.round(headerH*.78);
-        drawCompanyMark(h,companyName||'Propuesta de prendas',textX,Math.round(headerH*.03),available,nameH);
-        if(available>Math.round(cardSize*.90)){
-          h.fillStyle='#35353a';
-          h.font=`900 ${Math.round(headerH*.060)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
-          h.fillText('IDENTIDAD VISUAL',textX,Math.round(headerH*.80),available);
-          h.fillStyle='#606066';
-          h.font=`700 ${Math.round(headerH*.053)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
-          drawWrappedText(h,exportDescription(hasLight,hasDark,hasGraphic,hasSymbol),textX,Math.round(headerH*.885),available,Math.round(headerH*.070));
-        }
+      if(available>Math.round(cardSize*.36)){
+        const nameH=Math.round(headerH*.66);
+        drawCompanyMark(h,companyName||'Propuesta de prendas',textX,Math.round(headerH*.01),available,nameH);
+
+        h.fillStyle='#35353a';
+        h.font=`900 ${Math.round(headerH*.050)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+        h.fillText('IDENTIDAD VISUAL',textX,Math.round(headerH*.70),available);
+
+        h.fillStyle='#606066';
+        h.font=`700 ${Math.round(headerH*.043)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+        drawWrappedText(
+          h,
+          exportDescription(hasLight,hasDark,hasGraphic,hasSymbol),
+          textX,
+          Math.round(headerH*.79),
+          available,
+          Math.round(headerH*.058)
+        );
       }
       rows.push(header);
     }
@@ -2923,7 +3063,7 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
     out.width=baseWidth;
     out.height=margin*2+contentHeight+Math.max(0,blockCount-1)*rowGap;
     const o=out.getContext('2d');
-    o.fillStyle='#d8d8da';o.fillRect(0,0,out.width,out.height);
+    await drawExportBackground(o,out.width,out.height);
 
     let y=margin;
     rows.forEach(r=>{o.drawImage(r,0,y);y+=r.height+rowGap;});
