@@ -1016,6 +1016,37 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   cursor:pointer;
 }
 
+
+#bankLight,#bankDark,#symbolDrop,#graphicDrop{position:relative!important}
+.bank-hide-top{
+  position:absolute!important;
+  z-index:40!important;
+  right:8px!important;
+  top:8px!important;
+  left:auto!important;
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  min-height:30px!important;
+  border-radius:50%!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  background:rgba(0,0,0,.56)!important;
+  color:#fff!important;
+  font-size:20px!important;
+  line-height:26px!important;
+  cursor:pointer!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  backdrop-filter:blur(6px);
+}
+#bankLight:not(.bank-has-content) .bank-hide-top,
+#bankDark:not(.bank-has-content) .bank-hide-top,
+#symbolDrop:not(.has-symbol) .bank-hide-top,
+#graphicDrop:not(.has-graphic) .bank-hide-top{
+  display:none!important;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1057,9 +1088,9 @@ if(window.pdfjsLib){
 <body>
 <div class="app">
   <div class="logo-master">
-    <div class="logo-choice light" id="bankLight">
+    <div class="logo-choice light" id="bankLight"><button class="bank-hide-top" data-bank-hide="light" type="button" title="Ocultar logo">×</button>
       <label class="dropzone" id="logoDropLight">Logo para prendas claras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputLight" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
-      <div class="logo-preview" id="logoPreviewLight" draggable="true" title="Arrastrá este logo sobre una vista"><button class="bank-hide-main" data-bank-hide="light" type="button" title="Ocultar logo">×</button>
+      <div class="logo-preview" id="logoPreviewLight" draggable="true" title="Arrastrá este logo sobre una vista">
         <div class="white-toggle-wrap">
           <button class="white-toggle" id="blackToggle" type="button" title="Convertir logo a negro">↻</button>
         </div>
@@ -1070,9 +1101,9 @@ if(window.pdfjsLib){
         <div class="outline-level" id="lightOutlineLevel">Filete 0</div>
 <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Logo para prendas claras"></div>
     </div>
-    <div class="logo-choice dark" id="bankDark">
+    <div class="logo-choice dark" id="bankDark"><button class="bank-hide-top" data-bank-hide="dark" type="button" title="Ocultar logo">×</button>
       <label class="dropzone" id="logoDropDark">Logo para prendas oscuras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputDark" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
-      <div class="logo-preview" id="logoPreviewDark" draggable="true" title="Arrastrá este logo sobre una vista"><button class="bank-hide-main" data-bank-hide="dark" type="button" title="Ocultar logo">×</button>
+      <div class="logo-preview" id="logoPreviewDark" draggable="true" title="Arrastrá este logo sobre una vista">
         <div class="white-toggle-wrap">
           <button class="white-toggle" id="whiteToggle" type="button" title="Convertir logo a blanco">↻</button>
         </div>
@@ -1084,7 +1115,7 @@ if(window.pdfjsLib){
 <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Logo para prendas oscuras"></div>
     </div>
     
-<div class="logo-choice light graphic-bank symbol-bank" id="graphicDrop">
+<div class="logo-choice light graphic-bank symbol-bank" id="graphicDrop"><button class="bank-hide-top" id="graphicRemove" data-bank-hide="graphic" type="button" title="Ocultar dibujo gráfico">×</button>
   <label class="dropzone" for="graphicInput">
     Dibujo gráfico
     <small>Arrastrá o elegí SVG / PNG / JPG / PDF</small>
@@ -1098,13 +1129,13 @@ if(window.pdfjsLib){
               title="Invertir colores">↻</button>
     </div>
 
-    <button class="symbol-remove bank-hide-main" id="graphicRemove" data-bank-hide="graphic" type="button" title="Ocultar dibujo gráfico">×</button>
+    
 
     <img id="graphicPreview" alt="Dibujo gráfico">
   </div>
 </div>
 
-<div class="logo-choice light symbol-bank" id="symbolDrop">
+<div class="logo-choice light symbol-bank" id="symbolDrop"><button class="bank-hide-top" id="symbolRemove" data-bank-hide="symbol" type="button" title="Ocultar símbolo">×</button>
   <label class="dropzone" for="symbolInput">
     Símbolo
     <small>Arrastrá o elegí SVG / PNG / JPG / PDF</small>
@@ -1118,7 +1149,7 @@ if(window.pdfjsLib){
               title="Alternar símbolo blanco / negro">↻</button>
     </div>
 
-    <button class="symbol-remove bank-hide-main" id="symbolRemove" data-bank-hide="symbol" type="button" title="Ocultar símbolo">×</button>
+    
 
     <img id="symbolPreview" alt="Símbolo">
   </div>
@@ -2557,8 +2588,7 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       imageBankHasContent(graphicPreview);
     const companyName=(document.getElementById('companyName')?.value||'').trim();
 
-    const primaryLogo=hasLight?lightImg:(hasDark?darkImg:null);
-    const resourceCount=(primaryLogo?1:0)+(hasGraphic?1:0)+(hasSymbol?1:0);
+    const resourceCount=(hasLight?1:0)+(hasDark?1:0)+(hasGraphic?1:0)+(hasSymbol?1:0);
     if(companyName||resourceCount){
       const headerH=Math.round(cardSize*.62);
       const resourceSize=Math.round(headerH*.96);
@@ -2566,8 +2596,9 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       header.width=baseWidth;header.height=headerH;
       const h=header.getContext('2d');h.clearRect(0,0,header.width,header.height);
       const resources=[];
-      if(primaryLogo)resources.push({img:primaryLogo,bg:hasLight?'#ededed':'#26282d',shape:'rounded'});
-      if(hasGraphic)resources.push({img:graphicPreview,bg:'#ededed',shape:'rounded'});
+      if(hasLight)resources.push({img:lightImg,bg:'#ededed',shape:'rounded'});
+      if(hasDark)resources.push({img:darkImg,bg:'#26282d',shape:'rounded'});
+      if(hasGraphic)resources.push({img:graphicPreview,bg:'#ededed',shape:'circle'});
       if(hasSymbol)resources.push({img:symbolPreview,bg:'#f1f1f1',shape:'circle'});
       let rightX=baseWidth-margin;
       for(let i=resources.length-1;i>=0;i--){
