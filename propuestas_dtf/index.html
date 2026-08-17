@@ -1235,6 +1235,20 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   min-height:180px;
 }
 
+
+.background-thumb{
+  width:42px;height:34px;border-radius:8px;overflow:hidden;
+  border:1px solid #3b3b40;background:#18181b;display:none;
+}
+.background-thumb.show{display:block}
+.background-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+body.has-export-background{
+  background-position:center center!important;
+  background-size:cover!important;
+  background-attachment:fixed!important;
+  background-repeat:no-repeat!important;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1345,7 +1359,9 @@ if(window.pdfjsLib){
 <div class="top-export"><div class="company-export">
 <input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa">
 <label class="export-btn background-file" id="backgroundLabel">Agregar fondo<input id="backgroundInput" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg"></label>
+<div class="background-thumb" id="backgroundThumb" title="Vista previa del fondo"><img id="backgroundThumbImg" alt=""></div>
 <button class="background-clear" id="backgroundClear" type="button" title="Quitar fondo">×</button>
+<button class="export-btn" id="saveZip" type="button">Guardar ZIP</button>
 <button class="export-btn" id="exportPng" type="button">Compartir imagen</button>
 </div></div>
   <div class="logo-note">Los dos logos quedan guardados arriba como opciones. No cambian ninguna prenda automáticamente: arrastrá el claro o el oscuro sobre Pecho, Hombro o Espalda.</div>
@@ -2549,6 +2565,17 @@ if(backgroundInput){
       exportBackgroundSrc=reader.result;
       if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
       backgroundClear?.classList.add('show');
+
+      const thumb=document.getElementById('backgroundThumb');
+      const thumbImg=document.getElementById('backgroundThumbImg');
+      if(thumb&&thumbImg){
+        thumbImg.src=exportBackgroundSrc;
+        thumb.classList.add('show');
+      }
+
+      document.body.classList.add('has-export-background');
+      document.body.style.backgroundImage=`url("${exportBackgroundSrc}")`;
+
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     };
     reader.readAsDataURL(file);
@@ -2560,8 +2587,31 @@ if(backgroundClear){
     if(backgroundInput)backgroundInput.value='';
     if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Agregar fondo ';
     backgroundClear.classList.remove('show');
+
+    const thumb=document.getElementById('backgroundThumb');
+    const thumbImg=document.getElementById('backgroundThumbImg');
+    if(thumb)thumb.classList.remove('show');
+    if(thumbImg)thumbImg.removeAttribute('src');
+
+    document.body.classList.remove('has-export-background');
+    document.body.style.backgroundImage='';
+
     if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
   });
+}
+
+
+function exportUsesCustomBackground(){
+  return typeof exportBackgroundSrc==='string' && exportBackgroundSrc.length>20;
+}
+function exportTextPrimary(){
+  return exportUsesCustomBackground() ? '#ffffff' : '#29292d';
+}
+function exportTextSecondary(){
+  return exportUsesCustomBackground() ? '#ffffff' : '#606066';
+}
+function exportTextMuted(){
+  return exportUsesCustomBackground() ? 'rgba(255,255,255,.92)' : '#55555b';
 }
 
 async function drawExportBackground(ctx,width,height){
@@ -2576,9 +2626,6 @@ async function drawExportBackground(ctx,width,height){
   const scale=Math.max(width/iw,height/ih);
   const dw=iw*scale,dh=ih*scale;
   ctx.drawImage(im,(width-dw)/2,(height-dh)/2,dw,dh);
-  // Velo muy suave para que títulos y textos sigan siendo legibles.
-  ctx.fillStyle='rgba(230,230,232,.18)';
-  ctx.fillRect(0,0,width,height);
 }
 
 const companyNameInput=document.getElementById('companyName');
@@ -2718,20 +2765,30 @@ function getModelBlocks(){
 }
 
 function wrapTextLines(ctx,text,maxWidth){
-  const paragraphs=(text||'').split(/\n+/);
+  // Cada Enter se respeta. Dos Enter generan una línea vacía real.
+  const source=String(text??'').replace(/\r\n?/g,'\n');
+  const paragraphs=source.split('\n');
   const lines=[];
-  for(const paragraph of paragraphs){
-    const words=paragraph.trim().split(/\s+/).filter(Boolean);
-    if(!words.length){lines.push('');continue;}
+
+  paragraphs.forEach((paragraph,pIndex)=>{
+    if(paragraph.length===0){
+      lines.push({text:'',blank:true});
+      return;
+    }
+
+    const words=paragraph.split(/[ \t]+/).filter(Boolean);
     let line='';
     for(const word of words){
       const test=line?line+' '+word:word;
-      if(ctx.measureText(test).width>maxWidth && line){
-        lines.push(line);line=word;
-      }else line=test;
+      if(line && ctx.measureText(test).width>maxWidth){
+        lines.push({text:line,blank:false});
+        line=word;
+      }else{
+        line=test;
+      }
     }
-    if(line)lines.push(line);
-  }
+    lines.push({text:line,blank:false});
+  });
   return lines;
 }
 
@@ -2748,7 +2805,7 @@ function textMetricsForBox(ctx,text,width,maxHeight){
     if(lines.length*lineH<=maxHeight-pad*2)break;
     fontSize-=2;
   }
-  return {pad,fontSize,lines,lineH,needed:lines.length*lineH+pad*2};
+  return {pad,fontSize,lines,lineH,needed:lines.reduce((n,l)=>n+(l.blank?lineH*1.18:lineH),0)+pad*2};
 }
 
 async function renderModelBlocks(blocks,width,margin,gap){
@@ -2800,10 +2857,21 @@ async function renderModelBlocks(blocks,width,margin,gap){
       const im=await loadImg(block.img.src);
       const iw=im.naturalWidth||im.width;
       const ih=im.naturalHeight||im.height;
+      const radius=Math.round(Math.min(boxW,boxH)*.045);
+
+      // Sombra exterior suave.
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,.36)';
+      ctx.shadowBlur=Math.max(22,Math.round(gap*.90));
+      ctx.shadowOffsetY=Math.max(7,Math.round(gap*.18));
+      ctx.fillStyle='rgba(255,255,255,.01)';
+      roundedRect(ctx,x,0,boxW,boxH,radius);
+      ctx.fill();
+      ctx.restore();
 
       // Imagen encapsulada y redondeada, manteniendo proporción por cover.
       ctx.save();
-      roundedRect(ctx,x,0,boxW,boxH,Math.round(Math.min(boxW,boxH)*.045));
+      roundedRect(ctx,x,0,boxW,boxH,radius);
       ctx.clip();
       const scale=Math.max(boxW/iw,boxH/ih);
       const dw=iw*scale,dh=ih*scale;
@@ -2812,17 +2880,19 @@ async function renderModelBlocks(blocks,width,margin,gap){
     }else{
       // Texto directo sobre el fondo general, sin tarjeta ni cuadrado.
       const metrics=textMetricsForBox(ctx,block.text,boxW,boxH);
-      const totalH=metrics.lines.length*metrics.lineH;
+      const totalH=metrics.lines.reduce((n,l)=>n+(l.blank?metrics.lineH*1.18:metrics.lineH),0);
       let ty=Math.max(metrics.pad,Math.round((boxH-totalH)/2));
 
-      ctx.fillStyle='#29292d';
+      ctx.fillStyle=exportTextPrimary();
       ctx.textAlign='left';
       ctx.textBaseline='top';
       ctx.font=`700 ${metrics.fontSize}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
 
       for(const line of metrics.lines){
-        if(line)ctx.fillText(line,x+metrics.pad,ty,boxW-metrics.pad*2);
-        ty+=metrics.lineH;
+        if(!line.blank && line.text){
+          ctx.fillText(line.text,x+metrics.pad,ty,boxW-metrics.pad*2);
+        }
+        ty+=line.blank?metrics.lineH*1.18:metrics.lineH;
       }
     }
 
@@ -2832,7 +2902,16 @@ async function renderModelBlocks(blocks,width,margin,gap){
 }
 
 function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
-  // Exportación plana: sin sombra para que ninguna máscara redondeada la recorte.
+  // Sombra exterior real: se dibuja antes del recorte del contenido para que no se corte.
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,.38)';
+  ctx.shadowBlur=Math.max(24,Math.round(shadowGap*.95));
+  ctx.shadowOffsetY=Math.max(9,Math.round(shadowGap*.25));
+  ctx.fillStyle='rgba(255,255,255,.01)';
+  roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
+  ctx.fill();
+  ctx.restore();
+
   ctx.save();
   roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
   ctx.clip();
@@ -2877,7 +2956,7 @@ function fitRoundedFont(ctx,text,maxWidth,startSize,minSize=28){
 
 function drawCompanyMark(ctx,name,x,y,maxW,maxH){
   const p=splitCompanyName(name);
-  ctx.save();ctx.fillStyle='#17171a';ctx.textBaseline='top';ctx.textAlign='left';
+  ctx.save();ctx.fillStyle=exportTextPrimary();ctx.textBaseline='top';ctx.textAlign='left';
   if(!p.bottom){
     const f=fitRoundedFont(ctx,p.top,maxW,Math.round(maxH*.42));
     ctx.font=`900 ${f.size}px ${f.family}`;
@@ -2896,9 +2975,9 @@ function drawCompanyMark(ctx,name,x,y,maxW,maxH){
     if(p.joiner){
       const topW=ctx.measureText(p.top).width;
       ctx.font=`800 ${Math.max(22,Math.round(size*.30))}px ${family}`;
-      ctx.fillStyle='#55555b';
+      ctx.fillStyle=exportTextMuted();
       ctx.fillText(p.joiner,x+Math.min(maxW-Math.round(size*.35),topW+Math.round(size*.10)),sy+Math.round(size*.50));
-      ctx.fillStyle='#17171a';
+      ctx.fillStyle=exportTextPrimary();
     }
     ctx.font=`900 ${size}px ${family}`;
     ctx.fillText(p.bottom,x,sy+lineH,maxW);
@@ -2958,6 +3037,176 @@ document.querySelectorAll('[data-bank-hide]').forEach(btn=>{
 });
 
 
+
+function dataUrlToBytes(dataUrl){
+  const comma=dataUrl.indexOf(',');
+  const meta=dataUrl.slice(0,comma);
+  const data=dataUrl.slice(comma+1);
+  if(/;base64/i.test(meta)){
+    const bin=atob(data);
+    const out=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);
+    return out;
+  }
+  return new TextEncoder().encode(decodeURIComponent(data));
+}
+function dataUrlExt(dataUrl){
+  const m=String(dataUrl||'').match(/^data:([^;,]+)/i);
+  const type=m?m[1].toLowerCase():'';
+  if(type.includes('png'))return 'png';
+  if(type.includes('jpeg')||type.includes('jpg'))return 'jpg';
+  if(type.includes('svg'))return 'svg';
+  return 'bin';
+}
+function crc32(bytes){
+  let crc=-1;
+  for(const b of bytes){
+    crc^=b;
+    for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xEDB88320:0);
+  }
+  return (crc^-1)>>>0;
+}
+function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
+function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
+function concatBytes(parts){
+  const total=parts.reduce((n,p)=>n+p.length,0);
+  const out=new Uint8Array(total);let o=0;
+  parts.forEach(p=>{out.set(p,o);o+=p.length});return out;
+}
+function makeStoreZip(entries){
+  const enc=new TextEncoder();
+  const locals=[],centrals=[];
+  let offset=0;
+  entries.forEach(entry=>{
+    const name=enc.encode(entry.name);
+    const data=entry.data instanceof Uint8Array?entry.data:enc.encode(String(entry.data));
+    const crc=crc32(data);
+    const local=concatBytes([
+      u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),
+      u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data
+    ]);
+    locals.push(local);
+    const central=concatBytes([
+      u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),
+      u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),
+      u16(0),u16(0),u32(0),u32(offset),name
+    ]);
+    centrals.push(central);
+    offset+=local.length;
+  });
+  const centralBytes=concatBytes(centrals);
+  const end=concatBytes([
+    u32(0x06054b50),u16(0),u16(0),u16(entries.length),u16(entries.length),
+    u32(centralBytes.length),u32(offset),u16(0)
+  ]);
+  return new Blob([...locals,centralBytes,end],{type:'application/zip'});
+}
+function addDataUrlEntry(entries,path,dataUrl){
+  if(!dataUrl||!String(dataUrl).startsWith('data:'))return null;
+  const ext=dataUrlExt(dataUrl);
+  const finalPath=path.replace(/\.[a-z0-9]+$/i,'')+'.'+ext;
+  entries.push({name:finalPath,data:dataUrlToBytes(dataUrl)});
+  return finalPath;
+}
+function buildProposalBackup(){
+  const entries=[];
+  const json={
+    version:1,
+    createdAt:new Date().toISOString(),
+    companyName:(document.getElementById('companyName')?.value||''),
+    prices:typeof readPricing==='function'?readPricing():{},
+    background:null,
+    banks:{},
+    models:[],
+    garments:[]
+  };
+
+  if(exportBackgroundSrc){
+    json.background=addDataUrlEntry(entries,'images/background',exportBackgroundSrc);
+  }
+
+  const bankDefs=[
+    ['light','Logo claro',document.querySelector('#logoPreviewLight img')],
+    ['dark','Logo oscuro',document.querySelector('#logoPreviewDark img')],
+    ['graphic','Dibujo gráfico',document.getElementById('graphicPreview')],
+    ['symbol','Símbolo',document.getElementById('symbolPreview')]
+  ];
+  bankDefs.forEach(([key,label,img])=>{
+    const src=img?.getAttribute('src')||'';
+    if(!src||src===EMPTY_LOGO)return;
+    json.banks[key]={
+      label,
+      hidden:topBankInfo(key)?.el?.classList.contains('bank-is-hidden')||false,
+      file:addDataUrlEntry(entries,'images/banks/'+key,src)
+    };
+  });
+
+  [1,2,3].forEach(n=>{
+    const slot=document.getElementById('modelSlot'+n);
+    if(!slot)return;
+    const mode=slot.dataset.mode||'image';
+    const item={slot:n,mode,hidden:slot.classList.contains('model-hidden-slot')};
+    if(mode==='text'){
+      item.text=document.getElementById('modelText'+n)?.value||'';
+      if(!item.text)return;
+    }else{
+      const src=document.getElementById('modelPreview'+n)?.getAttribute('src')||'';
+      if(!src)return;
+      item.file=addDataUrlEntry(entries,'images/models/model_'+n,src);
+    }
+    json.models.push(item);
+  });
+
+  document.querySelectorAll('.garment-section').forEach((section,sIndex)=>{
+    const g={
+      index:sIndex,
+      type:section.querySelector('.garment-type')?.value||'remera',
+      shirtColor:getComputedStyle(section).getPropertyValue('--shirt-color').trim(),
+      shirtBrightness:getComputedStyle(section).getPropertyValue('--shirt-brightness').trim(),
+      cardBackground:getComputedStyle(section).getPropertyValue('--bg-color').trim(),
+      views:[]
+    };
+    section.querySelectorAll('.card').forEach((card,cIndex)=>{
+      const img=card.querySelector('.logo-slot img');
+      const src=img?.getAttribute('src')||'';
+      const view={
+        name:card.dataset.view||('view_'+cIndex),
+        hidden:card.classList.contains('view-hidden'),
+        design:null
+      };
+      if(src&&src!==EMPTY_LOGO){
+        view.design=addDataUrlEntry(entries,`images/garments/g${sIndex}_${view.name}`,src);
+      }
+      g.views.push(view);
+    });
+    json.garments.push(g);
+  });
+
+  entries.unshift({
+    name:'propuesta.json',
+    data:new TextEncoder().encode(JSON.stringify(json,null,2))
+  });
+  return {json,entries};
+}
+
+document.getElementById('saveZip')?.addEventListener('click',()=>{
+  try{
+    const {entries}=buildProposalBackup();
+    const blob=makeStoreZip(entries);
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const safe=((document.getElementById('companyName')?.value||'Propuesta')
+      .trim().replace(/[^\p{L}\p{N}_-]+/gu,'_'))||'Propuesta';
+    a.href=url;a.download=safe+'_respaldo.zip';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2500);
+  }catch(err){
+    console.error(err);
+    alert('No se pudo guardar el ZIP.');
+  }
+});
+
+
 document.getElementById('exportPng').addEventListener('click',async()=>{
   const btn=document.getElementById('exportPng');
   const old=btn.textContent;
@@ -3014,11 +3263,11 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
         const nameH=Math.round(headerH*.66);
         drawCompanyMark(h,companyName||'Propuesta de prendas',textX,Math.round(headerH*.01),available,nameH);
 
-        h.fillStyle='#35353a';
+        h.fillStyle=exportTextPrimary();
         h.font=`900 ${Math.round(headerH*.050)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
         h.fillText('IDENTIDAD VISUAL',textX,Math.round(headerH*.70),available);
 
-        h.fillStyle='#606066';
+        h.fillStyle=exportTextSecondary();
         h.font=`700 ${Math.round(headerH*.043)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
         drawWrappedText(
           h,
