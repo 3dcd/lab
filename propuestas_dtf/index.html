@@ -1076,6 +1076,43 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   border:1px solid rgba(0,0,0,.08);
 }
 
+
+.drop-short{
+  display:block;
+  max-width:calc(100% - 16px);
+  font-size:12px;
+  font-weight:600;
+  line-height:1.15;
+  opacity:.68;
+  white-space:nowrap;
+}
+@media(max-width:700px){
+  .bank-label{
+    left:7px!important;
+    top:7px!important;
+    max-width:calc(100% - 45px)!important;
+    font-size:10px!important;
+    padding:4px 6px!important;
+  }
+  .bank-hide-top{
+    right:6px!important;
+    top:6px!important;
+    width:26px!important;
+    height:26px!important;
+    min-width:26px!important;
+    min-height:26px!important;
+    font-size:17px!important;
+  }
+  .logo-choice .dropzone,
+  #symbolDrop .dropzone,
+  #graphicDrop .dropzone{
+    padding-top:30px!important;
+  }
+  .drop-short{
+    font-size:10px!important;
+  }
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1118,7 +1155,7 @@ if(window.pdfjsLib){
 <div class="app">
   <div class="logo-master">
     <div class="logo-choice light" id="bankLight"><button class="bank-hide-top" data-bank-hide="light" type="button" title="Ocultar logo">×</button><div class="bank-label">Logo claro</div>
-      <label class="dropzone" id="logoDropLight">Logo para prendas claras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputLight" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
+      <label class="dropzone" id="logoDropLight"><span class="drop-short">Arrastre o elija</span><input id="logoInputLight" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
       <div class="logo-preview" id="logoPreviewLight" draggable="true" title="Arrastrá este logo sobre una vista">
         <div class="white-toggle-wrap">
           <button class="white-toggle" id="blackToggle" type="button" title="Convertir logo a negro">↻</button>
@@ -1131,7 +1168,7 @@ if(window.pdfjsLib){
 <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Logo para prendas claras"></div>
     </div>
     <div class="logo-choice dark" id="bankDark"><button class="bank-hide-top" data-bank-hide="dark" type="button" title="Ocultar logo">×</button><div class="bank-label">Logo oscuro</div>
-      <label class="dropzone" id="logoDropDark">Logo para prendas oscuras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputDark" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
+      <label class="dropzone" id="logoDropDark"><span class="drop-short">Arrastre o elija</span><input id="logoInputDark" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
       <div class="logo-preview" id="logoPreviewDark" draggable="true" title="Arrastrá este logo sobre una vista">
         <div class="white-toggle-wrap">
           <button class="white-toggle" id="whiteToggle" type="button" title="Convertir logo a blanco">↻</button>
@@ -1146,8 +1183,7 @@ if(window.pdfjsLib){
     
 <div class="logo-choice light graphic-bank symbol-bank" id="graphicDrop"><button class="bank-hide-top" id="graphicRemove" data-bank-hide="graphic" type="button" title="Ocultar dibujo gráfico">×</button><div class="bank-label">Dibujo gráfico</div>
   <label class="dropzone" for="graphicInput">
-    Dibujo gráfico
-    <small>Arrastrá o elegí SVG / PNG / JPG / PDF</small>
+    <span class="drop-short">Arrastre o elija</span>
     <input id="graphicInput" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf">
   </label>
 
@@ -1166,8 +1202,7 @@ if(window.pdfjsLib){
 
 <div class="logo-choice light symbol-bank" id="symbolDrop"><button class="bank-hide-top" id="symbolRemove" data-bank-hide="symbol" type="button" title="Ocultar símbolo">×</button><div class="bank-label">Símbolo</div>
   <label class="dropzone" for="symbolInput">
-    Símbolo
-    <small>Arrastrá o elegí SVG / PNG / JPG / PDF</small>
+    <span class="drop-short">Arrastre o elija</span>
     <input id="symbolInput" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf">
   </label>
 
@@ -1549,6 +1584,21 @@ function readLogo(file,cb){
     });
 }
 
+
+function garmentSlotsAreAllEmpty(){
+  const imgs=[...document.querySelectorAll('#sections .card .logo-slot img')];
+  if(!imgs.length)return false;
+  return imgs.every(img=>!img.getAttribute('src') || img.getAttribute('src')===EMPTY_LOGO);
+}
+
+function populateAllNakedGarmentsOnce(src){
+  if(!src || !garmentSlotsAreAllEmpty())return false;
+  document.querySelectorAll('#sections .card .logo-slot img').forEach(img=>{
+    img.src=src;
+  });
+  return true;
+}
+
 function setLibraryLogo(file,preview){
   readLogo(file,src=>{
     if(preview===logoPreviewDark){
@@ -1558,6 +1608,7 @@ function setLibraryLogo(file,preview){
       darkOutlineLevel=0;
       darkWhiteMode=false;
       renderDarkLogo();
+      populateAllNakedGarmentsOnce(src);
     }else if(preview===logoPreviewLight){
       document.getElementById('bankLight')?.classList.add('bank-has-content');
       showTopBank('light');
@@ -1565,6 +1616,7 @@ function setLibraryLogo(file,preview){
       lightOutlineLevelValue=0;
       lightBlackMode=false;
       renderLightLogo();
+      populateAllNakedGarmentsOnce(src);
     }else{
       preview.querySelector('img').src=src;
     }
@@ -1582,6 +1634,7 @@ function setBankFromSrc(src,target){
     lightBlackMode=false;
     logoPreviewLight.querySelector('img').src=src;
     renderLightLogo();
+    populateAllNakedGarmentsOnce(src);
     return;
   }
 
@@ -1593,6 +1646,7 @@ function setBankFromSrc(src,target){
     darkWhiteMode=false;
     logoPreviewDark.querySelector('img').src=src;
     renderDarkLogo();
+    populateAllNakedGarmentsOnce(src);
     return;
   }
 
