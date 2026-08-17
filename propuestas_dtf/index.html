@@ -937,6 +937,15 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
 }
 
 
+.company-export{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.company-name-input{min-width:210px;max-width:320px;width:min(26vw,320px);border:1px solid #343438;border-radius:12px;background:#1a1a1d;color:#f3f3f3;padding:9px 12px;font-size:13px;outline:none}
+.company-name-input:focus{border-color:#66666d}
+.company-name-input::placeholder{color:#7e7e86}
+@media(max-width:560px){.company-export{width:100%;display:grid;grid-template-columns:1fr auto}.company-name-input{width:100%;min-width:0;max-width:none}}
+
+/* ===== Modelos: encuadre proporcional =====
+   Vacíos: cuadrados. Cargados: respetan la proporción real.
+   Cuando hay 2 o 3, comparten altura y cada uno conserva su ancho relativo. */
 .model-upload-grid{
   display:flex!important;
   align-items:stretch!important;
@@ -946,29 +955,65 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   flex:1 1 0!important;
   min-width:0!important;
 }
-.model-slot.has-image{
+.model-slot.has-image:not(.model-hidden-slot){
   flex-grow:var(--model-ratio,1)!important;
-  aspect-ratio:var(--model-ratio,1)!important;
+  aspect-ratio:var(--model-aspect,1 / 1)!important;
+}
+.model-slot.has-image img{
+  object-fit:cover!important;
+}
+@media(max-width:700px){
+  .model-upload-grid{
+    display:flex!important;
+    gap:8px!important;
+  }
 }
 
 
+/* ===== Ocultar / recuperar los cuatro bancos superiores ===== */
 .logo-preview{position:relative!important}
-.bank-hide{
-  position:absolute!important;left:8px!important;top:8px!important;
-  width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important;
-  border-radius:50%!important;border:1px solid rgba(255,255,255,.25)!important;
-  background:rgba(0,0,0,.55)!important;color:#fff!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;
-  z-index:30!important;font-size:18px!important;cursor:pointer!important;
+.bank-hide-main{
+  position:absolute!important;
+  left:8px!important;
+  top:8px!important;
+  right:auto!important;
+  width:28px!important;
+  height:28px!important;
+  min-width:28px!important;
+  min-height:28px!important;
+  border-radius:50%!important;
+  border:1px solid rgba(255,255,255,.28)!important;
+  background:rgba(0,0,0,.58)!important;
+  color:#fff!important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:30!important;
+  font-size:18px!important;
+  line-height:1!important;
+  cursor:pointer!important;
+}
+#bankLight:not(.bank-has-content) .bank-hide-main,
+#bankDark:not(.bank-has-content) .bank-hide-main{
+  display:none!important;
 }
 .bank-is-hidden{display:none!important}
-.bank-hidden{
-  grid-column:1/-1!important;display:flex;flex-wrap:wrap;gap:7px;align-items:center;
+.bank-hidden-tools{
+  grid-column:1 / -1!important;
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  align-items:center;
 }
-.bank-hidden:empty{display:none!important}
-.bank-restore{
-  border:1px solid #35353a;background:#18181b;color:#ddd;border-radius:999px;
-  padding:6px 10px;font-size:12px;cursor:pointer;
+.bank-hidden-tools:empty{display:none!important}
+.bank-restore-btn{
+  border:1px solid #35353a;
+  background:#18181b;
+  color:#ddd;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+  cursor:pointer;
 }
 
 </style>
@@ -1014,7 +1059,7 @@ if(window.pdfjsLib){
   <div class="logo-master">
     <div class="logo-choice light" id="bankLight">
       <label class="dropzone" id="logoDropLight">Logo para prendas claras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputLight" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
-      <div class="logo-preview" id="logoPreviewLight" draggable="true" title="Arrastrá este logo sobre una vista"><button class="bank-hide" data-bank-hide="light" type="button" title="Ocultar logo">×</button>
+      <div class="logo-preview" id="logoPreviewLight" draggable="true" title="Arrastrá este logo sobre una vista"><button class="bank-hide-main" data-bank-hide="light" type="button" title="Ocultar logo">×</button>
         <div class="white-toggle-wrap">
           <button class="white-toggle" id="blackToggle" type="button" title="Convertir logo a negro">↻</button>
         </div>
@@ -1027,7 +1072,7 @@ if(window.pdfjsLib){
     </div>
     <div class="logo-choice dark" id="bankDark">
       <label class="dropzone" id="logoDropDark">Logo para prendas oscuras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputDark" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
-      <div class="logo-preview" id="logoPreviewDark" draggable="true" title="Arrastrá este logo sobre una vista"><button class="bank-hide" data-bank-hide="dark" type="button" title="Ocultar logo">×</button>
+      <div class="logo-preview" id="logoPreviewDark" draggable="true" title="Arrastrá este logo sobre una vista"><button class="bank-hide-main" data-bank-hide="dark" type="button" title="Ocultar logo">×</button>
         <div class="white-toggle-wrap">
           <button class="white-toggle" id="whiteToggle" type="button" title="Convertir logo a blanco">↻</button>
         </div>
@@ -1053,7 +1098,7 @@ if(window.pdfjsLib){
               title="Invertir colores">↻</button>
     </div>
 
-    <button class="symbol-remove" id="graphicRemove" data-bank-hide="graphic" type="button" title="Ocultar dibujo gráfico">×</button>
+    <button class="symbol-remove bank-hide-main" id="graphicRemove" data-bank-hide="graphic" type="button" title="Ocultar dibujo gráfico">×</button>
 
     <img id="graphicPreview" alt="Dibujo gráfico">
   </div>
@@ -1073,14 +1118,14 @@ if(window.pdfjsLib){
               title="Alternar símbolo blanco / negro">↻</button>
     </div>
 
-    <button class="symbol-remove" id="symbolRemove" data-bank-hide="symbol" type="button" title="Ocultar símbolo">×</button>
+    <button class="symbol-remove bank-hide-main" id="symbolRemove" data-bank-hide="symbol" type="button" title="Ocultar símbolo">×</button>
 
     <img id="symbolPreview" alt="Símbolo">
   </div>
 </div>
 
-<div class="bank-hidden" id="bankHidden"></div>
-<div class="top-export"><button class="export-btn" id="exportPng" type="button">Compartir PNG</button></div>
+<div class="bank-hidden-tools" id="bankHiddenTools"></div>
+<div class="top-export"><div class="company-export"><input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa"><button class="export-btn" id="exportPng" type="button">Compartir imagen</button></div></div>
   <div class="logo-note">Los dos logos quedan guardados arriba como opciones. No cambian ninguna prenda automáticamente: arrastrá el claro o el oscuro sobre Pecho, Hombro o Espalda.</div>
   </div>
   <div id="sections"><div class="section-wrap garment-section" data-garment="remera" data-preset="remera" style="--shirt-color:#d9d9d9;--shirt-brightness:1;--bg-color:#171717">
@@ -1447,15 +1492,15 @@ function readLogo(file,cb){
 function setLibraryLogo(file,preview){
   readLogo(file,src=>{
     if(preview===logoPreviewDark){
-      document.getElementById('bankDark')?.classList.remove('bank-is-hidden');
-      bankHidden?.querySelector('[data-bank-restore="dark"]')?.remove();
+      document.getElementById('bankDark')?.classList.add('bank-has-content');
+      showTopBank('dark');
       darkBaseSrc=src;
       darkOutlineLevel=0;
       darkWhiteMode=false;
       renderDarkLogo();
     }else if(preview===logoPreviewLight){
-      document.getElementById('bankLight')?.classList.remove('bank-is-hidden');
-      bankHidden?.querySelector('[data-bank-restore="light"]')?.remove();
+      document.getElementById('bankLight')?.classList.add('bank-has-content');
+      showTopBank('light');
       lightBaseSrc=src;
       lightOutlineLevelValue=0;
       lightBlackMode=false;
@@ -1470,6 +1515,8 @@ function setBankFromSrc(src,target){
   if(!src)return;
 
   if(target==='light'){
+    document.getElementById('bankLight')?.classList.add('bank-has-content');
+    showTopBank('light');
     lightBaseSrc=src;
     lightOutlineLevelValue=0;
     lightBlackMode=false;
@@ -1479,6 +1526,8 @@ function setBankFromSrc(src,target){
   }
 
   if(target==='dark'){
+    document.getElementById('bankDark')?.classList.add('bank-has-content');
+    showTopBank('dark');
     darkBaseSrc=src;
     darkOutlineLevel=0;
     darkWhiteMode=false;
@@ -1488,8 +1537,7 @@ function setBankFromSrc(src,target){
   }
 
   if(target==='symbol'){
-    symbolDrop.classList.remove('bank-is-hidden');
-    bankHidden?.querySelector('[data-bank-restore="symbol"]')?.remove();
+    showTopBank('symbol');
     symbolBaseSrc=src;
     symbolBlackMode=false;
     symbolPreview.src=src;
@@ -1498,8 +1546,7 @@ function setBankFromSrc(src,target){
   }
 
   if(target==='graphic'){
-    graphicDrop.classList.remove('bank-is-hidden');
-    bankHidden?.querySelector('[data-bank-restore="graphic"]')?.remove();
+    showTopBank('graphic');
     graphicBaseSrc=src;
     graphicInverted=false;
     graphicPreview.src=src;
@@ -1708,6 +1755,7 @@ let graphicInverted=false;
 function setOptionalGraphic(file){
   if(!file)return;
   readLogo(file,src=>{
+    showTopBank('graphic');
     graphicBaseSrc=src;
     graphicInverted=false;
     graphicPreview.src=src;
@@ -1754,6 +1802,7 @@ graphicPreviewWrap.addEventListener('dragend',()=>setTimeout(()=>draggedLibraryL
 
 function setOptionalSymbol(file){
   readLogo(file,src=>{
+    showTopBank('symbol');
     symbolBaseSrc=src;
     symbolBlackMode=false;
     symbolPreview.src=src;
@@ -2061,7 +2110,7 @@ function invalidatePreparedShare(){
   if(hadPrepared){
     const btn=document.getElementById('exportPng');
     if(btn && !btn.disabled && btn.textContent!=='Exportar PNG'){
-      btn.textContent='Compartir PNG';
+      btn.textContent='Compartir imagen';
     }
   }
 }
@@ -2137,61 +2186,46 @@ function drawWrappedText(ctx,text,x,y,maxWidth,lineHeight){
 }
 
 function renderPricingFooter(pricing,width){
-  const pad=Math.round(width*.018);
+  const pad=Math.round(width*.022);
   const cardH=Math.round(width*.145);
   const c=document.createElement('canvas');
-  c.width=width;
-  c.height=cardH;
+  c.width=width;c.height=cardH;
   const x=c.getContext('2d');
   x.clearRect(0,0,c.width,c.height);
 
-  const innerX=pad;
-  const innerY=Math.round(pad*.65);
-  const innerW=width-pad*2;
-  const innerH=cardH-pad;
-
+  // La tarjeta ocupa todo el ancho disponible: su borde queda alineado
+  // con el mismo margen exterior que prendas, modelos y encabezado.
+  const innerX=0,innerY=0,innerW=width,innerH=cardH;
   x.fillStyle='#f2f2f2';
-  roundedRect(x,innerX,innerY,innerW,innerH,Math.round(width*.014));
-  x.fill();
+  roundedRect(x,innerX,innerY,innerW,innerH,Math.round(width*.014));x.fill();
 
   const titleSize=Math.round(width*.017);
   const valueSize=Math.round(width*.019);
   const labelSize=Math.round(width*.0105);
   const noteSize=Math.round(width*.011);
-
-  x.fillStyle='#242428';
-  x.textBaseline='top';
+  x.fillStyle='#242428';x.textBaseline='top';
   x.font=`700 ${titleSize}px Arial,Helvetica,sans-serif`;
-  x.fillText('Precios por unidad',innerX+pad,innerY+Math.round(pad*.75));
+  x.fillText('Precios por unidad',pad,Math.round(pad*.75));
 
   const items=[];
   if(pricing.small)items.push(['Estampado chico',formatPrice(pricing.small)]);
   if(pricing.large)items.push(['Estampado grande',formatPrice(pricing.large)]);
   if(pricing.combo)items.push(['Combo 3 detalles',formatPrice(pricing.combo)]);
 
-  const contentTop=innerY+Math.round(pad*2.7);
+  const contentTop=Math.round(pad*2.7);
   const noteReserve=pricing.note?Math.round(cardH*.27):0;
   const availableW=innerW-pad*2;
-  const colW=items.length ? availableW/items.length : availableW;
-
+  const colW=items.length?availableW/items.length:availableW;
   items.forEach((item,i)=>{
-    const cx=innerX+pad+i*colW;
-    x.fillStyle='#68686f';
-    x.font=`${labelSize}px Arial,Helvetica,sans-serif`;
-    x.fillText(item[0],cx,contentTop);
-
-    x.fillStyle='#202024';
-    x.font=`700 ${valueSize}px Arial,Helvetica,sans-serif`;
-    x.fillText(item[1],cx,contentTop+Math.round(labelSize*1.75));
+    const cx=pad+i*colW;
+    x.fillStyle='#68686f';x.font=`${labelSize}px Arial,Helvetica,sans-serif`;x.fillText(item[0],cx,contentTop);
+    x.fillStyle='#202024';x.font=`700 ${valueSize}px Arial,Helvetica,sans-serif`;x.fillText(item[1],cx,contentTop+Math.round(labelSize*1.75));
   });
-
   if(pricing.note){
-    const ny=innerY+innerH-noteReserve+Math.round(pad*.25);
-    x.fillStyle='#4b4b50';
-    x.font=`${noteSize}px Arial,Helvetica,sans-serif`;
-    drawWrappedText(x,pricing.note,innerX+pad,ny,availableW,Math.round(noteSize*1.35));
+    const ny=innerH-noteReserve+Math.round(pad*.25);
+    x.fillStyle='#4b4b50';x.font=`${noteSize}px Arial,Helvetica,sans-serif`;
+    drawWrappedText(x,pricing.note,pad,ny,availableW,Math.round(noteSize*1.35));
   }
-
   return c;
 }
 
@@ -2205,6 +2239,9 @@ function renderPricingFooter(pricing,width){
     });
   }
 });
+
+const companyNameInput=document.getElementById('companyName');
+if(companyNameInput){companyNameInput.addEventListener('input',()=>{if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();});}
 
 
 
@@ -2221,7 +2258,7 @@ function loadModelFile(file,slot,preview,input){
       const h=preview.naturalHeight||1;
       const ratio=Math.max(.45,Math.min(3,w/h));
       slot.style.setProperty('--model-ratio',ratio);
-      slot.style.aspectRatio=`${w} / ${h}`;
+      slot.style.setProperty('--model-aspect',`${w} / ${h}`);
       preview.onload=null;
     };
     preview.src=reader.result;
@@ -2310,99 +2347,200 @@ function getModelImages(){
     .map(({img})=>img);
 }
 
-
-async function renderModelRow(imgEls,width){
+async function renderModelRow(imgEls,width,margin,gap){
   if(!imgEls.length)return null;
 
-  const gap=Math.round(width*(14/358));
-  const outer=Math.round(gap/2);
-  const images=[];
-
+  const items=[];
   for(const imgEl of imgEls.slice(0,3)){
     const im=await loadImg(imgEl.src);
-    const w=im.naturalWidth||im.width||1;
-    const h=im.naturalHeight||im.height||1;
-    images.push({im,ratio:Math.max(.45,Math.min(3,w/h))});
+    const iw=im.naturalWidth||im.width||1;
+    const ih=im.naturalHeight||im.height||1;
+    const ratio=Math.max(.45,Math.min(3,iw/ih));
+    items.push({im,iw,ih,ratio});
   }
 
-  const count=images.length;
-  const available=width-outer*2-(count-1)*gap;
-  const ratioSum=images.reduce((a,v)=>a+v.ratio,0);
-  const commonH=Math.max(1,Math.floor(available/ratioSum));
+  const count=items.length;
+  const innerW=width-margin*2;
+  const usableW=innerW-(count-1)*gap;
+  const ratioSum=items.reduce((sum,item)=>sum+item.ratio,0);
+
+  // Todos comparten la misma altura. El ancho depende de la proporción real.
+  // 1 cuadrada => cuadrada. 1 apaisada => más ancha y más baja.
+  // 2/3 mixtas => misma altura visual y anchos diferentes.
+  const commonH=Math.max(1,Math.floor(usableW/ratioSum));
 
   const row=document.createElement('canvas');
   row.width=width;
-  row.height=commonH+outer*2;
+  row.height=commonH;
   const ctx=row.getContext('2d');
   ctx.clearRect(0,0,row.width,row.height);
 
-  let x=outer;
-  for(const item of images){
-    const boxW=Math.max(1,Math.floor(commonH*item.ratio));
+  let x=margin;
+  for(const item of items){
+    const boxW=Math.max(1,Math.round(commonH*item.ratio));
     const boxH=commonH;
 
     ctx.save();
-    roundedRect(ctx,x,outer,boxW,boxH,Math.round(Math.min(boxW,boxH)*.045));
+    roundedRect(ctx,x,0,boxW,boxH,Math.round(Math.min(boxW,boxH)*.045));
+    ctx.fillStyle='#ffffff';
+    ctx.fill();
     ctx.clip();
 
-    const iw=item.im.naturalWidth||item.im.width;
-    const ih=item.im.naturalHeight||item.im.height;
-    const scale=Math.max(boxW/iw,boxH/ih);
-    const dw=iw*scale,dh=ih*scale;
-    ctx.drawImage(item.im,x+(boxW-dw)/2,outer+(boxH-dh)/2,dw,dh);
+    // Se mantiene la proporción real. Sólo puede recortar una fracción por redondeo.
+    const scale=Math.max(boxW/item.iw,boxH/item.ih);
+    const dw=item.iw*scale;
+    const dh=item.ih*scale;
+    ctx.drawImage(item.im,x+(boxW-dw)/2,(boxH-dh)/2,dw,dh);
     ctx.restore();
 
     x+=boxW+gap;
   }
+
   return row;
 }
 
+function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
+  // Exportación plana: sin sombra para que ninguna máscara redondeada la recorte.
+  ctx.save();
+  roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
+  ctx.clip();
+  ctx.drawImage(canvas,x,y);
+  ctx.restore();
+}
 
-const bankHidden=document.getElementById('bankHidden');
+function exportDescription(hasLight,hasDark,hasGraphic,hasSymbol){
+  const bits=[];
+  if(hasLight||hasDark)bits.push('Aplicación de identidad en prendas');
+  if(hasGraphic)bits.push('dibujo gráfico');
+  if(hasSymbol)bits.push('símbolo complementario');
+  return bits.length?bits.join(' · '):'Propuesta visual de prendas';
+}
 
-function bankConfig(name){
+function splitCompanyName(name){
+  const clean=(name||'').trim().replace(/\s+/g,' ');
+  if(!clean)return {top:'PROPUESTA',bottom:'DE PRENDAS',joiner:''};
+  const ym=clean.match(/^(.*?)\s+y\s+(.*?)$/i);
+  if(ym&&ym[1]&&ym[2])return {top:ym[1],bottom:ym[2],joiner:'y'};
+  const words=clean.split(' ');
+  if(words.length===1)return {top:clean,bottom:'',joiner:''};
+  let best=1,bestDiff=Infinity;
+  for(let i=1;i<words.length;i++){
+    const a=words.slice(0,i).join(' '),b=words.slice(i).join(' ');
+    const d=Math.abs(a.length-b.length);
+    if(d<bestDiff){bestDiff=d;best=i;}
+  }
+  return {top:words.slice(0,best).join(' '),bottom:words.slice(best).join(' '),joiner:''};
+}
+
+function fitRoundedFont(ctx,text,maxWidth,startSize,minSize=28){
+  let size=startSize;
+  const family='\"Arial Rounded MT Bold\",\"Trebuchet MS\",Arial,Helvetica,sans-serif';
+  while(size>minSize){
+    ctx.font=`900 ${size}px ${family}`;
+    if(ctx.measureText(text).width<=maxWidth)break;
+    size-=4;
+  }
+  return {size,family};
+}
+
+function drawCompanyMark(ctx,name,x,y,maxW,maxH){
+  const p=splitCompanyName(name);
+  ctx.save();ctx.fillStyle='#17171a';ctx.textBaseline='top';ctx.textAlign='left';
+  if(!p.bottom){
+    const f=fitRoundedFont(ctx,p.top,maxW,Math.round(maxH*.42));
+    ctx.font=`900 ${f.size}px ${f.family}`;
+    ctx.fillText(p.top,x,y+Math.round((maxH-f.size)*.42),maxW);
+  }else{
+    const start=Math.round(maxH*.28);
+    const f1=fitRoundedFont(ctx,p.top,maxW,start);
+    const f2=fitRoundedFont(ctx,p.bottom,maxW,start);
+    const size=Math.min(f1.size,f2.size);
+    const family=f1.family;
+    const lineH=Math.round(size*.82); // líneas deliberadamente cercanas, tipo logotipo
+    let total=lineH*2;
+    let sy=y+Math.max(0,Math.round((maxH-total)/2));
+    ctx.font=`900 ${size}px ${family}`;
+    ctx.fillText(p.top,x,sy,maxW);
+    if(p.joiner){
+      const topW=ctx.measureText(p.top).width;
+      ctx.font=`800 ${Math.max(22,Math.round(size*.30))}px ${family}`;
+      ctx.fillStyle='#55555b';
+      ctx.fillText(p.joiner,x+Math.min(maxW-Math.round(size*.35),topW+Math.round(size*.10)),sy+Math.round(size*.50));
+      ctx.fillStyle='#17171a';
+    }
+    ctx.font=`900 ${size}px ${family}`;
+    ctx.fillText(p.bottom,x,sy+lineH,maxW);
+  }
+  ctx.restore();
+}
+
+
+const bankHiddenTools=document.getElementById('bankHiddenTools');
+
+function topBankInfo(name){
   if(name==='light')return {el:document.getElementById('bankLight'),label:'Logo claro'};
   if(name==='dark')return {el:document.getElementById('bankDark'),label:'Logo oscuro'};
   if(name==='symbol')return {el:document.getElementById('symbolDrop'),label:'Símbolo'};
   if(name==='graphic')return {el:document.getElementById('graphicDrop'),label:'Dibujo gráfico'};
   return null;
 }
-function hideBank(name){
-  const cfg=bankConfig(name);
-  if(!cfg||!cfg.el)return;
-  cfg.el.classList.add('bank-is-hidden');
-  if(bankHidden.querySelector(`[data-bank-restore="${name}"]`))return;
-  const chip=document.createElement('button');
-  chip.type='button';chip.className='bank-restore';chip.dataset.bankRestore=name;
-  chip.textContent='Mostrar '+cfg.label;
-  chip.addEventListener('click',()=>{cfg.el.classList.remove('bank-is-hidden');chip.remove();});
-  bankHidden.appendChild(chip);
+
+function showTopBank(name){
+  const info=topBankInfo(name);
+  if(!info||!info.el)return;
+  info.el.classList.remove('bank-is-hidden');
+  bankHiddenTools?.querySelector(`[data-bank-restore="${name}"]`)?.remove();
 }
+
+function hideTopBank(name){
+  const info=topBankInfo(name);
+  if(!info||!info.el)return;
+
+  // Sólo ocultar si realmente hay un recurso cargado.
+  if(name==='light' && !imageBankHasContent(document.querySelector('#logoPreviewLight img')))return;
+  if(name==='dark' && !imageBankHasContent(document.querySelector('#logoPreviewDark img')))return;
+  if(name==='symbol' && !symbolDrop.classList.contains('has-symbol'))return;
+  if(name==='graphic' && !graphicDrop.classList.contains('has-graphic'))return;
+
+  info.el.classList.add('bank-is-hidden');
+
+  if(bankHiddenTools.querySelector(`[data-bank-restore="${name}"]`))return;
+
+  const chip=document.createElement('button');
+  chip.type='button';
+  chip.className='bank-restore-btn';
+  chip.dataset.bankRestore=name;
+  chip.textContent='Mostrar '+info.label;
+  chip.addEventListener('click',()=>{
+    showTopBank(name);
+  });
+  bankHiddenTools.appendChild(chip);
+}
+
 document.querySelectorAll('[data-bank-hide]').forEach(btn=>{
   btn.addEventListener('click',e=>{
-    e.preventDefault();e.stopPropagation();hideBank(btn.dataset.bankHide);
+    e.preventDefault();
+    e.stopPropagation();
+    hideTopBank(btn.dataset.bankHide);
   });
 });
 
+
 document.getElementById('exportPng').addEventListener('click',async()=>{
   const btn=document.getElementById('exportPng');
-
   const old=btn.textContent;
-  btn.textContent='Preparando para compartir…';btn.disabled=true;
+  btn.textContent='Preparando imagen…';btn.disabled=true;
   try{
     const ss=[...document.querySelectorAll('.garment-section')];
-    const size=1400;
-    const gap=Math.round(size*(14/358));
-    const outer=Math.round(gap/2);
+    const cardSize=1100;
+    const gap=Math.round(cardSize*(14/358));
+    const margin=gap;
     const rowGap=gap;
+    const baseWidth=margin*2+cardSize*3+gap*2;
     const rows=[];
 
     const lightImg=document.querySelector('#logoPreviewLight img');
     const darkImg=document.querySelector('#logoPreviewDark img');
-
-    const logoSize=Math.round(size/2);
-    const textW=Math.round(size*1.28);
-
     const hasLight=
       !document.getElementById('bankLight')?.classList.contains('bank-is-hidden') &&
       imageBankHasContent(lightImg);
@@ -2417,209 +2555,93 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       !graphicDrop.classList.contains('bank-is-hidden') &&
       graphicDrop.classList.contains('has-graphic') &&
       imageBankHasContent(graphicPreview);
+    const companyName=(document.getElementById('companyName')?.value||'').trim();
 
-    const brandCards=[];
-    if(hasLight)brandCards.push({img:lightImg,bg:'#ededed',shape:'rounded'});
-    if(hasDark)brandCards.push({img:darkImg,bg:'#26282d',shape:'rounded'});
-
-    // La fila superior sólo existe si realmente hay algún recurso cargado.
-    const hasAnyBrand=hasLight||hasDark||hasSymbol||hasGraphic;
-
-    if(hasAnyBrand){
-      const showText=!hasGraphic && (hasLight||hasDark);
-      const graphicW=hasGraphic ? logoSize : 0;
-      const textBlockW=showText ? textW : 0;
-      const symbolW=hasSymbol ? logoSize : 0;
-
-      let contentW=brandCards.length*logoSize;
-      if(brandCards.length>1)contentW+=(brandCards.length-1)*gap;
-      if(graphicW){
-        if(contentW>0)contentW+=gap;
-        contentW+=graphicW;
-      }else if(textBlockW){
-        if(contentW>0)contentW+=gap;
-        contentW+=textBlockW;
+    const primaryLogo=hasLight?lightImg:(hasDark?darkImg:null);
+    const resourceCount=(primaryLogo?1:0)+(hasGraphic?1:0)+(hasSymbol?1:0);
+    if(companyName||resourceCount){
+      const headerH=Math.round(cardSize*.62);
+      const resourceSize=Math.round(headerH*.96);
+      const header=document.createElement('canvas');
+      header.width=baseWidth;header.height=headerH;
+      const h=header.getContext('2d');h.clearRect(0,0,header.width,header.height);
+      const resources=[];
+      if(primaryLogo)resources.push({img:primaryLogo,bg:hasLight?'#ededed':'#26282d',shape:'rounded'});
+      if(hasGraphic)resources.push({img:graphicPreview,bg:'#ededed',shape:'rounded'});
+      if(hasSymbol)resources.push({img:symbolPreview,bg:'#f1f1f1',shape:'circle'});
+      let rightX=baseWidth-margin;
+      for(let i=resources.length-1;i>=0;i--){
+        rightX-=resourceSize;
+        const rc=await renderLogoCard(resources[i].img,resources[i].bg,resourceSize,resources[i].shape);
+        drawCanvasShadow(h,rc,rightX,0,resources[i].shape==='circle'?resourceSize/2:Math.round(resourceSize*.065),gap);
+        rightX-=gap;
       }
-      if(symbolW){
-        if(contentW>0)contentW+=gap;
-        contentW+=symbolW;
-      }
-
-      const logoRow=document.createElement('canvas');
-      logoRow.width=contentW+outer*2;
-      logoRow.height=logoSize+outer*2;
-      const lr=logoRow.getContext('2d');
-      lr.clearRect(0,0,logoRow.width,logoRow.height);
-
-      let cursorX=outer;
-
-      for(const card of brandCards){
-        lr.drawImage(
-          await renderLogoCard(card.img,card.bg,logoSize,card.shape),
-          cursorX,outer
-        );
-        cursorX+=logoSize+gap;
-      }
-
-      if(hasGraphic){
-        lr.drawImage(
-          await renderLogoCard(graphicPreview,'#ededed',logoSize,'rounded'),
-          cursorX,outer
-        );
-        cursorX+=logoSize+gap;
-      }else if(showText){
-        const tx=cursorX;
-        const ty=outer+Math.round(logoSize*.12);
-        const maxW=textW-Math.round(gap*.6);
-
-        lr.fillStyle='#2a2a2d';
-        lr.font=`700 ${Math.round(logoSize*.115)}px Arial, Helvetica, sans-serif`;
-        lr.textBaseline='top';
-
-        let title='Versión del logo';
-        if(hasLight&&hasDark)title='Versiones del logo';
-        lr.fillText(title,tx,ty);
-
-        lr.fillStyle='#56565c';
-        lr.font=`${Math.round(logoSize*.080)}px Arial, Helvetica, sans-serif`;
-
-        const lines=[];
-        if(hasLight&&hasDark){
-          lines.push(
-            'Se presentan dos versiones del logo para asegurar',
-            'una correcta lectura sobre distintos colores de prenda.',
-            '',
-            'La versión clara se utiliza sobre prendas claras y la',
-            'versión oscura cuando hace falta mayor contraste.'
-          );
-        }else if(hasLight){
-          lines.push(
-            'Se presenta la versión del logo preparada para',
-            'vestimenta clara.'
-          );
-        }else if(hasDark){
-          lines.push(
-            'Se presenta la versión del logo preparada para',
-            'vestimenta oscura.'
-          );
+      const textX=margin;
+      const available=Math.max(0,rightX-textX-gap);
+      if(available>Math.round(cardSize*.48)){
+        const nameH=Math.round(headerH*.78);
+        drawCompanyMark(h,companyName||'Propuesta de prendas',textX,Math.round(headerH*.03),available,nameH);
+        if(available>Math.round(cardSize*.90)){
+          h.fillStyle='#55555b';
+          h.font=`700 ${Math.round(headerH*.047)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+          drawWrappedText(h,exportDescription(hasLight,hasDark,hasGraphic,hasSymbol),textX,Math.round(headerH*.84),available,Math.round(headerH*.064));
         }
-
-        if(hasSymbol){
-          lines.push(
-            '',
-            'También puede utilizarse un símbolo complementario',
-            'en espalda o manga.'
-          );
-        }
-
-        let yy=ty+Math.round(logoSize*.17);
-        const lh=Math.round(logoSize*.112);
-        lines.forEach(line=>{
-          if(line===''){
-            yy+=Math.round(lh*.38);
-            return;
-          }
-          lr.fillText(line,tx,yy,maxW);
-          yy+=lh;
-        });
-
-        cursorX+=textW+gap;
       }
-
-      if(hasSymbol){
-        lr.drawImage(
-          await renderLogoCard(symbolPreview,'#f1f1f1',logoSize,'circle'),
-          cursorX,outer
-        );
-      }
-
-      rows.push(logoRow);
+      rows.push(header);
     }
 
     for(const s of ss){
-      const allCards=[...s.querySelectorAll('.card')];
-      const cards=allCards.filter(card=>!card.classList.contains('view-hidden'));
+      const cards=[...s.querySelectorAll('.card')].filter(card=>!card.classList.contains('view-hidden'));
       if(!cards.length)continue;
-
-      const baseRowWidth=3*size+2*gap+outer*2;
       const count=cards.length;
-      const cardSize=Math.floor((baseRowWidth-outer*2-(count-1)*gap)/count);
-
-      const row=document.createElement('canvas');
-      row.width=baseRowWidth;
-      row.height=cardSize+outer*2;
-      const r=row.getContext('2d');
-      r.clearRect(0,0,row.width,row.height);
-
+      const innerW=baseWidth-margin*2;
+      const itemSize=Math.floor((innerW-(count-1)*gap)/count);
+      const row=document.createElement('canvas');row.width=baseWidth;row.height=itemSize;
+      const r=row.getContext('2d');r.clearRect(0,0,row.width,row.height);
       for(let i=0;i<count;i++){
-        r.drawImage(
-          await renderCard(cards[i],cardSize),
-          outer+i*(cardSize+gap),
-          outer
-        );
+        const rendered=await renderCard(cards[i],itemSize);
+        const x=margin+i*(itemSize+gap);
+        drawCanvasShadow(r,rendered,x,0,Math.round(itemSize*.065),gap);
       }
       rows.push(row);
     }
 
     const pricing=readPricing();
     const hasPricing=pricingHasContent(pricing);
-
-    const baseWidth=Math.max(...rows.map(r=>r.width));
     const modelImages=getModelImages();
-    const modelRow=modelImages.length ? await renderModelRow(modelImages,baseWidth) : null;
-    const pricingFooter=hasPricing ? renderPricingFooter(pricing,baseWidth) : null;
+    const modelRow=modelImages.length?await renderModelRow(modelImages,baseWidth,margin,gap):null;
+    const pricingFooter=hasPricing?renderPricingFooter(pricing,baseWidth-margin*2):null;
+
+    let contentHeight=rows.reduce((a,r)=>a+r.height,0);
+    let blockCount=rows.length;
+    if(modelRow){contentHeight+=modelRow.height;blockCount++;}
+    if(pricingFooter){contentHeight+=pricingFooter.height;blockCount++;}
 
     const out=document.createElement('canvas');
     out.width=baseWidth;
-    out.height=
-      rows.reduce((a,r)=>a+r.height,0)+
-      (rows.length-1)*rowGap+
-      (modelRow ? rowGap+modelRow.height : 0)+
-      (pricingFooter ? rowGap+pricingFooter.height : 0);
-
+    out.height=margin*2+contentHeight+Math.max(0,blockCount-1)*rowGap;
     const o=out.getContext('2d');
-    o.clearRect(0,0,out.width,out.height);
+    o.fillStyle='#d8d8da';o.fillRect(0,0,out.width,out.height);
 
-    let y=0;
-    rows.forEach((r,i)=>{
-      o.drawImage(r,0,y);
-      y+=r.height+(i<rows.length-1?rowGap:0);
-    });
+    let y=margin;
+    rows.forEach(r=>{o.drawImage(r,0,y);y+=r.height+rowGap;});
+    if(modelRow){o.drawImage(modelRow,0,y);y+=modelRow.height+rowGap;}
+    if(pricingFooter){drawCanvasShadow(o,pricingFooter,margin,y,Math.round(cardSize*.025),gap);}
 
-    if(modelRow){
-      y+=rowGap;
-      o.drawImage(modelRow,0,y);
-      y+=modelRow.height;
-    }
-
-    if(pricingFooter){
-      y+=rowGap;
-      o.drawImage(pricingFooter,0,y);
-    }
-
-    const b=await new Promise(resolve=>out.toBlob(resolve,'image/png'));
-    if(!b)throw new Error('No se pudo generar el PNG.');
-
-    const file=new File([b],'propuestas-prendas.png',{type:'image/png'});
+    const b=await new Promise(resolve=>out.toBlob(resolve,'image/jpeg',.88));
+    if(!b)throw new Error('No se pudo generar la imagen.');
+    const file=new File([b],'propuesta-prendas.jpg',{type:'image/jpeg'});
     try{
-      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-        await navigator.share({files:[file],title:'Propuesta de prendas'});
+      if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+        await navigator.share({files:[file],title:companyName||'Propuesta de prendas'});
       }else{
         const u=URL.createObjectURL(b),a=document.createElement('a');
-        a.href=u;
-        a.download='propuestas-prendas.png';
-        a.click();
+        a.href=u;a.download='propuesta-prendas.jpg';document.body.appendChild(a);a.click();a.remove();
         setTimeout(()=>URL.revokeObjectURL(u),1800);
       }
-    }catch(err){
-      if(err && err.name!=='AbortError')throw err;
-    }
-  }catch(e){
-    console.error(e);alert('No se pudo compartir el PNG.');
-  }finally{
-    btn.textContent=old;
-    btn.disabled=false;
-  }
+    }catch(err){if(err&&err.name!=='AbortError')throw err;}
+  }catch(e){console.error(e);alert('No se pudo compartir la imagen.');}
+  finally{btn.textContent=old;btn.disabled=false;}
 });
 </script>
 <input id="garmentTapPicker" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf" style="display:none">
