@@ -808,6 +808,77 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
 .drag-scroll-zone.top{top:0}
 .drag-scroll-zone.bottom{bottom:0}
 
+
+.model-panel{
+  margin:14px 0 6px;
+  padding:14px;
+  border:1px solid #28282d;
+  border-radius:18px;
+  background:#111114;
+}
+.model-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.model-head strong{font-size:14px}
+.model-head small{font-size:11px;color:#85858c}
+.model-upload-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.model-slot{
+  position:relative;
+  aspect-ratio:1/1;
+  border:1px dashed #4a4a50;
+  border-radius:16px;
+  overflow:hidden;
+  background:#17171a;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  min-width:0;
+}
+.model-slot input{display:none}
+.model-slot img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:none;
+}
+.model-slot.has-image img{display:block}
+.model-slot.has-image .model-empty{display:none}
+.model-empty{
+  color:#8f8f96;
+  font-size:12px;
+  text-align:center;
+  padding:12px;
+}
+.model-remove{
+  position:absolute;
+  right:8px;
+  top:8px;
+  width:30px;
+  height:30px;
+  min-width:30px;
+  min-height:30px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(0,0,0,.58);
+  color:#fff;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  z-index:3;
+  cursor:pointer;
+}
+.model-slot.has-image .model-remove{display:flex}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -969,6 +1040,30 @@ if(window.pdfjsLib){
   </div>
 </div></div>
   
+
+<div class="model-panel" id="modelPanel">
+  <div class="model-head">
+    <strong>Modelos / Aplicación real</strong>
+    <small>Opcional. Si no cargás imágenes, no aparece en el PNG.</small>
+  </div>
+
+  <div class="model-upload-grid">
+    <label class="model-slot" id="modelSlot1">
+      <input id="modelInput1" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
+      <span class="model-empty">Agregar imagen 1</span>
+      <img id="modelPreview1" alt="">
+      <button class="model-remove" id="modelRemove1" type="button" title="Quitar imagen">−</button>
+    </label>
+
+    <label class="model-slot" id="modelSlot2">
+      <input id="modelInput2" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
+      <span class="model-empty">Agregar imagen 2</span>
+      <img id="modelPreview2" alt="">
+      <button class="model-remove" id="modelRemove2" type="button" title="Quitar imagen">−</button>
+    </label>
+  </div>
+</div>
+
 <div class="pricing-panel" id="pricingPanel">
   <div class="pricing-head">
     <strong>Precios opcionales</strong>
@@ -2005,6 +2100,96 @@ function renderPricingFooter(pricing,width){
   }
 });
 
+
+function setupModelSlot(slotId,inputId,previewId,removeId){
+  const slot=document.getElementById(slotId);
+  const input=document.getElementById(inputId);
+  const preview=document.getElementById(previewId);
+  const remove=document.getElementById(removeId);
+  if(!slot||!input||!preview||!remove)return;
+
+  input.addEventListener('change',()=>{
+    const file=input.files&&input.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      preview.src=reader.result;
+      slot.classList.add('has-image');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  remove.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    preview.removeAttribute('src');
+    input.value='';
+    slot.classList.remove('has-image');
+  });
+}
+
+setupModelSlot('modelSlot1','modelInput1','modelPreview1','modelRemove1');
+setupModelSlot('modelSlot2','modelInput2','modelPreview2','modelRemove2');
+
+function getModelImages(){
+  return ['modelPreview1','modelPreview2']
+    .map(id=>document.getElementById(id))
+    .filter(img=>img&&img.getAttribute('src'));
+}
+
+async function renderSquareCrop(imgEl,size){
+  const im=await loadImg(imgEl.src);
+  const c=document.createElement('canvas');
+  c.width=c.height=size;
+  const ctx=c.getContext('2d');
+  const scale=Math.max(size/(im.naturalWidth||im.width),size/(im.naturalHeight||im.height));
+  const dw=(im.naturalWidth||im.width)*scale;
+  const dh=(im.naturalHeight||im.height)*scale;
+  ctx.drawImage(im,(size-dw)/2,(size-dh)/2,dw,dh);
+  return c;
+}
+
+async function renderModelRow(imgEls,width){
+  if(!imgEls.length)return null;
+  const gap=Math.round(width*(14/358));
+  const outer=Math.round(gap/2);
+
+  if(imgEls.length===1){
+    const row=document.createElement('canvas');
+    row.width=width;
+    row.height=width;
+    const ctx=row.getContext('2d');
+    const pad=outer;
+    const box=width-pad*2;
+    const crop=await renderSquareCrop(imgEls[0],box);
+
+    ctx.save();
+    roundedRect(ctx,pad,pad,box,box,Math.round(box*.045));
+    ctx.clip();
+    ctx.drawImage(crop,pad,pad);
+    ctx.restore();
+    return row;
+  }
+
+  const box=Math.floor((width-gap-outer*2)/2);
+  const row=document.createElement('canvas');
+  row.width=width;
+  row.height=box+outer*2;
+  const ctx=row.getContext('2d');
+
+  for(let i=0;i<2;i++){
+    const crop=await renderSquareCrop(imgEls[i],box);
+    const x=outer+i*(box+gap);
+
+    ctx.save();
+    roundedRect(ctx,x,outer,box,box,Math.round(box*.045));
+    ctx.clip();
+    ctx.drawImage(crop,x,outer);
+    ctx.restore();
+  }
+  return row;
+}
+
 document.getElementById('exportPng').addEventListener('click',async()=>{
   const btn=document.getElementById('exportPng');
 
@@ -2174,6 +2359,8 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
     const hasPricing=pricingHasContent(pricing);
 
     const baseWidth=Math.max(...rows.map(r=>r.width));
+    const modelImages=getModelImages();
+    const modelRow=modelImages.length ? await renderModelRow(modelImages,baseWidth) : null;
     const pricingFooter=hasPricing ? renderPricingFooter(pricing,baseWidth) : null;
 
     const out=document.createElement('canvas');
@@ -2181,6 +2368,7 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
     out.height=
       rows.reduce((a,r)=>a+r.height,0)+
       (rows.length-1)*rowGap+
+      (modelRow ? rowGap+modelRow.height : 0)+
       (pricingFooter ? rowGap+pricingFooter.height : 0);
 
     const o=out.getContext('2d');
@@ -2191,6 +2379,12 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       o.drawImage(r,0,y);
       y+=r.height+(i<rows.length-1?rowGap:0);
     });
+
+    if(modelRow){
+      y+=rowGap;
+      o.drawImage(modelRow,0,y);
+      y+=modelRow.height;
+    }
 
     if(pricingFooter){
       y+=rowGap;
