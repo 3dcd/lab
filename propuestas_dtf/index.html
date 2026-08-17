@@ -1249,6 +1249,30 @@ body.has-export-background{
   background-repeat:no-repeat!important;
 }
 
+
+.background-thumb{position:relative;cursor:pointer;padding:0}
+.background-rotate-badge{
+  position:absolute;right:2px;bottom:1px;
+  min-width:16px;height:16px;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.58);color:#fff;font-size:10px;line-height:1;
+}
+.background-thumb img{transition:transform .18s ease}
+body.has-export-background::before{
+  content:"";
+  position:fixed;
+  z-index:-2;
+  inset:-35vmax;
+  background-image:var(--export-bg-image);
+  background-position:center;
+  background-size:cover;
+  background-repeat:no-repeat;
+  transform:rotate(var(--export-bg-rotation,0deg));
+  transform-origin:center;
+  pointer-events:none;
+}
+body.has-export-background{background-image:none!important}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1359,7 +1383,7 @@ if(window.pdfjsLib){
 <div class="top-export"><div class="company-export">
 <input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa">
 <label class="export-btn background-file" id="backgroundLabel">Agregar fondo<input id="backgroundInput" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg"></label>
-<div class="background-thumb" id="backgroundThumb" title="Vista previa del fondo"><img id="backgroundThumbImg" alt=""></div>
+<button class="background-thumb" id="backgroundThumb" type="button" title="Tocar para girar el fondo 90°"><img id="backgroundThumbImg" alt=""><span class="background-rotate-badge">↻</span></button>
 <button class="background-clear" id="backgroundClear" type="button" title="Quitar fondo">×</button>
 <button class="export-btn" id="saveZip" type="button">Guardar ZIP</button>
 <label class="export-btn background-file" id="loadZipLabel">Cargar ZIP<input id="loadZipInput" type="file" accept=".zip,application/zip"></label>
@@ -2212,6 +2236,29 @@ function hideView(section,card){
   updateVisibleLayout(section);
 }
 
+
+function rebuildHiddenViewChips(section){
+  const holder=section.querySelector('.hidden-views');
+  if(!holder)return;
+  holder.innerHTML='';
+
+  section.querySelectorAll('.card.view-hidden').forEach(card=>{
+    const chip=document.createElement('button');
+    chip.type='button';
+    chip.className='restore-view';
+    chip.dataset.view=card.dataset.view;
+    chip.textContent='Mostrar '+viewLabel(card);
+    chip.addEventListener('click',()=>{
+      card.classList.remove('view-hidden');
+      chip.remove();
+      updateVisibleLayout(section);
+    });
+    holder.appendChild(chip);
+  });
+
+  updateVisibleLayout(section);
+}
+
 function restoreHiddenUI(section){
   const holder=section.querySelector('.hidden-views');
   if(holder)holder.innerHTML='';
@@ -2292,6 +2339,8 @@ function initSection(section){
     updateVisibleLayout(c);
   });
 }
+const pristineGarmentTemplate=document.querySelector('.garment-section').cloneNode(true);
+
 document.querySelectorAll('.garment-section').forEach(initSection);
 document.getElementById('addSection').addEventListener('click',()=>{
   const base=document.querySelector('.garment-section');
@@ -2577,6 +2626,7 @@ async function renderPricingFooter(pricing,width){
 
 
 let exportBackgroundSrc='';
+let exportBackgroundRotation=0;
 const backgroundInput=document.getElementById('backgroundInput');
 const backgroundLabel=document.getElementById('backgroundLabel');
 const backgroundClear=document.getElementById('backgroundClear');
@@ -2588,6 +2638,7 @@ if(backgroundInput){
     const reader=new FileReader();
     reader.onload=()=>{
       exportBackgroundSrc=reader.result;
+      exportBackgroundRotation=0;
       if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
       backgroundClear?.classList.add('show');
 
@@ -2599,16 +2650,31 @@ if(backgroundInput){
       }
 
       document.body.classList.add('has-export-background');
-      document.body.style.backgroundImage=`url("${exportBackgroundSrc}")`;
+      document.body.style.setProperty('--export-bg-image',`url("${exportBackgroundSrc}")`);
+      document.body.style.setProperty('--export-bg-rotation','0deg');
 
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     };
     reader.readAsDataURL(file);
   });
 }
+
+const backgroundThumbButton=document.getElementById('backgroundThumb');
+if(backgroundThumbButton){
+  backgroundThumbButton.addEventListener('click',()=>{
+    if(!exportBackgroundSrc)return;
+    exportBackgroundRotation=(exportBackgroundRotation+90)%360;
+    const previewImg=document.getElementById('backgroundThumbImg');
+    if(previewImg)previewImg.style.transform=`rotate(${exportBackgroundRotation}deg)`;
+    document.body.style.setProperty('--export-bg-rotation',`${exportBackgroundRotation}deg`);
+    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+  });
+}
+
 if(backgroundClear){
   backgroundClear.addEventListener('click',()=>{
     exportBackgroundSrc='';
+    exportBackgroundRotation=0;
     if(backgroundInput)backgroundInput.value='';
     if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Agregar fondo ';
     backgroundClear.classList.remove('show');
@@ -2619,7 +2685,8 @@ if(backgroundClear){
     if(thumbImg)thumbImg.removeAttribute('src');
 
     document.body.classList.remove('has-export-background');
-    document.body.style.backgroundImage='';
+    document.body.style.removeProperty('--export-bg-image');
+    document.body.style.removeProperty('--export-bg-rotation');
 
     if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
   });
@@ -2648,9 +2715,17 @@ async function drawExportBackground(ctx,width,height){
   const im=await loadImg(exportBackgroundSrc);
   const iw=im.naturalWidth||im.width;
   const ih=im.naturalHeight||im.height;
-  const scale=Math.max(width/iw,height/ih);
-  const dw=iw*scale,dh=ih*scale;
-  ctx.drawImage(im,(width-dw)/2,(height-dh)/2,dw,dh);
+  const rot=((exportBackgroundRotation%360)+360)%360;
+  const swap=rot===90||rot===270;
+  const rw=swap?ih:iw;
+  const rh=swap?iw:ih;
+  const scale=Math.max(width/rw,height/rh);
+
+  ctx.save();
+  ctx.translate(width/2,height/2);
+  ctx.rotate(rot*Math.PI/180);
+  ctx.drawImage(im,-iw*scale/2,-ih*scale/2,iw*scale,ih*scale);
+  ctx.restore();
 }
 
 const companyNameInput=document.getElementById('companyName');
@@ -3155,6 +3230,7 @@ function buildProposalBackup(){
     companyName:(document.getElementById('companyName')?.value||''),
     prices:typeof readPricing==='function'?readPricing():{},
     background:null,
+    backgroundRotation:exportBackgroundRotation,
     banks:{},
     models:[],
     garments:[]
@@ -3266,83 +3342,228 @@ async function restoreProposalBackup(file){
   if(!jsonBytes)throw new Error('El ZIP no contiene propuesta.json.');
   const data=JSON.parse(new TextDecoder().decode(jsonBytes));
 
-  const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??'';};
+  // ---------- datos generales ----------
+  const setVal=(id,v)=>{
+    const el=document.getElementById(id);
+    if(el)el.value=v??'';
+  };
   setVal('companyName',data.companyName||'');
   setVal('priceSmall',data.prices?.small||'');
   setVal('priceLarge',data.prices?.large||'');
   setVal('priceCombo',data.prices?.combo||'');
   setVal('priceNote',data.prices?.note||'');
 
+  // ---------- fondo ----------
   if(data.background && files[data.background]){
     exportBackgroundSrc=bytesToDataUrl(files[data.background],data.background);
+    exportBackgroundRotation=((Number(data.backgroundRotation)||0)%360+360)%360;
+
     const thumb=document.getElementById('backgroundThumb');
     const thumbImg=document.getElementById('backgroundThumbImg');
-    if(thumb&&thumbImg){thumbImg.src=exportBackgroundSrc;thumb.classList.add('show');}
+    if(thumb&&thumbImg){
+      thumbImg.src=exportBackgroundSrc;
+      thumbImg.style.transform=`rotate(${exportBackgroundRotation}deg)`;
+      thumb.classList.add('show');
+    }
+
     document.body.classList.add('has-export-background');
-    document.body.style.backgroundImage=`url("${exportBackgroundSrc}")`;
+    document.body.style.setProperty('--export-bg-image',`url("${exportBackgroundSrc}")`);
+    document.body.style.setProperty('--export-bg-rotation',`${exportBackgroundRotation}deg`);
     if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
     backgroundClear?.classList.add('show');
   }else{
     exportBackgroundSrc='';
+    exportBackgroundRotation=0;
     document.body.classList.remove('has-export-background');
-    document.body.style.backgroundImage='';
+    document.body.style.removeProperty('--export-bg-image');
+    document.body.style.removeProperty('--export-bg-rotation');
+
+    const thumb=document.getElementById('backgroundThumb');
+    const thumbImg=document.getElementById('backgroundThumbImg');
+    if(thumb)thumb.classList.remove('show');
+    if(thumbImg){
+      thumbImg.removeAttribute('src');
+      thumbImg.style.transform='';
+    }
+    if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Agregar fondo ';
+    backgroundClear?.classList.remove('show');
   }
 
-  const restoreBank=(key,path)=>{
-    if(!path||!files[path])return;
-    const src=bytesToDataUrl(files[path],path);
+  // ---------- bancos de logos ----------
+  bankHiddenTools.innerHTML='';
+
+  const restoreBank=(key,bankData)=>{
+    if(!bankData?.file || !files[bankData.file])return;
+    const src=bytesToDataUrl(files[bankData.file],bankData.file);
+
     if(key==='light'){
-      lightBaseSrc=src;logoPreviewLight.querySelector('img').src=src;
+      lightBaseSrc=src;
+      logoPreviewLight.querySelector('img').src=src;
+      document.getElementById('bankLight')?.classList.add('bank-has-content');
       document.getElementById('bankLight')?.classList.remove('bank-is-hidden');
     }else if(key==='dark'){
-      darkBaseSrc=src;logoPreviewDark.querySelector('img').src=src;
+      darkBaseSrc=src;
+      logoPreviewDark.querySelector('img').src=src;
+      document.getElementById('bankDark')?.classList.add('bank-has-content');
       document.getElementById('bankDark')?.classList.remove('bank-is-hidden');
     }else if(key==='symbol'){
-      symbolBaseSrc=src;symbolPreview.src=src;symbolDrop.classList.add('has-symbol');symbolDrop.classList.remove('bank-is-hidden');
+      symbolBaseSrc=src;
+      symbolPreview.src=src;
+      symbolDrop.classList.add('has-symbol');
+      symbolDrop.classList.remove('bank-is-hidden');
     }else if(key==='graphic'){
-      graphicBaseSrc=src;graphicPreview.src=src;graphicDrop.classList.add('has-graphic');graphicDrop.classList.remove('bank-is-hidden');
+      graphicBaseSrc=src;
+      graphicPreview.src=src;
+      graphicDrop.classList.add('has-graphic');
+      graphicDrop.classList.remove('bank-is-hidden');
+    }
+
+    // Restaurar también el estado oculto del banco.
+    if(bankData.hidden){
+      setTimeout(()=>hideTopBank(key),0);
     }
   };
-  Object.entries(data.banks||{}).forEach(([key,b])=>restoreBank(key,b.file));
 
-  (data.models||[]).forEach(item=>{
-    const slot=document.getElementById('modelSlot'+item.slot);
+  Object.entries(data.banks||{}).forEach(([key,b])=>restoreBank(key,b));
+
+  // ---------- modelos / textos ----------
+  modelHidden.innerHTML='';
+
+  [1,2,3].forEach(n=>{
+    const slot=document.getElementById('modelSlot'+n);
+    const img=document.getElementById('modelPreview'+n);
+    const ta=document.getElementById('modelText'+n);
     if(!slot)return;
-    slot.classList.remove('model-hidden-slot');
-    if(item.mode==='text'){
-      slot.dataset.mode='text';
-      const ta=document.getElementById('modelText'+item.slot);
-      if(ta)ta.value=item.text||'';
-    }else if(item.file&&files[item.file]){
-      slot.dataset.mode='image';
-      const img=document.getElementById('modelPreview'+item.slot);
-      if(img)img.src=bytesToDataUrl(files[item.file],item.file);
-    }
-  });
 
-  // Restore garment designs to the sections that already exist in the template.
-  const sectionsNow=[...document.querySelectorAll('.garment-section')];
-  (data.garments||[]).forEach((g,gi)=>{
-    const section=sectionsNow[gi];
-    if(!section)return;
-    if(g.shirtColor)section.style.setProperty('--shirt-color',g.shirtColor);
-    if(g.shirtBrightness)section.style.setProperty('--shirt-brightness',g.shirtBrightness);
-    if(g.cardBackground)section.style.setProperty('--bg-color',g.cardBackground);
-    const cards=[...section.querySelectorAll('.card')];
-    (g.views||[]).forEach((v,vi)=>{
-      const card=cards[vi];if(!card)return;
-      card.classList.toggle('view-hidden',!!v.hidden);
-      if(v.design&&files[v.design]){
-        const img=card.querySelector('.logo-slot img');
-        if(img){
-          img.src=bytesToDataUrl(files[v.design],v.design);
-          img.classList.remove('empty-logo');
-        }
-      }
+    slot.classList.remove('has-image','has-text','model-hidden-slot');
+    slot.dataset.mode='image';
+    if(img){
+      img.removeAttribute('src');
+      img.style.removeProperty('transform');
+    }
+    if(ta)ta.value='';
+    slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
+      btn.classList.toggle('active',btn.dataset.modeSet==='image');
     });
   });
 
-  if(typeof updateBankHiddenTools==='function')updateBankHiddenTools();
+  (data.models||[]).forEach(item=>{
+    const n=item.slot;
+    const slot=document.getElementById('modelSlot'+n);
+    const img=document.getElementById('modelPreview'+n);
+    const ta=document.getElementById('modelText'+n);
+    if(!slot)return;
+
+    if(item.mode==='text'){
+      slot.dataset.mode='text';
+      if(ta)ta.value=item.text||'';
+      slot.classList.toggle('has-text',!!(item.text||'').trim());
+      slot.classList.remove('has-image');
+      slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
+        btn.classList.toggle('active',btn.dataset.modeSet==='text');
+      });
+    }else if(item.file&&files[item.file]){
+      const src=bytesToDataUrl(files[item.file],item.file);
+      slot.dataset.mode='image';
+      if(img){
+        img.onload=()=>{
+          const w=img.naturalWidth||1;
+          const h=img.naturalHeight||1;
+          const ratio=Math.max(.45,Math.min(3,w/h));
+          slot.style.setProperty('--model-ratio',ratio);
+          slot.style.setProperty('--model-aspect',`${w} / ${h}`);
+          img.onload=null;
+        };
+        img.src=src;
+      }
+      slot.classList.add('has-image');
+      slot.classList.remove('has-text');
+      slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
+        btn.classList.toggle('active',btn.dataset.modeSet==='image');
+      });
+    }
+
+    if(item.hidden){
+      slot.classList.add('model-hidden-slot');
+      const chip=document.createElement('button');
+      chip.type='button';
+      chip.className='model-restore';
+      chip.dataset.restoreModel=String(n);
+      chip.textContent='Mostrar bloque '+n;
+      chip.addEventListener('click',()=>{
+        slot.classList.remove('model-hidden-slot');
+        chip.remove();
+      });
+      modelHidden.appendChild(chip);
+    }
+  });
+
+  // ---------- PRENDAS ----------
+  // Éste era el problema: antes sólo se restauraban las secciones que ya existían.
+  // Ahora se reconstruye la cantidad EXACTA guardada en el ZIP.
+  const garmentData=Array.isArray(data.garments)?data.garments:[];
+  sections.innerHTML='';
+
+  const garmentList=garmentData.length?garmentData:[{
+    type:'remera',shirtColor:'#d9d9d9',shirtBrightness:'1',cardBackground:'#171717',views:[]
+  }];
+
+  garmentList.forEach((g,gi)=>{
+    const section=pristineGarmentTemplate.cloneNode(true);
+
+    // Limpiar cualquier estado que pudiera venir en la plantilla.
+    const holder=section.querySelector('.hidden-views');
+    if(holder)holder.innerHTML='';
+
+    section.querySelectorAll('.card').forEach(card=>{
+      card.classList.remove('view-hidden');
+      const img=card.querySelector('.logo-slot img');
+      if(img){
+        if(typeof EMPTY_LOGO!=='undefined')img.src=EMPTY_LOGO;
+        else img.removeAttribute('src');
+        img.classList.add('empty-logo');
+      }
+    });
+
+    sections.appendChild(section);
+    initSection(section);
+
+    const type=section.querySelector('.garment-type');
+    if(type){
+      type.value=g.type||'remera';
+      applyPreset(section,type.value);
+    }
+
+    if(g.shirtColor)section.style.setProperty('--shirt-color',g.shirtColor);
+    if(g.shirtBrightness)section.style.setProperty('--shirt-brightness',g.shirtBrightness);
+    if(g.cardBackground)section.style.setProperty('--bg-color',g.cardBackground);
+
+    // Marcar visualmente el color de prenda guardado.
+    section.querySelectorAll('[data-shirt]').forEach(btn=>{
+      btn.classList.toggle('active',!!g.shirtColor && btn.dataset.shirt===g.shirtColor);
+    });
+
+    const savedViews=Array.isArray(g.views)?g.views:[];
+    const byName=new Map(savedViews.map(v=>[v.name,v]));
+
+    section.querySelectorAll('.card').forEach((card,ci)=>{
+      const v=byName.get(card.dataset.view)||savedViews[ci];
+      if(!v)return;
+
+      const designImg=card.querySelector('.logo-slot img');
+      if(v.design&&files[v.design]&&designImg){
+        designImg.src=bytesToDataUrl(files[v.design],v.design);
+        designImg.classList.remove('empty-logo');
+      }
+
+      card.classList.toggle('view-hidden',!!v.hidden);
+    });
+
+    // Muy importante: reconstruir "Mostrar Pecho / Espalda / ..." inmediatamente.
+    rebuildHiddenViewChips(section);
+    updateVisibleLayout(section);
+  });
+
   if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
 }
 
@@ -3370,7 +3591,9 @@ document.getElementById('saveZip')?.addEventListener('click',()=>{
     const a=document.createElement('a');
     const safe=((document.getElementById('companyName')?.value||'Propuesta')
       .trim().replace(/[^\p{L}\p{N}_-]+/gu,'_'))||'Propuesta';
-    a.href=url;a.download=safe+'_respaldo.zip';
+    const now=new Date();
+    const date=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    a.href=url;a.download=`${safe}_${date}_respaldo.zip`;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2500);
   }catch(err){
