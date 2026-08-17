@@ -2298,24 +2298,20 @@ async function renderModelRow(imgEls,width,margin,gap){
     const crop=await renderSquareCrop(imgEls[i],box);
     const x=margin+i*(box+gap);
     ctx.save();
-    ctx.shadowColor='rgba(0,0,0,.22)';
-    ctx.shadowBlur=Math.max(10,Math.round(gap*.42));
-    ctx.shadowOffsetY=Math.max(4,Math.round(gap*.12));
     roundedRect(ctx,x,0,box,box,Math.round(box*.045));
-    ctx.fillStyle='#ffffff';ctx.fill();ctx.restore();
-    ctx.save();roundedRect(ctx,x,0,box,box,Math.round(box*.045));ctx.clip();ctx.drawImage(crop,x,0);ctx.restore();
+    ctx.fillStyle='#ffffff';ctx.fill();
+    ctx.clip();ctx.drawImage(crop,x,0);ctx.restore();
   }
   return row;
 }
 
 function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
+  // Exportación plana: sin sombra para que ninguna máscara redondeada la recorte.
   ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.20)';
-  ctx.shadowBlur=Math.max(10,Math.round(shadowGap*.42));
-  ctx.shadowOffsetY=Math.max(4,Math.round(shadowGap*.12));
   roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
-  ctx.fillStyle='#ffffff';ctx.fill();ctx.restore();
+  ctx.clip();
   ctx.drawImage(canvas,x,y);
+  ctx.restore();
 }
 
 function exportDescription(hasLight,hasDark,hasGraphic,hasSymbol){
@@ -2324,6 +2320,64 @@ function exportDescription(hasLight,hasDark,hasGraphic,hasSymbol){
   if(hasGraphic)bits.push('dibujo gráfico');
   if(hasSymbol)bits.push('símbolo complementario');
   return bits.length?bits.join(' · '):'Propuesta visual de prendas';
+}
+
+function splitCompanyName(name){
+  const clean=(name||'').trim().replace(/\s+/g,' ');
+  if(!clean)return {top:'PROPUESTA',bottom:'DE PRENDAS',joiner:''};
+  const ym=clean.match(/^(.*?)\s+y\s+(.*?)$/i);
+  if(ym&&ym[1]&&ym[2])return {top:ym[1],bottom:ym[2],joiner:'y'};
+  const words=clean.split(' ');
+  if(words.length===1)return {top:clean,bottom:'',joiner:''};
+  let best=1,bestDiff=Infinity;
+  for(let i=1;i<words.length;i++){
+    const a=words.slice(0,i).join(' '),b=words.slice(i).join(' ');
+    const d=Math.abs(a.length-b.length);
+    if(d<bestDiff){bestDiff=d;best=i;}
+  }
+  return {top:words.slice(0,best).join(' '),bottom:words.slice(best).join(' '),joiner:''};
+}
+
+function fitRoundedFont(ctx,text,maxWidth,startSize,minSize=28){
+  let size=startSize;
+  const family='\"Arial Rounded MT Bold\",\"Trebuchet MS\",Arial,Helvetica,sans-serif';
+  while(size>minSize){
+    ctx.font=`900 ${size}px ${family}`;
+    if(ctx.measureText(text).width<=maxWidth)break;
+    size-=4;
+  }
+  return {size,family};
+}
+
+function drawCompanyMark(ctx,name,x,y,maxW,maxH){
+  const p=splitCompanyName(name);
+  ctx.save();ctx.fillStyle='#17171a';ctx.textBaseline='top';ctx.textAlign='left';
+  if(!p.bottom){
+    const f=fitRoundedFont(ctx,p.top,maxW,Math.round(maxH*.42));
+    ctx.font=`900 ${f.size}px ${f.family}`;
+    ctx.fillText(p.top,x,y+Math.round((maxH-f.size)*.42),maxW);
+  }else{
+    const start=Math.round(maxH*.28);
+    const f1=fitRoundedFont(ctx,p.top,maxW,start);
+    const f2=fitRoundedFont(ctx,p.bottom,maxW,start);
+    const size=Math.min(f1.size,f2.size);
+    const family=f1.family;
+    const lineH=Math.round(size*.82); // líneas deliberadamente cercanas, tipo logotipo
+    let total=lineH*2;
+    let sy=y+Math.max(0,Math.round((maxH-total)/2));
+    ctx.font=`900 ${size}px ${family}`;
+    ctx.fillText(p.top,x,sy,maxW);
+    if(p.joiner){
+      const topW=ctx.measureText(p.top).width;
+      ctx.font=`800 ${Math.max(22,Math.round(size*.30))}px ${family}`;
+      ctx.fillStyle='#55555b';
+      ctx.fillText(p.joiner,x+Math.min(maxW-Math.round(size*.35),topW+Math.round(size*.10)),sy+Math.round(size*.50));
+      ctx.fillStyle='#17171a';
+    }
+    ctx.font=`900 ${size}px ${family}`;
+    ctx.fillText(p.bottom,x,sy+lineH,maxW);
+  }
+  ctx.restore();
 }
 
 document.getElementById('exportPng').addEventListener('click',async()=>{
@@ -2350,8 +2404,8 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
     const primaryLogo=hasLight?lightImg:(hasDark?darkImg:null);
     const resourceCount=(primaryLogo?1:0)+(hasGraphic?1:0)+(hasSymbol?1:0);
     if(companyName||resourceCount){
-      const headerH=Math.round(cardSize*.50);
-      const resourceSize=headerH;
+      const headerH=Math.round(cardSize*.62);
+      const resourceSize=Math.round(headerH*.96);
       const header=document.createElement('canvas');
       header.width=baseWidth;header.height=headerH;
       const h=header.getContext('2d');h.clearRect(0,0,header.width,header.height);
@@ -2368,13 +2422,13 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       }
       const textX=margin;
       const available=Math.max(0,rightX-textX-gap);
-      if(available>Math.round(cardSize*.55)){
-        h.textBaseline='top';h.fillStyle='#17171a';
-        h.font=`800 ${Math.round(headerH*.16)}px Arial,Helvetica,sans-serif`;
-        h.fillText(companyName||'Propuesta de prendas',textX,Math.round(headerH*.20),available);
-        if(available>Math.round(cardSize*.85)){
-          h.fillStyle='#55555b';h.font=`${Math.round(headerH*.070)}px Arial,Helvetica,sans-serif`;
-          drawWrappedText(h,exportDescription(hasLight,hasDark,hasGraphic,hasSymbol),textX,Math.round(headerH*.47),available,Math.round(headerH*.095));
+      if(available>Math.round(cardSize*.48)){
+        const nameH=Math.round(headerH*.78);
+        drawCompanyMark(h,companyName||'Propuesta de prendas',textX,Math.round(headerH*.03),available,nameH);
+        if(available>Math.round(cardSize*.90)){
+          h.fillStyle='#55555b';
+          h.font=`700 ${Math.round(headerH*.047)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+          drawWrappedText(h,exportDescription(hasLight,hasDark,hasGraphic,hasSymbol),textX,Math.round(headerH*.84),available,Math.round(headerH*.064));
         }
       }
       rows.push(header);
