@@ -1016,6 +1016,225 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   cursor:pointer;
 }
 
+
+#bankLight,#bankDark,#symbolDrop,#graphicDrop{position:relative!important}
+.bank-hide-top{
+  position:absolute!important;
+  z-index:40!important;
+  right:8px!important;
+  top:8px!important;
+  left:auto!important;
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  min-height:30px!important;
+  border-radius:50%!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  background:rgba(0,0,0,.56)!important;
+  color:#fff!important;
+  font-size:20px!important;
+  line-height:26px!important;
+  cursor:pointer!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  backdrop-filter:blur(6px);
+}
+#bankLight:not(.bank-has-content) .bank-hide-top,
+#bankDark:not(.bank-has-content) .bank-hide-top,
+#symbolDrop:not(.has-symbol) .bank-hide-top,
+#graphicDrop:not(.has-graphic) .bank-hide-top{
+  display:none!important;
+}
+
+
+.bank-label{
+  position:absolute;
+  z-index:35;
+  left:10px;
+  top:10px;
+  max-width:calc(100% - 54px);
+  padding:5px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:.01em;
+  background:rgba(0,0,0,.38);
+  color:#fff;
+  backdrop-filter:blur(5px);
+  pointer-events:none;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#bankLight .bank-label,
+#graphicDrop .bank-label,
+#symbolDrop .bank-label{
+  background:rgba(255,255,255,.74);
+  color:#242428;
+  border:1px solid rgba(0,0,0,.08);
+}
+
+
+.drop-short{
+  display:block;
+  max-width:calc(100% - 16px);
+  font-size:12px;
+  font-weight:600;
+  line-height:1.15;
+  opacity:.68;
+  white-space:nowrap;
+}
+@media(max-width:700px){
+  .bank-label{
+    left:7px!important;
+    top:7px!important;
+    max-width:calc(100% - 45px)!important;
+    font-size:10px!important;
+    padding:4px 6px!important;
+  }
+  .bank-hide-top{
+    right:6px!important;
+    top:6px!important;
+    width:26px!important;
+    height:26px!important;
+    min-width:26px!important;
+    min-height:26px!important;
+    font-size:17px!important;
+  }
+  .logo-choice .dropzone,
+  #symbolDrop .dropzone,
+  #graphicDrop .dropzone{
+    padding-top:30px!important;
+  }
+  .drop-short{
+    font-size:10px!important;
+  }
+}
+
+
+/* ===== Aplicación real: cada tarjeta puede ser imagen o texto ===== */
+.model-upload-grid{
+  display:flex!important;
+  align-items:stretch!important;
+  gap:10px!important;
+}
+.model-slot{
+  position:relative!important;
+  flex:1 1 0!important;
+  min-width:0!important;
+  aspect-ratio:1/1;
+  border:1px dashed #4a4a50;
+  border-radius:16px;
+  overflow:hidden;
+  background:#17171a;
+}
+.model-slot.has-image:not(.model-hidden-slot){
+  flex-grow:var(--model-ratio,1)!important;
+  aspect-ratio:var(--model-aspect,1 / 1)!important;
+}
+.model-slot.has-text:not(.model-hidden-slot){
+  flex-grow:.9!important;
+  aspect-ratio:.9 / 1!important;
+}
+.model-mode-tools{
+  position:absolute;
+  left:8px;
+  top:8px;
+  z-index:8;
+  display:flex;
+  gap:4px;
+}
+.model-mode-btn{
+  border:1px solid rgba(255,255,255,.22);
+  background:rgba(0,0,0,.54);
+  color:#ddd;
+  border-radius:999px;
+  padding:5px 8px;
+  font-size:10px;
+  cursor:pointer;
+}
+.model-mode-btn.active{
+  background:#f1f1f2;
+  color:#202024;
+}
+.model-image-area{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.model-image-area input{display:none}
+.model-image-area img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:none;
+}
+.model-slot.has-image .model-image-area img{display:block}
+.model-slot.has-image .model-empty{display:none}
+.model-text{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  resize:none;
+  border:0;
+  outline:none;
+  padding:52px 18px 18px;
+  background:#f2f2f1;
+  color:#26262a;
+  font:600 15px/1.45 "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif;
+  display:none;
+}
+.model-slot[data-mode="text"] .model-text{display:block}
+.model-slot[data-mode="text"] .model-image-area{display:none}
+.model-slot[data-mode="image"] .model-text{display:none}
+.model-slot.model-hidden-slot{display:none!important}
+@media(max-width:700px){
+  .model-upload-grid{gap:8px!important}
+  .model-mode-tools{left:5px;top:5px;gap:3px}
+  .model-mode-btn{padding:4px 6px;font-size:9px}
+  .model-text{padding:44px 10px 10px;font-size:12px}
+}
+
+
+.background-file{display:inline-flex;align-items:center;justify-content:center}
+.background-file input{display:none}
+.background-clear{
+  display:none;
+  width:34px;height:34px;min-width:34px;min-height:34px;
+  border-radius:50%;border:1px solid #3b3b40;background:#18181b;
+  color:#fff;font-size:19px;cursor:pointer;
+}
+.background-clear.show{display:inline-flex;align-items:center;justify-content:center}
+@media(max-width:560px){
+  .company-export{grid-template-columns:1fr auto auto auto!important}
+  .background-file{font-size:10px!important;padding:7px 8px!important}
+}
+
+
+.model-slot[data-mode="text"]{
+  border-color:transparent!important;
+  background:transparent!important;
+  overflow:visible!important;
+}
+.model-slot[data-mode="text"] .model-text{
+  background:transparent!important;
+  color:#dcdce0!important;
+  border:0!important;
+  border-radius:0!important;
+  padding:48px 10px 10px!important;
+}
+.model-slot.has-text:not(.model-hidden-slot){
+  flex-grow:var(--text-weight,1.15)!important;
+  aspect-ratio:auto!important;
+  min-height:180px;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1057,9 +1276,9 @@ if(window.pdfjsLib){
 <body>
 <div class="app">
   <div class="logo-master">
-    <div class="logo-choice light" id="bankLight">
-      <label class="dropzone" id="logoDropLight">Logo para prendas claras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputLight" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
-      <div class="logo-preview" id="logoPreviewLight" draggable="true" title="Arrastrá este logo sobre una vista"><button class="bank-hide-main" data-bank-hide="light" type="button" title="Ocultar logo">×</button>
+    <div class="logo-choice light" id="bankLight"><button class="bank-hide-top" data-bank-hide="light" type="button" title="Ocultar logo">×</button><div class="bank-label">Logo claro</div>
+      <label class="dropzone" id="logoDropLight"><span class="drop-short">Arrastre o elija</span><input id="logoInputLight" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
+      <div class="logo-preview" id="logoPreviewLight" draggable="true" title="Arrastrá este logo sobre una vista">
         <div class="white-toggle-wrap">
           <button class="white-toggle" id="blackToggle" type="button" title="Convertir logo a negro">↻</button>
         </div>
@@ -1070,9 +1289,9 @@ if(window.pdfjsLib){
         <div class="outline-level" id="lightOutlineLevel">Filete 0</div>
 <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Logo para prendas claras"></div>
     </div>
-    <div class="logo-choice dark" id="bankDark">
-      <label class="dropzone" id="logoDropDark">Logo para prendas oscuras<small>Arrastrá o elegí SVG / PNG / JPG / PDF</small><input id="logoInputDark" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
-      <div class="logo-preview" id="logoPreviewDark" draggable="true" title="Arrastrá este logo sobre una vista"><button class="bank-hide-main" data-bank-hide="dark" type="button" title="Ocultar logo">×</button>
+    <div class="logo-choice dark" id="bankDark"><button class="bank-hide-top" data-bank-hide="dark" type="button" title="Ocultar logo">×</button><div class="bank-label">Logo oscuro</div>
+      <label class="dropzone" id="logoDropDark"><span class="drop-short">Arrastre o elija</span><input id="logoInputDark" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf"></label>
+      <div class="logo-preview" id="logoPreviewDark" draggable="true" title="Arrastrá este logo sobre una vista">
         <div class="white-toggle-wrap">
           <button class="white-toggle" id="whiteToggle" type="button" title="Convertir logo a blanco">↻</button>
         </div>
@@ -1084,10 +1303,9 @@ if(window.pdfjsLib){
 <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Logo para prendas oscuras"></div>
     </div>
     
-<div class="logo-choice light graphic-bank symbol-bank" id="graphicDrop">
+<div class="logo-choice light graphic-bank symbol-bank" id="graphicDrop"><button class="bank-hide-top" id="graphicRemove" data-bank-hide="graphic" type="button" title="Ocultar dibujo gráfico">×</button><div class="bank-label">Dibujo gráfico</div>
   <label class="dropzone" for="graphicInput">
-    Dibujo gráfico
-    <small>Arrastrá o elegí SVG / PNG / JPG / PDF</small>
+    <span class="drop-short">Arrastre o elija</span>
     <input id="graphicInput" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf">
   </label>
 
@@ -1098,16 +1316,15 @@ if(window.pdfjsLib){
               title="Invertir colores">↻</button>
     </div>
 
-    <button class="symbol-remove bank-hide-main" id="graphicRemove" data-bank-hide="graphic" type="button" title="Ocultar dibujo gráfico">×</button>
+    
 
     <img id="graphicPreview" alt="Dibujo gráfico">
   </div>
 </div>
 
-<div class="logo-choice light symbol-bank" id="symbolDrop">
+<div class="logo-choice light symbol-bank" id="symbolDrop"><button class="bank-hide-top" id="symbolRemove" data-bank-hide="symbol" type="button" title="Ocultar símbolo">×</button><div class="bank-label">Símbolo</div>
   <label class="dropzone" for="symbolInput">
-    Símbolo
-    <small>Arrastrá o elegí SVG / PNG / JPG / PDF</small>
+    <span class="drop-short">Arrastre o elija</span>
     <input id="symbolInput" type="file" accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.pdf,application/pdf">
   </label>
 
@@ -1118,14 +1335,19 @@ if(window.pdfjsLib){
               title="Alternar símbolo blanco / negro">↻</button>
     </div>
 
-    <button class="symbol-remove bank-hide-main" id="symbolRemove" data-bank-hide="symbol" type="button" title="Ocultar símbolo">×</button>
+    
 
     <img id="symbolPreview" alt="Símbolo">
   </div>
 </div>
 
 <div class="bank-hidden-tools" id="bankHiddenTools"></div>
-<div class="top-export"><div class="company-export"><input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa"><button class="export-btn" id="exportPng" type="button">Compartir imagen</button></div></div>
+<div class="top-export"><div class="company-export">
+<input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa">
+<label class="export-btn background-file" id="backgroundLabel">Agregar fondo<input id="backgroundInput" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg"></label>
+<button class="background-clear" id="backgroundClear" type="button" title="Quitar fondo">×</button>
+<button class="export-btn" id="exportPng" type="button">Compartir imagen</button>
+</div></div>
   <div class="logo-note">Los dos logos quedan guardados arriba como opciones. No cambian ninguna prenda automáticamente: arrastrá el claro o el oscuro sobre Pecho, Hombro o Espalda.</div>
   </div>
   <div id="sections"><div class="section-wrap garment-section" data-garment="remera" data-preset="remera" style="--shirt-color:#d9d9d9;--shirt-brightness:1;--bg-color:#171717">
@@ -1192,32 +1414,53 @@ if(window.pdfjsLib){
 <div class="model-panel" id="modelPanel">
   <div class="model-head">
     <strong>Modelos / Aplicación real</strong>
-    <small>Opcional. Podés usar 1, 2 o 3 imágenes.</small>
+    <small>Podés combinar imágenes y texto.</small>
   </div>
 
   <div class="model-hidden" id="modelHidden"></div>
 
   <div class="model-upload-grid">
-    <label class="model-slot" id="modelSlot1" data-model="1">
-      <input id="modelInput1" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
-      <span class="model-empty">Agregar imagen 1</span>
-      <img id="modelPreview1" alt="">
-      <button class="model-remove" id="modelRemove1" type="button" title="Ocultar imagen">×</button>
-    </label>
+    <div class="model-slot" id="modelSlot1" data-model="1" data-mode="image">
+      <div class="model-mode-tools">
+        <button type="button" class="model-mode-btn active" data-mode-set="image">Imagen</button>
+        <button type="button" class="model-mode-btn" data-mode-set="text">Texto</button>
+      </div>
+      <label class="model-image-area" for="modelInput1">
+        <input id="modelInput1" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
+        <span class="model-empty">Agregar imagen 1</span>
+        <img id="modelPreview1" alt="">
+      </label>
+      <textarea class="model-text" id="modelText1" maxlength="900" placeholder="Escribí aquí una idea, explicación o concepto de diseño…"></textarea>
+      <button class="model-remove" id="modelRemove1" type="button" title="Ocultar">×</button>
+    </div>
 
-    <label class="model-slot" id="modelSlot2" data-model="2">
-      <input id="modelInput2" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
-      <span class="model-empty">Agregar imagen 2</span>
-      <img id="modelPreview2" alt="">
-      <button class="model-remove" id="modelRemove2" type="button" title="Ocultar imagen">×</button>
-    </label>
+    <div class="model-slot" id="modelSlot2" data-model="2" data-mode="image">
+      <div class="model-mode-tools">
+        <button type="button" class="model-mode-btn active" data-mode-set="image">Imagen</button>
+        <button type="button" class="model-mode-btn" data-mode-set="text">Texto</button>
+      </div>
+      <label class="model-image-area" for="modelInput2">
+        <input id="modelInput2" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
+        <span class="model-empty">Agregar imagen 2</span>
+        <img id="modelPreview2" alt="">
+      </label>
+      <textarea class="model-text" id="modelText2" maxlength="900" placeholder="Escribí aquí una idea, explicación o concepto de diseño…"></textarea>
+      <button class="model-remove" id="modelRemove2" type="button" title="Ocultar">×</button>
+    </div>
 
-    <label class="model-slot" id="modelSlot3" data-model="3">
-      <input id="modelInput3" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
-      <span class="model-empty">Agregar imagen 3</span>
-      <img id="modelPreview3" alt="">
-      <button class="model-remove" id="modelRemove3" type="button" title="Ocultar imagen">×</button>
-    </label>
+    <div class="model-slot" id="modelSlot3" data-model="3" data-mode="image">
+      <div class="model-mode-tools">
+        <button type="button" class="model-mode-btn active" data-mode-set="image">Imagen</button>
+        <button type="button" class="model-mode-btn" data-mode-set="text">Texto</button>
+      </div>
+      <label class="model-image-area" for="modelInput3">
+        <input id="modelInput3" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
+        <span class="model-empty">Agregar imagen 3</span>
+        <img id="modelPreview3" alt="">
+      </label>
+      <textarea class="model-text" id="modelText3" maxlength="900" placeholder="Escribí aquí una idea, explicación o concepto de diseño…"></textarea>
+      <button class="model-remove" id="modelRemove3" type="button" title="Ocultar">×</button>
+    </div>
   </div>
 </div>
 <div class="add-wrap"><button class="add-section" id="addSection" type="button" title="Agregar prenda">+</button></div>
@@ -1489,6 +1732,21 @@ function readLogo(file,cb){
     });
 }
 
+
+function garmentSlotsAreAllEmpty(){
+  const imgs=[...document.querySelectorAll('#sections .card .logo-slot img')];
+  if(!imgs.length)return false;
+  return imgs.every(img=>!img.getAttribute('src') || img.getAttribute('src')===EMPTY_LOGO);
+}
+
+function populateAllNakedGarmentsOnce(src){
+  if(!src || !garmentSlotsAreAllEmpty())return false;
+  document.querySelectorAll('#sections .card .logo-slot img').forEach(img=>{
+    img.src=src;
+  });
+  return true;
+}
+
 function setLibraryLogo(file,preview){
   readLogo(file,src=>{
     if(preview===logoPreviewDark){
@@ -1498,6 +1756,7 @@ function setLibraryLogo(file,preview){
       darkOutlineLevel=0;
       darkWhiteMode=false;
       renderDarkLogo();
+      populateAllNakedGarmentsOnce(src);
     }else if(preview===logoPreviewLight){
       document.getElementById('bankLight')?.classList.add('bank-has-content');
       showTopBank('light');
@@ -1505,6 +1764,7 @@ function setLibraryLogo(file,preview){
       lightOutlineLevelValue=0;
       lightBlackMode=false;
       renderLightLogo();
+      populateAllNakedGarmentsOnce(src);
     }else{
       preview.querySelector('img').src=src;
     }
@@ -1522,6 +1782,7 @@ function setBankFromSrc(src,target){
     lightBlackMode=false;
     logoPreviewLight.querySelector('img').src=src;
     renderLightLogo();
+    populateAllNakedGarmentsOnce(src);
     return;
   }
 
@@ -1533,6 +1794,7 @@ function setBankFromSrc(src,target){
     darkWhiteMode=false;
     logoPreviewDark.querySelector('img').src=src;
     renderDarkLogo();
+    populateAllNakedGarmentsOnce(src);
     return;
   }
 
@@ -2067,7 +2329,7 @@ function imageBankHasContent(imgEl){
   );
 }
 
-async function renderLogoCard(imgEl,bg,size,shape='rounded'){
+async function renderLogoCard(imgEl,bg,size,shape='rounded',label=''){
   const c=document.createElement('canvas');c.width=c.height=size;
   const x=c.getContext('2d');
   x.save();
@@ -2088,10 +2350,30 @@ async function renderLogoCard(imgEl,bg,size,shape='rounded'){
 
   if(imgEl&&imgEl.src&&imgEl.src!=='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='){
     const im=await loadImg(imgEl.src);
-    const maxW=shape==='circle'?size*.66:size*.72;
-    const maxH=shape==='circle'?size*.66:size*.58;
+    const maxW=shape==='circle'?size*.72:size*.80;
+    const maxH=shape==='circle'?size*.72:size*.66;
     const fit=fitContain(im.naturalWidth||im.width,im.naturalHeight||im.height,maxW,maxH);
-    x.drawImage(im,(size-fit.w)/2,(size-fit.h)/2,fit.w,fit.h);
+    x.drawImage(im,(size-fit.w)/2,(size-fit.h)/2+size*.025,fit.w,fit.h);
+  }
+
+  if(label){
+    const pillH=Math.round(size*.105);
+    const padX=Math.round(size*.045);
+    x.font=`800 ${Math.round(size*.045)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+    const tw=x.measureText(label).width;
+    const pillW=Math.min(size-Math.round(size*.08),tw+padX*2);
+    const px=(size-pillW)/2;
+    const py=Math.round(size*.035);
+    x.save();
+    roundedRect(x,px,py,pillW,pillH,pillH/2);
+    x.fillStyle=shape==='circle'?'rgba(255,255,255,.82)':
+      (bg==='#26282d'?'rgba(0,0,0,.44)':'rgba(255,255,255,.80)');
+    x.fill();
+    x.fillStyle=bg==='#26282d'?'#ffffff':'#242428';
+    x.textAlign='center';
+    x.textBaseline='middle';
+    x.fillText(label,size/2,py+pillH/2,pillW-padX);
+    x.restore();
   }
 
   x.restore();
@@ -2187,48 +2469,60 @@ function drawWrappedText(ctx,text,x,y,maxWidth,lineHeight){
 
 function renderPricingFooter(pricing,width){
   const pad=Math.round(width*.022);
-  const cardH=Math.round(width*.145);
+  const cardH=Math.round(width*.075);
   const c=document.createElement('canvas');
   c.width=width;c.height=cardH;
   const x=c.getContext('2d');
   x.clearRect(0,0,c.width,c.height);
 
-  // La tarjeta ocupa todo el ancho disponible: su borde queda alineado
-  // con el mismo margen exterior que prendas, modelos y encabezado.
-  const innerX=0,innerY=0,innerW=width,innerH=cardH;
   x.fillStyle='#f2f2f2';
-  roundedRect(x,innerX,innerY,innerW,innerH,Math.round(width*.014));x.fill();
+  roundedRect(x,0,0,width,cardH,Math.round(width*.014));x.fill();
 
-  const titleSize=Math.round(width*.017);
-  const valueSize=Math.round(width*.019);
-  const labelSize=Math.round(width*.0105);
-  const noteSize=Math.round(width*.011);
-  x.fillStyle='#242428';x.textBaseline='top';
-  x.font=`700 ${titleSize}px Arial,Helvetica,sans-serif`;
-  x.fillText('Precios por unidad',pad,Math.round(pad*.75));
+  const titleSize=Math.round(width*.0145);
+  const itemSize=Math.round(width*.0115);
+  const noteSize=Math.round(width*.0095);
+  const cy=Math.round(cardH*.29);
+
+  x.textBaseline='middle';
+  x.fillStyle='#242428';
+  x.font=`800 ${titleSize}px Arial,Helvetica,sans-serif`;
+  x.fillText('Precios por unidad',pad,cy);
+
+  let cursor=pad+x.measureText('Precios por unidad').width+Math.round(pad*.85);
 
   const items=[];
-  if(pricing.small)items.push(['Estampado chico',formatPrice(pricing.small)]);
-  if(pricing.large)items.push(['Estampado grande',formatPrice(pricing.large)]);
-  if(pricing.combo)items.push(['Combo 3 detalles',formatPrice(pricing.combo)]);
+  if(pricing.small)items.push(`Chico ${formatPrice(pricing.small)}`);
+  if(pricing.large)items.push(`Grande ${formatPrice(pricing.large)}`);
+  if(pricing.combo)items.push(`Combo 3 ${formatPrice(pricing.combo)}`);
 
-  const contentTop=Math.round(pad*2.7);
-  const noteReserve=pricing.note?Math.round(cardH*.27):0;
-  const availableW=innerW-pad*2;
-  const colW=items.length?availableW/items.length:availableW;
-  items.forEach((item,i)=>{
-    const cx=pad+i*colW;
-    x.fillStyle='#68686f';x.font=`${labelSize}px Arial,Helvetica,sans-serif`;x.fillText(item[0],cx,contentTop);
-    x.fillStyle='#202024';x.font=`700 ${valueSize}px Arial,Helvetica,sans-serif`;x.fillText(item[1],cx,contentTop+Math.round(labelSize*1.75));
+  x.font=`700 ${itemSize}px Arial,Helvetica,sans-serif`;
+  items.forEach((txt,i)=>{
+    if(i){
+      x.fillStyle='#a0a0a5';
+      x.fillText('•',cursor,cy);
+      cursor+=Math.round(pad*.45);
+    }
+    x.fillStyle='#444449';
+    x.fillText(txt,cursor,cy);
+    cursor+=x.measureText(txt).width+Math.round(pad*.55);
   });
+
   if(pricing.note){
-    const ny=innerH-noteReserve+Math.round(pad*.25);
-    x.fillStyle='#4b4b50';x.font=`${noteSize}px Arial,Helvetica,sans-serif`;
-    drawWrappedText(x,pricing.note,pad,ny,availableW,Math.round(noteSize*1.35));
+    x.textBaseline='top';
+    x.fillStyle='#68686e';
+    x.font=`${noteSize}px Arial,Helvetica,sans-serif`;
+    drawWrappedText(
+      x,
+      pricing.note,
+      pad,
+      Math.round(cardH*.58),
+      width-pad*2,
+      Math.round(noteSize*1.25)
+    );
   }
+
   return c;
 }
-
 
 
 ['priceSmall','priceLarge','priceCombo','priceNote'].forEach(id=>{
@@ -2240,12 +2534,88 @@ function renderPricingFooter(pricing,width){
   }
 });
 
+
+let exportBackgroundSrc='';
+const backgroundInput=document.getElementById('backgroundInput');
+const backgroundLabel=document.getElementById('backgroundLabel');
+const backgroundClear=document.getElementById('backgroundClear');
+
+if(backgroundInput){
+  backgroundInput.addEventListener('change',()=>{
+    const file=backgroundInput.files&&backgroundInput.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      exportBackgroundSrc=reader.result;
+      if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
+      backgroundClear?.classList.add('show');
+      if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+if(backgroundClear){
+  backgroundClear.addEventListener('click',()=>{
+    exportBackgroundSrc='';
+    if(backgroundInput)backgroundInput.value='';
+    if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Agregar fondo ';
+    backgroundClear.classList.remove('show');
+    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+  });
+}
+
+
+function exportUsesCustomBackground(){
+  return !!exportBackgroundSrc;
+}
+function exportTextPrimary(){
+  return exportUsesCustomBackground() ? '#ffffff' : '#29292d';
+}
+function exportTextSecondary(){
+  return exportUsesCustomBackground() ? 'rgba(255,255,255,.86)' : '#606066';
+}
+function exportTextMuted(){
+  return exportUsesCustomBackground() ? 'rgba(255,255,255,.72)' : '#55555b';
+}
+
+async function drawExportBackground(ctx,width,height){
+  if(!exportBackgroundSrc){
+    ctx.fillStyle='#d8d8da';
+    ctx.fillRect(0,0,width,height);
+    return;
+  }
+  const im=await loadImg(exportBackgroundSrc);
+  const iw=im.naturalWidth||im.width;
+  const ih=im.naturalHeight||im.height;
+  const scale=Math.max(width/iw,height/ih);
+  const dw=iw*scale,dh=ih*scale;
+  ctx.drawImage(im,(width-dw)/2,(height-dh)/2,dw,dh);
+}
+
 const companyNameInput=document.getElementById('companyName');
 if(companyNameInput){companyNameInput.addEventListener('input',()=>{if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();});}
 
 
 
+
 const modelHidden=document.getElementById('modelHidden');
+
+function modelSlotHasContent(slot){
+  const mode=slot.dataset.mode||'image';
+  if(mode==='text'){
+    return !!slot.querySelector('.model-text')?.value.trim();
+  }
+  return !!slot.querySelector('img')?.getAttribute('src');
+}
+
+function setModelMode(slot,mode){
+  slot.dataset.mode=mode;
+  slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.modeSet===mode);
+  });
+  slot.classList.toggle('has-text',mode==='text' && !!slot.querySelector('.model-text')?.value.trim());
+  slot.classList.toggle('has-image',mode==='image' && !!slot.querySelector('img')?.getAttribute('src'));
+}
 
 function loadModelFile(file,slot,preview,input){
   if(!file)return;
@@ -2262,17 +2632,20 @@ function loadModelFile(file,slot,preview,input){
       preview.onload=null;
     };
     preview.src=reader.result;
+    slot.dataset.mode='image';
     slot.classList.add('has-image');
-    slot.classList.remove('model-hidden-slot');
-    const chip=modelHidden.querySelector(`[data-restore-model="${slot.dataset.model}"]`);
-    if(chip)chip.remove();
+    slot.classList.remove('has-text','model-hidden-slot');
+    slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
+      btn.classList.toggle('active',btn.dataset.modeSet==='image');
+    });
+    modelHidden.querySelector(`[data-restore-model="${slot.dataset.model}"]`)?.remove();
   };
   reader.readAsDataURL(file);
   if(input)input.value='';
 }
 
 function hideModelSlot(slot){
-  if(!slot.classList.contains('has-image'))return;
+  if(!modelSlotHasContent(slot))return;
   slot.classList.add('model-hidden-slot');
 
   const id=slot.dataset.model;
@@ -2282,7 +2655,7 @@ function hideModelSlot(slot){
   chip.type='button';
   chip.className='model-restore';
   chip.dataset.restoreModel=id;
-  chip.textContent='Mostrar imagen '+id;
+  chip.textContent='Mostrar bloque '+id;
   chip.addEventListener('click',()=>{
     slot.classList.remove('model-hidden-slot');
     chip.remove();
@@ -2290,117 +2663,218 @@ function hideModelSlot(slot){
   modelHidden.appendChild(chip);
 }
 
-function setupModelSlot(slotId,inputId,previewId,removeId){
-  const slot=document.getElementById(slotId);
-  const input=document.getElementById(inputId);
-  const preview=document.getElementById(previewId);
-  const remove=document.getElementById(removeId);
-  if(!slot||!input||!preview||!remove)return;
+function setupModelSlot(n){
+  const slot=document.getElementById('modelSlot'+n);
+  const input=document.getElementById('modelInput'+n);
+  const preview=document.getElementById('modelPreview'+n);
+  const remove=document.getElementById('modelRemove'+n);
+  const text=slot.querySelector('.model-text');
 
   input.addEventListener('change',()=>{
-    const file=input.files&&input.files[0];
-    loadModelFile(file,slot,preview,input);
+    loadModelFile(input.files&&input.files[0],slot,preview,input);
   });
 
   ['dragenter','dragover'].forEach(ev=>slot.addEventListener(ev,e=>{
-    e.preventDefault();
-    e.stopPropagation();
-    slot.classList.add('dragover');
+    if(slot.dataset.mode!=='image')return;
+    e.preventDefault();e.stopPropagation();slot.classList.add('dragover');
   }));
-
   ['dragleave','drop'].forEach(ev=>slot.addEventListener(ev,e=>{
-    e.preventDefault();
-    e.stopPropagation();
-    slot.classList.remove('dragover');
+    if(slot.dataset.mode!=='image')return;
+    e.preventDefault();e.stopPropagation();slot.classList.remove('dragover');
   }));
-
   slot.addEventListener('drop',e=>{
-    const file=e.dataTransfer.files&&e.dataTransfer.files[0];
-    loadModelFile(file,slot,preview,input);
+    if(slot.dataset.mode!=='image')return;
+    loadModelFile(e.dataTransfer.files&&e.dataTransfer.files[0],slot,preview,input);
+  });
+
+  slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.preventDefault();e.stopPropagation();
+      setModelMode(slot,btn.dataset.modeSet);
+    });
+  });
+
+  text.addEventListener('input',()=>{
+    slot.classList.toggle('has-text',!!text.value.trim());
   });
 
   remove.addEventListener('click',e=>{
-    e.preventDefault();
-    e.stopPropagation();
-    hideModelSlot(slot);
+    e.preventDefault();e.stopPropagation();hideModelSlot(slot);
   });
 }
 
-setupModelSlot('modelSlot1','modelInput1','modelPreview1','modelRemove1');
-setupModelSlot('modelSlot2','modelInput2','modelPreview2','modelRemove2');
-setupModelSlot('modelSlot3','modelInput3','modelPreview3','modelRemove3');
+[1,2,3].forEach(setupModelSlot);
 
-function getModelImages(){
-  return [1,2,3]
-    .map(n=>{
-      const slot=document.getElementById('modelSlot'+n);
-      const img=document.getElementById('modelPreview'+n);
-      return {slot,img};
-    })
-    .filter(({slot,img})=>
-      slot &&
-      img &&
-      slot.classList.contains('has-image') &&
-      !slot.classList.contains('model-hidden-slot') &&
-      img.getAttribute('src')
-    )
-    .map(({img})=>img);
+
+function getModelBlocks(){
+  return [1,2,3].map(n=>{
+    const slot=document.getElementById('modelSlot'+n);
+    if(!slot || slot.classList.contains('model-hidden-slot'))return null;
+    const mode=slot.dataset.mode||'image';
+
+    if(mode==='text'){
+      const text=slot.querySelector('.model-text')?.value.trim()||'';
+      if(!text)return null;
+      // Más texto = más peso horizontal. El texto tiene prioridad.
+      const weight=Math.max(.90,Math.min(1.75,.82+text.length/260));
+      slot.style.setProperty('--text-weight',weight);
+      return {type:'text',text,weight};
+    }
+
+    const img=slot.querySelector('img');
+    if(!img?.getAttribute('src'))return null;
+    const w=img.naturalWidth||1,h=img.naturalHeight||1;
+    return {type:'image',img,naturalRatio:Math.max(.55,Math.min(2.6,w/h))};
+  }).filter(Boolean);
 }
 
-async function renderModelRow(imgEls,width,margin,gap){
-  if(!imgEls.length)return null;
-
-  const items=[];
-  for(const imgEl of imgEls.slice(0,3)){
-    const im=await loadImg(imgEl.src);
-    const iw=im.naturalWidth||im.width||1;
-    const ih=im.naturalHeight||im.height||1;
-    const ratio=Math.max(.45,Math.min(3,iw/ih));
-    items.push({im,iw,ih,ratio});
+function wrapTextLines(ctx,text,maxWidth){
+  // Respeta exactamente los Enter del usuario, incluso líneas vacías.
+  const paragraphs=String(text||'').replace(/\r\n?/g,'\n').split('\n');
+  const lines=[];
+  for(const paragraph of paragraphs){
+    if(paragraph===''){
+      lines.push('');
+      continue;
+    }
+    const words=paragraph.split(/\s+/).filter(Boolean);
+    if(!words.length){
+      lines.push('');
+      continue;
+    }
+    let line='';
+    for(const word of words){
+      const test=line?line+' '+word:word;
+      if(ctx.measureText(test).width>maxWidth && line){
+        lines.push(line);
+        line=word;
+      }else{
+        line=test;
+      }
+    }
+    lines.push(line);
   }
+  return lines;
+}
 
-  const count=items.length;
+function textMetricsForBox(ctx,text,width,maxHeight){
+  const pad=Math.max(28,Math.round(width*.06));
+  let fontSize=Math.max(28,Math.round(width*.055));
+  const minFont=22;
+  let lines=[],lineH=0;
+
+  while(fontSize>=minFont){
+    ctx.font=`700 ${fontSize}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+    lines=wrapTextLines(ctx,text,width-pad*2);
+    lineH=Math.round(fontSize*1.35);
+    if(lines.length*lineH<=maxHeight-pad*2)break;
+    fontSize-=2;
+  }
+  return {pad,fontSize,lines,lineH,needed:lines.length*lineH+pad*2};
+}
+
+async function renderModelBlocks(blocks,width,margin,gap){
+  if(!blocks.length)return null;
+
   const innerW=width-margin*2;
+  const count=blocks.length;
   const usableW=innerW-(count-1)*gap;
-  const ratioSum=items.reduce((sum,item)=>sum+item.ratio,0);
 
-  // Todos comparten la misma altura. El ancho depende de la proporción real.
-  // 1 cuadrada => cuadrada. 1 apaisada => más ancha y más baja.
-  // 2/3 mixtas => misma altura visual y anchos diferentes.
-  const commonH=Math.max(1,Math.floor(usableW/ratioSum));
+  // Primero se reservan anchos. Texto largo recibe más espacio;
+  // las imágenes ceden un poco, sin desaparecer ni deformarse.
+  const textBlocks=blocks.filter(b=>b.type==='text');
+  const imageBlocks=blocks.filter(b=>b.type==='image');
+
+  let weights=blocks.map(b=>{
+    if(b.type==='text')return b.weight;
+    // Con texto presente, las imágenes se vuelven un poco más compactas.
+    return textBlocks.length ? Math.max(.72,Math.min(1.15,b.naturalRatio*.72)) :
+      Math.max(.80,Math.min(1.5,b.naturalRatio));
+  });
+
+  const weightSum=weights.reduce((a,b)=>a+b,0);
+  const widths=weights.map(w=>Math.floor(usableW*w/weightSum));
+
+  // Altura base armoniosa. Si el texto no entra, la fila crece.
+  let rowH=Math.round(innerW*(count===1?.34:count===2?.30:.27));
+  rowH=Math.max(380,Math.min(760,rowH));
+
+  const scratch=document.createElement('canvas').getContext('2d');
+  for(let i=0;i<blocks.length;i++){
+    if(blocks[i].type!=='text')continue;
+    const metrics=textMetricsForBox(scratch,blocks[i].text,widths[i],rowH);
+    if(metrics.needed>rowH)rowH=Math.min(980,metrics.needed);
+  }
 
   const row=document.createElement('canvas');
   row.width=width;
-  row.height=commonH;
+  row.height=rowH;
   const ctx=row.getContext('2d');
   ctx.clearRect(0,0,row.width,row.height);
 
   let x=margin;
-  for(const item of items){
-    const boxW=Math.max(1,Math.round(commonH*item.ratio));
-    const boxH=commonH;
+  for(let i=0;i<blocks.length;i++){
+    const block=blocks[i];
+    const boxW=widths[i];
+    const boxH=rowH;
 
-    ctx.save();
-    roundedRect(ctx,x,0,boxW,boxH,Math.round(Math.min(boxW,boxH)*.045));
-    ctx.fillStyle='#ffffff';
-    ctx.fill();
-    ctx.clip();
+    if(block.type==='image'){
+      const im=await loadImg(block.img.src);
+      const iw=im.naturalWidth||im.width;
+      const ih=im.naturalHeight||im.height;
+      const radius=Math.round(Math.min(boxW,boxH)*.045);
 
-    // Se mantiene la proporción real. Sólo puede recortar una fracción por redondeo.
-    const scale=Math.max(boxW/item.iw,boxH/item.ih);
-    const dw=item.iw*scale;
-    const dh=item.ih*scale;
-    ctx.drawImage(item.im,x+(boxW-dw)/2,(boxH-dh)/2,dw,dh);
-    ctx.restore();
+      // Sombra exterior suave.
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,.26)';
+      ctx.shadowBlur=Math.max(16,Math.round(gap*.65));
+      ctx.shadowOffsetY=Math.max(7,Math.round(gap*.18));
+      ctx.fillStyle='rgba(255,255,255,.01)';
+      roundedRect(ctx,x,0,boxW,boxH,radius);
+      ctx.fill();
+      ctx.restore();
+
+      // Imagen encapsulada y redondeada, manteniendo proporción por cover.
+      ctx.save();
+      roundedRect(ctx,x,0,boxW,boxH,radius);
+      ctx.clip();
+      const scale=Math.max(boxW/iw,boxH/ih);
+      const dw=iw*scale,dh=ih*scale;
+      ctx.drawImage(im,x+(boxW-dw)/2,(boxH-dh)/2,dw,dh);
+      ctx.restore();
+    }else{
+      // Texto directo sobre el fondo general, sin tarjeta ni cuadrado.
+      const metrics=textMetricsForBox(ctx,block.text,boxW,boxH);
+      const totalH=metrics.lines.length*metrics.lineH;
+      let ty=Math.max(metrics.pad,Math.round((boxH-totalH)/2));
+
+      ctx.fillStyle=exportTextPrimary();
+      ctx.textAlign='left';
+      ctx.textBaseline='top';
+      ctx.font=`700 ${metrics.fontSize}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+
+      for(const line of metrics.lines){
+        if(line)ctx.fillText(line,x+metrics.pad,ty,boxW-metrics.pad*2);
+        ty+=metrics.lineH;
+      }
+    }
 
     x+=boxW+gap;
   }
-
   return row;
 }
 
 function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
-  // Exportación plana: sin sombra para que ninguna máscara redondeada la recorte.
+  // Sombra exterior real: se dibuja antes del recorte del contenido para que no se corte.
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,.28)';
+  ctx.shadowBlur=Math.max(18,Math.round(shadowGap*.72));
+  ctx.shadowOffsetY=Math.max(8,Math.round(shadowGap*.22));
+  ctx.fillStyle='rgba(255,255,255,.01)';
+  roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
+  ctx.fill();
+  ctx.restore();
+
   ctx.save();
   roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
   ctx.clip();
@@ -2445,11 +2919,11 @@ function fitRoundedFont(ctx,text,maxWidth,startSize,minSize=28){
 
 function drawCompanyMark(ctx,name,x,y,maxW,maxH){
   const p=splitCompanyName(name);
-  ctx.save();ctx.fillStyle='#17171a';ctx.textBaseline='top';ctx.textAlign='left';
+  ctx.save();ctx.fillStyle=exportTextPrimary();ctx.textBaseline='top';ctx.textAlign='left';
   if(!p.bottom){
     const f=fitRoundedFont(ctx,p.top,maxW,Math.round(maxH*.42));
     ctx.font=`900 ${f.size}px ${f.family}`;
-    ctx.fillText(p.top,x,y+Math.round((maxH-f.size)*.42),maxW);
+    ctx.fillText(p.top,x,y+Math.round((maxH-f.size)*.32),maxW);
   }else{
     const start=Math.round(maxH*.28);
     const f1=fitRoundedFont(ctx,p.top,maxW,start);
@@ -2458,15 +2932,15 @@ function drawCompanyMark(ctx,name,x,y,maxW,maxH){
     const family=f1.family;
     const lineH=Math.round(size*.82); // líneas deliberadamente cercanas, tipo logotipo
     let total=lineH*2;
-    let sy=y+Math.max(0,Math.round((maxH-total)/2));
+    let sy=y+Math.max(0,Math.round((maxH-total)/2)-Math.round(maxH*.06));
     ctx.font=`900 ${size}px ${family}`;
     ctx.fillText(p.top,x,sy,maxW);
     if(p.joiner){
       const topW=ctx.measureText(p.top).width;
       ctx.font=`800 ${Math.max(22,Math.round(size*.30))}px ${family}`;
-      ctx.fillStyle='#55555b';
+      ctx.fillStyle=exportTextMuted();
       ctx.fillText(p.joiner,x+Math.min(maxW-Math.round(size*.35),topW+Math.round(size*.10)),sy+Math.round(size*.50));
-      ctx.fillStyle='#17171a';
+      ctx.fillStyle=exportTextPrimary();
     }
     ctx.font=`900 ${size}px ${family}`;
     ctx.fillText(p.bottom,x,sy+lineH,maxW);
@@ -2557,35 +3031,45 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       imageBankHasContent(graphicPreview);
     const companyName=(document.getElementById('companyName')?.value||'').trim();
 
-    const primaryLogo=hasLight?lightImg:(hasDark?darkImg:null);
-    const resourceCount=(primaryLogo?1:0)+(hasGraphic?1:0)+(hasSymbol?1:0);
+    const resourceCount=(hasLight?1:0)+(hasDark?1:0)+(hasGraphic?1:0)+(hasSymbol?1:0);
     if(companyName||resourceCount){
-      const headerH=Math.round(cardSize*.62);
-      const resourceSize=Math.round(headerH*.96);
+      const headerH=Math.round(cardSize*.70);
+      const resourceSize=Math.round(headerH*.84);
       const header=document.createElement('canvas');
       header.width=baseWidth;header.height=headerH;
       const h=header.getContext('2d');h.clearRect(0,0,header.width,header.height);
       const resources=[];
-      if(primaryLogo)resources.push({img:primaryLogo,bg:hasLight?'#ededed':'#26282d',shape:'rounded'});
-      if(hasGraphic)resources.push({img:graphicPreview,bg:'#ededed',shape:'rounded'});
-      if(hasSymbol)resources.push({img:symbolPreview,bg:'#f1f1f1',shape:'circle'});
+      if(hasLight)resources.push({img:lightImg,bg:'#ededed',shape:'rounded',label:'Logo claro'});
+      if(hasDark)resources.push({img:darkImg,bg:'#26282d',shape:'rounded',label:'Logo oscuro'});
+      if(hasGraphic)resources.push({img:graphicPreview,bg:'#ededed',shape:'circle',label:'Dibujo gráfico'});
+      if(hasSymbol)resources.push({img:symbolPreview,bg:'#f1f1f1',shape:'circle',label:'Símbolo'});
       let rightX=baseWidth-margin;
       for(let i=resources.length-1;i>=0;i--){
         rightX-=resourceSize;
-        const rc=await renderLogoCard(resources[i].img,resources[i].bg,resourceSize,resources[i].shape);
+        const rc=await renderLogoCard(resources[i].img,resources[i].bg,resourceSize,resources[i].shape,resources[i].label);
         drawCanvasShadow(h,rc,rightX,0,resources[i].shape==='circle'?resourceSize/2:Math.round(resourceSize*.065),gap);
         rightX-=gap;
       }
       const textX=margin;
       const available=Math.max(0,rightX-textX-gap);
-      if(available>Math.round(cardSize*.48)){
-        const nameH=Math.round(headerH*.78);
-        drawCompanyMark(h,companyName||'Propuesta de prendas',textX,Math.round(headerH*.03),available,nameH);
-        if(available>Math.round(cardSize*.90)){
-          h.fillStyle='#55555b';
-          h.font=`700 ${Math.round(headerH*.047)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
-          drawWrappedText(h,exportDescription(hasLight,hasDark,hasGraphic,hasSymbol),textX,Math.round(headerH*.84),available,Math.round(headerH*.064));
-        }
+      if(available>Math.round(cardSize*.36)){
+        const nameH=Math.round(headerH*.66);
+        drawCompanyMark(h,companyName||'Propuesta de prendas',textX,Math.round(headerH*.01),available,nameH);
+
+        h.fillStyle=exportTextPrimary();
+        h.font=`900 ${Math.round(headerH*.050)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+        h.fillText('IDENTIDAD VISUAL',textX,Math.round(headerH*.70),available);
+
+        h.fillStyle=exportTextSecondary();
+        h.font=`700 ${Math.round(headerH*.043)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+        drawWrappedText(
+          h,
+          exportDescription(hasLight,hasDark,hasGraphic,hasSymbol),
+          textX,
+          Math.round(headerH*.79),
+          available,
+          Math.round(headerH*.058)
+        );
       }
       rows.push(header);
     }
@@ -2608,8 +3092,8 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
 
     const pricing=readPricing();
     const hasPricing=pricingHasContent(pricing);
-    const modelImages=getModelImages();
-    const modelRow=modelImages.length?await renderModelRow(modelImages,baseWidth,margin,gap):null;
+    const modelBlocks=getModelBlocks();
+    const modelRow=modelBlocks.length?await renderModelBlocks(modelBlocks,baseWidth,margin,gap):null;
     const pricingFooter=hasPricing?renderPricingFooter(pricing,baseWidth-margin*2):null;
 
     let contentHeight=rows.reduce((a,r)=>a+r.height,0);
@@ -2621,7 +3105,7 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
     out.width=baseWidth;
     out.height=margin*2+contentHeight+Math.max(0,blockCount-1)*rowGap;
     const o=out.getContext('2d');
-    o.fillStyle='#d8d8da';o.fillRect(0,0,out.width,out.height);
+    await drawExportBackground(o,out.width,out.height);
 
     let y=margin;
     rows.forEach(r=>{o.drawImage(r,0,y);y+=r.height+rowGap;});
