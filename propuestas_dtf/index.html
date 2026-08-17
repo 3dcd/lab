@@ -1362,6 +1362,7 @@ if(window.pdfjsLib){
 <div class="background-thumb" id="backgroundThumb" title="Vista previa del fondo"><img id="backgroundThumbImg" alt=""></div>
 <button class="background-clear" id="backgroundClear" type="button" title="Quitar fondo">×</button>
 <button class="export-btn" id="saveZip" type="button">Guardar ZIP</button>
+<label class="export-btn background-file" id="loadZipLabel">Cargar ZIP<input id="loadZipInput" type="file" accept=".zip,application/zip"></label>
 <button class="export-btn" id="exportPng" type="button">Compartir imagen</button>
 </div></div>
   <div class="logo-note">Los dos logos quedan guardados arriba como opciones. No cambian ninguna prenda automáticamente: arrastrá el claro o el oscuro sobre Pecho, Hombro o Espalda.</div>
@@ -1490,22 +1491,22 @@ if(window.pdfjsLib){
   <div class="pricing-grid">
     <label>
       <span>Estampado chico</span>
-      <input id="priceSmall" type="text" inputmode="decimal" placeholder="Ej.: 3000">
+      <input id="priceSmall" type="text" inputmode="decimal" value="3000" placeholder="Ej.: 3000">
     </label>
 
     <label>
       <span>Estampado grande</span>
-      <input id="priceLarge" type="text" inputmode="decimal" placeholder="Ej.: 6000">
+      <input id="priceLarge" type="text" inputmode="decimal" value="6000" placeholder="Ej.: 6000">
     </label>
 
     <label>
-      <span>Combo 3 detalles</span>
-      <input id="priceCombo" type="text" inputmode="decimal" placeholder="Ej.: 5000">
+      <span>Combo 2 o 3 estampados chicos · misma prenda</span>
+      <input id="priceCombo" type="text" inputmode="decimal" value="5000" placeholder="Ej.: 5000">
     </label>
 
     <label class="pricing-note-field">
       <span>Nota opcional</span>
-      <input id="priceNote" type="text" placeholder="Ej.: Consultá por cantidad para obtener descuento">
+      <input id="priceNote" type="text" value="Consultá por descuento por cantidad" placeholder="Ej.: Consultá por cantidad para obtener descuento">
     </label>
   </div>
 </div>
@@ -2494,11 +2495,11 @@ async function renderPricingFooter(pricing,width){
   x.clearRect(0,0,c.width,c.height);
 
   // Blanco translúcido: deja ver el fondo sin perder lectura.
-  x.fillStyle='rgba(248,248,248,.82)';
+  x.fillStyle='rgba(248,248,248,.66)';
   roundedRect(x,0,0,width,cardH,Math.round(width*.014));x.fill();
 
   const titleSize=Math.round(width*.0145);
-  const itemSize=Math.round(width*.0115);
+  const itemSize=Math.round(width*.0101);
   const noteSize=Math.round(width*.0095);
   const cy=Math.round(cardH*.29);
 
@@ -2510,9 +2511,9 @@ async function renderPricingFooter(pricing,width){
   let cursor=pad+x.measureText('Precios por unidad').width+Math.round(pad*.85);
 
   const items=[];
-  if(pricing.small)items.push(`Chico ${formatPrice(pricing.small)}`);
-  if(pricing.large)items.push(`Grande ${formatPrice(pricing.large)}`);
-  if(pricing.combo)items.push(`Combo 3 ${formatPrice(pricing.combo)}`);
+  if(pricing.small)items.push(`Estampado chico ${formatPrice(pricing.small)}`);
+  if(pricing.large)items.push(`Estampado grande ${formatPrice(pricing.large)}`);
+  if(pricing.combo)items.push(`Combo 2 o 3 chicos ${formatPrice(pricing.combo)} · misma prenda`);
 
   x.font=`700 ${itemSize}px Arial,Helvetica,sans-serif`;
   items.forEach((txt,i)=>{
@@ -2885,8 +2886,8 @@ async function renderModelBlocks(blocks,width,margin,gap){
 
       // Sombra exterior suave.
       ctx.save();
-      ctx.shadowColor='rgba(0,0,0,.44)';
-      ctx.shadowBlur=Math.max(28,Math.round(gap*1.10));
+      ctx.shadowColor='rgba(0,0,0,.50)';
+      ctx.shadowBlur=Math.max(32,Math.round(gap*1.22));
       ctx.shadowOffsetY=Math.max(7,Math.round(gap*.18));
       ctx.fillStyle='rgba(255,255,255,.01)';
       roundedRect(ctx,x,0,boxW,boxH,radius);
@@ -2935,9 +2936,9 @@ async function renderModelBlocks(blocks,width,margin,gap){
 function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
   // Sombra exterior + filete interior: ayuda a separar cada módulo del fondo.
   ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.46)';
-  ctx.shadowBlur=Math.max(30,Math.round(shadowGap*1.18));
-  ctx.shadowOffsetY=Math.max(10,Math.round(shadowGap*.30));
+  ctx.shadowColor='rgba(0,0,0,.54)';
+  ctx.shadowBlur=Math.max(34,Math.round(shadowGap*1.32));
+  ctx.shadowOffsetY=Math.max(11,Math.round(shadowGap*.32));
   ctx.fillStyle='rgba(0,0,0,.08)';
   roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
   ctx.fill();
@@ -2996,11 +2997,11 @@ function drawCompanyMark(ctx,name,x,y,maxW,maxH){
   const p=splitCompanyName(name);
   ctx.save();ctx.fillStyle=exportTextPrimary();ctx.textBaseline='top';ctx.textAlign='left';
   if(!p.bottom){
-    const f=fitRoundedFont(ctx,p.top,maxW,Math.round(maxH*.42));
+    const f=fitRoundedFont(ctx,p.top,maxW,Math.round(maxH*.49));
     ctx.font=`900 ${f.size}px ${f.family}`;
     ctx.fillText(p.top,x,y+Math.round((maxH-f.size)*.32),maxW);
   }else{
-    const start=Math.round(maxH*.28);
+    const start=Math.round(maxH*.32);
     const f1=fitRoundedFont(ctx,p.top,maxW,start);
     const f2=fitRoundedFont(ctx,p.bottom,maxW,start);
     const size=Math.min(f1.size,f2.size);
@@ -3227,6 +3228,140 @@ function buildProposalBackup(){
   return {json,entries};
 }
 
+
+function parseStoreZip(buffer){
+  const bytes=new Uint8Array(buffer);
+  const view=new DataView(buffer);
+  const dec=new TextDecoder();
+  const files={};
+  let p=0;
+  while(p+30<=bytes.length){
+    const sig=view.getUint32(p,true);
+    if(sig!==0x04034b50)break;
+    const method=view.getUint16(p+8,true);
+    const compSize=view.getUint32(p+18,true);
+    const nameLen=view.getUint16(p+26,true);
+    const extraLen=view.getUint16(p+28,true);
+    if(method!==0)throw new Error('Este respaldo usa una compresión no compatible.');
+    const name=dec.decode(bytes.slice(p+30,p+30+nameLen));
+    const dataStart=p+30+nameLen+extraLen;
+    files[name]=bytes.slice(dataStart,dataStart+compSize);
+    p=dataStart+compSize;
+  }
+  return files;
+}
+function bytesToDataUrl(bytes,filename){
+  const ext=(filename.split('.').pop()||'').toLowerCase();
+  const mime=ext==='png'?'image/png':ext==='jpg'||ext==='jpeg'?'image/jpeg':ext==='svg'?'image/svg+xml':'application/octet-stream';
+  let bin='';
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    bin+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+  }
+  return `data:${mime};base64,${btoa(bin)}`;
+}
+async function restoreProposalBackup(file){
+  const files=parseStoreZip(await file.arrayBuffer());
+  const jsonBytes=files['propuesta.json'];
+  if(!jsonBytes)throw new Error('El ZIP no contiene propuesta.json.');
+  const data=JSON.parse(new TextDecoder().decode(jsonBytes));
+
+  const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??'';};
+  setVal('companyName',data.companyName||'');
+  setVal('priceSmall',data.prices?.small||'');
+  setVal('priceLarge',data.prices?.large||'');
+  setVal('priceCombo',data.prices?.combo||'');
+  setVal('priceNote',data.prices?.note||'');
+
+  if(data.background && files[data.background]){
+    exportBackgroundSrc=bytesToDataUrl(files[data.background],data.background);
+    const thumb=document.getElementById('backgroundThumb');
+    const thumbImg=document.getElementById('backgroundThumbImg');
+    if(thumb&&thumbImg){thumbImg.src=exportBackgroundSrc;thumb.classList.add('show');}
+    document.body.classList.add('has-export-background');
+    document.body.style.backgroundImage=`url("${exportBackgroundSrc}")`;
+    if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
+    backgroundClear?.classList.add('show');
+  }else{
+    exportBackgroundSrc='';
+    document.body.classList.remove('has-export-background');
+    document.body.style.backgroundImage='';
+  }
+
+  const restoreBank=(key,path)=>{
+    if(!path||!files[path])return;
+    const src=bytesToDataUrl(files[path],path);
+    if(key==='light'){
+      lightBaseSrc=src;logoPreviewLight.querySelector('img').src=src;
+      document.getElementById('bankLight')?.classList.remove('bank-is-hidden');
+    }else if(key==='dark'){
+      darkBaseSrc=src;logoPreviewDark.querySelector('img').src=src;
+      document.getElementById('bankDark')?.classList.remove('bank-is-hidden');
+    }else if(key==='symbol'){
+      symbolBaseSrc=src;symbolPreview.src=src;symbolDrop.classList.add('has-symbol');symbolDrop.classList.remove('bank-is-hidden');
+    }else if(key==='graphic'){
+      graphicBaseSrc=src;graphicPreview.src=src;graphicDrop.classList.add('has-graphic');graphicDrop.classList.remove('bank-is-hidden');
+    }
+  };
+  Object.entries(data.banks||{}).forEach(([key,b])=>restoreBank(key,b.file));
+
+  (data.models||[]).forEach(item=>{
+    const slot=document.getElementById('modelSlot'+item.slot);
+    if(!slot)return;
+    slot.classList.remove('model-hidden-slot');
+    if(item.mode==='text'){
+      slot.dataset.mode='text';
+      const ta=document.getElementById('modelText'+item.slot);
+      if(ta)ta.value=item.text||'';
+    }else if(item.file&&files[item.file]){
+      slot.dataset.mode='image';
+      const img=document.getElementById('modelPreview'+item.slot);
+      if(img)img.src=bytesToDataUrl(files[item.file],item.file);
+    }
+  });
+
+  // Restore garment designs to the sections that already exist in the template.
+  const sectionsNow=[...document.querySelectorAll('.garment-section')];
+  (data.garments||[]).forEach((g,gi)=>{
+    const section=sectionsNow[gi];
+    if(!section)return;
+    if(g.shirtColor)section.style.setProperty('--shirt-color',g.shirtColor);
+    if(g.shirtBrightness)section.style.setProperty('--shirt-brightness',g.shirtBrightness);
+    if(g.cardBackground)section.style.setProperty('--bg-color',g.cardBackground);
+    const cards=[...section.querySelectorAll('.card')];
+    (g.views||[]).forEach((v,vi)=>{
+      const card=cards[vi];if(!card)return;
+      card.classList.toggle('view-hidden',!!v.hidden);
+      if(v.design&&files[v.design]){
+        const img=card.querySelector('.logo-slot img');
+        if(img){
+          img.src=bytesToDataUrl(files[v.design],v.design);
+          img.classList.remove('empty-logo');
+        }
+      }
+    });
+  });
+
+  if(typeof updateBankHiddenTools==='function')updateBankHiddenTools();
+  if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+}
+
+document.getElementById('loadZipInput')?.addEventListener('change',async e=>{
+  const input=e.currentTarget;
+  const file=input.files?.[0];
+  if(!file)return;
+  try{
+    await restoreProposalBackup(file);
+    alert('Propuesta recuperada.');
+  }catch(err){
+    console.error(err);
+    alert('No se pudo cargar este ZIP de respaldo.');
+  }finally{
+    input.value='';
+  }
+});
+
+
 document.getElementById('saveZip')?.addEventListener('click',()=>{
   try{
     const {entries}=buildProposalBackup();
@@ -3302,18 +3437,18 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
         drawCompanyMark(h,companyName||'Propuesta de prendas',textX,Math.round(headerH*.01),available,nameH);
 
         h.fillStyle=exportTextPrimary();
-        h.font=`900 ${Math.round(headerH*.050)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+        h.font=`900 ${Math.round(headerH*.058)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
         h.fillText('IDENTIDAD VISUAL',textX,Math.round(headerH*.70),available);
 
         h.fillStyle=exportTextSecondary();
-        h.font=`700 ${Math.round(headerH*.043)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+        h.font=`700 ${Math.round(headerH*.049)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
         drawWrappedText(
           h,
           exportDescription(hasLight,hasDark,hasGraphic,hasSymbol),
           textX,
           Math.round(headerH*.79),
           available,
-          Math.round(headerH*.058)
+          Math.round(headerH*.065)
         );
       }
       rows.push(header);
