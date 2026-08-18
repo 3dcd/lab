@@ -1642,6 +1642,52 @@ body[data-proposal-text-color="black"] .model-slot[data-mode="text"] .model-text
   }
 }
 
+
+/* ===== Ajustes 18-08: texto de trabajo + panel modelos ===== */
+.logo-note{
+  color:#111!important;
+  font-weight:600;
+}
+body[data-proposal-text-color="white"] .logo-note{
+  color:#fff!important;
+}
+body[data-proposal-text-color="black"] .logo-note{
+  color:#111!important;
+}
+
+/* El panel de Modelos usa el mismo tono cálido/grisáceo de las barras de prendas. */
+.model-panel{
+  background:rgba(38,36,34,.78)!important;
+  border-color:rgba(255,255,255,.14)!important;
+}
+.model-head strong,
+.model-head small{
+  color:#f2f2f2!important;
+}
+
+/* El nombre/textos de la propuesta en la herramienta siguen el selector global B/N. */
+body[data-proposal-text-color="white"] .proposal-live-text,
+body[data-proposal-text-color="white"] .logo-info,
+body[data-proposal-text-color="white"] .logo-info strong,
+body[data-proposal-text-color="white"] .logo-info span{
+  color:#fff!important;
+}
+body[data-proposal-text-color="black"] .proposal-live-text,
+body[data-proposal-text-color="black"] .logo-info,
+body[data-proposal-text-color="black"] .logo-info strong,
+body[data-proposal-text-color="black"] .logo-info span{
+  color:#111!important;
+}
+
+
+body[data-proposal-text-color="white"] .company-name-input{
+  color:#fff!important;
+}
+body[data-proposal-text-color="black"] .company-name-input{
+  color:#111!important;
+  background:rgba(235,235,235,.82)!important;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -2147,6 +2193,56 @@ async function renderPdfFirstPage(file){
   }).promise;
 
   return c.toDataURL('image/png');
+}
+
+
+async function removeAllWhiteForSymbol(src){
+  const im=await imageFromSource(src);
+  const iw=im.naturalWidth||im.width;
+  const ih=im.naturalHeight||im.height;
+  const maxDim=1800;
+  const scale=Math.min(1,maxDim/Math.max(iw,ih));
+  const w=Math.max(1,Math.round(iw*scale));
+  const h=Math.max(1,Math.round(ih*scale));
+  const c=document.createElement('canvas');
+  c.width=w;c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(im,0,0,w,h);
+  const img=ctx.getImageData(0,0,w,h);
+  const d=img.data;
+
+  // El símbolo es deliberadamente B/N: todo píxel blanco o casi blanco pasa a alfa 0,
+  // aunque esté encerrado dentro de la silueta.
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i],g=d[i+1],b=d[i+2];
+    const min=Math.min(r,g,b), max=Math.max(r,g,b);
+    if(min>=225 && (max-min)<=35){
+      const whiteness=(min-225)/30;
+      d[i+3]=Math.max(0,Math.round(255*(1-whiteness)));
+      if(min>=245)d[i+3]=0;
+    }
+  }
+  ctx.putImageData(img,0,0);
+  return cropTransparentCanvas(c);
+}
+
+async function normalizeSymbolFile(file){
+  if(!validLogo(file))throw new Error('Formato no compatible');
+  const n=(file.name||'').toLowerCase();
+  const t=(file.type||'').toLowerCase();
+
+  // Rasterizamos SVG/PDF para poder eliminar también blancos internos.
+  if(t==='application/pdf'||n.endsWith('.pdf')){
+    return await removeAllWhiteForSymbol(await renderPdfFirstPage(file));
+  }
+  if(t==='image/svg+xml'||n.endsWith('.svg')){
+    return await removeAllWhiteForSymbol(await fileToDataURL(file));
+  }
+  if(t==='image/jpeg'||n.endsWith('.jpg')||n.endsWith('.jpeg')||
+     t==='image/png'||n.endsWith('.png')){
+    return await removeAllWhiteForSymbol(await fileToDataURL(file));
+  }
+  throw new Error('Formato no compatible');
 }
 
 async function normalizeLogoFile(file){
@@ -4212,18 +4308,19 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
         );
         rightX-=gap;
       }
-      const textX=margin;
+      const textInset=10;
+      const textX=margin+textInset;
       const available=Math.max(0,rightX-textX-gap);
       if(available>Math.round(cardSize*.36)){
-        const nameH=Math.round(headerH*.66);
+        const nameH=Math.round(headerH*.69);
         drawCompanyMark(h,companyName||'Propuesta de prendas',textX,Math.round(headerH*.01),available,nameH);
 
         h.fillStyle=exportTextPrimary();
-        h.font=`900 ${Math.round(headerH*.058)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+        h.font=`900 ${Math.round(headerH*.064)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
         h.fillText('IDENTIDAD VISUAL',textX,Math.round(headerH*.70),available);
 
         h.fillStyle=exportTextSecondary();
-        h.font=`700 ${Math.round(headerH*.049)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
+        h.font=`700 ${Math.round(headerH*.053)}px "Arial Rounded MT Bold","Trebuchet MS",Arial,Helvetica,sans-serif`;
         drawWrappedText(
           h,
           exportDescription(hasLight,hasDark,hasGraphic,hasSymbol),
