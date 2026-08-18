@@ -1259,21 +1259,25 @@ body.has-export-background{
 }
 .background-thumb img{transition:transform .18s ease}
 body.has-export-background{
-  background:transparent!important;
+  background:#0b0b0c!important;
   background-image:none!important;
 }
 body.has-export-background::before{
   content:"";
   position:fixed;
   z-index:0;
-  inset:-35vmax;
+  left:50%;
+  top:50%;
+  width:var(--export-bg-box-w,100vw);
+  height:var(--export-bg-box-h,100vh);
   background-image:var(--export-bg-image);
-  background-position:center;
-  background-size:cover;
+  background-position:center center;
+  background-size:contain;
   background-repeat:no-repeat;
-  transform:rotate(var(--export-bg-rotation,0deg));
-  transform-origin:center;
+  transform:translate(-50%,-50%) rotate(var(--export-bg-rotation,0deg));
+  transform-origin:center center;
   pointer-events:none;
+  will-change:transform;
 }
 body.has-export-background .app{
   position:relative;
@@ -2658,7 +2662,7 @@ if(backgroundInput){
 
       document.body.classList.add('has-export-background');
       document.body.style.setProperty('--export-bg-image',`url("${exportBackgroundSrc}")`);
-      document.body.style.setProperty('--export-bg-rotation','0deg');
+      updateBackgroundPreviewGeometry();
 
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     };
@@ -2666,14 +2670,25 @@ if(backgroundInput){
   });
 }
 
+
+function updateBackgroundPreviewGeometry(){
+  const rot=((exportBackgroundRotation%360)+360)%360;
+  const sideways=rot===90||rot===270;
+
+  document.body.style.setProperty('--export-bg-rotation',`${rot}deg`);
+  document.body.style.setProperty('--export-bg-box-w',sideways?'100vh':'100vw');
+  document.body.style.setProperty('--export-bg-box-h',sideways?'100vw':'100vh');
+
+  const previewImg=document.getElementById('backgroundThumbImg');
+  if(previewImg)previewImg.style.transform=`rotate(${rot}deg)`;
+}
+
 const backgroundThumbButton=document.getElementById('backgroundThumb');
 if(backgroundThumbButton){
   backgroundThumbButton.addEventListener('click',()=>{
     if(!exportBackgroundSrc)return;
     exportBackgroundRotation=(exportBackgroundRotation+90)%360;
-    const previewImg=document.getElementById('backgroundThumbImg');
-    if(previewImg)previewImg.style.transform=`rotate(${exportBackgroundRotation}deg)`;
-    document.body.style.setProperty('--export-bg-rotation',`${exportBackgroundRotation}deg`);
+    updateBackgroundPreviewGeometry();
     if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
   });
 }
@@ -2694,6 +2709,8 @@ if(backgroundClear){
     document.body.classList.remove('has-export-background');
     document.body.style.removeProperty('--export-bg-image');
     document.body.style.removeProperty('--export-bg-rotation');
+    document.body.style.removeProperty('--export-bg-box-w');
+    document.body.style.removeProperty('--export-bg-box-h');
     document.body.style.removeProperty('background-color');
 
     if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
@@ -3376,7 +3393,7 @@ async function restoreProposalBackup(file){
 
     document.body.classList.add('has-export-background');
     document.body.style.setProperty('--export-bg-image',`url("${exportBackgroundSrc}")`);
-    document.body.style.setProperty('--export-bg-rotation',`${exportBackgroundRotation}deg`);
+    updateBackgroundPreviewGeometry();
     if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
     backgroundClear?.classList.add('show');
   }else{
@@ -3385,6 +3402,8 @@ async function restoreProposalBackup(file){
     document.body.classList.remove('has-export-background');
     document.body.style.removeProperty('--export-bg-image');
     document.body.style.removeProperty('--export-bg-rotation');
+    document.body.style.removeProperty('--export-bg-box-w');
+    document.body.style.removeProperty('--export-bg-box-h');
     document.body.style.removeProperty('background-color');
 
     const thumb=document.getElementById('backgroundThumb');
