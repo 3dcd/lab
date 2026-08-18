@@ -1237,7 +1237,7 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   padding:48px 10px 10px!important;
 }
 .model-slot.has-text:not(.model-hidden-slot){
-  flex-grow:var(--text-weight,1.15)!important;
+  flex-grow:var(--text-weight,.72)!important;
   aspect-ratio:auto!important;
   min-height:180px;
 }
@@ -1257,17 +1257,27 @@ body.has-export-background{
   background:#0b0b0c!important;
   background-image:none!important;
 }
-body.has-export-background::before{
-  content:"";
+#fixedExportBackground{
   position:fixed;
-  inset:0;
+  left:0;
+  top:0;
+  width:100vw;
+  width:100dvw;
+  height:100vh;
+  height:100dvh;
   z-index:0;
-  background-image:var(--export-bg-image);
+  display:none;
   background-position:center center;
   background-size:cover;
   background-repeat:no-repeat;
   pointer-events:none;
+  transform:translateZ(0);
+  -webkit-transform:translateZ(0);
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  contain:paint;
 }
+body.has-export-background #fixedExportBackground{display:block}
 body.has-export-background .app{
   position:relative;
   z-index:1;
@@ -1330,6 +1340,23 @@ body.has-export-background .app{
   border-color:transparent!important;
 }
 
+
+html{
+  min-height:100%;
+  background:#0b0b0c;
+}
+body{
+  min-height:100%;
+  overscroll-behavior-y:none;
+}
+@supports (-webkit-touch-callout:none){
+  #fixedExportBackground{
+    position:fixed!important;
+    width:100vw!important;
+    height:100dvh!important;
+  }
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1369,6 +1396,7 @@ if(window.pdfjsLib){
 </script>
 </head>
 <body>
+<div id="fixedExportBackground" aria-hidden="true"></div>
 <div class="app">
   <div class="logo-master">
     <div class="logo-choice light" id="bankLight"><button class="bank-hide-top" data-bank-hide="light" type="button" title="Ocultar logo">×</button><div class="bank-label">Logo claro</div>
@@ -2710,6 +2738,21 @@ async function renderPricingFooter(pricing,width){
 
 
 let exportBackgroundSrc='';
+
+const fixedExportBackground=document.getElementById('fixedExportBackground');
+
+function syncFixedBackgroundPreview(){
+  if(!fixedExportBackground)return;
+  if(exportBackgroundSrc){
+    fixedExportBackground.style.backgroundImage=`url("${exportBackgroundSrc}")`;
+    document.body.classList.add('has-export-background');
+  }else{
+    fixedExportBackground.style.backgroundImage='';
+    document.body.classList.remove('has-export-background');
+  }
+}
+
+
 const backgroundInput=document.getElementById('backgroundInput');
 const backgroundLabel=document.getElementById('backgroundLabel');
 const backgroundClear=document.getElementById('backgroundClear');
@@ -2731,8 +2774,7 @@ if(backgroundInput){
         thumb.classList.add('show');
       }
 
-      document.body.classList.add('has-export-background');
-      document.body.style.setProperty('--export-bg-image',`url("${exportBackgroundSrc}")`);
+      syncFixedBackgroundPreview();
 
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     };
@@ -2753,8 +2795,7 @@ if(backgroundClear){
     if(thumb)thumb.classList.remove('show');
     if(thumbImg)thumbImg.removeAttribute('src');
 
-    document.body.classList.remove('has-export-background');
-    document.body.style.removeProperty('--export-bg-image');
+    syncFixedBackgroundPreview();
     document.body.style.removeProperty('background-color');
 
     if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
@@ -2913,8 +2954,9 @@ function getModelBlocks(){
     if(mode==='text'){
       const text=slot.querySelector('.model-text')?.value.trim()||'';
       if(!text)return null;
-      // Más texto = más peso horizontal. El texto tiene prioridad.
-      const weight=Math.max(.90,Math.min(1.75,.82+text.length/260));
+      // El texto acompaña: nunca debe desplazar demasiado a las imágenes.
+      // Si es largo, se resuelve principalmente reduciendo tipografía.
+      const weight=Math.max(.62,Math.min(.82,.62+text.length/900));
       slot.style.setProperty('--text-weight',weight);
       return {type:'text',text,weight};
     }
@@ -2956,8 +2998,8 @@ function wrapTextLines(ctx,text,maxWidth){
 
 function textMetricsForBox(ctx,text,width,maxHeight){
   const pad=Math.max(28,Math.round(width*.06));
-  let fontSize=Math.max(28,Math.round(width*.055));
-  const minFont=22;
+  let fontSize=Math.max(24,Math.round(width*.050));
+  const minFont=17;
   let lines=[],lineH=0;
 
   while(fontSize>=minFont){
@@ -2977,16 +3019,16 @@ async function renderModelBlocks(blocks,width,margin,gap){
   const count=blocks.length;
   const usableW=innerW-(count-1)*gap;
 
-  // Primero se reservan anchos. Texto largo recibe más espacio;
-  // las imágenes ceden un poco, sin desaparecer ni deformarse.
+  // Las imágenes tienen prioridad visual. El texto ocupa una columna más angosta.
   const textBlocks=blocks.filter(b=>b.type==='text');
   const imageBlocks=blocks.filter(b=>b.type==='image');
 
   let weights=blocks.map(b=>{
     if(b.type==='text')return b.weight;
-    // Con texto presente, las imágenes se vuelven un poco más compactas.
-    return textBlocks.length ? Math.max(.72,Math.min(1.15,b.naturalRatio*.72)) :
-      Math.max(.80,Math.min(1.5,b.naturalRatio));
+    // Con texto presente, preservamos el ancho de las imágenes.
+    return textBlocks.length
+      ? Math.max(1.00,Math.min(1.45,b.naturalRatio*.88))
+      : Math.max(.90,Math.min(1.55,b.naturalRatio));
   });
 
   const weightSum=weights.reduce((a,b)=>a+b,0);
@@ -2997,10 +3039,14 @@ async function renderModelBlocks(blocks,width,margin,gap){
   rowH=Math.max(380,Math.min(760,rowH));
 
   const scratch=document.createElement('canvas').getContext('2d');
+  // Sólo permitimos un crecimiento moderado de la fila.
+  // El resto lo absorbe la reducción de tipografía.
   for(let i=0;i<blocks.length;i++){
     if(blocks[i].type!=='text')continue;
     const metrics=textMetricsForBox(scratch,blocks[i].text,widths[i],rowH);
-    if(metrics.needed>rowH)rowH=Math.min(980,metrics.needed);
+    if(metrics.needed>rowH){
+      rowH=Math.min(Math.round(rowH*1.12),760);
+    }
   }
 
   const row=document.createElement('canvas');
@@ -3426,14 +3472,12 @@ async function restoreProposalBackup(file){
       thumb.classList.add('show');
     }
 
-    document.body.classList.add('has-export-background');
-    document.body.style.setProperty('--export-bg-image',`url("${exportBackgroundSrc}")`);
+    syncFixedBackgroundPreview();
     if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
     backgroundClear?.classList.add('show');
   }else{
     exportBackgroundSrc='';
-    document.body.classList.remove('has-export-background');
-    document.body.style.removeProperty('--export-bg-image');
+    syncFixedBackgroundPreview();
     document.body.style.removeProperty('background-color');
 
     const thumb=document.getElementById('backgroundThumb');
