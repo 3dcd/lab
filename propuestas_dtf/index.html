@@ -1722,27 +1722,7 @@ body[data-proposal-text-color="black"] .company-name-input{
 }
 
 
-/* ===== Mezcla visible en herramienta ===== */
-.card{
-  isolation:auto!important;
-  background:transparent!important;
-}
-.card::before{
-  mix-blend-mode:var(--bg-blend-mode,normal)!important;
-  z-index:0!important;
-}
-.card .shirt,
-.card .tint,
-.card .logo-slot,
-.card .name,
-.card .remove-design{
-  position:absolute;
-}
-.garment-section{
-  isolation:auto!important;
-}
-
-
+/* ===== Eliminación segura de bloques ===== */
 .flow-delete-btn{
   width:30px!important;
   height:30px!important;
@@ -1751,7 +1731,7 @@ body[data-proposal-text-color="black"] .company-name-input{
   padding:0!important;
   border-radius:50%!important;
   border:1px solid rgba(255,255,255,.22)!important;
-  background:rgba(120,20,20,.72)!important;
+  background:rgba(112,20,20,.72)!important;
   color:#fff!important;
   font-size:19px!important;
   line-height:1!important;
@@ -1760,7 +1740,12 @@ body[data-proposal-text-color="black"] .company-name-input{
   justify-content:center!important;
   cursor:pointer!important;
 }
-.flow-delete-btn:hover{background:rgba(165,24,24,.9)!important}
+.flow-delete-btn:hover{background:rgba(160,24,24,.9)!important}
+.flow-delete-btn.is-last{
+  opacity:.28!important;
+  cursor:default!important;
+  pointer-events:none!important;
+}
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
@@ -1899,9 +1884,8 @@ if(window.pdfjsLib){
       <button class="swatch" data-shirt="#62c7e8" data-brightness="1.12" style="background:#62c7e8" title="Celeste"></button>
       <button class="swatch" data-shirt="#ef8a2f" data-brightness="1.05" style="background:#ef8a2f" title="Anaranjado"></button>
       <span class="label">Fondo</span>
-      <button class="swatch" data-bg="#171717" style="background:#171717" title="Fondo negro"></button>
-      <button class="swatch" data-bg="#d62828" style="background:#d62828" title="Fondo rojo"></button>
-      <button class="swatch" data-bg="#ececec" style="background:#ececec" title="Fondo blanco"></button>
+      <button class="swatch" data-bg="#171717" style="background:#171717"></button>
+      <button class="swatch" data-bg="#ececec" style="background:#ececec"></button>
       <span class="label bg-alpha-label">Transparencia</span>
       <input class="bg-alpha-range" type="range" min="0" max="10" step="1" value="10" title="Transparencia del fondo">
       <span class="bg-alpha-value">10</span>
@@ -2853,6 +2837,32 @@ function restoreHiddenUI(section){
 }
 
 
+
+function refreshFlowDeleteButtons(){
+  const garments=[...sections.children].filter(el=>el.classList.contains('garment-section'));
+  const modelPanels=[...sections.children].filter(el=>el.classList.contains('model-panel'));
+
+  garments.forEach(block=>{
+    block.querySelector('.delete-garment-block')?.classList.toggle('is-last',garments.length<=1);
+  });
+  modelPanels.forEach(block=>{
+    block.querySelector('.delete-model-panel')?.classList.toggle('is-last',modelPanels.length<=1);
+  });
+}
+
+function deleteFlowBlock(block,type){
+  if(!block || block.parentElement!==sections)return;
+  const selector=type==='garment'?'.garment-section':'.model-panel';
+  const same=[...sections.children].filter(el=>el.matches(selector));
+  if(same.length<=1){
+    refreshFlowDeleteButtons();
+    return;
+  }
+  block.remove();
+  refreshFlowDeleteButtons();
+  if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+}
+
 function moveFlowBlock(block,direction){
   if(!block || !sections || block.parentElement!==sections)return;
   const flow=[...sections.children].filter(el=>
@@ -2864,35 +2874,43 @@ function moveFlowBlock(block,direction){
   if(direction<0 && idx>0){
     sections.insertBefore(block,flow[idx-1]);
   }else if(direction>0 && idx<flow.length-1){
-    const after=flow[idx+1].nextSibling;
-    sections.insertBefore(block,after);
+    const next=flow[idx+1];
+    sections.insertBefore(next,block);
   }
+
+  refreshFlowDeleteButtons();
   if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
 }
 
 function initSection(section){
   const rightTools=section.querySelector('.section-right');
-  if(rightTools && !rightTools.querySelector('.flow-delete-btn')){
-    const del=document.createElement('button');
-    del.type='button';
-    del.className='flow-delete-btn';
-    del.title='Eliminar este bloque de prendas';
-    del.textContent='×';
-    del.addEventListener('click',()=>{
-      section.remove();
-      if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
-    });
-    rightTools.appendChild(del);
+  if(rightTools){
+    let del=rightTools.querySelector('.delete-garment-block');
+    if(!del){
+      del=document.createElement('button');
+      del.type='button';
+      del.className='flow-delete-btn delete-garment-block';
+      del.title='Eliminar este bloque de prendas';
+      del.textContent='×';
+      rightTools.appendChild(del);
+    }
+    // onclick se reasigna siempre: cloneNode no copia listeners.
+    del.onclick=()=>deleteFlowBlock(section,'garment');
   }
 
   const leftTools=section.querySelector('.section-left');
-  if(leftTools && !leftTools.querySelector('.flow-order-tools')){
-    const tools=document.createElement('span');
-    tools.className='flow-order-tools';
-    tools.innerHTML='<button type="button" class="small-btn move-block-up" title="Subir esta prenda">↑</button><button type="button" class="small-btn move-block-down" title="Bajar esta prenda">↓</button>';
-    leftTools.appendChild(tools);
-    tools.querySelector('.move-block-up').addEventListener('click',()=>moveFlowBlock(section,-1));
-    tools.querySelector('.move-block-down').addEventListener('click',()=>moveFlowBlock(section,1));
+  if(leftTools){
+    let tools=leftTools.querySelector('.flow-order-tools');
+    if(!tools){
+      tools=document.createElement('span');
+      tools.className='flow-order-tools';
+      tools.innerHTML='<button type="button" class="small-btn move-block-up" title="Subir esta prenda">↑</button><button type="button" class="small-btn move-block-down" title="Bajar esta prenda">↓</button>';
+      leftTools.appendChild(tools);
+    }
+    const up=tools.querySelector('.move-block-up');
+    const down=tools.querySelector('.move-block-down');
+    if(up)up.onclick=()=>moveFlowBlock(section,-1);
+    if(down)down.onclick=()=>moveFlowBlock(section,1);
   }
 
   section.querySelectorAll('[data-shirt]').forEach(b=>b.addEventListener('click',()=>{
@@ -2910,14 +2928,7 @@ function initSection(section){
   const bgAlphaValue=section.querySelector('.bg-alpha-value');
   const bgBlendMode=section.querySelector('.bg-blend-mode');
   if(bgBlendMode){
-    const syncBlend=()=>{
-      const mode=bgBlendMode.value||'normal';
-      section.style.setProperty('--bg-blend-mode',mode);
-      section.querySelectorAll('.card').forEach(card=>{
-        card.style.setProperty('--bg-blend-mode',mode);
-      });
-      if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
-    };
+    const syncBlend=()=>section.style.setProperty('--bg-blend-mode',bgBlendMode.value||'normal');
     bgBlendMode.addEventListener('change',syncBlend);
     syncBlend();
   }
@@ -2975,6 +2986,7 @@ function initSection(section){
     if(holder)holder.innerHTML='';
     section.after(c);
     initSection(c);
+    refreshFlowDeleteButtons();
     // Duplicar conserva qué vistas estaban ocultas, pero reconstruye sus botones de restauración.
     c.querySelectorAll('.card.view-hidden').forEach(card=>{
       const chip=document.createElement('button');
@@ -2995,6 +3007,7 @@ function initSection(section){
 const pristineGarmentTemplate=document.querySelector('.garment-section').cloneNode(true);
 
 document.querySelectorAll('.garment-section').forEach(initSection);
+refreshFlowDeleteButtons();
 function roundedRect(ctx,x,y,w,h,r){const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath()}
 function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
 function fitContain(nw,nh,bw,bh){const s=Math.min(bw/nw,bh/nh);return{w:nw*s,h:nh*s}}
@@ -3624,6 +3637,7 @@ function initModelPanel(panel){
     copyModelPanelState(panel,clone);
     panel.after(clone);
     initModelPanel(clone);
+    refreshFlowDeleteButtons();
     // reconstruir chips de ocultos
     clone.querySelectorAll('.model-slot.model-hidden-slot').forEach(slot=>{
       const holder=panelHiddenHolder(clone);
@@ -3638,10 +3652,8 @@ function initModelPanel(panel){
   });
   panel.querySelector('.move-block-up')?.addEventListener('click',()=>moveFlowBlock(panel,-1));
   panel.querySelector('.move-block-down')?.addEventListener('click',()=>moveFlowBlock(panel,1));
-  panel.querySelector('.delete-model-panel')?.addEventListener('click',()=>{
-    panel.remove();
-    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
-  });
+  panel.querySelector('.delete-model-panel')?.addEventListener('click',()=>deleteFlowBlock(panel,'models'));
+  refreshFlowDeleteButtons();
 
   [...panel.querySelectorAll('.model-slot')].forEach((slot,i)=>{
     setupModelSlot(slot,panel,i+1);
@@ -4315,7 +4327,6 @@ async function restoreProposalBackup(file){
     section.style.setProperty('--bg-blend-mode',restoredBlend);
     const blendSelect=section.querySelector('.bg-blend-mode');
     if(blendSelect)blendSelect.value=restoredBlend;
-    section.querySelectorAll('.card').forEach(card=>card.style.setProperty('--bg-blend-mode',restoredBlend));
 
     section.querySelectorAll('[data-shirt]').forEach(btn=>{
       btn.classList.toggle('active',!!g?.shirtColor&&btn.dataset.shirt===g.shirtColor);
@@ -4422,6 +4433,14 @@ async function restoreProposalBackup(file){
   garmentList.forEach((g,i)=>{if(!usedG.has(i))restoreGarment(g);});
   panelsData.forEach((p,i)=>{if(!usedM.has(i))restoreModelPanel(p);});
 
+  // Nunca dejar la herramienta sin un bloque base de cada tipo.
+  if(!sections.querySelector('.garment-section'))restoreGarment({
+    type:'remera',shirtColor:'#d9d9d9',shirtBrightness:'1',
+    cardBackground:'#171717',cardBackgroundAlpha:'1',views:[]
+  });
+  if(!sections.querySelector('.model-panel'))restoreModelPanel({index:0,items:[]});
+
+  refreshFlowDeleteButtons();
   if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
 }
 
