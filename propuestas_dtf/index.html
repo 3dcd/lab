@@ -1412,7 +1412,7 @@ body{
   display:none;
 }
 .model-slot.has-image[data-border="1"] .model-image-area{
-  box-shadow:inset 0 0 0 2px rgba(20,20,22,.88);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.68);
   border-radius:inherit;
 }
 @media(max-width:700px){
@@ -3180,7 +3180,7 @@ async function renderModelBlocks(blocks,width,margin,gap){
           Math.max(1,actualH-2),
           Math.max(1,radius-1)
         );
-        ctx.strokeStyle='rgba(24,24,26,.92)';
+        ctx.strokeStyle='rgba(255,255,255,.68)';
         ctx.lineWidth=Math.max(2,Math.round(Math.min(actualW,actualH)*.007));
         ctx.stroke();
         ctx.restore();
