@@ -1460,31 +1460,6 @@ body{
 .model-head{
   align-items:center!important;
 }
-.model-text-color-tools{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  margin-left:auto;
-}
-.model-text-color-tools .label{
-  color:#b8b8bd;
-  font-size:11px;
-}
-.model-text-color-btn{
-  width:19px;
-  height:19px;
-  padding:0;
-  border-radius:50%;
-  cursor:pointer;
-  border:1px solid rgba(255,255,255,.48);
-  box-shadow:0 0 0 1px rgba(0,0,0,.28);
-}
-.model-text-color-btn[data-text-color="black"]{background:#050505}
-.model-text-color-btn[data-text-color="white"]{background:#fff}
-.model-text-color-btn.active{
-  outline:2px solid #8d8d95;
-  outline-offset:2px;
-}
 .model-mode-tools{
   align-items:center!important;
 }
@@ -1568,6 +1543,101 @@ body[data-proposal-text-color="black"] .model-slot[data-mode="text"] .model-text
   .model-text-color-dot{
     width:15px!important;
     height:15px!important;
+    flex-basis:15px!important;
+  }
+}
+
+
+/* ===== Ajuste visual del sector inferior ===== */
+.model-panel{
+  background:#74767b!important;
+  border-color:#85878c!important;
+}
+.model-head strong{color:#fff!important}
+.model-head small{color:#e1e1e4!important}
+
+.model-slot{
+  background:#8a8c91!important;
+}
+.model-slot[data-mode="text"]{
+  background:#8a8c91!important;
+  border-color:rgba(255,255,255,.18)!important;
+  overflow:hidden!important;
+}
+.model-slot[data-mode="text"] .model-text{
+  background:transparent!important;
+  color:var(--floating-text-color,#111111)!important;
+}
+
+/* Controles perfectamente alineados */
+.model-mode-tools{
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  min-height:28px!important;
+}
+.model-mode-btn,
+.model-border-btn{
+  height:26px!important;
+  min-height:26px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  line-height:1!important;
+  margin:0!important;
+}
+.model-border-color,
+.model-text-color-dot{
+  width:17px!important;
+  height:17px!important;
+  min-width:17px!important;
+  min-height:17px!important;
+  flex:0 0 17px!important;
+  padding:0!important;
+  margin:0!important;
+  transform:none!important;
+  border-radius:50%!important;
+  vertical-align:middle!important;
+  cursor:pointer;
+}
+.model-text-color-inline{
+  display:none;
+  align-items:center;
+  gap:5px;
+  margin:0 0 0 2px;
+}
+.model-text-color-dot{
+  border:1px solid rgba(255,255,255,.65);
+  box-shadow:0 0 0 1px rgba(0,0,0,.32);
+}
+.model-text-color-dot.black{background:#111}
+.model-text-color-dot.white{background:#fff}
+.model-text-color-dot.orange{background:#f28c28}
+.model-text-color-dot.active{
+  outline:2px solid rgba(255,255,255,.95);
+  outline-offset:2px;
+}
+
+/* En modo texto: sólo colores de texto. En modo imagen: filete y sus colores. */
+.model-slot[data-mode="text"] .model-text-color-inline{
+  display:inline-flex!important;
+}
+.model-slot[data-mode="text"] .model-border-btn,
+.model-slot[data-mode="text"] .model-border-color{
+  display:none!important;
+}
+.model-slot[data-mode="image"] .model-text-color-inline{
+  display:none!important;
+}
+
+@media(max-width:700px){
+  .model-mode-tools{gap:4px!important}
+  .model-border-color,
+  .model-text-color-dot{
+    width:15px!important;
+    height:15px!important;
+    min-width:15px!important;
+    min-height:15px!important;
     flex-basis:15px!important;
   }
 }
@@ -1763,11 +1833,6 @@ if(window.pdfjsLib){
 <div class="model-panel" id="modelPanel">
   <div class="model-head">
     <strong>Modelos / Aplicación real</strong>
-    <div class="model-text-color-tools" aria-label="Color del texto de la propuesta">
-      <span class="label">Texto</span>
-      <button type="button" class="model-text-color-btn active" data-text-color="black" title="Texto negro" aria-label="Texto negro"></button>
-      <button type="button" class="model-text-color-btn" data-text-color="white" title="Texto blanco" aria-label="Texto blanco"></button>
-    </div>
     <small>Podés combinar imágenes y texto.</small>
   </div>
 
@@ -1778,22 +1843,17 @@ if(window.pdfjsLib){
       <div class="model-mode-tools">
         <button type="button" class="model-mode-btn active" data-mode-set="image">Imagen</button>
         <button type="button" class="model-mode-btn" data-mode-set="text">Texto</button>
+
         <button type="button" class="model-border-btn" data-border-toggle title="Activar o quitar filete">Filete</button>
-        <span class="model-text-color-inline" title="Color del texto">
-          <button type="button" class="model-text-color-dot black active" data-floating-text-color="#111111" aria-label="Texto negro" title="Texto negro"></button>
-          <button type="button" class="model-text-color-dot white" data-floating-text-color="#ffffff" aria-label="Texto blanco" title="Texto blanco"></button>
-        </span>
-        <span class="model-text-color-inline" title="Color del texto">
-          <button type="button" class="model-text-color-dot black active" data-floating-text-color="#111111" aria-label="Texto negro" title="Texto negro"></button>
-          <button type="button" class="model-text-color-dot white" data-floating-text-color="#ffffff" aria-label="Texto blanco" title="Texto blanco"></button>
-        </span>
-        <span class="model-text-color-inline" title="Color del texto">
-          <button type="button" class="model-text-color-dot black active" data-floating-text-color="#111111" aria-label="Texto negro" title="Texto negro"></button>
-          <button type="button" class="model-text-color-dot white" data-floating-text-color="#ffffff" aria-label="Texto blanco" title="Texto blanco"></button>
-        </span>
         <button type="button" class="model-border-color active" data-border-color="#ffffff" title="Filete blanco" aria-label="Filete blanco"></button>
         <button type="button" class="model-border-color red" data-border-color="#e32626" title="Filete rojo" aria-label="Filete rojo"></button>
         <button type="button" class="model-border-color black" data-border-color="#000000" title="Filete negro" aria-label="Filete negro"></button>
+
+        <span class="model-text-color-inline" title="Color del texto">
+          <button type="button" class="model-text-color-dot black active" data-floating-text-color="#111111" title="Texto negro" aria-label="Texto negro"></button>
+          <button type="button" class="model-text-color-dot white" data-floating-text-color="#ffffff" title="Texto blanco" aria-label="Texto blanco"></button>
+          <button type="button" class="model-text-color-dot orange" data-floating-text-color="#f28c28" title="Texto anaranjado" aria-label="Texto anaranjado"></button>
+        </span>
       </div>
       <label class="model-image-area" for="modelInput1">
         <input id="modelInput1" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
@@ -1808,10 +1868,17 @@ if(window.pdfjsLib){
       <div class="model-mode-tools">
         <button type="button" class="model-mode-btn active" data-mode-set="image">Imagen</button>
         <button type="button" class="model-mode-btn" data-mode-set="text">Texto</button>
+
         <button type="button" class="model-border-btn" data-border-toggle title="Activar o quitar filete">Filete</button>
         <button type="button" class="model-border-color active" data-border-color="#ffffff" title="Filete blanco" aria-label="Filete blanco"></button>
         <button type="button" class="model-border-color red" data-border-color="#e32626" title="Filete rojo" aria-label="Filete rojo"></button>
         <button type="button" class="model-border-color black" data-border-color="#000000" title="Filete negro" aria-label="Filete negro"></button>
+
+        <span class="model-text-color-inline" title="Color del texto">
+          <button type="button" class="model-text-color-dot black active" data-floating-text-color="#111111" title="Texto negro" aria-label="Texto negro"></button>
+          <button type="button" class="model-text-color-dot white" data-floating-text-color="#ffffff" title="Texto blanco" aria-label="Texto blanco"></button>
+          <button type="button" class="model-text-color-dot orange" data-floating-text-color="#f28c28" title="Texto anaranjado" aria-label="Texto anaranjado"></button>
+        </span>
       </div>
       <label class="model-image-area" for="modelInput2">
         <input id="modelInput2" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
@@ -1826,10 +1893,17 @@ if(window.pdfjsLib){
       <div class="model-mode-tools">
         <button type="button" class="model-mode-btn active" data-mode-set="image">Imagen</button>
         <button type="button" class="model-mode-btn" data-mode-set="text">Texto</button>
+
         <button type="button" class="model-border-btn" data-border-toggle title="Activar o quitar filete">Filete</button>
         <button type="button" class="model-border-color active" data-border-color="#ffffff" title="Filete blanco" aria-label="Filete blanco"></button>
         <button type="button" class="model-border-color red" data-border-color="#e32626" title="Filete rojo" aria-label="Filete rojo"></button>
         <button type="button" class="model-border-color black" data-border-color="#000000" title="Filete negro" aria-label="Filete negro"></button>
+
+        <span class="model-text-color-inline" title="Color del texto">
+          <button type="button" class="model-text-color-dot black active" data-floating-text-color="#111111" title="Texto negro" aria-label="Texto negro"></button>
+          <button type="button" class="model-text-color-dot white" data-floating-text-color="#ffffff" title="Texto blanco" aria-label="Texto blanco"></button>
+          <button type="button" class="model-text-color-dot orange" data-floating-text-color="#f28c28" title="Texto anaranjado" aria-label="Texto anaranjado"></button>
+        </span>
       </div>
       <label class="model-image-area" for="modelInput3">
         <input id="modelInput3" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
