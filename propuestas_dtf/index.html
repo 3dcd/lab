@@ -1370,6 +1370,28 @@ body{
 .card::before{mix-blend-mode:var(--bg-blend-mode,normal)}
 .bg-blend-mode{min-width:82px;padding:7px 8px}
 @media(max-width:560px){.bg-blend-mode{min-width:72px;padding:6px 5px}}
+
+/* Texto de Aplicación real: editor a toda altura en la herramienta */
+.model-slot[data-mode="text"]:not(.model-hidden-slot){
+  align-self:stretch!important;
+  height:auto!important;
+  min-height:180px!important;
+}
+.model-slot[data-mode="text"] .model-text{
+  box-sizing:border-box!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:100%!important;
+  padding:48px 12px 14px!important;
+  overflow-y:auto!important;
+}
+@media(max-width:700px){
+  .model-slot[data-mode="text"] .model-text{
+    padding:42px 9px 10px!important;
+  }
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
