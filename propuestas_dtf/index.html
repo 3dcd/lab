@@ -2749,7 +2749,7 @@ function syncFixedBackgroundPreview(){
     fixedExportBackground.style.backgroundImage=`url("${exportBackgroundSrc}")`;
     const blurPx=Math.round(exportBackgroundBlur*1.8);
     fixedExportBackground.style.filter=blurPx?`blur(${blurPx}px)`:'none';
-    fixedExportBackground.style.transform=blurPx?'scale(1.035)':'none';
+    fixedExportBackground.style.transform='none';
     document.body.classList.add('has-export-background');
   }else{
     fixedExportBackground.style.backgroundImage='';
@@ -2850,14 +2850,34 @@ async function drawExportBackground(ctx,width,height){
   const iw=im.naturalWidth||im.width;
   const ih=im.naturalHeight||im.height;
   const blurPx=Math.round(exportBackgroundBlur*2.2);
-  const overscan=blurPx?Math.max(1.02,1+(blurPx*2/Math.min(width,height))):1;
-  const scale=Math.max(width/iw,height/ih)*overscan;
+  const scale=Math.max(width/iw,height/ih);
   const dw=iw*scale;
   const dh=ih*scale;
-  ctx.save();
-  if(blurPx)ctx.filter=`blur(${blurPx}px)`;
-  ctx.drawImage(im,(width-dw)/2,(height-dh)/2,dw,dh);
-  ctx.restore();
+  const dx=(width-dw)/2;
+  const dy=(height-dh)/2;
+
+  if(blurPx){
+    // Renderizamos el fondo completo en un canvas auxiliar y luego aplicamos
+    // el desenfoque al canvas entero. Esto hace que el blur también quede
+    // horneado en el PNG compartido/exportado.
+    const bgCanvas=document.createElement('canvas');
+    bgCanvas.width=width;
+    bgCanvas.height=height;
+    const bgCtx=bgCanvas.getContext('2d');
+    bgCtx.drawImage(im,dx,dy,dw,dh);
+
+    const blurCanvas=document.createElement('canvas');
+    blurCanvas.width=width;
+    blurCanvas.height=height;
+    const blurCtx=blurCanvas.getContext('2d');
+    blurCtx.save();
+    blurCtx.filter=`blur(${blurPx}px)`;
+    blurCtx.drawImage(bgCanvas,0,0,width,height);
+    blurCtx.restore();
+    ctx.drawImage(blurCanvas,0,0,width,height);
+  }else{
+    ctx.drawImage(im,dx,dy,dw,dh);
+  }
 }
 
 const companyNameInput=document.getElementById('companyName');
