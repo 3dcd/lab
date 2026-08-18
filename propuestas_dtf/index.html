@@ -3368,6 +3368,17 @@ function setupModelSlot(n){
       slot.dataset.floatingTextColor=btn.dataset.floatingTextColor||'#111111';
       slot.style.setProperty('--floating-text-color',slot.dataset.floatingTextColor);
       floatingTextColorBtns.forEach(b=>b.classList.toggle('active',b===btn));
+
+      // El negro/blanco elegido en los textos inferiores también gobierna
+      // los textos flotantes generales de la propuesta y su exportación PNG:
+      // nombre/título, "IDENTIDAD VISUAL", descripción y nota de trabajo.
+      const chosen=(slot.dataset.floatingTextColor||'').toLowerCase();
+      if(chosen==='#ffffff' && typeof setProposalTextColor==='function'){
+        setProposalTextColor('white');
+      }else if((chosen==='#111111' || chosen==='#000000') && typeof setProposalTextColor==='function'){
+        setProposalTextColor('black');
+      }
+
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     });
   });
@@ -4085,6 +4096,11 @@ async function restoreProposalBackup(file){
     slot.querySelectorAll('[data-floating-text-color]').forEach(b=>{
       b.classList.toggle('active',(b.dataset.floatingTextColor||'').toLowerCase()===slot.dataset.floatingTextColor.toLowerCase());
     });
+    if(item.mode==='text'){
+      const restoredColor=(slot.dataset.floatingTextColor||'').toLowerCase();
+      if(restoredColor==='#ffffff' && typeof setProposalTextColor==='function')setProposalTextColor('white');
+      else if((restoredColor==='#111111'||restoredColor==='#000000') && typeof setProposalTextColor==='function')setProposalTextColor('black');
+    }
 
     if(item.mode==='text'){
       slot.dataset.mode='text';
