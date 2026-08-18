@@ -1255,22 +1255,14 @@ body.has-export-background{
   background-image:none!important;
 }
 #fixedExportBackground{
-  position:absolute;
-  left:0;
-  top:0;
-  width:100vw;
-  height:100vh;
+  position:fixed;
+  inset:0;
   z-index:0;
   display:none;
   background-position:center center;
   background-size:cover;
   background-repeat:no-repeat;
   pointer-events:none;
-  transform:translate3d(0,0,0);
-  -webkit-transform:translate3d(0,0,0);
-  backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;
-  overflow:hidden;
 }
 body.has-export-background #fixedExportBackground{display:block}
 body.has-export-background .app{
@@ -2719,35 +2711,16 @@ let exportBackgroundSrc='';
 
 const fixedExportBackground=document.getElementById('fixedExportBackground');
 
-function positionBackgroundToViewport(){
-  if(!fixedExportBackground)return;
-  const vv=window.visualViewport;
-  const x=vv ? vv.offsetLeft : window.scrollX;
-  const y=vv ? vv.offsetTop + window.scrollY : window.scrollY;
-  const w=vv ? vv.width : window.innerWidth;
-  const h=vv ? vv.height : window.innerHeight;
-  fixedExportBackground.style.width=Math.ceil(w)+'px';
-  fixedExportBackground.style.height=Math.ceil(h)+'px';
-  fixedExportBackground.style.transform=`translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
-}
 function syncFixedBackgroundPreview(){
   if(!fixedExportBackground)return;
   if(exportBackgroundSrc){
     fixedExportBackground.style.backgroundImage=`url("${exportBackgroundSrc}")`;
     document.body.classList.add('has-export-background');
-    positionBackgroundToViewport();
   }else{
     fixedExportBackground.style.backgroundImage='';
     document.body.classList.remove('has-export-background');
   }
 }
-window.addEventListener('scroll',positionBackgroundToViewport,{passive:true});
-window.addEventListener('resize',positionBackgroundToViewport,{passive:true});
-if(window.visualViewport){
-  window.visualViewport.addEventListener('scroll',positionBackgroundToViewport,{passive:true});
-  window.visualViewport.addEventListener('resize',positionBackgroundToViewport,{passive:true});
-}
-
 
 const backgroundInput=document.getElementById('backgroundInput');
 const backgroundLabel=document.getElementById('backgroundLabel');
