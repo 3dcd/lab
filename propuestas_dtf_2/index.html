@@ -1822,7 +1822,7 @@ body[data-proposal-text-color="black"] .company-name-input{
   object-fit:contain!important;
   filter:brightness(var(--shirt-brightness))!important;
 }
-/* Frente y atrás: un poco más de aire, en proporción visual con la remera. */
+/* Frente y atrás: mismo encuadre en herramienta y exportación. */
 .garment-section[data-preset="bombacha"] .card[data-view="bombacha-frente"] .shirt,
 .garment-section[data-preset="bombacha"] .card[data-view="bombacha-frente"] .tint,
 .garment-section[data-preset="bombacha"] .card[data-view="bombacha-atras"] .shirt,
@@ -1840,9 +1840,9 @@ body[data-proposal-text-color="black"] .company-name-input{
 }
 .garment-section[data-preset="bombacha"] .card[data-view="bombacha-detalle"] .shirt,
 .garment-section[data-preset="bombacha"] .card[data-view="bombacha-detalle"] .tint{
-  /* Detalle deliberadamente cercano al bolsillo delantero. */
-  transform:scale(2.12);
-  transform-origin:66% 25%;
+  /* Más zoom sobre la unión del bolsillo delantero, conservando cinturón visible. */
+  transform:translateY(3%) scale(2.45);
+  transform-origin:72% 18%;
 }
 .garment-section[data-preset="bombacha"] .name{
   bottom:10px;
@@ -2866,13 +2866,23 @@ const VIEW_BOXES={
   espalda:{left:'51.4665%',top:'18.5056%',width:'4.6454%',height:'3.9517%'},
   'frente-grafico':{left:'51.12%',top:'43%',width:'30.14%',height:'29.50%'},
   'espalda-grafica':{left:'51.12%',top:'37.42%',width:'32.06%',height:'30.78%'},
-  'bombacha-frente':{left:'64%',top:'26%',width:'12.6%',height:'7%'},
-  'bombacha-atras':{left:'49%',top:'17.5%',width:'13.3%',height:'7%'},
-  'bombacha-detalle':{left:'61%',top:'29%',width:'25.2%',height:'12.6%'}
+  /* Bombacha: logos un 20% más chicos que la versión anterior. */
+  'bombacha-frente':{left:'62.5%',top:'26%',width:'10.08%',height:'5.6%',rotation:'-4'},
+  'bombacha-atras':{left:'49%',top:'20.5%',width:'10.64%',height:'5.6%',rotation:'0'},
+  'bombacha-detalle':{left:'66%',top:'28%',width:'20.16%',height:'10.08%',rotation:'-4'}
 };
 
 const BOMBACHA_FRONT_SRC="assets/bombacha_frente_gris.png";
 const BOMBACHA_BACK_SRC="assets/bombacha_atras_gris.png";
+
+function applyViewBox(slot,box){
+  if(!slot||!box)return;
+  const {rotation,...pos}=box;
+  Object.assign(slot.style,pos);
+  const rot=parseFloat(rotation||'0')||0;
+  slot.dataset.rotation=String(rot);
+  slot.style.transform=`translate(-50%,-50%) rotate(${rot}deg)`;
+}
 
 function bombachaCardHTML(view,label,src){
   // La imagen conserva su alfa. La capa tint usa exactamente ese alfa como máscara.
@@ -2985,7 +2995,7 @@ function applyPreset(section,presetName){
     }
     section.querySelectorAll('.card').forEach(card=>{
       const box=VIEW_BOXES[card.dataset.view],slot=card.querySelector('.logo-slot');
-      if(box&&slot)Object.assign(slot.style,box);
+      if(box&&slot)applyViewBox(slot,box);
     });
     updateVisibleLayout(section);
     return;
@@ -3001,7 +3011,7 @@ function applyPreset(section,presetName){
     const box=VIEW_BOXES[card.dataset.view];
     const slot=card.querySelector('.logo-slot');
     if(!box||!slot)return;
-    Object.assign(slot.style,box);
+    applyViewBox(slot,box);
     bindGarmentCard(section,card);
   });
   updateVisibleLayout(section);
@@ -3236,15 +3246,22 @@ async function renderCard(card,size){
    const base=document.createElement('canvas');base.width=cw;base.height=ch;
    const b=base.getContext('2d');b.imageSmoothingEnabled=true;b.imageSmoothingQuality='high';
    const iw=shirtImg.naturalWidth||shirtImg.width,ih=shirtImg.naturalHeight||shirtImg.height;
-   /* Frente y atrás con más aire; detalle muy cercano al bolsillo delantero. */
-   let scale=Math.min(cw/iw,ch/ih)*.84;
-   let dw=iw*scale,dh=ih*scale,dx=(cw-dw)/2,dy=(ch-dh)/2;
+   /* Mismos parámetros geométricos que usa la vista de trabajo. */
+   const contain=Math.min(cw/iw,ch/ih);
+   let cssScale=.88,originX=.50,originY=.50,shiftY=0;
    if(view==='bombacha-detalle'){
-     scale=Math.min(cw/iw,ch/ih)*2.05;
-     dw=iw*scale;dh=ih*scale;
-     dx=(cw-dw)*.64;
-     dy=(ch-dh)*.15;
+     cssScale=2.45;
+     originX=.72;
+     originY=.18;
+     shiftY=.03;
    }
+   const scale=contain*cssScale;
+   const dw=iw*scale,dh=ih*scale;
+   const baseW=iw*contain,baseH=ih*contain;
+   const baseX=(cw-baseW)/2,baseY=(ch-baseH)/2;
+   const ox=baseX+baseW*originX,oy=baseY+baseH*originY;
+   let dx=ox-(ox-baseX)*cssScale;
+   let dy=oy-(oy-baseY)*cssScale + ch*shiftY;
    // La imagen ya viene neutralizada a gris y con el alfa interior corregido.
    // Se mantienen luces, sombras, costuras y pliegues de la foto.
    b.filter=`brightness(${brightness})`;
@@ -3254,6 +3271,7 @@ async function renderCard(card,size){
    const t=tint.getContext('2d');t.drawImage(base,0,0);
    t.globalCompositeOperation='source-in';t.fillStyle=shirtColor;t.fillRect(0,0,cw,ch);
 
+   /* Igual que en pantalla: base gris + tinte multiply al 88%. */
    ctx.drawImage(base,0,0);
    ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.88;ctx.drawImage(tint,0,0);ctx.restore();
  }else{
@@ -3276,7 +3294,12 @@ async function renderCard(card,size){
    const sh=parseFloat(slot.style.height)/100*ch;
    const f=fitContain(logo.naturalWidth||logo.width,logo.naturalHeight||logo.height,sw,sh);
    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-   ctx.drawImage(logo,left-f.w/2,top-f.h/2,f.w,f.h);
+   const rot=(parseFloat(slot.dataset.rotation||'0')||0)*Math.PI/180;
+   ctx.save();
+   ctx.translate(left,top);
+   if(rot)ctx.rotate(rot);
+   ctx.drawImage(logo,-f.w/2,-f.h/2,f.w,f.h);
+   ctx.restore();
  }
 
  const lab=card.querySelector('.name')?.textContent?.trim();
