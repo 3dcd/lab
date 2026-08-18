@@ -1367,7 +1367,7 @@ body{
 
 
 
-.card::before{mix-blend-mode:var(--bg-blend-mode,normal)}
+.card::before{mix-blend-mode:var(--bg-css-blend,normal)}
 .bg-blend-mode{min-width:82px;padding:7px 8px}
 @media(max-width:560px){.bg-blend-mode{min-width:72px;padding:6px 5px}}
 
@@ -1747,6 +1747,24 @@ body[data-proposal-text-color="black"] .company-name-input{
   pointer-events:none!important;
 }
 
+
+/* ===== v10: mezcla de fondos + texto global ===== */
+.card{background:transparent!important}
+.card::before{mix-blend-mode:var(--bg-css-blend,normal)!important}
+.model-slot[data-mode="text"] .model-text{
+  color:var(--proposal-floating-text-color,#111111)!important;
+}
+body[data-proposal-text-color="orange"] .logo-note,
+body[data-proposal-text-color="orange"] .logo-info,
+body[data-proposal-text-color="orange"] .logo-info strong,
+body[data-proposal-text-color="orange"] .logo-info span{
+  color:#f28c28!important;
+}
+body[data-proposal-text-color="orange"] .company-name-input{color:#f28c28!important}
+.garment-section [data-bg].active{
+  outline:2px solid #fff!important;
+  outline-offset:3px!important;
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1884,16 +1902,17 @@ if(window.pdfjsLib){
       <button class="swatch" data-shirt="#62c7e8" data-brightness="1.12" style="background:#62c7e8" title="Celeste"></button>
       <button class="swatch" data-shirt="#ef8a2f" data-brightness="1.05" style="background:#ef8a2f" title="Anaranjado"></button>
       <span class="label">Fondo</span>
-      <button class="swatch" data-bg="#171717" style="background:#171717"></button>
-      <button class="swatch" data-bg="#ececec" style="background:#ececec"></button>
+      <button class="swatch" data-bg="#171717" style="background:#171717" title="Fondo negro"></button>
+      <button class="swatch" data-bg="#d62828" style="background:#d62828" title="Fondo rojo"></button>
+      <button class="swatch" data-bg="#ececec" style="background:#ececec" title="Fondo blanco"></button>
       <span class="label bg-alpha-label">Transparencia</span>
       <input class="bg-alpha-range" type="range" min="0" max="10" step="1" value="10" title="Transparencia del fondo">
       <span class="bg-alpha-value">10</span>
       <span class="label">Modo</span>
       <select class="select bg-blend-mode" title="Mezcla del fondo de la ficha">
         <option value="normal">Normal</option>
-        <option value="screen">Luz</option>
-        <option value="multiply">Oscuro</option>
+        <option value="light">Luz</option>
+        <option value="dark">Oscuro</option>
       </select>
     </div>
   </div>
@@ -2922,13 +2941,25 @@ function initSection(section){
 
   section.querySelectorAll('[data-bg]').forEach(b=>b.addEventListener('click',()=>{
     section.style.setProperty('--bg-color',b.dataset.bg);
+    section.querySelectorAll('[data-bg]').forEach(x=>x.classList.toggle('active',x===b));
+    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
   }));
 
   const bgAlphaRange=section.querySelector('.bg-alpha-range');
   const bgAlphaValue=section.querySelector('.bg-alpha-value');
   const bgBlendMode=section.querySelector('.bg-blend-mode');
   if(bgBlendMode){
-    const syncBlend=()=>section.style.setProperty('--bg-blend-mode',bgBlendMode.value||'normal');
+    const syncBlend=()=>{
+      const mode=bgBlendMode.value||'normal';
+      const cssMode=mode==='light'?'soft-light':mode==='dark'?'color-burn':'normal';
+      section.style.setProperty('--bg-blend-mode',mode);
+      section.style.setProperty('--bg-css-blend',cssMode);
+      section.querySelectorAll('.card').forEach(card=>{
+        card.style.setProperty('--bg-blend-mode',mode);
+        card.style.setProperty('--bg-css-blend',cssMode);
+      });
+      if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+    };
     bgBlendMode.addEventListener('change',syncBlend);
     syncBlend();
   }
@@ -3356,19 +3387,33 @@ if(backgroundClear){
 let proposalTextColor='black';
 
 function proposalTextHex(){
-  return proposalTextColor==='white' ? '#ffffff' : '#111111';
+  if(proposalTextColor==='white')return '#ffffff';
+  if(proposalTextColor==='orange')return '#f28c28';
+  return '#111111';
 }
 function proposalTextSecondaryHex(){
-  return proposalTextColor==='white' ? 'rgba(255,255,255,.92)' : '#55555b';
+  if(proposalTextColor==='white')return 'rgba(255,255,255,.92)';
+  if(proposalTextColor==='orange')return '#f28c28';
+  return '#55555b';
 }
 function setProposalTextColor(color){
-  proposalTextColor=(color==='white')?'white':'black';
+  proposalTextColor=['white','orange'].includes(color)?color:'black';
+  const hex=proposalTextColor==='white'?'#ffffff':proposalTextColor==='orange'?'#f28c28':'#111111';
+
   document.body.dataset.proposalTextColor=proposalTextColor;
-  document.querySelectorAll('[data-text-color]').forEach(btn=>{
-    btn.classList.toggle('active',btn.dataset.textColor===proposalTextColor);
+  document.documentElement.style.setProperty('--proposal-floating-text-color',hex);
+
+  document.querySelectorAll('.model-slot').forEach(slot=>{
+    slot.dataset.floatingTextColor=hex;
+    slot.style.setProperty('--floating-text-color',hex);
+    slot.querySelectorAll('[data-floating-text-color]').forEach(btn=>{
+      btn.classList.toggle('active',(btn.dataset.floatingTextColor||'').toLowerCase()===hex.toLowerCase());
+    });
   });
+
   if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
 }
+
 window.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-text-color]').forEach(btn=>{
     btn.addEventListener('click',()=>setProposalTextColor(btn.dataset.textColor));
@@ -3522,8 +3567,11 @@ function setupModelSlot(slot,panel,index){
       floatingTextColorBtns.forEach(b=>b.classList.toggle('active',b===btn));
 
       const chosen=(slot.dataset.floatingTextColor||'').toLowerCase();
-      if(chosen==='#ffffff' && typeof setProposalTextColor==='function')setProposalTextColor('white');
-      else if((chosen==='#111111'||chosen==='#000000') && typeof setProposalTextColor==='function')setProposalTextColor('black');
+      if(typeof setProposalTextColor==='function'){
+        if(chosen==='#ffffff')setProposalTextColor('white');
+        else if(chosen==='#f28c28')setProposalTextColor('orange');
+        else setProposalTextColor('black');
+      }
 
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     });
@@ -3623,6 +3671,12 @@ function initModelPanel(panel){
   panel.dataset.modelPanelId=String(++modelPanelSerial);
   panel.removeAttribute('id');
 
+  const globalTextHex=proposalTextHex();
+  panel.querySelectorAll('.model-slot').forEach(slot=>{
+    slot.dataset.floatingTextColor=globalTextHex;
+    slot.style.setProperty('--floating-text-color',globalTextHex);
+  });
+
   let actions=panel.querySelector('.model-panel-actions');
   if(!actions){
     actions=document.createElement('div');
@@ -3691,7 +3745,7 @@ function getModelBlocks(panel){
       if(!text)return null;
       const weight=Math.max(.54,Math.min(.70,.54+text.length/1200));
       slot.style.setProperty('--text-weight',weight);
-      return {type:'text',text,weight,textColor:slot.dataset.floatingTextColor||'#111111'};
+      return {type:'text',text,weight,textColor:proposalTextHex()};
     }
 
     const img=slot.querySelector('.model-image-area img');
@@ -3867,7 +3921,7 @@ function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
     roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
     ctx.clip();
     ctx.globalAlpha=alpha;
-    ctx.globalCompositeOperation=mode==='screen'?'screen':mode==='multiply'?'multiply':'source-over';
+    ctx.globalCompositeOperation=mode==='light'?'soft-light':mode==='dark'?'color-burn':'source-over';
     ctx.fillStyle=bg;
     ctx.fillRect(x,y,canvas.width,canvas.height);
     ctx.restore();
@@ -4323,8 +4377,17 @@ async function restoreProposalBackup(file){
     const alphaValue=section.querySelector('.bg-alpha-value');
     if(alphaRange)alphaRange.value=String(Math.round(restoredAlpha*10));
     if(alphaValue)alphaValue.textContent=String(Math.round(restoredAlpha*10));
-    const restoredBlend=['normal','screen','multiply'].includes(g?.cardBackgroundBlend)?g.cardBackgroundBlend:'normal';
+    let restoredBlend=g?.cardBackgroundBlend||'normal';
+    if(restoredBlend==='screen')restoredBlend='light';
+    if(restoredBlend==='multiply')restoredBlend='dark';
+    if(!['normal','light','dark'].includes(restoredBlend))restoredBlend='normal';
+    const restoredCssBlend=restoredBlend==='light'?'soft-light':restoredBlend==='dark'?'color-burn':'normal';
     section.style.setProperty('--bg-blend-mode',restoredBlend);
+    section.style.setProperty('--bg-css-blend',restoredCssBlend);
+    section.querySelectorAll('.card').forEach(card=>{
+      card.style.setProperty('--bg-blend-mode',restoredBlend);
+      card.style.setProperty('--bg-css-blend',restoredCssBlend);
+    });
     const blendSelect=section.querySelector('.bg-blend-mode');
     if(blendSelect)blendSelect.value=restoredBlend;
 
@@ -4441,6 +4504,7 @@ async function restoreProposalBackup(file){
   if(!sections.querySelector('.model-panel'))restoreModelPanel({index:0,items:[]});
 
   refreshFlowDeleteButtons();
+  setProposalTextColor(data.proposalTextColor||'black');
   if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
 }
 
