@@ -1688,6 +1688,39 @@ body[data-proposal-text-color="black"] .company-name-input{
   background:rgba(235,235,235,.82)!important;
 }
 
+
+/* ===== Flujo editorial: prendas + bloques de imagen/texto reordenables ===== */
+#sections{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+#sections > .section-wrap,
+#sections > .model-panel{
+  margin:0!important;
+}
+.model-panel-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-left:auto;
+}
+.move-block-up,.move-block-down{
+  min-width:34px;
+  padding:7px 9px!important;
+  font-size:16px!important;
+  line-height:1!important;
+}
+.section-left .flow-order-tools{
+  display:inline-flex;
+  gap:5px;
+  align-items:center;
+}
+@media(max-width:700px){
+  .model-head{flex-wrap:wrap}
+  .model-panel-actions{margin-left:0}
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1879,6 +1912,11 @@ if(window.pdfjsLib){
 <div class="model-panel" id="modelPanel">
   <div class="model-head">
     <strong>Modelos / Aplicación real</strong>
+    <div class="model-panel-actions">
+      <button type="button" class="small-btn duplicate-model-panel">Duplicar</button>
+      <button type="button" class="small-btn move-block-up" title="Subir este sector">↑</button>
+      <button type="button" class="small-btn move-block-down" title="Bajar este sector">↓</button>
+    </div>
     <small>Podés combinar imágenes y texto.</small>
   </div>
 
@@ -1961,8 +1999,6 @@ if(window.pdfjsLib){
     </div>
   </div>
 </div>
-<div class="add-wrap"><button class="add-section" id="addSection" type="button" title="Agregar prenda">+</button></div>
-
 <div class="pricing-panel" id="pricingPanel">
   <div class="pricing-head">
     <strong>Precios opcionales</strong>
@@ -2773,7 +2809,30 @@ function restoreHiddenUI(section){
   updateVisibleLayout(section);
 }
 
+
+function moveFlowBlock(block,direction){
+  if(!block || !sections)return;
+  if(direction<0){
+    const prev=block.previousElementSibling;
+    if(prev)sections.insertBefore(block,prev);
+  }else{
+    const next=block.nextElementSibling;
+    if(next)sections.insertBefore(next,block);
+  }
+  if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+}
+
 function initSection(section){
+  const leftTools=section.querySelector('.section-left');
+  if(leftTools && !leftTools.querySelector('.flow-order-tools')){
+    const tools=document.createElement('span');
+    tools.className='flow-order-tools';
+    tools.innerHTML='<button type="button" class="small-btn move-block-up" title="Subir esta prenda">↑</button><button type="button" class="small-btn move-block-down" title="Bajar esta prenda">↓</button>';
+    leftTools.appendChild(tools);
+    tools.querySelector('.move-block-up').addEventListener('click',()=>moveFlowBlock(section,-1));
+    tools.querySelector('.move-block-down').addEventListener('click',()=>moveFlowBlock(section,1));
+  }
+
   section.querySelectorAll('[data-shirt]').forEach(b=>b.addEventListener('click',()=>{
     section.style.setProperty('--shirt-color',b.dataset.shirt);
     section.style.setProperty('--shirt-brightness',b.dataset.brightness||'1');
@@ -2845,7 +2904,7 @@ function initSection(section){
     const c=section.cloneNode(true);
     const holder=c.querySelector('.hidden-views');
     if(holder)holder.innerHTML='';
-    sections.appendChild(c);
+    section.after(c);
     initSection(c);
     // Duplicar conserva qué vistas estaban ocultas, pero reconstruye sus botones de restauración.
     c.querySelectorAll('.card.view-hidden').forEach(card=>{
@@ -2867,17 +2926,6 @@ function initSection(section){
 const pristineGarmentTemplate=document.querySelector('.garment-section').cloneNode(true);
 
 document.querySelectorAll('.garment-section').forEach(initSection);
-document.getElementById('addSection').addEventListener('click',()=>{
-  const base=document.querySelector('.garment-section');
-  const c=base.cloneNode(true);
-  const sel=c.querySelector('.garment-type');
-  if(sel)sel.value='remera';
-  c.querySelectorAll('.card').forEach(card=>card.classList.remove('view-hidden'));
-  const holder=c.querySelector('.hidden-views');
-  if(holder)holder.innerHTML='';
-  sections.appendChild(c);
-  initSection(c);
-});
 function roundedRect(ctx,x,y,w,h,r){const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath()}
 function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
 function fitContain(nw,nh,bw,bh){const s=Math.min(bw/nw,bh/nh);return{w:nw*s,h:nh*s}}
@@ -3284,14 +3332,18 @@ if(companyNameInput){companyNameInput.addEventListener('input',()=>{if(typeof in
 
 
 
-const modelHidden=document.getElementById('modelHidden');
+
+const originalModelPanel=document.getElementById('modelPanel');
+const pristineModelPanelTemplate=originalModelPanel.cloneNode(true);
+let modelPanelSerial=0;
+
+// Modelos pasan a formar parte del mismo flujo editorial que las prendas.
+sections.appendChild(originalModelPanel);
 
 function modelSlotHasContent(slot){
   const mode=slot.dataset.mode||'image';
-  if(mode==='text'){
-    return !!slot.querySelector('.model-text')?.value.trim();
-  }
-  return !!slot.querySelector('img')?.getAttribute('src');
+  if(mode==='text')return !!slot.querySelector('.model-text')?.value.trim();
+  return !!slot.querySelector('.model-image-area img')?.getAttribute('src');
 }
 
 function setModelMode(slot,mode){
@@ -3300,21 +3352,28 @@ function setModelMode(slot,mode){
     btn.classList.toggle('active',btn.dataset.modeSet===mode);
   });
   slot.classList.toggle('has-text',mode==='text' && !!slot.querySelector('.model-text')?.value.trim());
-  slot.classList.toggle('has-image',mode==='image' && !!slot.querySelector('img')?.getAttribute('src'));
+  slot.classList.toggle('has-image',mode==='image' && !!slot.querySelector('.model-image-area img')?.getAttribute('src'));
 }
 
-function loadModelFile(file,slot,preview,input){
+function panelHiddenHolder(panel){
+  return panel.querySelector('.model-hidden');
+}
+
+function updateModelRatio(slot,preview){
+  const w=preview.naturalWidth||1;
+  const h=preview.naturalHeight||1;
+  const ratio=Math.max(.45,Math.min(3,w/h));
+  slot.style.setProperty('--model-ratio',ratio);
+  slot.style.setProperty('--model-aspect',`${w} / ${h}`);
+}
+
+function loadModelFile(file,slot,preview,input,panel){
   if(!file)return;
   if(!/^image\/(png|jpeg)$/.test(file.type) && !/\.(png|jpe?g)$/i.test(file.name||''))return;
-
   const reader=new FileReader();
   reader.onload=()=>{
     preview.onload=()=>{
-      const w=preview.naturalWidth||1;
-      const h=preview.naturalHeight||1;
-      const ratio=Math.max(.45,Math.min(3,w/h));
-      slot.style.setProperty('--model-ratio',ratio);
-      slot.style.setProperty('--model-aspect',`${w} / ${h}`);
+      updateModelRatio(slot,preview);
       preview.onload=null;
     };
     preview.src=reader.result;
@@ -3324,18 +3383,19 @@ function loadModelFile(file,slot,preview,input){
     slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
       btn.classList.toggle('active',btn.dataset.modeSet==='image');
     });
-    modelHidden.querySelector(`[data-restore-model="${slot.dataset.model}"]`)?.remove();
+    panelHiddenHolder(panel)?.querySelector(`[data-restore-model="${slot.dataset.model}"]`)?.remove();
+    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
   };
   reader.readAsDataURL(file);
   if(input)input.value='';
 }
 
-function hideModelSlot(slot){
+function hideModelSlot(slot,panel){
   if(!modelSlotHasContent(slot))return;
   slot.classList.add('model-hidden-slot');
-
+  const holder=panelHiddenHolder(panel);
   const id=slot.dataset.model;
-  if(modelHidden.querySelector(`[data-restore-model="${id}"]`))return;
+  if(holder?.querySelector(`[data-restore-model="${id}"]`))return;
 
   const chip=document.createElement('button');
   chip.type='button';
@@ -3345,16 +3405,27 @@ function hideModelSlot(slot){
   chip.addEventListener('click',()=>{
     slot.classList.remove('model-hidden-slot');
     chip.remove();
+    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
   });
-  modelHidden.appendChild(chip);
+  holder?.appendChild(chip);
 }
 
-function setupModelSlot(n){
-  const slot=document.getElementById('modelSlot'+n);
-  const input=document.getElementById('modelInput'+n);
-  const preview=document.getElementById('modelPreview'+n);
-  const remove=document.getElementById('modelRemove'+n);
+function setupModelSlot(slot,panel,index){
+  slot.dataset.model=String(index);
+  const input=slot.querySelector('input[type="file"]');
+  const preview=slot.querySelector('.model-image-area img');
+  const remove=slot.querySelector('.model-remove');
   const text=slot.querySelector('.model-text');
+  const label=slot.querySelector('.model-image-area');
+
+  // IDs únicos para que cada panel duplicado abra su propio selector.
+  const uid=`mp${panel.dataset.modelPanelId}_s${index}`;
+  if(input){input.id=`modelInput_${uid}`;}
+  if(label&&input)label.setAttribute('for',input.id);
+  if(preview)preview.id=`modelPreview_${uid}`;
+  if(text)text.id=`modelText_${uid}`;
+  if(remove)remove.id=`modelRemove_${uid}`;
+
   const borderBtn=slot.querySelector('[data-border-toggle]');
   const floatingTextColorBtns=[...slot.querySelectorAll('[data-floating-text-color]')];
 
@@ -3363,21 +3434,14 @@ function setupModelSlot(n){
   floatingTextColorBtns.forEach(btn=>{
     btn.classList.toggle('active',(btn.dataset.floatingTextColor||'').toLowerCase()===slot.dataset.floatingTextColor.toLowerCase());
     btn.addEventListener('click',e=>{
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault();e.stopPropagation();
       slot.dataset.floatingTextColor=btn.dataset.floatingTextColor||'#111111';
       slot.style.setProperty('--floating-text-color',slot.dataset.floatingTextColor);
       floatingTextColorBtns.forEach(b=>b.classList.toggle('active',b===btn));
 
-      // El negro/blanco elegido en los textos inferiores también gobierna
-      // los textos flotantes generales de la propuesta y su exportación PNG:
-      // nombre/título, "IDENTIDAD VISUAL", descripción y nota de trabajo.
       const chosen=(slot.dataset.floatingTextColor||'').toLowerCase();
-      if(chosen==='#ffffff' && typeof setProposalTextColor==='function'){
-        setProposalTextColor('white');
-      }else if((chosen==='#111111' || chosen==='#000000') && typeof setProposalTextColor==='function'){
-        setProposalTextColor('black');
-      }
+      if(chosen==='#ffffff' && typeof setProposalTextColor==='function')setProposalTextColor('white');
+      else if((chosen==='#111111'||chosen==='#000000') && typeof setProposalTextColor==='function')setProposalTextColor('black');
 
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     });
@@ -3386,23 +3450,23 @@ function setupModelSlot(n){
   if(!slot.dataset.border)slot.dataset.border='0';
   if(!slot.dataset.borderColor)slot.dataset.borderColor='#ffffff';
   slot.style.setProperty('--model-border-color',slot.dataset.borderColor);
+
   const borderColorBtns=[...slot.querySelectorAll('[data-border-color]')];
   borderColorBtns.forEach(btn=>{
     btn.classList.toggle('active',(btn.dataset.borderColor||'').toLowerCase()===slot.dataset.borderColor.toLowerCase());
     btn.addEventListener('click',e=>{
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault();e.stopPropagation();
       slot.dataset.borderColor=btn.dataset.borderColor||'#ffffff';
       slot.style.setProperty('--model-border-color',slot.dataset.borderColor);
       borderColorBtns.forEach(b=>b.classList.toggle('active',b===btn));
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     });
   });
+
   if(borderBtn){
     borderBtn.classList.toggle('active',slot.dataset.border==='1');
     borderBtn.addEventListener('click',e=>{
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault();e.stopPropagation();
       const on=slot.dataset.border!=='1';
       slot.dataset.border=on?'1':'0';
       borderBtn.classList.toggle('active',on);
@@ -3410,8 +3474,8 @@ function setupModelSlot(n){
     });
   }
 
-  input.addEventListener('change',()=>{
-    loadModelFile(input.files&&input.files[0],slot,preview,input);
+  input?.addEventListener('change',()=>{
+    loadModelFile(input.files&&input.files[0],slot,preview,input,panel);
   });
 
   ['dragenter','dragover'].forEach(ev=>slot.addEventListener(ev,e=>{
@@ -3424,50 +3488,128 @@ function setupModelSlot(n){
   }));
   slot.addEventListener('drop',e=>{
     if(slot.dataset.mode!=='image')return;
-    loadModelFile(e.dataTransfer.files&&e.dataTransfer.files[0],slot,preview,input);
+    loadModelFile(e.dataTransfer.files&&e.dataTransfer.files[0],slot,preview,input,panel);
   });
 
   slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
     btn.addEventListener('click',e=>{
       e.preventDefault();e.stopPropagation();
       setModelMode(slot,btn.dataset.modeSet);
+      if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     });
   });
 
-  text.addEventListener('input',()=>{
+  text?.addEventListener('input',()=>{
     slot.classList.toggle('has-text',!!text.value.trim());
+    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
   });
 
-  remove.addEventListener('click',e=>{
-    e.preventDefault();e.stopPropagation();hideModelSlot(slot);
+  remove?.addEventListener('click',e=>{
+    e.preventDefault();e.stopPropagation();hideModelSlot(slot,panel);
   });
 }
 
-[1,2,3].forEach(setupModelSlot);
+function resetModelPanelEvents(panel){
+  // cloneNode elimina listeners; esta función sólo normaliza sus controles.
+  panel.querySelector('.model-hidden')?.replaceChildren();
+}
 
+function copyModelPanelState(from,to){
+  const a=[...from.querySelectorAll('.model-slot')];
+  const b=[...to.querySelectorAll('.model-slot')];
+  a.forEach((srcSlot,i)=>{
+    const dstSlot=b[i]; if(!dstSlot)return;
+    dstSlot.dataset.mode=srcSlot.dataset.mode||'image';
+    dstSlot.dataset.border=srcSlot.dataset.border||'0';
+    dstSlot.dataset.borderColor=srcSlot.dataset.borderColor||'#ffffff';
+    dstSlot.dataset.floatingTextColor=srcSlot.dataset.floatingTextColor||'#111111';
+    if(srcSlot.classList.contains('model-hidden-slot'))dstSlot.classList.add('model-hidden-slot');
+    const srcImg=srcSlot.querySelector('.model-image-area img');
+    const dstImg=dstSlot.querySelector('.model-image-area img');
+    if(srcImg?.getAttribute('src'))dstImg?.setAttribute('src',srcImg.getAttribute('src'));
+    const srcText=srcSlot.querySelector('.model-text');
+    const dstText=dstSlot.querySelector('.model-text');
+    if(dstText)dstText.value=srcText?.value||'';
+    const ratio=srcSlot.style.getPropertyValue('--model-ratio');
+    const aspect=srcSlot.style.getPropertyValue('--model-aspect');
+    if(ratio)dstSlot.style.setProperty('--model-ratio',ratio);
+    if(aspect)dstSlot.style.setProperty('--model-aspect',aspect);
+  });
+}
 
-function getModelBlocks(){
-  return [1,2,3].map(n=>{
-    const slot=document.getElementById('modelSlot'+n);
-    if(!slot || slot.classList.contains('model-hidden-slot'))return null;
+function initModelPanel(panel){
+  panel.dataset.modelPanelId=String(++modelPanelSerial);
+  panel.removeAttribute('id');
+
+  let actions=panel.querySelector('.model-panel-actions');
+  if(!actions){
+    actions=document.createElement('div');
+    actions.className='model-panel-actions';
+    actions.innerHTML='<button type="button" class="small-btn duplicate-model-panel">Duplicar</button><button type="button" class="small-btn move-block-up" title="Subir este sector">↑</button><button type="button" class="small-btn move-block-down" title="Bajar este sector">↓</button>';
+    panel.querySelector('.model-head')?.insertBefore(actions,panel.querySelector('.model-head small'));
+  }
+
+  panel.querySelector('.duplicate-model-panel')?.addEventListener('click',()=>{
+    const clone=pristineModelPanelTemplate.cloneNode(true);
+    resetModelPanelEvents(clone);
+    copyModelPanelState(panel,clone);
+    panel.after(clone);
+    initModelPanel(clone);
+    // reconstruir chips de ocultos
+    clone.querySelectorAll('.model-slot.model-hidden-slot').forEach(slot=>{
+      const holder=panelHiddenHolder(clone);
+      const chip=document.createElement('button');
+      chip.type='button';chip.className='model-restore';
+      chip.dataset.restoreModel=slot.dataset.model;
+      chip.textContent='Mostrar bloque '+slot.dataset.model;
+      chip.addEventListener('click',()=>{slot.classList.remove('model-hidden-slot');chip.remove();});
+      holder?.appendChild(chip);
+    });
+    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+  });
+  panel.querySelector('.move-block-up')?.addEventListener('click',()=>moveFlowBlock(panel,-1));
+  panel.querySelector('.move-block-down')?.addEventListener('click',()=>moveFlowBlock(panel,1));
+
+  [...panel.querySelectorAll('.model-slot')].forEach((slot,i)=>{
+    setupModelSlot(slot,panel,i+1);
+    const img=slot.querySelector('.model-image-area img');
+    if(img?.getAttribute('src')){
+      slot.classList.add('has-image');
+      if(img.complete&&img.naturalWidth)updateModelRatio(slot,img);
+      else img.addEventListener('load',()=>updateModelRatio(slot,img),{once:true});
+    }
+    const text=slot.querySelector('.model-text');
+    if((slot.dataset.mode||'image')==='text'){
+      slot.classList.toggle('has-text',!!text?.value.trim());
+      slot.classList.remove('has-image');
+    }
+    slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
+      btn.classList.toggle('active',btn.dataset.modeSet===(slot.dataset.mode||'image'));
+    });
+    slot.style.setProperty('--model-border-color',slot.dataset.borderColor||'#ffffff');
+    slot.style.setProperty('--floating-text-color',slot.dataset.floatingTextColor||'#111111');
+    slot.querySelector('[data-border-toggle]')?.classList.toggle('active',slot.dataset.border==='1');
+    slot.querySelectorAll('[data-border-color]').forEach(b=>b.classList.toggle('active',(b.dataset.borderColor||'').toLowerCase()===(slot.dataset.borderColor||'#ffffff').toLowerCase()));
+    slot.querySelectorAll('[data-floating-text-color]').forEach(b=>b.classList.toggle('active',(b.dataset.floatingTextColor||'').toLowerCase()===(slot.dataset.floatingTextColor||'#111111').toLowerCase()));
+  });
+}
+
+initModelPanel(originalModelPanel);
+
+function getModelBlocks(panel){
+  return [...panel.querySelectorAll('.model-slot')].map(slot=>{
+    if(slot.classList.contains('model-hidden-slot'))return null;
     const mode=slot.dataset.mode||'image';
 
     if(mode==='text'){
       const text=slot.querySelector('.model-text')?.value.trim()||'';
       if(!text)return null;
-      // El texto acompaña: nunca debe desplazar demasiado a las imágenes.
-      // Si es largo, se resuelve principalmente reduciendo tipografía.
       const weight=Math.max(.54,Math.min(.70,.54+text.length/1200));
       slot.style.setProperty('--text-weight',weight);
-      return {
-        type:'text',
-        text,
-        weight,
-        textColor:slot.dataset.floatingTextColor||'#111111'
-      };
+      return {type:'text',text,weight,textColor:slot.dataset.floatingTextColor||'#111111'};
     }
 
-    const img=slot.querySelector('img');
+    const img=slot.querySelector('.model-image-area img');
     if(!img?.getAttribute('src'))return null;
     const w=img.naturalWidth||1,h=img.naturalHeight||1;
     return {
@@ -3854,6 +3996,8 @@ function buildProposalBackup(){
     background:null,
     banks:{},
     models:[],
+    modelPanels:[],
+    contentOrder:[],
     garments:[]
   };
 
@@ -3877,23 +4021,25 @@ function buildProposalBackup(){
     };
   });
 
-  [1,2,3].forEach(n=>{
-    const slot=document.getElementById('modelSlot'+n);
-    if(!slot)return;
-    const mode=slot.dataset.mode||'image';
-    const item={slot:n,mode,hidden:slot.classList.contains('model-hidden-slot')};
-    if(mode==='text'){
-      item.text=document.getElementById('modelText'+n)?.value||'';
-      item.textColor=slot.dataset.floatingTextColor||'#111111';
-      if(!item.text)return;
-    }else{
-      const src=document.getElementById('modelPreview'+n)?.getAttribute('src')||'';
-      if(!src)return;
-      item.file=addDataUrlEntry(entries,'images/models/model_'+n,src);
-      item.border=slot.dataset.border==='1';
-      item.borderColor=slot.dataset.borderColor||'#ffffff';
-    }
-    json.models.push(item);
+  document.querySelectorAll('#sections > .model-panel').forEach((panel,pIndex)=>{
+    const panelData={index:pIndex,items:[]};
+    [...panel.querySelectorAll('.model-slot')].forEach((slot,sIndex)=>{
+      const mode=slot.dataset.mode||'image';
+      const item={slot:sIndex+1,mode,hidden:slot.classList.contains('model-hidden-slot')};
+      if(mode==='text'){
+        item.text=slot.querySelector('.model-text')?.value||'';
+        item.textColor=slot.dataset.floatingTextColor||'#111111';
+        if(!item.text)return;
+      }else{
+        const src=slot.querySelector('.model-image-area img')?.getAttribute('src')||'';
+        if(!src)return;
+        item.file=addDataUrlEntry(entries,`images/models/p${pIndex}_model_${sIndex+1}`,src);
+        item.border=slot.dataset.border==='1';
+        item.borderColor=slot.dataset.borderColor||'#ffffff';
+      }
+      panelData.items.push(item);
+    });
+    json.modelPanels.push(panelData);
   });
 
   document.querySelectorAll('.garment-section').forEach((section,sIndex)=>{
@@ -3922,6 +4068,15 @@ function buildProposalBackup(){
     });
     json.garments.push(g);
   });
+
+  let gOrder=0,mOrder=0;
+  [...sections.children].forEach(block=>{
+    if(block.classList.contains('garment-section'))json.contentOrder.push({type:'garment',index:gOrder++});
+    else if(block.classList.contains('model-panel'))json.contentOrder.push({type:'models',index:mOrder++});
+  });
+
+  // Compatibilidad con respaldos anteriores: primer panel también queda en models.
+  json.models=json.modelPanels[0]?.items||[];
 
   entries.unshift({
     name:'propuesta.json',
@@ -4047,122 +4202,18 @@ async function restoreProposalBackup(file){
 
   Object.entries(data.banks||{}).forEach(([key,b])=>restoreBank(key,b));
 
-  // ---------- modelos / textos ----------
-  modelHidden.innerHTML='';
-
-  [1,2,3].forEach(n=>{
-    const slot=document.getElementById('modelSlot'+n);
-    const img=document.getElementById('modelPreview'+n);
-    const ta=document.getElementById('modelText'+n);
-    if(!slot)return;
-
-    slot.classList.remove('has-image','has-text','model-hidden-slot');
-    slot.dataset.mode='image';
-    slot.dataset.border='0';
-    slot.dataset.floatingTextColor='#111111';
-    slot.style.setProperty('--floating-text-color','#111111');
-    slot.querySelectorAll('[data-floating-text-color]').forEach(b=>{
-      b.classList.toggle('active',(b.dataset.floatingTextColor||'').toLowerCase()==='#111111');
-    });
-    slot.dataset.borderColor='#ffffff';
-    slot.style.setProperty('--model-border-color','#ffffff');
-    slot.querySelector('[data-border-toggle]')?.classList.remove('active');
-    slot.querySelectorAll('[data-border-color]').forEach(b=>b.classList.toggle('active',(b.dataset.borderColor||'').toLowerCase()==='#ffffff'));
-    if(img){
-      img.removeAttribute('src');
-      img.style.removeProperty('transform');
-    }
-    if(ta)ta.value='';
-    slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
-      btn.classList.toggle('active',btn.dataset.modeSet==='image');
-    });
-  });
-
-  (data.models||[]).forEach(item=>{
-    const n=item.slot;
-    const slot=document.getElementById('modelSlot'+n);
-    const img=document.getElementById('modelPreview'+n);
-    const ta=document.getElementById('modelText'+n);
-    if(!slot)return;
-
-    slot.dataset.border=item.border?'1':'0';
-    slot.dataset.borderColor=item.borderColor||'#ffffff';
-    slot.style.setProperty('--model-border-color',slot.dataset.borderColor);
-    slot.querySelector('[data-border-toggle]')?.classList.toggle('active',!!item.border);
-    slot.querySelectorAll('[data-border-color]').forEach(b=>b.classList.toggle('active',(b.dataset.borderColor||'').toLowerCase()===slot.dataset.borderColor.toLowerCase()));
-
-    slot.dataset.floatingTextColor=item.textColor||'#111111';
-    slot.style.setProperty('--floating-text-color',slot.dataset.floatingTextColor);
-    slot.querySelectorAll('[data-floating-text-color]').forEach(b=>{
-      b.classList.toggle('active',(b.dataset.floatingTextColor||'').toLowerCase()===slot.dataset.floatingTextColor.toLowerCase());
-    });
-    if(item.mode==='text'){
-      const restoredColor=(slot.dataset.floatingTextColor||'').toLowerCase();
-      if(restoredColor==='#ffffff' && typeof setProposalTextColor==='function')setProposalTextColor('white');
-      else if((restoredColor==='#111111'||restoredColor==='#000000') && typeof setProposalTextColor==='function')setProposalTextColor('black');
-    }
-
-    if(item.mode==='text'){
-      slot.dataset.mode='text';
-      if(ta)ta.value=item.text||'';
-      slot.classList.toggle('has-text',!!(item.text||'').trim());
-      slot.classList.remove('has-image');
-      slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
-        btn.classList.toggle('active',btn.dataset.modeSet==='text');
-      });
-    }else if(item.file&&files[item.file]){
-      const src=bytesToDataUrl(files[item.file],item.file);
-      slot.dataset.mode='image';
-      if(img){
-        img.onload=()=>{
-          const w=img.naturalWidth||1;
-          const h=img.naturalHeight||1;
-          const ratio=Math.max(.45,Math.min(3,w/h));
-          slot.style.setProperty('--model-ratio',ratio);
-          slot.style.setProperty('--model-aspect',`${w} / ${h}`);
-          img.onload=null;
-        };
-        img.src=src;
-      }
-      slot.classList.add('has-image');
-      slot.classList.remove('has-text');
-      slot.querySelectorAll('.model-mode-btn').forEach(btn=>{
-        btn.classList.toggle('active',btn.dataset.modeSet==='image');
-      });
-    }
-
-    if(item.hidden){
-      slot.classList.add('model-hidden-slot');
-      const chip=document.createElement('button');
-      chip.type='button';
-      chip.className='model-restore';
-      chip.dataset.restoreModel=String(n);
-      chip.textContent='Mostrar bloque '+n;
-      chip.addEventListener('click',()=>{
-        slot.classList.remove('model-hidden-slot');
-        chip.remove();
-      });
-      modelHidden.appendChild(chip);
-    }
-  });
-
-  // ---------- PRENDAS ----------
-  // Éste era el problema: antes sólo se restauraban las secciones que ya existían.
-  // Ahora se reconstruye la cantidad EXACTA guardada en el ZIP.
+  // ---------- flujo editorial: prendas + bloques de modelos/texto ----------
   const garmentData=Array.isArray(data.garments)?data.garments:[];
+  const panelsData=Array.isArray(data.modelPanels) && data.modelPanels.length
+    ? data.modelPanels
+    : [{index:0,items:Array.isArray(data.models)?data.models:[]}];
+
   sections.innerHTML='';
 
-  const garmentList=garmentData.length?garmentData:[{
-    type:'remera',shirtColor:'#d9d9d9',shirtBrightness:'1',cardBackground:'#171717',cardBackgroundAlpha:'1',views:[]
-  }];
-
-  garmentList.forEach((g,gi)=>{
+  function restoreGarment(g){
     const section=pristineGarmentTemplate.cloneNode(true);
-
-    // Limpiar cualquier estado que pudiera venir en la plantilla.
     const holder=section.querySelector('.hidden-views');
     if(holder)holder.innerHTML='';
-
     section.querySelectorAll('.card').forEach(card=>{
       card.classList.remove('view-hidden');
       const img=card.querySelector('.logo-slot img');
@@ -4172,57 +4223,130 @@ async function restoreProposalBackup(file){
         img.classList.add('empty-logo');
       }
     });
-
     sections.appendChild(section);
     initSection(section);
 
     const type=section.querySelector('.garment-type');
-    if(type){
-      type.value=g.type||'remera';
-      applyPreset(section,type.value);
-    }
-
-    if(g.shirtColor)section.style.setProperty('--shirt-color',g.shirtColor);
-    if(g.shirtBrightness)section.style.setProperty('--shirt-brightness',g.shirtBrightness);
-    if(g.cardBackground)section.style.setProperty('--bg-color',g.cardBackground);
-    const restoredAlpha=(g.cardBackgroundAlpha!==undefined && g.cardBackgroundAlpha!=='')
-      ? Math.max(0,Math.min(1,Number(g.cardBackgroundAlpha)))
-      : 1;
+    if(type){type.value=g?.type||'remera';applyPreset(section,type.value);}
+    if(g?.shirtColor)section.style.setProperty('--shirt-color',g.shirtColor);
+    if(g?.shirtBrightness)section.style.setProperty('--shirt-brightness',g.shirtBrightness);
+    if(g?.cardBackground)section.style.setProperty('--bg-color',g.cardBackground);
+    const restoredAlpha=(g?.cardBackgroundAlpha!==undefined&&g.cardBackgroundAlpha!=='')
+      ?Math.max(0,Math.min(1,Number(g.cardBackgroundAlpha))):1;
     section.style.setProperty('--bg-alpha',String(restoredAlpha));
     const alphaRange=section.querySelector('.bg-alpha-range');
     const alphaValue=section.querySelector('.bg-alpha-value');
     if(alphaRange)alphaRange.value=String(Math.round(restoredAlpha*10));
     if(alphaValue)alphaValue.textContent=String(Math.round(restoredAlpha*10));
-    const restoredBlend=['normal','screen','multiply'].includes(g.cardBackgroundBlend)?g.cardBackgroundBlend:'normal';
+    const restoredBlend=['normal','screen','multiply'].includes(g?.cardBackgroundBlend)?g.cardBackgroundBlend:'normal';
     section.style.setProperty('--bg-blend-mode',restoredBlend);
     const blendSelect=section.querySelector('.bg-blend-mode');
     if(blendSelect)blendSelect.value=restoredBlend;
 
-    // Marcar visualmente el color de prenda guardado.
     section.querySelectorAll('[data-shirt]').forEach(btn=>{
-      btn.classList.toggle('active',!!g.shirtColor && btn.dataset.shirt===g.shirtColor);
+      btn.classList.toggle('active',!!g?.shirtColor&&btn.dataset.shirt===g.shirtColor);
     });
 
-    const savedViews=Array.isArray(g.views)?g.views:[];
+    const savedViews=Array.isArray(g?.views)?g.views:[];
     const byName=new Map(savedViews.map(v=>[v.name,v]));
-
     section.querySelectorAll('.card').forEach((card,ci)=>{
       const v=byName.get(card.dataset.view)||savedViews[ci];
       if(!v)return;
-
       const designImg=card.querySelector('.logo-slot img');
       if(v.design&&files[v.design]&&designImg){
         designImg.src=bytesToDataUrl(files[v.design],v.design);
         designImg.classList.remove('empty-logo');
       }
-
       card.classList.toggle('view-hidden',!!v.hidden);
     });
-
-    // Muy importante: reconstruir "Mostrar Pecho / Espalda / ..." inmediatamente.
     rebuildHiddenViewChips(section);
     updateVisibleLayout(section);
+    return section;
+  }
+
+  function restoreModelPanel(panelData){
+    const panel=pristineModelPanelTemplate.cloneNode(true);
+    const holder=panel.querySelector('.model-hidden');
+    if(holder)holder.innerHTML='';
+    panel.querySelectorAll('.model-slot').forEach(slot=>{
+      slot.classList.remove('has-image','has-text','model-hidden-slot');
+      slot.dataset.mode='image';
+      slot.dataset.border='0';
+      slot.dataset.borderColor='#ffffff';
+      slot.dataset.floatingTextColor='#111111';
+      slot.querySelector('.model-image-area img')?.removeAttribute('src');
+      const ta=slot.querySelector('.model-text');if(ta)ta.value='';
+    });
+    sections.appendChild(panel);
+    initModelPanel(panel);
+
+    (panelData?.items||[]).forEach(item=>{
+      const slot=[...panel.querySelectorAll('.model-slot')][Number(item.slot||1)-1];
+      if(!slot)return;
+      const img=slot.querySelector('.model-image-area img');
+      const ta=slot.querySelector('.model-text');
+
+      slot.dataset.border=item.border?'1':'0';
+      slot.dataset.borderColor=item.borderColor||'#ffffff';
+      slot.style.setProperty('--model-border-color',slot.dataset.borderColor);
+      slot.querySelector('[data-border-toggle]')?.classList.toggle('active',!!item.border);
+      slot.querySelectorAll('[data-border-color]').forEach(b=>b.classList.toggle('active',(b.dataset.borderColor||'').toLowerCase()===slot.dataset.borderColor.toLowerCase()));
+
+      slot.dataset.floatingTextColor=item.textColor||'#111111';
+      slot.style.setProperty('--floating-text-color',slot.dataset.floatingTextColor);
+      slot.querySelectorAll('[data-floating-text-color]').forEach(b=>b.classList.toggle('active',(b.dataset.floatingTextColor||'').toLowerCase()===slot.dataset.floatingTextColor.toLowerCase()));
+
+      if(item.mode==='text'){
+        slot.dataset.mode='text';
+        if(ta)ta.value=item.text||'';
+        slot.classList.toggle('has-text',!!(item.text||'').trim());
+        slot.classList.remove('has-image');
+      }else if(item.file&&files[item.file]){
+        slot.dataset.mode='image';
+        if(img){
+          img.onload=()=>{updateModelRatio(slot,img);img.onload=null;};
+          img.src=bytesToDataUrl(files[item.file],item.file);
+        }
+        slot.classList.add('has-image');
+        slot.classList.remove('has-text');
+      }
+      slot.querySelectorAll('.model-mode-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.modeSet===slot.dataset.mode));
+
+      if(item.hidden){
+        slot.classList.add('model-hidden-slot');
+        const chip=document.createElement('button');
+        chip.type='button';chip.className='model-restore';
+        chip.dataset.restoreModel=slot.dataset.model;
+        chip.textContent='Mostrar bloque '+slot.dataset.model;
+        chip.addEventListener('click',()=>{slot.classList.remove('model-hidden-slot');chip.remove();});
+        holder?.appendChild(chip);
+      }
+    });
+    return panel;
+  }
+
+  const garmentList=garmentData.length?garmentData:[{
+    type:'remera',shirtColor:'#d9d9d9',shirtBrightness:'1',
+    cardBackground:'#171717',cardBackgroundAlpha:'1',views:[]
+  }];
+
+  const order=Array.isArray(data.contentOrder)&&data.contentOrder.length
+    ? data.contentOrder
+    : [
+        ...garmentList.map((_,i)=>({type:'garment',index:i})),
+        ...panelsData.map((_,i)=>({type:'models',index:i}))
+      ];
+
+  const usedG=new Set(),usedM=new Set();
+  order.forEach(ref=>{
+    if(ref.type==='garment' && garmentList[ref.index]){
+      restoreGarment(garmentList[ref.index]);usedG.add(ref.index);
+    }else if(ref.type==='models' && panelsData[ref.index]){
+      restoreModelPanel(panelsData[ref.index]);usedM.add(ref.index);
+    }
   });
+  garmentList.forEach((g,i)=>{if(!usedG.has(i))restoreGarment(g);});
+  panelsData.forEach((p,i)=>{if(!usedM.has(i))restoreModelPanel(p);});
 
   if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
 }
@@ -4268,7 +4392,6 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
   const old=btn.textContent;
   btn.textContent='Preparando imagen…';btn.disabled=true;
   try{
-    const ss=[...document.querySelectorAll('.garment-section')];
     const cardSize=1100;
     const gap=Math.round(cardSize*(14/358));
     const margin=gap;
@@ -4349,31 +4472,36 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       rows.push(header);
     }
 
-    for(const s of ss){
-      const cards=[...s.querySelectorAll('.card')].filter(card=>!card.classList.contains('view-hidden'));
-      if(!cards.length)continue;
-      const count=cards.length;
-      const innerW=baseWidth-margin*2;
-      const itemSize=Math.floor((innerW-(count-1)*gap)/count);
-      const row=document.createElement('canvas');row.width=baseWidth;row.height=itemSize;
-      const r=row.getContext('2d');r.clearRect(0,0,row.width,row.height);
-      for(let i=0;i<count;i++){
-        const rendered=await renderCard(cards[i],itemSize);
-        const x=margin+i*(itemSize+gap);
-        drawCanvasShadow(r,rendered,x,0,Math.round(itemSize*.065),gap);
+    for(const block of [...sections.children]){
+      if(block.classList.contains('garment-section')){
+        const cards=[...block.querySelectorAll('.card')].filter(card=>!card.classList.contains('view-hidden'));
+        if(!cards.length)continue;
+        const count=cards.length;
+        const innerW=baseWidth-margin*2;
+        const itemSize=Math.floor((innerW-(count-1)*gap)/count);
+        const row=document.createElement('canvas');row.width=baseWidth;row.height=itemSize;
+        const r=row.getContext('2d');r.clearRect(0,0,row.width,row.height);
+        for(let i=0;i<count;i++){
+          const rendered=await renderCard(cards[i],itemSize);
+          const x=margin+i*(itemSize+gap);
+          drawCanvasShadow(r,rendered,x,0,Math.round(itemSize*.065),gap);
+        }
+        rows.push(row);
+      }else if(block.classList.contains('model-panel')){
+        const blocks=getModelBlocks(block);
+        if(blocks.length){
+          const row=await renderModelBlocks(blocks,baseWidth,margin,gap);
+          if(row)rows.push(row);
+        }
       }
-      rows.push(row);
     }
 
     const pricing=readPricing();
     const hasPricing=pricingHasContent(pricing);
-    const modelBlocks=getModelBlocks();
-    const modelRow=modelBlocks.length?await renderModelBlocks(modelBlocks,baseWidth,margin,gap):null;
     const pricingFooter=hasPricing?await renderPricingFooter(pricing,baseWidth-margin*2):null;
 
     let contentHeight=rows.reduce((a,r)=>a+r.height,0);
     let blockCount=rows.length;
-    if(modelRow){contentHeight+=modelRow.height;blockCount++;}
     if(pricingFooter){contentHeight+=pricingFooter.height;blockCount++;}
 
     const out=document.createElement('canvas');
@@ -4384,7 +4512,6 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
 
     let y=margin;
     rows.forEach(r=>{o.drawImage(r,0,y);y+=r.height+rowGap;});
-    if(modelRow){o.drawImage(modelRow,0,y);y+=modelRow.height+rowGap;}
     if(pricingFooter){drawCanvasShadow(o,pricingFooter,margin,y,Math.round(cardSize*.025),gap);}
 
     const b=await new Promise(resolve=>out.toBlob(resolve,'image/jpeg',.88));
