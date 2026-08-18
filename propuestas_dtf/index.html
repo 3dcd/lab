@@ -1258,10 +1258,14 @@ body.has-export-background{
   background:rgba(0,0,0,.58);color:#fff;font-size:10px;line-height:1;
 }
 .background-thumb img{transition:transform .18s ease}
+body.has-export-background{
+  background:transparent!important;
+  background-image:none!important;
+}
 body.has-export-background::before{
   content:"";
   position:fixed;
-  z-index:-2;
+  z-index:0;
   inset:-35vmax;
   background-image:var(--export-bg-image);
   background-position:center;
@@ -1271,7 +1275,10 @@ body.has-export-background::before{
   transform-origin:center;
   pointer-events:none;
 }
-body.has-export-background{background-image:none!important}
+body.has-export-background .app{
+  position:relative;
+  z-index:1;
+}
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
@@ -2687,6 +2694,7 @@ if(backgroundClear){
     document.body.classList.remove('has-export-background');
     document.body.style.removeProperty('--export-bg-image');
     document.body.style.removeProperty('--export-bg-rotation');
+    document.body.style.removeProperty('background-color');
 
     if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
   });
@@ -3377,6 +3385,7 @@ async function restoreProposalBackup(file){
     document.body.classList.remove('has-export-background');
     document.body.style.removeProperty('--export-bg-image');
     document.body.style.removeProperty('--export-bg-rotation');
+    document.body.style.removeProperty('background-color');
 
     const thumb=document.getElementById('backgroundThumb');
     const thumbImg=document.getElementById('backgroundThumbImg');
