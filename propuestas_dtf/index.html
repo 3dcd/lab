@@ -1367,7 +1367,7 @@ body{
 
 
 
-.card::before{mix-blend-mode:var(--bg-css-blend,normal)}
+.card::before{mix-blend-mode:var(--bg-blend-mode,normal)}
 .bg-blend-mode{min-width:82px;padding:7px 8px}
 @media(max-width:560px){.bg-blend-mode{min-width:72px;padding:6px 5px}}
 
@@ -1748,23 +1748,34 @@ body[data-proposal-text-color="black"] .company-name-input{
 }
 
 
-/* ===== v10: mezcla de fondos + texto global ===== */
-.card{background:transparent!important}
-.card::before{mix-blend-mode:var(--bg-css-blend,normal)!important}
-.model-slot[data-mode="text"] .model-text{
-  color:var(--proposal-floating-text-color,#111111)!important;
+/* ===== Modos de interacción del fondo de las fichas ===== */
+.garment-section[data-visual-blend="normal"] .card::before{
+  mix-blend-mode:normal!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
 }
+.garment-section[data-visual-blend="screen"] .card::before{
+  mix-blend-mode:screen!important;
+  -webkit-backdrop-filter:brightness(1.22) saturate(1.04)!important;
+  backdrop-filter:brightness(1.22) saturate(1.04)!important;
+}
+.garment-section[data-visual-blend="multiply"] .card::before{
+  mix-blend-mode:multiply!important;
+  -webkit-backdrop-filter:brightness(.72) saturate(.96)!important;
+  backdrop-filter:brightness(.72) saturate(.96)!important;
+}
+
+
 body[data-proposal-text-color="orange"] .logo-note,
 body[data-proposal-text-color="orange"] .logo-info,
 body[data-proposal-text-color="orange"] .logo-info strong,
 body[data-proposal-text-color="orange"] .logo-info span{
   color:#f28c28!important;
 }
-body[data-proposal-text-color="orange"] .company-name-input{color:#f28c28!important}
-.garment-section [data-bg].active{
-  outline:2px solid #fff!important;
-  outline-offset:3px!important;
+body[data-proposal-text-color="orange"] .company-name-input{
+  color:#f28c28!important;
 }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1911,8 +1922,8 @@ if(window.pdfjsLib){
       <span class="label">Modo</span>
       <select class="select bg-blend-mode" title="Mezcla del fondo de la ficha">
         <option value="normal">Normal</option>
-        <option value="light">Luz</option>
-        <option value="dark">Oscuro</option>
+        <option value="screen">Luz</option>
+        <option value="multiply">Oscuro</option>
       </select>
     </div>
   </div>
@@ -2941,8 +2952,6 @@ function initSection(section){
 
   section.querySelectorAll('[data-bg]').forEach(b=>b.addEventListener('click',()=>{
     section.style.setProperty('--bg-color',b.dataset.bg);
-    section.querySelectorAll('[data-bg]').forEach(x=>x.classList.toggle('active',x===b));
-    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
   }));
 
   const bgAlphaRange=section.querySelector('.bg-alpha-range');
@@ -2951,13 +2960,8 @@ function initSection(section){
   if(bgBlendMode){
     const syncBlend=()=>{
       const mode=bgBlendMode.value||'normal';
-      const cssMode=mode==='light'?'soft-light':mode==='dark'?'color-burn':'normal';
       section.style.setProperty('--bg-blend-mode',mode);
-      section.style.setProperty('--bg-css-blend',cssMode);
-      section.querySelectorAll('.card').forEach(card=>{
-        card.style.setProperty('--bg-blend-mode',mode);
-        card.style.setProperty('--bg-css-blend',cssMode);
-      });
+      section.dataset.visualBlend=mode;
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     };
     bgBlendMode.addEventListener('change',syncBlend);
@@ -3397,17 +3401,24 @@ function proposalTextSecondaryHex(){
   return '#55555b';
 }
 function setProposalTextColor(color){
-  proposalTextColor=['white','orange'].includes(color)?color:'black';
-  const hex=proposalTextColor==='white'?'#ffffff':proposalTextColor==='orange'?'#f28c28':'#111111';
+  proposalTextColor=(color==='white'||color==='orange')?color:'black';
+  const hex=proposalTextColor==='white'
+    ? '#ffffff'
+    : proposalTextColor==='orange'
+      ? '#f28c28'
+      : '#111111';
 
   document.body.dataset.proposalTextColor=proposalTextColor;
-  document.documentElement.style.setProperty('--proposal-floating-text-color',hex);
 
+  // Todos los textos editoriales inferiores, incluidos duplicados.
   document.querySelectorAll('.model-slot').forEach(slot=>{
     slot.dataset.floatingTextColor=hex;
     slot.style.setProperty('--floating-text-color',hex);
     slot.querySelectorAll('[data-floating-text-color]').forEach(btn=>{
-      btn.classList.toggle('active',(btn.dataset.floatingTextColor||'').toLowerCase()===hex.toLowerCase());
+      btn.classList.toggle(
+        'active',
+        (btn.dataset.floatingTextColor||'').toLowerCase()===hex.toLowerCase()
+      );
     });
   });
 
@@ -3671,10 +3682,10 @@ function initModelPanel(panel){
   panel.dataset.modelPanelId=String(++modelPanelSerial);
   panel.removeAttribute('id');
 
-  const globalTextHex=proposalTextHex();
+  const globalTextColor=proposalTextHex();
   panel.querySelectorAll('.model-slot').forEach(slot=>{
-    slot.dataset.floatingTextColor=globalTextHex;
-    slot.style.setProperty('--floating-text-color',globalTextHex);
+    slot.dataset.floatingTextColor=globalTextColor;
+    slot.style.setProperty('--floating-text-color',globalTextColor);
   });
 
   let actions=panel.querySelector('.model-panel-actions');
@@ -3921,7 +3932,7 @@ function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
     roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
     ctx.clip();
     ctx.globalAlpha=alpha;
-    ctx.globalCompositeOperation=mode==='light'?'soft-light':mode==='dark'?'color-burn':'source-over';
+    ctx.globalCompositeOperation=mode==='screen'?'soft-light':mode==='multiply'?'multiply':'source-over';
     ctx.fillStyle=bg;
     ctx.fillRect(x,y,canvas.width,canvas.height);
     ctx.restore();
@@ -4377,17 +4388,9 @@ async function restoreProposalBackup(file){
     const alphaValue=section.querySelector('.bg-alpha-value');
     if(alphaRange)alphaRange.value=String(Math.round(restoredAlpha*10));
     if(alphaValue)alphaValue.textContent=String(Math.round(restoredAlpha*10));
-    let restoredBlend=g?.cardBackgroundBlend||'normal';
-    if(restoredBlend==='screen')restoredBlend='light';
-    if(restoredBlend==='multiply')restoredBlend='dark';
-    if(!['normal','light','dark'].includes(restoredBlend))restoredBlend='normal';
-    const restoredCssBlend=restoredBlend==='light'?'soft-light':restoredBlend==='dark'?'color-burn':'normal';
+    const restoredBlend=['normal','screen','multiply'].includes(g?.cardBackgroundBlend)?g.cardBackgroundBlend:'normal';
     section.style.setProperty('--bg-blend-mode',restoredBlend);
-    section.style.setProperty('--bg-css-blend',restoredCssBlend);
-    section.querySelectorAll('.card').forEach(card=>{
-      card.style.setProperty('--bg-blend-mode',restoredBlend);
-      card.style.setProperty('--bg-css-blend',restoredCssBlend);
-    });
+    section.dataset.visualBlend=restoredBlend;
     const blendSelect=section.querySelector('.bg-blend-mode');
     if(blendSelect)blendSelect.value=restoredBlend;
 
