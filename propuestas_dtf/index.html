@@ -39,7 +39,7 @@ body{padding:24px}
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;
 }
 .card{
-  aspect-ratio:1/1;position:relative;overflow:hidden;border-radius:26px;background:var(--bg-color);
+  aspect-ratio:1/1;position:relative;overflow:hidden;border-radius:26px;background:transparent;
   border:1px solid rgba(255,255,255,.1);box-shadow:0 18px 45px rgba(0,0,0,.28);
   transition:.16s ease;
 }
@@ -1242,22 +1242,10 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
 }
 .background-thumb.show{display:block}
 .background-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-body.has-export-background{
-  background-position:center center!important;
-  background-size:cover!important;
-  background-attachment:fixed!important;
-  background-repeat:no-repeat!important;
-}
 
 
-.background-thumb{position:relative;cursor:pointer;padding:0}
-.background-rotate-badge{
-  position:absolute;right:2px;bottom:1px;
-  min-width:16px;height:16px;border-radius:999px;
-  display:flex;align-items:center;justify-content:center;
-  background:rgba(0,0,0,.58);color:#fff;font-size:10px;line-height:1;
-}
-.background-thumb img{transition:transform .18s ease}
+
+/* Fondo de trabajo: fijo, sin giro y con la misma lógica COVER de la exportación */
 body.has-export-background{
   background:#0b0b0c!important;
   background-image:none!important;
@@ -1265,23 +1253,43 @@ body.has-export-background{
 body.has-export-background::before{
   content:"";
   position:fixed;
+  inset:0;
   z-index:0;
-  left:50%;
-  top:50%;
-  width:var(--export-bg-box-w,100vw);
-  height:var(--export-bg-box-h,100vh);
   background-image:var(--export-bg-image);
   background-position:center center;
-  background-size:contain;
+  background-size:cover;
   background-repeat:no-repeat;
-  transform:translate(-50%,-50%) rotate(var(--export-bg-rotation,0deg));
-  transform-origin:center center;
   pointer-events:none;
-  will-change:transform;
 }
 body.has-export-background .app{
   position:relative;
   z-index:1;
+}
+
+
+.card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  border-radius:inherit;
+  background:var(--bg-color);
+  opacity:var(--bg-alpha,1);
+  pointer-events:none;
+}
+.bg-alpha-range{
+  width:110px;
+  accent-color:#f1f1f1;
+  cursor:pointer;
+}
+.bg-alpha-value{
+  min-width:18px;
+  font-size:11px;
+  color:#d0d0d4;
+  text-align:center;
+}
+@media(max-width:560px){
+  .bg-alpha-range{width:82px}
 }
 
 </style>
@@ -1394,7 +1402,7 @@ if(window.pdfjsLib){
 <div class="top-export"><div class="company-export">
 <input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa">
 <label class="export-btn background-file" id="backgroundLabel">Agregar fondo<input id="backgroundInput" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg"></label>
-<button class="background-thumb" id="backgroundThumb" type="button" title="Tocar para girar el fondo 90°"><img id="backgroundThumbImg" alt=""><span class="background-rotate-badge">↻</span></button>
+<div class="background-thumb" id="backgroundThumb" title="Vista previa del fondo"><img id="backgroundThumbImg" alt=""></div>
 <button class="background-clear" id="backgroundClear" type="button" title="Quitar fondo">×</button>
 <button class="export-btn" id="saveZip" type="button">Guardar ZIP</button>
 <label class="export-btn background-file" id="loadZipLabel">Cargar ZIP<input id="loadZipInput" type="file" accept=".zip,application/zip"></label>
@@ -1402,7 +1410,7 @@ if(window.pdfjsLib){
 </div></div>
   <div class="logo-note">Los dos logos quedan guardados arriba como opciones. No cambian ninguna prenda automáticamente: arrastrá el claro o el oscuro sobre Pecho, Hombro o Espalda.</div>
   </div>
-  <div id="sections"><div class="section-wrap garment-section" data-garment="remera" data-preset="remera" style="--shirt-color:#d9d9d9;--shirt-brightness:1;--bg-color:#171717">
+  <div id="sections"><div class="section-wrap garment-section" data-garment="remera" data-preset="remera" style="--shirt-color:#d9d9d9;--shirt-brightness:1;--bg-color:#171717;--bg-alpha:1">
   <div class="section-toolbar">
     <div class="section-left">
       <select class="select garment-type"><option value="remera" selected>Remera</option><option value="buzo">Buzo</option><option value="campera">Campera</option><option value="pantalon">Pantalón</option></select>
@@ -1423,6 +1431,9 @@ if(window.pdfjsLib){
       <button class="swatch" data-bg="#171717" style="background:#171717"></button>
       <button class="swatch" data-bg="#303239" style="background:#303239"></button>
       <button class="swatch" data-bg="#ececec" style="background:#ececec"></button>
+      <span class="label bg-alpha-label">Transparencia</span>
+      <input class="bg-alpha-range" type="range" min="0" max="10" step="1" value="10" title="Transparencia del fondo">
+      <span class="bg-alpha-value">10</span>
     </div>
   </div>
   <div class="hidden-views" aria-live="polite"></div>
@@ -2289,6 +2300,18 @@ function initSection(section){
     section.style.setProperty('--bg-color',b.dataset.bg);
   }));
 
+  const bgAlphaRange=section.querySelector('.bg-alpha-range');
+  const bgAlphaValue=section.querySelector('.bg-alpha-value');
+  if(bgAlphaRange){
+    const syncBgAlpha=()=>{
+      const v=Math.max(0,Math.min(10,Number(bgAlphaRange.value)||0));
+      section.style.setProperty('--bg-alpha',String(v/10));
+      if(bgAlphaValue)bgAlphaValue.textContent=String(v);
+    };
+    bgAlphaRange.addEventListener('input',syncBgAlpha);
+    syncBgAlpha();
+  }
+
   const type=section.querySelector('.garment-type');
   if(type){
     type.addEventListener('change',()=>{
@@ -2369,8 +2392,9 @@ function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onloa
 function fitContain(nw,nh,bw,bh){const s=Math.min(bw/nw,bh/nh);return{w:nw*s,h:nh*s}}
 async function renderCard(card,size){
  const section=card.closest('.garment-section'),st=getComputedStyle(section),c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d'),r=size*.065;
- const bg=st.getPropertyValue('--bg-color').trim()||'#171717',shirtColor=st.getPropertyValue('--shirt-color').trim()||'#d9d9d9',brightness=parseFloat(st.getPropertyValue('--shirt-brightness'))||1;
- ctx.save();roundedRect(ctx,0,0,size,size,r);ctx.clip();ctx.fillStyle=bg;ctx.fillRect(0,0,size,size);
+ const bg=st.getPropertyValue('--bg-color').trim()||'#171717',bgAlpha=Math.max(0,Math.min(1,parseFloat(st.getPropertyValue('--bg-alpha'))||0)),shirtColor=st.getPropertyValue('--shirt-color').trim()||'#d9d9d9',brightness=parseFloat(st.getPropertyValue('--shirt-brightness'))||1;
+ ctx.save();roundedRect(ctx,0,0,size,size,r);ctx.clip();
+ if(bgAlpha>0){ctx.save();ctx.globalAlpha=bgAlpha;ctx.fillStyle=bg;ctx.fillRect(0,0,size,size);ctx.restore();}
  const shirtImg=await loadImg(card.querySelector('.shirt').src),view=card.dataset.view,mm={pecho:[.1176,0,.8825,1],hombro:[.3298,0,.6982,1],espalda:[.1595,0,.8741,1],'frente-grafico':[.1176,0,.8825,1],'espalda-grafica':[.1595,0,.8741,1]},m=mm[view]||[0,0,1,1];
  const base=document.createElement('canvas');base.width=base.height=size;const b=base.getContext('2d');b.save();b.beginPath();b.rect(m[0]*size,0,(m[2]-m[0])*size,size);b.clip();b.filter=`brightness(${brightness})`;b.drawImage(shirtImg,0,0,size,size);b.restore();
  const tint=document.createElement('canvas');tint.width=tint.height=size;const t=tint.getContext('2d');t.drawImage(base,0,0);t.globalCompositeOperation='source-in';t.fillStyle=shirtColor;t.fillRect(0,0,size,size);
@@ -2637,7 +2661,6 @@ async function renderPricingFooter(pricing,width){
 
 
 let exportBackgroundSrc='';
-let exportBackgroundRotation=0;
 const backgroundInput=document.getElementById('backgroundInput');
 const backgroundLabel=document.getElementById('backgroundLabel');
 const backgroundClear=document.getElementById('backgroundClear');
@@ -2649,7 +2672,6 @@ if(backgroundInput){
     const reader=new FileReader();
     reader.onload=()=>{
       exportBackgroundSrc=reader.result;
-      exportBackgroundRotation=0;
       if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
       backgroundClear?.classList.add('show');
 
@@ -2662,7 +2684,6 @@ if(backgroundInput){
 
       document.body.classList.add('has-export-background');
       document.body.style.setProperty('--export-bg-image',`url("${exportBackgroundSrc}")`);
-      updateBackgroundPreviewGeometry();
 
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     };
@@ -2671,32 +2692,9 @@ if(backgroundInput){
 }
 
 
-function updateBackgroundPreviewGeometry(){
-  const rot=((exportBackgroundRotation%360)+360)%360;
-  const sideways=rot===90||rot===270;
-
-  document.body.style.setProperty('--export-bg-rotation',`${rot}deg`);
-  document.body.style.setProperty('--export-bg-box-w',sideways?'100vh':'100vw');
-  document.body.style.setProperty('--export-bg-box-h',sideways?'100vw':'100vh');
-
-  const previewImg=document.getElementById('backgroundThumbImg');
-  if(previewImg)previewImg.style.transform=`rotate(${rot}deg)`;
-}
-
-const backgroundThumbButton=document.getElementById('backgroundThumb');
-if(backgroundThumbButton){
-  backgroundThumbButton.addEventListener('click',()=>{
-    if(!exportBackgroundSrc)return;
-    exportBackgroundRotation=(exportBackgroundRotation+90)%360;
-    updateBackgroundPreviewGeometry();
-    if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
-  });
-}
-
 if(backgroundClear){
   backgroundClear.addEventListener('click',()=>{
     exportBackgroundSrc='';
-    exportBackgroundRotation=0;
     if(backgroundInput)backgroundInput.value='';
     if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Agregar fondo ';
     backgroundClear.classList.remove('show');
@@ -2708,9 +2706,6 @@ if(backgroundClear){
 
     document.body.classList.remove('has-export-background');
     document.body.style.removeProperty('--export-bg-image');
-    document.body.style.removeProperty('--export-bg-rotation');
-    document.body.style.removeProperty('--export-bg-box-w');
-    document.body.style.removeProperty('--export-bg-box-h');
     document.body.style.removeProperty('background-color');
 
     if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
@@ -2740,17 +2735,10 @@ async function drawExportBackground(ctx,width,height){
   const im=await loadImg(exportBackgroundSrc);
   const iw=im.naturalWidth||im.width;
   const ih=im.naturalHeight||im.height;
-  const rot=((exportBackgroundRotation%360)+360)%360;
-  const swap=rot===90||rot===270;
-  const rw=swap?ih:iw;
-  const rh=swap?iw:ih;
-  const scale=Math.max(width/rw,height/rh);
-
-  ctx.save();
-  ctx.translate(width/2,height/2);
-  ctx.rotate(rot*Math.PI/180);
-  ctx.drawImage(im,-iw*scale/2,-ih*scale/2,iw*scale,ih*scale);
-  ctx.restore();
+  const scale=Math.max(width/iw,height/ih);
+  const dw=iw*scale;
+  const dh=ih*scale;
+  ctx.drawImage(im,(width-dw)/2,(height-dh)/2,dw,dh);
 }
 
 const companyNameInput=document.getElementById('companyName');
@@ -3255,7 +3243,6 @@ function buildProposalBackup(){
     companyName:(document.getElementById('companyName')?.value||''),
     prices:typeof readPricing==='function'?readPricing():{},
     background:null,
-    backgroundRotation:exportBackgroundRotation,
     banks:{},
     models:[],
     garments:[]
@@ -3304,6 +3291,7 @@ function buildProposalBackup(){
       shirtColor:getComputedStyle(section).getPropertyValue('--shirt-color').trim(),
       shirtBrightness:getComputedStyle(section).getPropertyValue('--shirt-brightness').trim(),
       cardBackground:getComputedStyle(section).getPropertyValue('--bg-color').trim(),
+      cardBackgroundAlpha:getComputedStyle(section).getPropertyValue('--bg-alpha').trim(),
       views:[]
     };
     section.querySelectorAll('.card').forEach((card,cIndex)=>{
@@ -3381,29 +3369,22 @@ async function restoreProposalBackup(file){
   // ---------- fondo ----------
   if(data.background && files[data.background]){
     exportBackgroundSrc=bytesToDataUrl(files[data.background],data.background);
-    exportBackgroundRotation=((Number(data.backgroundRotation)||0)%360+360)%360;
-
     const thumb=document.getElementById('backgroundThumb');
     const thumbImg=document.getElementById('backgroundThumbImg');
     if(thumb&&thumbImg){
       thumbImg.src=exportBackgroundSrc;
-      thumbImg.style.transform=`rotate(${exportBackgroundRotation}deg)`;
+      thumbImg.style.transform='';
       thumb.classList.add('show');
     }
 
     document.body.classList.add('has-export-background');
     document.body.style.setProperty('--export-bg-image',`url("${exportBackgroundSrc}")`);
-    updateBackgroundPreviewGeometry();
     if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
     backgroundClear?.classList.add('show');
   }else{
     exportBackgroundSrc='';
-    exportBackgroundRotation=0;
     document.body.classList.remove('has-export-background');
     document.body.style.removeProperty('--export-bg-image');
-    document.body.style.removeProperty('--export-bg-rotation');
-    document.body.style.removeProperty('--export-bg-box-w');
-    document.body.style.removeProperty('--export-bg-box-h');
     document.body.style.removeProperty('background-color');
 
     const thumb=document.getElementById('backgroundThumb');
@@ -3533,7 +3514,7 @@ async function restoreProposalBackup(file){
   sections.innerHTML='';
 
   const garmentList=garmentData.length?garmentData:[{
-    type:'remera',shirtColor:'#d9d9d9',shirtBrightness:'1',cardBackground:'#171717',views:[]
+    type:'remera',shirtColor:'#d9d9d9',shirtBrightness:'1',cardBackground:'#171717',cardBackgroundAlpha:'1',views:[]
   }];
 
   garmentList.forEach((g,gi)=>{
@@ -3565,6 +3546,14 @@ async function restoreProposalBackup(file){
     if(g.shirtColor)section.style.setProperty('--shirt-color',g.shirtColor);
     if(g.shirtBrightness)section.style.setProperty('--shirt-brightness',g.shirtBrightness);
     if(g.cardBackground)section.style.setProperty('--bg-color',g.cardBackground);
+    const restoredAlpha=(g.cardBackgroundAlpha!==undefined && g.cardBackgroundAlpha!=='')
+      ? Math.max(0,Math.min(1,Number(g.cardBackgroundAlpha)))
+      : 1;
+    section.style.setProperty('--bg-alpha',String(restoredAlpha));
+    const alphaRange=section.querySelector('.bg-alpha-range');
+    const alphaValue=section.querySelector('.bg-alpha-value');
+    if(alphaRange)alphaRange.value=String(Math.round(restoredAlpha*10));
+    if(alphaValue)alphaValue.textContent=String(Math.round(restoredAlpha*10));
 
     // Marcar visualmente el color de prenda guardado.
     section.querySelectorAll('[data-shirt]').forEach(btn=>{
