@@ -61,10 +61,7 @@ body{padding:24px}
 .shirt{
   object-fit:contain;
   z-index:1;
-  filter:
-    brightness(var(--shirt-brightness))
-    drop-shadow(0 10px 10px rgba(0,0,0,.30))
-    drop-shadow(0 3px 4px rgba(0,0,0,.20));
+  filter:brightness(var(--shirt-brightness));
 }
 .card[data-view="pecho"] .shirt,
 .card[data-view="pecho"] .tint{
@@ -1258,24 +1255,22 @@ body.has-export-background{
   background-image:none!important;
 }
 #fixedExportBackground{
-  position:fixed;
+  position:absolute;
   left:0;
   top:0;
   width:100vw;
-  width:100dvw;
   height:100vh;
-  height:100dvh;
   z-index:0;
   display:none;
   background-position:center center;
   background-size:cover;
   background-repeat:no-repeat;
   pointer-events:none;
-  transform:translateZ(0);
-  -webkit-transform:translateZ(0);
+  transform:translate3d(0,0,0);
+  -webkit-transform:translate3d(0,0,0);
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
-  contain:paint;
+  overflow:hidden;
 }
 body.has-export-background #fixedExportBackground{display:block}
 body.has-export-background .app{
@@ -1348,13 +1343,6 @@ html{
 body{
   min-height:100%;
   overscroll-behavior-y:none;
-}
-@supports (-webkit-touch-callout:none){
-  #fixedExportBackground{
-    position:fixed!important;
-    width:100vw!important;
-    height:100dvh!important;
-  }
 }
 
 </style>
@@ -1495,7 +1483,6 @@ if(window.pdfjsLib){
       <button class="swatch" data-shirt="#ef8a2f" data-brightness="1.05" style="background:#ef8a2f" title="Anaranjado"></button>
       <span class="label">Fondo</span>
       <button class="swatch" data-bg="#171717" style="background:#171717"></button>
-      <button class="swatch" data-bg="#303239" style="background:#303239"></button>
       <button class="swatch" data-bg="#ececec" style="background:#ececec"></button>
       <span class="label bg-alpha-label">Transparencia</span>
       <input class="bg-alpha-range" type="range" min="0" max="10" step="1" value="10" title="Transparencia del fondo">
@@ -2465,15 +2452,6 @@ async function renderCard(card,size){
  const shirtImg=await loadImg(card.querySelector('.shirt').src),view=card.dataset.view,mm={pecho:[.1176,0,.8825,1],hombro:[.3298,0,.6982,1],espalda:[.1595,0,.8741,1],'frente-grafico':[.1176,0,.8825,1],'espalda-grafica':[.1595,0,.8741,1]},m=mm[view]||[0,0,1,1];
  const base=document.createElement('canvas');base.width=base.height=size;const b=base.getContext('2d');b.save();b.beginPath();b.rect(m[0]*size,0,(m[2]-m[0])*size,size);b.clip();b.filter=`brightness(${brightness})`;b.drawImage(shirtImg,0,0,size,size);b.restore();
  const tint=document.createElement('canvas');tint.width=tint.height=size;const t=tint.getContext('2d');t.drawImage(base,0,0);t.globalCompositeOperation='source-in';t.fillStyle=shirtColor;t.fillRect(0,0,size,size);
- // Sombra de la prenda basada en su propia silueta.
- ctx.save();
- ctx.shadowColor='rgba(0,0,0,.34)';
- ctx.shadowBlur=Math.max(10,Math.round(size*.020));
- ctx.shadowOffsetY=Math.max(5,Math.round(size*.009));
- ctx.globalAlpha=.62;
- ctx.drawImage(base,0,0);
- ctx.restore();
-
  ctx.drawImage(base,0,0);
  ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.92;ctx.drawImage(tint,0,0);ctx.restore();
  const slot=card.querySelector('.logo-slot');
@@ -2741,15 +2719,33 @@ let exportBackgroundSrc='';
 
 const fixedExportBackground=document.getElementById('fixedExportBackground');
 
+function positionBackgroundToViewport(){
+  if(!fixedExportBackground)return;
+  const vv=window.visualViewport;
+  const x=vv ? vv.offsetLeft : window.scrollX;
+  const y=vv ? vv.offsetTop + window.scrollY : window.scrollY;
+  const w=vv ? vv.width : window.innerWidth;
+  const h=vv ? vv.height : window.innerHeight;
+  fixedExportBackground.style.width=Math.ceil(w)+'px';
+  fixedExportBackground.style.height=Math.ceil(h)+'px';
+  fixedExportBackground.style.transform=`translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
+}
 function syncFixedBackgroundPreview(){
   if(!fixedExportBackground)return;
   if(exportBackgroundSrc){
     fixedExportBackground.style.backgroundImage=`url("${exportBackgroundSrc}")`;
     document.body.classList.add('has-export-background');
+    positionBackgroundToViewport();
   }else{
     fixedExportBackground.style.backgroundImage='';
     document.body.classList.remove('has-export-background');
   }
+}
+window.addEventListener('scroll',positionBackgroundToViewport,{passive:true});
+window.addEventListener('resize',positionBackgroundToViewport,{passive:true});
+if(window.visualViewport){
+  window.visualViewport.addEventListener('scroll',positionBackgroundToViewport,{passive:true});
+  window.visualViewport.addEventListener('resize',positionBackgroundToViewport,{passive:true});
 }
 
 
