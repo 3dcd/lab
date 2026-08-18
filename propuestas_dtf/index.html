@@ -1234,7 +1234,7 @@ html,body,.app,.logo-master,.logo-choice,.logo-preview,.symbol-bank,.card,
   padding:48px 10px 10px!important;
 }
 .model-slot.has-text:not(.model-hidden-slot){
-  flex-grow:var(--text-weight,.72)!important;
+  flex-grow:var(--text-weight,.62)!important;
   aspect-ratio:auto!important;
   min-height:180px;
 }
@@ -1335,6 +1335,25 @@ html{
 body{
   min-height:100%;
   overscroll-behavior-y:none;
+}
+
+
+.model-upload-grid{
+  align-items:flex-start!important;
+}
+.model-slot.has-image:not(.model-hidden-slot){
+  height:auto!important;
+  aspect-ratio:var(--model-aspect,1 / 1)!important;
+}
+.model-slot.has-image .model-image-area img{
+  object-fit:contain!important;
+}
+
+
+#graphicDrop .logo-preview img,
+#symbolDrop .logo-preview img{
+  max-width:70%!important;
+  max-height:70%!important;
 }
 
 </style>
@@ -2925,7 +2944,7 @@ function getModelBlocks(){
       if(!text)return null;
       // El texto acompaña: nunca debe desplazar demasiado a las imágenes.
       // Si es largo, se resuelve principalmente reduciendo tipografía.
-      const weight=Math.max(.62,Math.min(.82,.62+text.length/900));
+      const weight=Math.max(.54,Math.min(.70,.54+text.length/1200));
       slot.style.setProperty('--text-weight',weight);
       return {type:'text',text,weight};
     }
@@ -2967,8 +2986,8 @@ function wrapTextLines(ctx,text,maxWidth){
 
 function textMetricsForBox(ctx,text,width,maxHeight){
   const pad=Math.max(28,Math.round(width*.06));
-  let fontSize=Math.max(24,Math.round(width*.050));
-  const minFont=17;
+  let fontSize=Math.max(22,Math.round(width*.047));
+  const minFont=14;
   let lines=[],lineH=0;
 
   while(fontSize>=minFont){
@@ -2988,39 +3007,33 @@ async function renderModelBlocks(blocks,width,margin,gap){
   const count=blocks.length;
   const usableW=innerW-(count-1)*gap;
 
-  // Las imágenes tienen prioridad visual. El texto ocupa una columna más angosta.
-  const textBlocks=blocks.filter(b=>b.type==='text');
-  const imageBlocks=blocks.filter(b=>b.type==='image');
+  /*
+    Cada bloque se piensa como una proporción:
+    - imagen: su relación ancho/alto REAL;
+    - texto: una columna relativamente angosta.
 
-  let weights=blocks.map(b=>{
-    if(b.type==='text')return b.weight;
-    // Con texto presente, preservamos el ancho de las imágenes.
-    return textBlocks.length
-      ? Math.max(1.00,Math.min(1.45,b.naturalRatio*.88))
-      : Math.max(.90,Math.min(1.55,b.naturalRatio));
+    A partir de esas proporciones se calcula UNA altura común.
+    Por eso, si falta espacio, se achica la imagen completa,
+    nunca se achica o recorta solamente la máscara.
+  */
+  const ratios=blocks.map(block=>{
+    if(block.type==='image'){
+      return Math.max(.45,Math.min(3,block.naturalRatio||1));
+    }
+    return Math.max(.52,Math.min(.72,block.weight||.60));
   });
 
-  const weightSum=weights.reduce((a,b)=>a+b,0);
-  const widths=weights.map(w=>Math.floor(usableW*w/weightSum));
+  const ratioSum=ratios.reduce((a,b)=>a+b,0);
+  let commonH=Math.max(1,Math.floor(usableW/ratioSum));
 
-  // Altura base armoniosa. Si el texto no entra, la fila crece.
-  let rowH=Math.round(innerW*(count===1?.34:count===2?.30:.27));
-  rowH=Math.max(380,Math.min(760,rowH));
+  // Evita una fila excesivamente alta cuando queda un único bloque muy angosto.
+  commonH=Math.min(commonH,Math.round(innerW*.58));
 
-  const scratch=document.createElement('canvas').getContext('2d');
-  // Sólo permitimos un crecimiento moderado de la fila.
-  // El resto lo absorbe la reducción de tipografía.
-  for(let i=0;i<blocks.length;i++){
-    if(blocks[i].type!=='text')continue;
-    const metrics=textMetricsForBox(scratch,blocks[i].text,widths[i],rowH);
-    if(metrics.needed>rowH){
-      rowH=Math.min(Math.round(rowH*1.12),760);
-    }
-  }
+  const widths=ratios.map(r=>Math.max(1,Math.floor(commonH*r)));
 
   const row=document.createElement('canvas');
   row.width=width;
-  row.height=rowH;
+  row.height=commonH;
   const ctx=row.getContext('2d');
   ctx.clearRect(0,0,row.width,row.height);
 
@@ -3028,43 +3041,33 @@ async function renderModelBlocks(blocks,width,margin,gap){
   for(let i=0;i<blocks.length;i++){
     const block=blocks[i];
     const boxW=widths[i];
-    const boxH=rowH;
+    const boxH=commonH;
 
     if(block.type==='image'){
       const im=await loadImg(block.img.src);
-      const iw=im.naturalWidth||im.width;
-      const ih=im.naturalHeight||im.height;
-      const radius=Math.round(Math.min(boxW,boxH)*.045);
+      const iw=im.naturalWidth||im.width||1;
+      const ih=im.naturalHeight||im.height||1;
 
-      // Sombra exterior suave.
-      ctx.save();
-      ctx.shadowColor='rgba(0,0,0,.50)';
-      ctx.shadowBlur=Math.max(32,Math.round(gap*1.22));
-      ctx.shadowOffsetY=Math.max(7,Math.round(gap*.18));
-      ctx.fillStyle='rgba(255,255,255,.01)';
-      roundedRect(ctx,x,0,boxW,boxH,radius);
-      ctx.fill();
-      ctx.restore();
+      // El cuadro coincide con la proporción real de la imagen.
+      // Se dibuja completa, sin cover ni recorte.
+      const actualW=Math.min(boxW,Math.round(boxH*(iw/ih)));
+      const actualH=Math.min(boxH,Math.round(actualW*(ih/iw)));
+      const drawX=x+(boxW-actualW)/2;
+      const drawY=(boxH-actualH)/2;
+      const radius=Math.round(Math.min(actualW,actualH)*.045);
 
-      // Imagen encapsulada y redondeada, manteniendo proporción por cover.
       ctx.save();
-      roundedRect(ctx,x,0,boxW,boxH,radius);
+      roundedRect(ctx,drawX,drawY,actualW,actualH,radius);
       ctx.clip();
-      const scale=Math.max(boxW/iw,boxH/ih);
-      const dw=iw*scale,dh=ih*scale;
-      ctx.drawImage(im,x+(boxW-dw)/2,(boxH-dh)/2,dw,dh);
-      ctx.restore();
-
-      ctx.save();
-      roundedRect(ctx,x+.75,.75,boxW-1.5,boxH-1.5,Math.max(1,radius-.75));
-      ctx.strokeStyle=exportUsesCustomBackground()?'rgba(255,255,255,.20)':'rgba(0,0,0,.13)';
-      ctx.lineWidth=Math.max(1.25,Math.round(gap*.035));
-      ctx.stroke();
+      ctx.drawImage(im,drawX,drawY,actualW,actualH);
       ctx.restore();
     }else{
-      // Texto directo sobre el fondo general, sin tarjeta ni cuadrado.
+      // Texto directo sobre el fondo. Si es largo, manda la tipografía,
+      // no el ancho de las imágenes.
       const metrics=textMetricsForBox(ctx,block.text,boxW,boxH);
-      const totalH=metrics.lines.reduce((n,l)=>n+(l.blank?metrics.lineH*1.18:metrics.lineH),0);
+      const totalH=metrics.lines.reduce(
+        (n,l)=>n+(l.blank?metrics.lineH*1.18:metrics.lineH),0
+      );
       let ty=Math.max(metrics.pad,Math.round((boxH-totalH)/2));
 
       ctx.fillStyle=exportTextPrimary();
@@ -3082,6 +3085,7 @@ async function renderModelBlocks(blocks,width,margin,gap){
 
     x+=boxW+gap;
   }
+
   return row;
 }
 
@@ -3721,15 +3725,26 @@ document.getElementById('exportPng').addEventListener('click',async()=>{
       header.width=baseWidth;header.height=headerH;
       const h=header.getContext('2d');h.clearRect(0,0,header.width,header.height);
       const resources=[];
-      if(hasLight)resources.push({img:lightImg,bg:'#ededed',shape:'rounded',label:'Logo claro'});
-      if(hasDark)resources.push({img:darkImg,bg:'#26282d',shape:'rounded',label:'Logo oscuro'});
-      if(hasGraphic)resources.push({img:graphicPreview,bg:'#ededed',shape:'circle',label:'Dibujo gráfico'});
-      if(hasSymbol)resources.push({img:symbolPreview,bg:'#f1f1f1',shape:'circle',label:'Símbolo'});
+      if(hasLight)resources.push({img:lightImg,bg:'#ededed',shape:'rounded',label:'Logo claro',scale:1});
+      if(hasDark)resources.push({img:darkImg,bg:'#26282d',shape:'rounded',label:'Logo oscuro',scale:1});
+      if(hasGraphic)resources.push({img:graphicPreview,bg:'#ededed',shape:'circle',label:'Dibujo gráfico',scale:.70});
+      if(hasSymbol)resources.push({img:symbolPreview,bg:'#f1f1f1',shape:'circle',label:'Símbolo',scale:.70});
+
       let rightX=baseWidth-margin;
       for(let i=resources.length-1;i>=0;i--){
-        rightX-=resourceSize;
-        const rc=await renderLogoCard(resources[i].img,resources[i].bg,resourceSize,resources[i].shape,resources[i].label);
-        drawCanvasShadow(h,rc,rightX,0,resources[i].shape==='circle'?resourceSize/2:Math.round(resourceSize*.065),gap);
+        const res=resources[i];
+        const resSize=Math.round(resourceSize*(res.scale||1));
+        rightX-=resSize;
+        const rc=await renderLogoCard(res.img,res.bg,resSize,res.shape,res.label);
+        const resY=Math.max(0,Math.round((headerH-resSize)/2));
+        drawCanvasShadow(
+          h,
+          rc,
+          rightX,
+          resY,
+          res.shape==='circle'?resSize/2:Math.round(resSize*.065),
+          gap
+        );
         rightX-=gap;
       }
       const textX=margin;
