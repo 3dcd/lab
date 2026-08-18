@@ -1356,6 +1356,13 @@ body{
   max-height:70%!important;
 }
 
+
+.background-blur-control{display:none;align-items:center;gap:7px;padding:0 4px;white-space:nowrap}
+.background-blur-control.show{display:flex}
+.background-blur-control .blur-label,.background-blur-value{font-size:12px;opacity:.75}
+.background-blur-range{width:92px;accent-color:currentColor}
+.background-blur-value{min-width:18px;text-align:center}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1468,6 +1475,11 @@ if(window.pdfjsLib){
 <input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa">
 <label class="export-btn background-file" id="backgroundLabel">Agregar fondo<input id="backgroundInput" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg"></label>
 <div class="background-thumb" id="backgroundThumb" title="Vista previa del fondo"><img id="backgroundThumbImg" alt=""></div>
+<div class="background-blur-control" id="backgroundBlurControl">
+<span class="blur-label">Desenfoque</span>
+<input class="background-blur-range" id="backgroundBlurRange" type="range" min="0" max="10" step="1" value="0">
+<span class="background-blur-value" id="backgroundBlurValue">0</span>
+</div>
 <button class="background-clear" id="backgroundClear" type="button" title="Quitar fondo">×</button>
 <button class="export-btn" id="saveZip" type="button">Guardar ZIP</button>
 <label class="export-btn background-file" id="loadZipLabel">Cargar ZIP<input id="loadZipInput" type="file" accept=".zip,application/zip"></label>
@@ -2727,6 +2739,7 @@ async function renderPricingFooter(pricing,width){
 
 
 let exportBackgroundSrc='';
+let exportBackgroundBlur=0;
 
 const fixedExportBackground=document.getElementById('fixedExportBackground');
 
@@ -2734,9 +2747,14 @@ function syncFixedBackgroundPreview(){
   if(!fixedExportBackground)return;
   if(exportBackgroundSrc){
     fixedExportBackground.style.backgroundImage=`url("${exportBackgroundSrc}")`;
+    const blurPx=Math.round(exportBackgroundBlur*1.8);
+    fixedExportBackground.style.filter=blurPx?`blur(${blurPx}px)`:'none';
+    fixedExportBackground.style.transform=blurPx?'scale(1.035)':'none';
     document.body.classList.add('has-export-background');
   }else{
     fixedExportBackground.style.backgroundImage='';
+    fixedExportBackground.style.filter='none';
+    fixedExportBackground.style.transform='none';
     document.body.classList.remove('has-export-background');
   }
 }
@@ -2744,6 +2762,21 @@ function syncFixedBackgroundPreview(){
 const backgroundInput=document.getElementById('backgroundInput');
 const backgroundLabel=document.getElementById('backgroundLabel');
 const backgroundClear=document.getElementById('backgroundClear');
+const backgroundBlurControl=document.getElementById('backgroundBlurControl');
+const backgroundBlurRange=document.getElementById('backgroundBlurRange');
+const backgroundBlurValue=document.getElementById('backgroundBlurValue');
+function syncBackgroundBlurControl(){
+  if(backgroundBlurRange)backgroundBlurRange.value=String(exportBackgroundBlur);
+  if(backgroundBlurValue)backgroundBlurValue.textContent=String(exportBackgroundBlur);
+  backgroundBlurControl?.classList.toggle('show',!!exportBackgroundSrc);
+}
+backgroundBlurRange?.addEventListener('input',()=>{
+  exportBackgroundBlur=Math.max(0,Math.min(10,Number(backgroundBlurRange.value)||0));
+  if(backgroundBlurValue)backgroundBlurValue.textContent=String(exportBackgroundBlur);
+  syncFixedBackgroundPreview();
+  if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+});
+
 
 if(backgroundInput){
   backgroundInput.addEventListener('change',()=>{
@@ -2763,6 +2796,7 @@ if(backgroundInput){
       }
 
       syncFixedBackgroundPreview();
+      syncBackgroundBlurControl();
 
       if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
     };
@@ -2774,6 +2808,7 @@ if(backgroundInput){
 if(backgroundClear){
   backgroundClear.addEventListener('click',()=>{
     exportBackgroundSrc='';
+    exportBackgroundBlur=0;
     if(backgroundInput)backgroundInput.value='';
     if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Agregar fondo ';
     backgroundClear.classList.remove('show');
@@ -2784,6 +2819,7 @@ if(backgroundClear){
     if(thumbImg)thumbImg.removeAttribute('src');
 
     syncFixedBackgroundPreview();
+    syncBackgroundBlurControl();
     document.body.style.removeProperty('background-color');
 
     if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
@@ -2813,10 +2849,15 @@ async function drawExportBackground(ctx,width,height){
   const im=await loadImg(exportBackgroundSrc);
   const iw=im.naturalWidth||im.width;
   const ih=im.naturalHeight||im.height;
-  const scale=Math.max(width/iw,height/ih);
+  const blurPx=Math.round(exportBackgroundBlur*2.2);
+  const overscan=blurPx?Math.max(1.02,1+(blurPx*2/Math.min(width,height))):1;
+  const scale=Math.max(width/iw,height/ih)*overscan;
   const dw=iw*scale;
   const dh=ih*scale;
+  ctx.save();
+  if(blurPx)ctx.filter=`blur(${blurPx}px)`;
   ctx.drawImage(im,(width-dw)/2,(height-dh)/2,dw,dh);
+  ctx.restore();
 }
 
 const companyNameInput=document.getElementById('companyName');
@@ -3311,6 +3352,7 @@ function buildProposalBackup(){
     companyName:(document.getElementById('companyName')?.value||''),
     prices:typeof readPricing==='function'?readPricing():{},
     background:null,
+    backgroundBlur:exportBackgroundBlur,
     banks:{},
     models:[],
     garments:[]
@@ -3435,6 +3477,7 @@ async function restoreProposalBackup(file){
   setVal('priceNote',data.prices?.note||'');
 
   // ---------- fondo ----------
+  exportBackgroundBlur=Math.max(0,Math.min(10,Number(data.backgroundBlur)||0));
   if(data.background && files[data.background]){
     exportBackgroundSrc=bytesToDataUrl(files[data.background],data.background);
     const thumb=document.getElementById('backgroundThumb');
@@ -3446,11 +3489,14 @@ async function restoreProposalBackup(file){
     }
 
     syncFixedBackgroundPreview();
+    syncBackgroundBlurControl();
     if(backgroundLabel)backgroundLabel.childNodes[0].nodeValue='Fondo cargado ';
     backgroundClear?.classList.add('show');
   }else{
     exportBackgroundSrc='';
+    exportBackgroundBlur=0;
     syncFixedBackgroundPreview();
+    syncBackgroundBlurControl();
     document.body.style.removeProperty('background-color');
 
     const thumb=document.getElementById('backgroundThumb');
