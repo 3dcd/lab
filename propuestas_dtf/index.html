@@ -1412,8 +1412,37 @@ body{
   display:none;
 }
 .model-slot.has-image[data-border="1"] .model-image-area{
-  box-shadow:inset 0 0 0 2px #fff;
+  position:relative;
   border-radius:inherit;
+}
+.model-slot.has-image[data-border="1"] .model-image-area::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border:1px solid var(--model-border-color,#fff);
+  border-radius:inherit;
+  box-sizing:border-box;
+  pointer-events:none;
+  z-index:20;
+}
+.model-border-color{
+  width:16px;
+  height:16px;
+  padding:0;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.55);
+  background:#fff;
+  cursor:pointer;
+  box-shadow:0 0 0 1px rgba(0,0,0,.28);
+}
+.model-border-color.red{background:#e32626}
+.model-border-color.black{background:#000}
+.model-border-color.active{
+  outline:2px solid rgba(255,255,255,.9);
+  outline-offset:2px;
+}
+.model-slot[data-mode="text"] .model-border-color{
+  display:none;
 }
 @media(max-width:700px){
   .model-border-btn{
@@ -1624,6 +1653,9 @@ if(window.pdfjsLib){
         <button type="button" class="model-mode-btn active" data-mode-set="image">Imagen</button>
         <button type="button" class="model-mode-btn" data-mode-set="text">Texto</button>
         <button type="button" class="model-border-btn" data-border-toggle title="Activar o quitar filete">Filete</button>
+        <button type="button" class="model-border-color active" data-border-color="#ffffff" title="Filete blanco" aria-label="Filete blanco"></button>
+        <button type="button" class="model-border-color red" data-border-color="#e32626" title="Filete rojo" aria-label="Filete rojo"></button>
+        <button type="button" class="model-border-color black" data-border-color="#000000" title="Filete negro" aria-label="Filete negro"></button>
       </div>
       <label class="model-image-area" for="modelInput1">
         <input id="modelInput1" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
@@ -1639,6 +1671,9 @@ if(window.pdfjsLib){
         <button type="button" class="model-mode-btn active" data-mode-set="image">Imagen</button>
         <button type="button" class="model-mode-btn" data-mode-set="text">Texto</button>
         <button type="button" class="model-border-btn" data-border-toggle title="Activar o quitar filete">Filete</button>
+        <button type="button" class="model-border-color active" data-border-color="#ffffff" title="Filete blanco" aria-label="Filete blanco"></button>
+        <button type="button" class="model-border-color red" data-border-color="#e32626" title="Filete rojo" aria-label="Filete rojo"></button>
+        <button type="button" class="model-border-color black" data-border-color="#000000" title="Filete negro" aria-label="Filete negro"></button>
       </div>
       <label class="model-image-area" for="modelInput2">
         <input id="modelInput2" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
@@ -1654,6 +1689,9 @@ if(window.pdfjsLib){
         <button type="button" class="model-mode-btn active" data-mode-set="image">Imagen</button>
         <button type="button" class="model-mode-btn" data-mode-set="text">Texto</button>
         <button type="button" class="model-border-btn" data-border-toggle title="Activar o quitar filete">Filete</button>
+        <button type="button" class="model-border-color active" data-border-color="#ffffff" title="Filete blanco" aria-label="Filete blanco"></button>
+        <button type="button" class="model-border-color red" data-border-color="#e32626" title="Filete rojo" aria-label="Filete rojo"></button>
+        <button type="button" class="model-border-color black" data-border-color="#000000" title="Filete negro" aria-label="Filete negro"></button>
       </div>
       <label class="model-image-area" for="modelInput3">
         <input id="modelInput3" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg">
@@ -2988,6 +3026,20 @@ function setupModelSlot(n){
   const borderBtn=slot.querySelector('[data-border-toggle]');
 
   if(!slot.dataset.border)slot.dataset.border='0';
+  if(!slot.dataset.borderColor)slot.dataset.borderColor='#ffffff';
+  slot.style.setProperty('--model-border-color',slot.dataset.borderColor);
+  const borderColorBtns=[...slot.querySelectorAll('[data-border-color]')];
+  borderColorBtns.forEach(btn=>{
+    btn.classList.toggle('active',(btn.dataset.borderColor||'').toLowerCase()===slot.dataset.borderColor.toLowerCase());
+    btn.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      slot.dataset.borderColor=btn.dataset.borderColor||'#ffffff';
+      slot.style.setProperty('--model-border-color',slot.dataset.borderColor);
+      borderColorBtns.forEach(b=>b.classList.toggle('active',b===btn));
+      if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
+    });
+  });
   if(borderBtn){
     borderBtn.classList.toggle('active',slot.dataset.border==='1');
     borderBtn.addEventListener('click',e=>{
@@ -3059,7 +3111,8 @@ function getModelBlocks(){
       type:'image',
       img,
       naturalRatio:Math.max(.55,Math.min(2.6,w/h)),
-      border:slot.dataset.border==='1'
+      border:slot.dataset.border==='1',
+      borderColor:slot.dataset.borderColor||'#ffffff'
     };
   }).filter(Boolean);
 }
@@ -3180,8 +3233,8 @@ async function renderModelBlocks(blocks,width,margin,gap){
           Math.max(1,actualH-4),
           Math.max(1,radius-2)
         );
-        ctx.strokeStyle='#fff';
-        ctx.lineWidth=Math.max(2,Math.round(Math.min(actualW,actualH)*.007));
+        ctx.strokeStyle=block.borderColor||'#ffffff';
+        ctx.lineWidth=Math.max(1,Math.round(Math.min(actualW,actualH)*.0035));
         ctx.stroke();
         ctx.restore();
       }
@@ -3473,6 +3526,7 @@ function buildProposalBackup(){
       if(!src)return;
       item.file=addDataUrlEntry(entries,'images/models/model_'+n,src);
       item.border=slot.dataset.border==='1';
+      item.borderColor=slot.dataset.borderColor||'#ffffff';
     }
     json.models.push(item);
   });
@@ -3639,7 +3693,10 @@ async function restoreProposalBackup(file){
     slot.classList.remove('has-image','has-text','model-hidden-slot');
     slot.dataset.mode='image';
     slot.dataset.border='0';
+    slot.dataset.borderColor='#ffffff';
+    slot.style.setProperty('--model-border-color','#ffffff');
     slot.querySelector('[data-border-toggle]')?.classList.remove('active');
+    slot.querySelectorAll('[data-border-color]').forEach(b=>b.classList.toggle('active',(b.dataset.borderColor||'').toLowerCase()==='#ffffff'));
     if(img){
       img.removeAttribute('src');
       img.style.removeProperty('transform');
@@ -3658,7 +3715,10 @@ async function restoreProposalBackup(file){
     if(!slot)return;
 
     slot.dataset.border=item.border?'1':'0';
+    slot.dataset.borderColor=item.borderColor||'#ffffff';
+    slot.style.setProperty('--model-border-color',slot.dataset.borderColor);
     slot.querySelector('[data-border-toggle]')?.classList.toggle('active',!!item.border);
+    slot.querySelectorAll('[data-border-color]').forEach(b=>b.classList.toggle('active',(b.dataset.borderColor||'').toLowerCase()===slot.dataset.borderColor.toLowerCase()));
 
     if(item.mode==='text'){
       slot.dataset.mode='text';
