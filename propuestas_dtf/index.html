@@ -58,7 +58,14 @@ body{padding:24px}
   background:rgba(255,255,255,.08);
 }
 .shirt,.tint{position:absolute;inset:0;width:100%;height:100%}
-.shirt{object-fit:contain;z-index:1;filter:brightness(var(--shirt-brightness))}
+.shirt{
+  object-fit:contain;
+  z-index:1;
+  filter:
+    brightness(var(--shirt-brightness))
+    drop-shadow(0 10px 10px rgba(0,0,0,.30))
+    drop-shadow(0 3px 4px rgba(0,0,0,.20));
+}
 .card[data-view="pecho"] .shirt,
 .card[data-view="pecho"] .tint{
   clip-path:inset(0 11.75% 0 11.76%);
@@ -1292,6 +1299,37 @@ body.has-export-background .app{
   .bg-alpha-range{width:82px}
 }
 
+
+/* Vista de trabajo más cercana al PNG final */
+.section-wrap{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  padding:8px 0 4px!important;
+}
+.section-toolbar{
+  padding:10px 12px!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:16px!important;
+  background:rgba(15,15,17,.72)!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.card{
+  border:0!important;
+  box-shadow:none!important;
+}
+
+
+.card::before{
+  border:0!important;
+  box-shadow:none!important;
+}
+/* Cuando la transparencia llega a cero, no queda ningún marco visual. */
+.garment-section[style*="--bg-alpha:0"] .card{
+  border-color:transparent!important;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -2393,12 +2431,23 @@ function fitContain(nw,nh,bw,bh){const s=Math.min(bw/nw,bh/nh);return{w:nw*s,h:n
 async function renderCard(card,size){
  const section=card.closest('.garment-section'),st=getComputedStyle(section),c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d'),r=size*.065;
  const bg=st.getPropertyValue('--bg-color').trim()||'#171717',bgAlpha=Math.max(0,Math.min(1,parseFloat(st.getPropertyValue('--bg-alpha'))||0)),shirtColor=st.getPropertyValue('--shirt-color').trim()||'#d9d9d9',brightness=parseFloat(st.getPropertyValue('--shirt-brightness'))||1;
+ c._transparentBg=bgAlpha<=0.001;
  ctx.save();roundedRect(ctx,0,0,size,size,r);ctx.clip();
  if(bgAlpha>0){ctx.save();ctx.globalAlpha=bgAlpha;ctx.fillStyle=bg;ctx.fillRect(0,0,size,size);ctx.restore();}
  const shirtImg=await loadImg(card.querySelector('.shirt').src),view=card.dataset.view,mm={pecho:[.1176,0,.8825,1],hombro:[.3298,0,.6982,1],espalda:[.1595,0,.8741,1],'frente-grafico':[.1176,0,.8825,1],'espalda-grafica':[.1595,0,.8741,1]},m=mm[view]||[0,0,1,1];
  const base=document.createElement('canvas');base.width=base.height=size;const b=base.getContext('2d');b.save();b.beginPath();b.rect(m[0]*size,0,(m[2]-m[0])*size,size);b.clip();b.filter=`brightness(${brightness})`;b.drawImage(shirtImg,0,0,size,size);b.restore();
  const tint=document.createElement('canvas');tint.width=tint.height=size;const t=tint.getContext('2d');t.drawImage(base,0,0);t.globalCompositeOperation='source-in';t.fillStyle=shirtColor;t.fillRect(0,0,size,size);
- ctx.drawImage(base,0,0);ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.92;ctx.drawImage(tint,0,0);ctx.restore();
+ // Sombra de la prenda basada en su propia silueta.
+ ctx.save();
+ ctx.shadowColor='rgba(0,0,0,.34)';
+ ctx.shadowBlur=Math.max(10,Math.round(size*.020));
+ ctx.shadowOffsetY=Math.max(5,Math.round(size*.009));
+ ctx.globalAlpha=.62;
+ ctx.drawImage(base,0,0);
+ ctx.restore();
+
+ ctx.drawImage(base,0,0);
+ ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.92;ctx.drawImage(tint,0,0);ctx.restore();
  const slot=card.querySelector('.logo-slot');
  const logoEl=slot.querySelector('img');
  const logoSrc=logoEl?.getAttribute('src')||'';
@@ -3022,12 +3071,19 @@ async function renderModelBlocks(blocks,width,margin,gap){
 }
 
 function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
-  // Sombra exterior + filete interior: ayuda a separar cada módulo del fondo.
+  // Con fondo de ficha totalmente transparente, dejamos sólo la sombra
+  // de la propia indumentaria que ya viene dibujada en renderCard().
+  if(canvas && canvas._transparentBg){
+    ctx.drawImage(canvas,x,y);
+    return;
+  }
+
+  // Para fichas visibles: sombra exterior suave, SIN filete.
   ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.54)';
-  ctx.shadowBlur=Math.max(34,Math.round(shadowGap*1.32));
-  ctx.shadowOffsetY=Math.max(11,Math.round(shadowGap*.32));
-  ctx.fillStyle='rgba(0,0,0,.08)';
+  ctx.shadowColor='rgba(0,0,0,.42)';
+  ctx.shadowBlur=Math.max(26,Math.round(shadowGap*1.02));
+  ctx.shadowOffsetY=Math.max(8,Math.round(shadowGap*.24));
+  ctx.fillStyle='rgba(0,0,0,.05)';
   roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
   ctx.fill();
   ctx.restore();
@@ -3036,13 +3092,6 @@ function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
   roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
   ctx.clip();
   ctx.drawImage(canvas,x,y);
-  ctx.restore();
-
-  ctx.save();
-  roundedRect(ctx,x+.75,y+.75,canvas.width-1.5,canvas.height-1.5,Math.max(1,radius-.75));
-  ctx.strokeStyle=exportUsesCustomBackground()?'rgba(255,255,255,.20)':'rgba(0,0,0,.13)';
-  ctx.lineWidth=Math.max(1.25,Math.round(shadowGap*.035));
-  ctx.stroke();
   ctx.restore();
 }
 
