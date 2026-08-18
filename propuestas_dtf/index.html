@@ -1747,6 +1747,64 @@ body[data-proposal-text-color="black"] .company-name-input{
   pointer-events:none!important;
 }
 
+
+/* ===== Color global de la propuesta ===== */
+:root{--proposal-text-color:#111111}
+
+.global-text-color{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:0 4px;
+}
+.global-text-dot{
+  width:18px;
+  height:18px;
+  min-width:18px;
+  padding:0;
+  margin:0;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.55);
+  box-shadow:0 0 0 1px rgba(0,0,0,.28);
+  cursor:pointer;
+}
+.global-text-dot.black{background:#111}
+.global-text-dot.white{background:#fff}
+.global-text-dot.orange{background:#f28c28}
+.global-text-dot.active{
+  outline:2px solid rgba(255,255,255,.95);
+  outline-offset:2px;
+}
+
+/* Ya no hay selectores de texto repetidos dentro de cada bloque. */
+.model-text-color-inline{display:none!important}
+
+/* TODOS los textos editoriales inferiores usan el color global. */
+.model-slot[data-mode="text"] .model-text{
+  color:var(--proposal-text-color)!important;
+}
+
+/* Textos visibles de la herramienta que acompañan la propuesta. */
+.logo-note,
+.logo-info,
+.logo-info strong,
+.logo-info span{
+  color:var(--proposal-text-color)!important;
+}
+
+/* El input del título también da una referencia fiel del color elegido. */
+.company-name-input{
+  color:var(--proposal-text-color)!important;
+}
+
+/* El modo de mezcla fue retirado: fondos de ficha siempre normales. */
+.card::before{mix-blend-mode:normal!important}
+
+@media(max-width:700px){
+  .global-text-color{gap:5px;padding:0}
+  .global-text-dot{width:17px;height:17px;min-width:17px}
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1857,6 +1915,12 @@ if(window.pdfjsLib){
 <div class="bank-hidden-tools" id="bankHiddenTools"></div>
 <div class="top-export"><div class="company-export">
 <input class="company-name-input" id="companyName" type="text" maxlength="80" placeholder="Nombre de la empresa">
+<div class="global-text-color" title="Color de todos los textos de la propuesta">
+  <span class="label">Texto</span>
+  <button type="button" class="global-text-dot black active" data-global-text-color="black" title="Texto negro" aria-label="Texto negro"></button>
+  <button type="button" class="global-text-dot white" data-global-text-color="white" title="Texto blanco" aria-label="Texto blanco"></button>
+  <button type="button" class="global-text-dot orange" data-global-text-color="orange" title="Texto anaranjado" aria-label="Texto anaranjado"></button>
+</div>
 <label class="export-btn background-file" id="backgroundLabel">Agregar fondo<input id="backgroundInput" type="file" accept=".png,image/png,.jpg,.jpeg,image/jpeg"></label>
 <div class="background-thumb" id="backgroundThumb" title="Vista previa del fondo"><img id="backgroundThumbImg" alt=""></div>
 <button class="background-clear" id="backgroundClear" type="button" title="Quitar fondo">×</button>
@@ -1889,12 +1953,6 @@ if(window.pdfjsLib){
       <span class="label bg-alpha-label">Transparencia</span>
       <input class="bg-alpha-range" type="range" min="0" max="10" step="1" value="10" title="Transparencia del fondo">
       <span class="bg-alpha-value">10</span>
-      <span class="label">Modo</span>
-      <select class="select bg-blend-mode" title="Mezcla del fondo de la ficha">
-        <option value="normal">Normal</option>
-        <option value="screen">Luz</option>
-        <option value="multiply">Oscuro</option>
-      </select>
     </div>
   </div>
   <div class="hidden-views" aria-live="polite"></div>
@@ -2927,10 +2985,9 @@ function initSection(section){
   const bgAlphaRange=section.querySelector('.bg-alpha-range');
   const bgAlphaValue=section.querySelector('.bg-alpha-value');
   const bgBlendMode=section.querySelector('.bg-blend-mode');
+  section.style.setProperty('--bg-blend-mode','normal');
   if(bgBlendMode){
-    const syncBlend=()=>section.style.setProperty('--bg-blend-mode',bgBlendMode.value||'normal');
-    bgBlendMode.addEventListener('change',syncBlend);
-    syncBlend();
+    bgBlendMode.value='normal';
   }
   if(bgAlphaRange){
     const syncBgAlpha=()=>{
@@ -3356,22 +3413,38 @@ if(backgroundClear){
 let proposalTextColor='black';
 
 function proposalTextHex(){
-  return proposalTextColor==='white' ? '#ffffff' : '#111111';
+  if(proposalTextColor==='white')return '#ffffff';
+  if(proposalTextColor==='orange')return '#f28c28';
+  return '#111111';
 }
 function proposalTextSecondaryHex(){
-  return proposalTextColor==='white' ? 'rgba(255,255,255,.92)' : '#55555b';
+  if(proposalTextColor==='white')return 'rgba(255,255,255,.92)';
+  if(proposalTextColor==='orange')return '#f28c28';
+  return '#55555b';
 }
 function setProposalTextColor(color){
-  proposalTextColor=(color==='white')?'white':'black';
+  proposalTextColor=(color==='white'||color==='orange')?color:'black';
+  const hex=proposalTextHex();
+
   document.body.dataset.proposalTextColor=proposalTextColor;
-  document.querySelectorAll('[data-text-color]').forEach(btn=>{
-    btn.classList.toggle('active',btn.dataset.textColor===proposalTextColor);
+  document.documentElement.style.setProperty('--proposal-text-color',hex);
+
+  document.querySelectorAll('[data-global-text-color]').forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.globalTextColor===proposalTextColor);
   });
+
+  // Mantener coherentes los bloques existentes y los que luego se guarden.
+  document.querySelectorAll('.model-slot').forEach(slot=>{
+    slot.dataset.floatingTextColor=hex;
+    slot.style.setProperty('--floating-text-color',hex);
+  });
+
   if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
 }
+
 window.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('[data-text-color]').forEach(btn=>{
-    btn.addEventListener('click',()=>setProposalTextColor(btn.dataset.textColor));
+  document.querySelectorAll('[data-global-text-color]').forEach(btn=>{
+    btn.addEventListener('click',()=>setProposalTextColor(btn.dataset.globalTextColor));
   });
   setProposalTextColor(proposalTextColor);
 });
@@ -3623,6 +3696,12 @@ function initModelPanel(panel){
   panel.dataset.modelPanelId=String(++modelPanelSerial);
   panel.removeAttribute('id');
 
+  const currentProposalText=proposalTextHex();
+  panel.querySelectorAll('.model-slot').forEach(slot=>{
+    slot.dataset.floatingTextColor=currentProposalText;
+    slot.style.setProperty('--floating-text-color',currentProposalText);
+  });
+
   let actions=panel.querySelector('.model-panel-actions');
   if(!actions){
     actions=document.createElement('div');
@@ -3691,7 +3770,7 @@ function getModelBlocks(panel){
       if(!text)return null;
       const weight=Math.max(.54,Math.min(.70,.54+text.length/1200));
       slot.style.setProperty('--text-weight',weight);
-      return {type:'text',text,weight,textColor:slot.dataset.floatingTextColor||'#111111'};
+      return {type:'text',text,weight,textColor:proposalTextHex()};
     }
 
     const img=slot.querySelector('.model-image-area img');
@@ -3867,7 +3946,7 @@ function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
     roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
     ctx.clip();
     ctx.globalAlpha=alpha;
-    ctx.globalCompositeOperation=mode==='screen'?'screen':mode==='multiply'?'multiply':'source-over';
+    ctx.globalCompositeOperation='source-over';
     ctx.fillStyle=bg;
     ctx.fillRect(x,y,canvas.width,canvas.height);
     ctx.restore();
@@ -4135,7 +4214,7 @@ function buildProposalBackup(){
       shirtBrightness:getComputedStyle(section).getPropertyValue('--shirt-brightness').trim(),
       cardBackground:getComputedStyle(section).getPropertyValue('--bg-color').trim(),
       cardBackgroundAlpha:getComputedStyle(section).getPropertyValue('--bg-alpha').trim(),
-      cardBackgroundBlend:getComputedStyle(section).getPropertyValue('--bg-blend-mode').trim()||'normal',
+      cardBackgroundBlend:'normal',
       views:[]
     };
     section.querySelectorAll('.card').forEach((card,cIndex)=>{
@@ -4323,10 +4402,9 @@ async function restoreProposalBackup(file){
     const alphaValue=section.querySelector('.bg-alpha-value');
     if(alphaRange)alphaRange.value=String(Math.round(restoredAlpha*10));
     if(alphaValue)alphaValue.textContent=String(Math.round(restoredAlpha*10));
-    const restoredBlend=['normal','screen','multiply'].includes(g?.cardBackgroundBlend)?g.cardBackgroundBlend:'normal';
-    section.style.setProperty('--bg-blend-mode',restoredBlend);
+    section.style.setProperty('--bg-blend-mode','normal');
     const blendSelect=section.querySelector('.bg-blend-mode');
-    if(blendSelect)blendSelect.value=restoredBlend;
+    if(blendSelect)blendSelect.value='normal';
 
     section.querySelectorAll('[data-shirt]').forEach(btn=>{
       btn.classList.toggle('active',!!g?.shirtColor&&btn.dataset.shirt===g.shirtColor);
@@ -4441,6 +4519,7 @@ async function restoreProposalBackup(file){
   if(!sections.querySelector('.model-panel'))restoreModelPanel({index:0,items:[]});
 
   refreshFlowDeleteButtons();
+  setProposalTextColor(data.proposalTextColor||'black');
   if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
 }
 
