@@ -1256,13 +1256,14 @@ body.has-export-background{
 }
 #fixedExportBackground{
   position:fixed;
-  inset:0;
+  left:0;
+  top:0;
+  width:100vw;
+  height:100lvh;
   z-index:0;
   display:none;
-  background-position:center center;
-  background-size:cover;
-  background-repeat:no-repeat;
   pointer-events:none;
+  background:transparent;
 }
 body.has-export-background #fixedExportBackground{display:block}
 body.has-export-background .app{
@@ -1402,7 +1403,7 @@ if(window.pdfjsLib){
 </script>
 </head>
 <body>
-<div id="fixedExportBackground" aria-hidden="true"></div>
+<canvas id="fixedExportBackground" aria-hidden="true"></canvas>
 <div class="app">
   <div class="logo-master">
     <div class="logo-choice light" id="bankLight"><button class="bank-hide-top" data-bank-hide="light" type="button" title="Ocultar logo">×</button><div class="bank-label">Logo claro</div>
@@ -1478,7 +1479,7 @@ if(window.pdfjsLib){
 <div class="background-blur-control" id="backgroundBlurControl">
 <span class="blur-label">Desenfoque</span>
 <input class="background-blur-range" id="backgroundBlurRange" type="range" min="0" max="10" step="1" value="0">
-<span class="background-blur-value" id="backgroundBlurValue">0</span>
+<span class="background-blur-value" id="backgroundBlurValue">0%</span>
 </div>
 <button class="background-clear" id="backgroundClear" type="button" title="Quitar fondo">×</button>
 <button class="export-btn" id="saveZip" type="button">Guardar ZIP</button>
@@ -2742,22 +2743,69 @@ let exportBackgroundSrc='';
 let exportBackgroundBlur=0;
 
 const fixedExportBackground=document.getElementById('fixedExportBackground');
+let fixedBackgroundRenderToken=0;
 
-function syncFixedBackgroundPreview(){
-  if(!fixedExportBackground)return;
-  if(exportBackgroundSrc){
-    fixedExportBackground.style.backgroundImage=`url("${exportBackgroundSrc}")`;
-    const blurPx=Math.round(exportBackgroundBlur*1.8);
-    fixedExportBackground.style.filter=blurPx?`blur(${blurPx}px)`:'none';
-    fixedExportBackground.style.transform='none';
-    document.body.classList.add('has-export-background');
-  }else{
-    fixedExportBackground.style.backgroundImage='';
-    fixedExportBackground.style.filter='none';
-    fixedExportBackground.style.transform='none';
-    document.body.classList.remove('has-export-background');
-  }
+function backgroundPreviewViewport(){
+  // innerWidth/innerHeight se leen sólo al renderizar/cambiar tamaño,
+  // nunca al hacer scroll. Así el fondo no persigue el dedo.
+  return {
+    width:Math.max(1,window.innerWidth||document.documentElement.clientWidth||1),
+    height:Math.max(1,window.innerHeight||document.documentElement.clientHeight||1)
+  };
 }
+
+async function syncFixedBackgroundPreview(){
+  if(!fixedExportBackground)return;
+  const token=++fixedBackgroundRenderToken;
+
+  if(!exportBackgroundSrc){
+    const ctx=fixedExportBackground.getContext('2d');
+    ctx?.clearRect(0,0,fixedExportBackground.width,fixedExportBackground.height);
+    document.body.classList.remove('has-export-background');
+    return;
+  }
+
+  document.body.classList.add('has-export-background');
+
+  const vp=backgroundPreviewViewport();
+  const dpr=Math.min(2,Math.max(1,window.devicePixelRatio||1));
+  fixedExportBackground.width=Math.round(vp.width*dpr);
+  fixedExportBackground.height=Math.round(vp.height*dpr);
+
+  const im=await loadImg(exportBackgroundSrc);
+  if(token!==fixedBackgroundRenderToken)return;
+
+  const ctx=fixedExportBackground.getContext('2d');
+  const w=fixedExportBackground.width;
+  const h=fixedExportBackground.height;
+  const iw=im.naturalWidth||im.width||1;
+  const ih=im.naturalHeight||im.height||1;
+  const scale=Math.max(w/iw,h/ih);
+  const dw=iw*scale;
+  const dh=ih*scale;
+  const dx=(w-dw)/2;
+  const dy=(h-dh)/2;
+
+  ctx.clearRect(0,0,w,h);
+  ctx.save();
+
+  // 1 punto del control equivale a 1.8 px CSS de blur.
+  // En el canvas se multiplica por DPR para que visualmente sea igual.
+  const blurCssPx=exportBackgroundBlur*1.8;
+  const blurDevicePx=blurCssPx*dpr;
+  if(blurDevicePx>0)ctx.filter=`blur(${blurDevicePx}px)`;
+
+  ctx.drawImage(im,dx,dy,dw,dh);
+  ctx.restore();
+}
+
+let backgroundPreviewResizeTimer=0;
+window.addEventListener('resize',()=>{
+  clearTimeout(backgroundPreviewResizeTimer);
+  backgroundPreviewResizeTimer=setTimeout(()=>{
+    if(exportBackgroundSrc)syncFixedBackgroundPreview();
+  },120);
+},{passive:true});
 
 const backgroundInput=document.getElementById('backgroundInput');
 const backgroundLabel=document.getElementById('backgroundLabel');
@@ -2767,12 +2815,12 @@ const backgroundBlurRange=document.getElementById('backgroundBlurRange');
 const backgroundBlurValue=document.getElementById('backgroundBlurValue');
 function syncBackgroundBlurControl(){
   if(backgroundBlurRange)backgroundBlurRange.value=String(exportBackgroundBlur);
-  if(backgroundBlurValue)backgroundBlurValue.textContent=String(exportBackgroundBlur);
+  if(backgroundBlurValue)backgroundBlurValue.textContent=`${exportBackgroundBlur*10}%`;
   backgroundBlurControl?.classList.toggle('show',!!exportBackgroundSrc);
 }
 backgroundBlurRange?.addEventListener('input',()=>{
   exportBackgroundBlur=Math.max(0,Math.min(10,Number(backgroundBlurRange.value)||0));
-  if(backgroundBlurValue)backgroundBlurValue.textContent=String(exportBackgroundBlur);
+  if(backgroundBlurValue)backgroundBlurValue.textContent=`${exportBackgroundBlur*10}%`;
   syncFixedBackgroundPreview();
   if(typeof invalidatePreparedShare==='function')invalidatePreparedShare();
 });
@@ -2849,17 +2897,21 @@ async function drawExportBackground(ctx,width,height){
   const im=await loadImg(exportBackgroundSrc);
   const iw=im.naturalWidth||im.width;
   const ih=im.naturalHeight||im.height;
-  const blurPx=Math.round(exportBackgroundBlur*2.2);
   const scale=Math.max(width/iw,height/ih);
   const dw=iw*scale;
   const dh=ih*scale;
   const dx=(width-dw)/2;
   const dy=(height-dh)/2;
 
-  if(blurPx){
-    // Renderizamos el fondo completo en un canvas auxiliar y luego aplicamos
-    // el desenfoque al canvas entero. Esto hace que el blur también quede
-    // horneado en el PNG compartido/exportado.
+  // Igualamos perceptualmente el blur del PNG con el que se ve en la herramienta.
+  // Ej.: nivel 5 = mismo porcentaje visual de desenfoque en ambos tamaños.
+  const vp=backgroundPreviewViewport();
+  const previewShortSide=Math.max(1,Math.min(vp.width,vp.height));
+  const exportShortSide=Math.max(1,Math.min(width,height));
+  const previewBlurCssPx=exportBackgroundBlur*1.8;
+  const blurPx=Math.round(previewBlurCssPx*(exportShortSide/previewShortSide));
+
+  if(blurPx>0){
     const bgCanvas=document.createElement('canvas');
     bgCanvas.width=width;
     bgCanvas.height=height;
