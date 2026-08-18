@@ -1366,6 +1366,10 @@ body{
 }
 
 
+
+.card::before{mix-blend-mode:var(--bg-blend-mode,normal)}
+.bg-blend-mode{min-width:82px;padding:7px 8px}
+@media(max-width:560px){.bg-blend-mode{min-width:72px;padding:6px 5px}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 window.addEventListener('load',()=>{
@@ -1508,6 +1512,12 @@ if(window.pdfjsLib){
       <span class="label bg-alpha-label">Transparencia</span>
       <input class="bg-alpha-range" type="range" min="0" max="10" step="1" value="10" title="Transparencia del fondo">
       <span class="bg-alpha-value">10</span>
+      <span class="label">Modo</span>
+      <select class="select bg-blend-mode" title="Mezcla del fondo de la ficha">
+        <option value="normal">Normal</option>
+        <option value="screen">Luz</option>
+        <option value="multiply">Oscuro</option>
+      </select>
     </div>
   </div>
   <div class="hidden-views" aria-live="polite"></div>
@@ -2376,6 +2386,12 @@ function initSection(section){
 
   const bgAlphaRange=section.querySelector('.bg-alpha-range');
   const bgAlphaValue=section.querySelector('.bg-alpha-value');
+  const bgBlendMode=section.querySelector('.bg-blend-mode');
+  if(bgBlendMode){
+    const syncBlend=()=>section.style.setProperty('--bg-blend-mode',bgBlendMode.value||'normal');
+    bgBlendMode.addEventListener('change',syncBlend);
+    syncBlend();
+  }
   if(bgAlphaRange){
     const syncBgAlpha=()=>{
       const v=Math.max(0,Math.min(10,Number(bgAlphaRange.value)||0));
@@ -2466,10 +2482,9 @@ function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onloa
 function fitContain(nw,nh,bw,bh){const s=Math.min(bw/nw,bh/nh);return{w:nw*s,h:nh*s}}
 async function renderCard(card,size){
  const section=card.closest('.garment-section'),st=getComputedStyle(section),c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d'),r=size*.065;
- const bg=st.getPropertyValue('--bg-color').trim()||'#171717',bgAlpha=Math.max(0,Math.min(1,parseFloat(st.getPropertyValue('--bg-alpha'))||0)),shirtColor=st.getPropertyValue('--shirt-color').trim()||'#d9d9d9',brightness=parseFloat(st.getPropertyValue('--shirt-brightness'))||1;
- c._transparentBg=bgAlpha<=0.001;
+ const bg=st.getPropertyValue('--bg-color').trim()||'#171717',bgAlpha=Math.max(0,Math.min(1,parseFloat(st.getPropertyValue('--bg-alpha'))||0)),blendMode=(st.getPropertyValue('--bg-blend-mode').trim()||'normal'),shirtColor=st.getPropertyValue('--shirt-color').trim()||'#d9d9d9',brightness=parseFloat(st.getPropertyValue('--shirt-brightness'))||1;
+ c._transparentBg=bgAlpha<=0.001;c._bgColor=bg;c._bgAlpha=bgAlpha;c._bgBlendMode=blendMode;
  ctx.save();roundedRect(ctx,0,0,size,size,r);ctx.clip();
- if(bgAlpha>0){ctx.save();ctx.globalAlpha=bgAlpha;ctx.fillStyle=bg;ctx.fillRect(0,0,size,size);ctx.restore();}
  const shirtImg=await loadImg(card.querySelector('.shirt').src),view=card.dataset.view,mm={pecho:[.1176,0,.8825,1],hombro:[.3298,0,.6982,1],espalda:[.1595,0,.8741,1],'frente-grafico':[.1176,0,.8825,1],'espalda-grafica':[.1595,0,.8741,1]},m=mm[view]||[0,0,1,1];
  const base=document.createElement('canvas');base.width=base.height=size;const b=base.getContext('2d');b.save();b.beginPath();b.rect(m[0]*size,0,(m[2]-m[0])*size,size);b.clip();b.filter=`brightness(${brightness})`;b.drawImage(shirtImg,0,0,size,size);b.restore();
  const tint=document.createElement('canvas');tint.width=tint.height=size;const t=tint.getContext('2d');t.drawImage(base,0,0);t.globalCompositeOperation='source-in';t.fillStyle=shirtColor;t.fillRect(0,0,size,size);
@@ -3109,23 +3124,23 @@ async function renderModelBlocks(blocks,width,margin,gap){
 }
 
 function drawCanvasShadow(ctx,canvas,x,y,radius,shadowGap){
-  // Con fondo de ficha totalmente transparente, dejamos sólo la sombra
-  // de la propia indumentaria que ya viene dibujada en renderCard().
-  if(canvas && canvas._transparentBg){
-    ctx.drawImage(canvas,x,y);
-    return;
+  const alpha=Number(canvas?._bgAlpha)||0;
+  const bg=canvas?._bgColor;
+  const mode=canvas?._bgBlendMode||'normal';
+
+  // El color de la ficha se mezcla directamente contra el background final.
+  if(alpha>0 && bg){
+    ctx.save();
+    roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
+    ctx.clip();
+    ctx.globalAlpha=alpha;
+    ctx.globalCompositeOperation=mode==='screen'?'screen':mode==='multiply'?'multiply':'source-over';
+    ctx.fillStyle=bg;
+    ctx.fillRect(x,y,canvas.width,canvas.height);
+    ctx.restore();
   }
 
-  // Para fichas visibles: sombra exterior suave, SIN filete.
-  ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.42)';
-  ctx.shadowBlur=Math.max(26,Math.round(shadowGap*1.02));
-  ctx.shadowOffsetY=Math.max(8,Math.round(shadowGap*.24));
-  ctx.fillStyle='rgba(0,0,0,.05)';
-  roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
-  ctx.fill();
-  ctx.restore();
-
+  // Prenda + estampado siempre normales, encima del fondo mezclado.
   ctx.save();
   roundedRect(ctx,x,y,canvas.width,canvas.height,radius);
   ctx.clip();
@@ -3379,6 +3394,7 @@ function buildProposalBackup(){
       shirtBrightness:getComputedStyle(section).getPropertyValue('--shirt-brightness').trim(),
       cardBackground:getComputedStyle(section).getPropertyValue('--bg-color').trim(),
       cardBackgroundAlpha:getComputedStyle(section).getPropertyValue('--bg-alpha').trim(),
+      cardBackgroundBlend:getComputedStyle(section).getPropertyValue('--bg-blend-mode').trim()||'normal',
       views:[]
     };
     section.querySelectorAll('.card').forEach((card,cIndex)=>{
@@ -3639,6 +3655,10 @@ async function restoreProposalBackup(file){
     const alphaValue=section.querySelector('.bg-alpha-value');
     if(alphaRange)alphaRange.value=String(Math.round(restoredAlpha*10));
     if(alphaValue)alphaValue.textContent=String(Math.round(restoredAlpha*10));
+    const restoredBlend=['normal','screen','multiply'].includes(g.cardBackgroundBlend)?g.cardBackgroundBlend:'normal';
+    section.style.setProperty('--bg-blend-mode',restoredBlend);
+    const blendSelect=section.querySelector('.bg-blend-mode');
+    if(blendSelect)blendSelect.value=restoredBlend;
 
     // Marcar visualmente el color de prenda guardado.
     section.querySelectorAll('[data-shirt]').forEach(btn=>{
