@@ -1,1 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Asistente Diario</title>
+<style>
+:root{--bg:#f3f6f3;--card:#fff;--ink:#203128;--muted:#6d7a72;--accent:#2e7d57;--soft:#e8f3ed;--line:#dbe4de}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(#edf5ef,#f7f8f7);color:var(--ink)}
+.wrap{max-width:1100px;margin:auto;padding:20px}.hero{background:linear-gradient(135deg,#214f3a,#3d8c64);color:#fff;border-radius:26px;padding:26px;box-shadow:0 12px 30px #0001}
+.hero h1{margin:0;font-size:clamp(30px,5vw,46px)}.hero p{margin:8px 0 0;color:#e8f5ed}.chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.chip{background:#ffffff22;padding:9px 13px;border-radius:999px;font-weight:700}
+.grid{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin-top:18px}@media(max-width:850px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 10px 24px #0000000d}.card h2{margin-top:0}
+.now{background:var(--soft);border:2px solid #b9d6c5;border-radius:18px;padding:16px;margin-bottom:16px}.now small{color:var(--muted);font-weight:800}.now strong{display:block;font-size:25px;margin:4px 0}
+.timeline{display:grid;gap:10px}.step{display:grid;grid-template-columns:80px 1fr 32px;gap:12px;align-items:center;border:1px solid var(--line);border-radius:17px;padding:14px;background:#fff}.step.active{border:2px solid var(--accent);background:var(--soft);transform:translateY(-1px)}.step.done{opacity:.58}.time{font-weight:900;color:var(--accent)}.title{font-weight:900;font-size:17px}.desc{font-size:14px;color:var(--muted);line-height:1.4;margin-top:3px}.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.tag{background:#f1f4f2;border:1px solid var(--line);border-radius:999px;padding:6px 9px;font-size:12px}
+.check{width:29px;height:29px;border:2px solid var(--accent);border-radius:50%;display:grid;place-items:center;cursor:pointer;font-weight:900}.check.on{background:var(--accent);color:white}
+.mot{font-size:21px;font-weight:900;line-height:1.3;background:var(--soft);border-radius:16px;padding:16px}.bar{height:10px;background:#e8ece9;border-radius:99px;overflow:hidden;margin-top:12px}.fill{height:100%;background:var(--accent);width:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row+ .row{margin-top:10px}label{font-size:12px;color:var(--muted);font-weight:800}input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:11px;background:#fff;font-size:15px}button{width:100%;padding:12px;border:0;border-radius:12px;background:var(--accent);color:white;font-weight:900;margin-top:12px;cursor:pointer}.history{margin-top:10px;display:grid;gap:7px}.hist{display:flex;justify-content:space-between;border:1px solid var(--line);padding:10px;border-radius:12px;font-size:13px}.small{font-size:12px;color:var(--muted)}
+.footer{text-align:center;color:var(--muted);font-size:12px;margin:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="hero">
+<h1>🌿 Asistente Diario</h1>
+<p>Qué toca ahora, qué opciones tenés y cómo viene tu día.</p>
+<div class="chips"><div class="chip">🕒 <span id="clock">--:--</span></div><div class="chip">📅 <span id="date">--</span></div><div class="chip">⚖️ Punto de partida: 96 kg</div></div>
+</section>
 
+<div class="grid">
+<main class="card">
+<div class="now"><small>AHORA</small><strong id="nowTitle">Cargando…</strong><div id="nowText" class="desc"></div></div>
+<h2>🕐 Tu día de un vistazo</h2>
+<div id="timeline" class="timeline"></div>
+</main>
+
+<aside style="display:grid;gap:18px">
+<section class="card">
+<h2>⭐ Enfoque de hoy</h2><div id="mot" class="mot"></div>
+<div class="bar"><div id="fill" class="fill"></div></div><div id="progress" class="small" style="margin-top:6px"></div>
+</section>
+
+<section class="card">
+<h2>📌 Registro rápido</h2>
+<div class="row"><div><label>Peso (kg)</label><input id="weight" type="number" step=".1" placeholder="Ej. 95.6"></div><div><label>Estado físico</label><select id="state"><option value="">Elegir</option><option>Muy bien</option><option>Bien</option><option>Normal</option><option>Cansado</option><option>Muy cansado</option></select></div></div>
+<div class="row"><div><label>Caminata (min)</label><input id="walk" type="number" placeholder="Ej. 30"></div><div><label>Sueño (horas)</label><input id="sleep" type="number" step=".1" placeholder="Ej. 7"></div></div>
+<button onclick="saveEntry()">Guardar registro de hoy</button><div id="history" class="history"></div>
+</section>
+
+<section class="card"><h2>🎯 Regla simple</h2>
+<p><b>Mañana:</b> preparar el intestino y ayunar.</p><p><b>Primera hambre:</b> proteína.</p><p><b>Mediodía:</b> proteína + vegetales.</p><p><b>Tarde:</b> merienda organizada.</p><p><b>Noche:</b> cena simple.</p><p><b>Antes de dormir:</b> glutamina.</p>
+</section>
+</aside>
+</div>
+<div class="footer">Usa la hora local del dispositivo. Los checks y registros quedan guardados en este navegador.</div>
+</div>
+
+<script>
+const steps=[
+{id:"pro",from:0,to:8,t:"Al levantarte",title:"🦠 Probiótico",d:"20 gotas. Esperá unos 5 minutos.",tags:["20 gotas","1er mes: diario","luego 2–3 veces/semana"]},
+{id:"prep",from:6,to:9,t:"+ 5 min",title:"🥛 Preparado de la mañana",d:"200 cc de agua templada + ½ limón + 1 cucharada sopera de vinagre de manzana orgánico.",tags:["200 cc","½ limón","1 cda. vinagre"]},
+{id:"fast",from:6,to:10,t:"Mañana",title:"☀️ Ayuno e hidratación",d:"Agua, mate, té o café no torrado. Sin edulcorante y sin chicle.",tags:["💧 agua","🧉 mate","🍵 té","☕ café"]},
+{id:"egg",from:10,to:12,t:"10–11 h",title:"🥚 Si aparece hambre",d:"Elegí 1 huevo o frutos secos.",tags:["1 huevo","🥜 frutos secos"]},
+{id:"lunch",from:12,to:15.5,t:"Almuerzo",title:"🍽️ Proteína + vegetales",d:"Caldo + carne + vegetales A/B. Gelatina dietética si corresponde.",tags:["🍲 caldo","🥩 carne","🥬 vegetales A/B"]},
+{id:"snack",from:16,to:18,t:"16–18 h",title:"☕ Merienda",d:"Elegí una opción: yogur + granola + fruta; pan integral + ricota/palta; o huevo + tomate.",tags:["🥛 yogur/granola/fruta","🍞 pan integral","🥚 huevo/tomate"]},
+{id:"supp",from:18,to:20,t:"18–19 h",title:"💊 Magnesio + vitamina C",d:"Bisglicinato de magnesio + vitamina C según la indicación.",tags:["magnesio","vitamina C"]},
+{id:"dinner",from:20,to:23,t:"Cena",title:"🌙 Cena simple",d:"Caldo + vegetales + pollo, pescado o huevo. También alternativas integrales/legumbres.",tags:["🍗 pollo","🐟 pescado","🥚 huevo","🫘 legumbres"]},
+{id:"sweet",from:20,to:23.5,t:"Antojo",title:"🍫 Si querés algo dulce",d:"Gelatina dietética o chocolate con 70% de cacao o más.",tags:["🍮 gelatina","🍫 ≥70% cacao"]},
+{id:"glu",from:22,to:24,t:"Antes de dormir",title:"🛏️ Glutamina",d:"5 g de glutamina disueltos en agua.",tags:["🥄 5 g","💧 agua"]}
+];
+const msgs=["Hoy no hace falta hacerlo perfecto. Hace falta hacerlo.","Cada comida ordenada es una decisión a favor tuyo.","La constancia vale más que un día impecable.","Caminar, comer mejor y dormir mejor: tres pequeñas victorias.","Tu objetivo de hoy es simple: cumplir el próximo paso."];
+const key=()=>new Date().toISOString().slice(0,10);
+const getDone=()=>JSON.parse(localStorage.getItem("done_"+key())||"{}");
+function toggle(id){let d=getDone();d[id]=!d[id];localStorage.setItem("done_"+key(),JSON.stringify(d));render()}
+function hour(){let d=new Date();return d.getHours()+d.getMinutes()/60}
+function active(){let h=hour(),a=steps.filter(s=>h>=s.from&&h<s.to).sort((a,b)=>b.from-a.from);return a[0]|| (h<6?steps[0]:steps.at(-1))}
+function render(){
+ let d=getDone(),a=active(),box=document.getElementById("timeline");box.innerHTML="";
+ steps.forEach(s=>{let e=document.createElement("div");e.className="step"+(s.id===a.id?" active":"")+(d[s.id]?" done":"");e.innerHTML=`<div class="time">${s.t}</div><div><div class="title">${s.title}</div><div class="desc">${s.d}</div><div class="tags">${s.tags.map(x=>`<span class="tag">${x}</span>`).join("")}</div></div><div class="check ${d[s.id]?"on":""}" onclick="toggle('${s.id}')">${d[s.id]?"✓":""}</div>`;box.appendChild(e)});
+ document.getElementById("nowTitle").textContent=a.title;document.getElementById("nowText").textContent=a.d;
+ let n=steps.filter(s=>d[s.id]).length;document.getElementById("progress").textContent=`${n} de ${steps.length} pasos completados`;document.getElementById("fill").style.width=(n/steps.length*100)+"%";
+}
+function tick(){let d=new Date();document.getElementById("clock").textContent=d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});document.getElementById("date").textContent=d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"});render()}
+function saveEntry(){
+ let e={date:key(),weight:weight.value,state:state.value,walk:walk.value,sleep:sleep.value};let h=JSON.parse(localStorage.getItem("nutrition_history")||"[]");h=h.filter(x=>x.date!==e.date);h.unshift(e);localStorage.setItem("nutrition_history",JSON.stringify(h.slice(0,30)));showHistory()
+}
+function showHistory(){let h=JSON.parse(localStorage.getItem("nutrition_history")||"[]");history.innerHTML=h.slice(0,6).map(x=>`<div class="hist"><span><b>${x.date}</b><br>${x.state||"Sin estado"}</span><span>${x.weight?x.weight+" kg":""}${x.walk?"<br>🚶 "+x.walk+" min":""}${x.sleep?"<br>😴 "+x.sleep+" h":""}</span></div>`).join("")}
+document.getElementById("mot").textContent=msgs[new Date().getDate()%msgs.length];tick();setInterval(tick,60000);showHistory();
+</script>
+</body>
+</html>
