@@ -1,4 +1,4 @@
-const CACHE='blanca-almuerzo-previews-v1';
+const CACHE='blanca-almuerzo-previews-v3';
 const ASSETS=[
   './',
   './index.html',

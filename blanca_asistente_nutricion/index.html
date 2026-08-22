@@ -151,6 +151,66 @@ body.modal-open{overflow:hidden}
   .dish-modal-card{width:96vw;padding:10px;border-radius:18px}
 }
 
+
+/* ===== NAVEGACIÓN DENTRO DEL PREVIEW ===== */
+.dish-image-wrap{position:relative}
+.dish-modal-nav{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:48px;height:48px;border-radius:50%;border:0;
+  background:rgba(255,255,255,.92);color:#26342b;
+  font-size:30px;line-height:1;display:grid;place-items:center;
+  cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:3;
+}
+.dish-modal-prev{left:12px}
+.dish-modal-next{right:12px}
+.dish-modal-counter{
+  position:absolute;left:50%;bottom:12px;transform:translateX(-50%);
+  background:rgba(20,30,25,.72);color:white;border-radius:999px;
+  padding:6px 10px;font-size:12px;font-weight:900;z-index:3;
+}
+@media(max-width:520px){
+  .dish-modal-nav{width:44px;height:44px;font-size:27px}
+  .dish-modal-prev{left:8px}.dish-modal-next{right:8px}
+}
+
+
+/* ===== RESALTADO CLARO DEL MOMENTO ACTUAL ===== */
+.step.active{
+  position:relative;
+  border-width:3px !important;
+  transform:translateY(-1px);
+  opacity:1 !important;
+}
+.step.active::before{
+  content:"AHORA";
+  position:absolute;
+  right:12px;
+  top:-11px;
+  padding:4px 9px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:1000;
+  letter-spacing:.08em;
+  color:#fff;
+  background:var(--accent);
+  box-shadow:0 4px 12px rgba(0,0,0,.12);
+}
+.step.active.period-morning::before{background:var(--morning-ink)}
+.step.active.period-lunch::before{background:var(--lunch-ink)}
+.step.active.period-snack::before{background:var(--snack-ink)}
+.step.active.period-dinner::before{background:var(--dinner-ink)}
+.step.active.period-supp::before{background:var(--supp-ink)}
+.step.active.period-night::before{background:var(--night-ink)}
+
+.now{
+  box-shadow:0 0 0 3px rgba(46,125,87,.10),0 10px 24px rgba(46,125,87,.09);
+}
+.now strong::before{content:"📍 ";}
+
+@media(max-width:520px){
+  .step.active::before{right:8px;top:-10px}
+}
+
 </style>
 </head>
 <body>
@@ -346,7 +406,12 @@ body.modal-open{overflow:hidden}
 <div class="dish-modal" id="dishModal" aria-hidden="true">
   <div class="dish-modal-card" role="dialog" aria-modal="true" aria-labelledby="dishModalTitle">
     <button type="button" class="dish-modal-close" id="dishModalClose" aria-label="Cerrar">×</button>
-    <img class="dish-modal-image" id="dishModalImage" alt="">
+    <div class="dish-image-wrap">
+      <img class="dish-modal-image" id="dishModalImage" alt="">
+      <button type="button" class="dish-modal-nav dish-modal-prev" id="dishModalPrev" aria-label="Plato anterior">‹</button>
+      <button type="button" class="dish-modal-nav dish-modal-next" id="dishModalNext" aria-label="Plato siguiente">›</button>
+      <div class="dish-modal-counter" id="dishModalCounter"></div>
+    </div>
     <div class="dish-modal-title" id="dishModalTitle"></div>
     <div class="dish-modal-text" id="dishModalText"></div>
   </div>
@@ -462,26 +527,44 @@ function currentMealOption(kind){
   const idx=((d.menuView[kind]%arr.length)+arr.length)%arr.length;
   return arr[idx];
 }
-function openDishPreview(kind){
-  const opt=currentMealOption(kind);
-  if(!opt || !opt.img) return;
-  const modal=document.getElementById("dishModal");
+function syncLunchPreview(){
+  const d=getMealState(),arr=mealOptions.lunch;
+  const idx=((d.menuView.lunch%arr.length)+arr.length)%arr.length;
+  const opt=arr[idx];
   const img=document.getElementById("dishModalImage");
+  if(img){
+    img.src=opt.img||"";
+    img.alt="Referencia visual de "+opt.title;
+  }
   document.getElementById("dishModalTitle").textContent=opt.title;
   document.getElementById("dishModalText").textContent=opt.text;
-  img.src=opt.img;
-  img.alt="Referencia visual de "+opt.title;
+  const counter=document.getElementById("dishModalCounter");
+  if(counter) counter.textContent=`${idx+1} / ${arr.length}`;
+  renderMeals();
+}
+function openDishPreview(kind){
+  if(kind!=="lunch") return;
+  const opt=currentMealOption(kind);
+  if(!opt || !opt.img) return;
+  syncLunchPreview();
+  const modal=document.getElementById("dishModal");
   modal.classList.add("open");
   modal.setAttribute("aria-hidden","false");
   document.body.classList.add("modal-open");
+}
+function moveLunchPreview(delta){
+  const k=localDateKey(),d=getMealState(),arr=mealOptions.lunch;
+  d.menuView.lunch=(d.menuView.lunch+delta+arr.length)%arr.length;
+  saveDayData(k,d);
+  syncLunchPreview();
 }
 function closeDishPreview(){
   const modal=document.getElementById("dishModal");
   modal.classList.remove("open");
   modal.setAttribute("aria-hidden","true");
   document.body.classList.remove("modal-open");
+  renderMeals();
 }
-
 function moveMeal(kind,delta){
   const k=localDateKey(),d=getMealState(),arr=mealOptions[kind];
   d.menuView[kind]=(d.menuView[kind]+delta+arr.length)%arr.length;
@@ -515,7 +598,13 @@ function saveDayData(k,data){localStorage.setItem("blanca_day_"+k,JSON.stringify
 function allDayKeys(){const a=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("blanca_day_"))a.push(k.slice(11))}return a.sort()}
 function toggle(id){const k=localDateKey(),data=getDayData(k);data.done[id]=!data.done[id];saveDayData(k,data);refreshAll()}
 function effectiveHour(){let h=new Date().getHours()+new Date().getMinutes()/60;if(h<RESET_HOUR)h+=24;return h}
-function active(){const h=effectiveHour(),a=steps.filter(s=>h>=s.from&&h<s.to).sort((a,b)=>b.from-a.from);return a[0]||(h<6?steps[0]:steps.at(-1))}
+function active(){
+  const h=effectiveHour();
+  const activeSteps=steps.filter(s=>h>=s.from&&h<s.to);
+  if(!activeSteps.length) return h<6?steps[0]:steps.at(-1);
+  const priority={lunch:50,snack:50,dinner:50,breakfast:45,prep:40,pro:40,fast:35,coffee:30,supp:25,trypto:25,omega:25,turmericLunch:25,castana:20,nightTinture:20};
+  return activeSteps.sort((a,b)=>(priority[b.id]||0)-(priority[a.id]||0) || b.from-a.from)[0];
+}
 
 function periodClass(step){
   const id=step.id;
@@ -530,7 +619,13 @@ function periodClass(step){
 function render(){
  const data=getDayData(),done=data.done||{},a=active(),box=document.getElementById("timeline");box.innerHTML="";
  steps.forEach(s=>{const e=document.createElement("div");e.className="step "+periodClass(s)+(s.id===a.id?" active":"")+(done[s.id]?" done":"");e.innerHTML=`<div class="time">${s.t}</div><div><div class="title">${s.title}</div><div class="desc">${s.d}</div><div class="tags">${s.tags.map(x=>`<span class="tag">${x}</span>`).join("")}</div></div><div class="check ${done[s.id]?"on":""}" onclick="toggle('${s.id}')">${done[s.id]?"✓":""}</div>`;box.appendChild(e)});
- nowTitle.textContent=a.title;nowText.textContent=a.d;const n=steps.filter(s=>done[s.id]).length;progress.textContent=`${n} de ${steps.length} pasos completados`;fill.style.width=(n/steps.length*100)+"%"
+ nowTitle.textContent=a.title;
+  const td=new Date();
+  const localNow=td.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+  nowText.textContent=a.d+" · Hora local: "+localNow;
+  const n=steps.filter(s=>done[s.id]).length;
+  progress.textContent=`${n} de ${steps.length} pasos completados`;
+  fill.style.width=(n/steps.length*100)+"%"
 }
 function tick(){const d=new Date();clock.textContent=d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});date.textContent=d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"});render()}
 function val(id){return document.getElementById(id).value}
@@ -639,12 +734,20 @@ if(lunchTitle){
     if(e.key==="Enter"||e.key===" "){e.preventDefault();openDishPreview("lunch")}
   });
 }
+const dishModalPrev=document.getElementById("dishModalPrev");
+if(dishModalPrev) dishModalPrev.addEventListener("click",()=>moveLunchPreview(-1));
+const dishModalNext=document.getElementById("dishModalNext");
+if(dishModalNext) dishModalNext.addEventListener("click",()=>moveLunchPreview(1));
 const dishModalClose=document.getElementById("dishModalClose");
 if(dishModalClose) dishModalClose.addEventListener("click",closeDishPreview);
 const dishModal=document.getElementById("dishModal");
 if(dishModal) dishModal.addEventListener("click",e=>{if(e.target===dishModal)closeDishPreview()});
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"&&document.getElementById("dishModal")?.classList.contains("open")) closeDishPreview();
+  const isOpen=document.getElementById("dishModal")?.classList.contains("open");
+  if(!isOpen) return;
+  if(e.key==="Escape") closeDishPreview();
+  if(e.key==="ArrowLeft") moveLunchPreview(-1);
+  if(e.key==="ArrowRight") moveLunchPreview(1);
 });
 
 mot.textContent=msgs[new Date().getDate()%msgs.length];nextConsult.value=localStorage.getItem("blanca_nextConsult")||"";fillTodayForm();tick();setInterval(tick,60000);refreshAll();window.addEventListener("resize",updateCharts);
