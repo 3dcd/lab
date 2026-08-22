@@ -51,6 +51,26 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 .consult{background:linear-gradient(135deg,#fbfcfb,#eef6f1);border:1px solid #cfe0d5;border-radius:16px;padding:14px;white-space:pre-line;line-height:1.55}
 .footer{text-align:center;color:var(--muted);font-size:12px;margin:18px}
 .badge{display:inline-block;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:900;background:#edf3ef;color:var(--accent)}
+
+.meal-section{margin-top:18px}
+.meal-intro{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.meal-intro p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+.meal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:900px){.meal-grid{grid-template-columns:1fr}}
+.meal-card{border:1px solid var(--line);border-radius:20px;padding:15px;background:linear-gradient(180deg,#fff,#f8fbf9);position:relative;overflow:hidden}
+.meal-card.selected{border:2px solid var(--accent);background:var(--soft)}
+.meal-card-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px}
+.meal-kind{font-weight:900;font-size:18px}
+.meal-counter{font-size:12px;color:var(--muted);font-weight:800;background:#f0f4f1;border:1px solid var(--line);padding:5px 8px;border-radius:999px}
+.meal-option{min-height:158px;display:flex;flex-direction:column;justify-content:center;padding:8px 2px}
+.meal-title{font-weight:900;font-size:17px;line-height:1.25;margin-bottom:7px;color:var(--ink)}
+.meal-text{font-size:14px;line-height:1.5;color:var(--muted)}
+.meal-nav{display:grid;grid-template-columns:44px 1fr 44px;gap:8px;align-items:center;margin-top:10px}
+.meal-nav button{margin:0;padding:10px 8px;font-size:18px}
+.meal-select{margin:0!important}
+.meal-picked{margin-top:8px;font-size:12px;font-weight:900;color:var(--accent);min-height:18px}
+.shuffle-btn{width:auto!important;margin:0!important}
+
 </style>
 </head>
 <body>
@@ -67,7 +87,7 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 </section>
 
 <div class="nav">
-<a href="#hoy">Hoy</a><a href="#registro">Registro</a><a href="#calendario">Calendario</a><a href="#evolucion">Evolución</a><a href="#descubrimientos">Descubrimientos</a><a href="#consulta">Próxima consulta</a><a href="#backup">Backup</a>
+<a href="#hoy">Hoy</a><a href="#menu-dia">Menú del día</a><a href="#registro">Registro</a><a href="#calendario">Calendario</a><a href="#evolucion">Evolución</a><a href="#descubrimientos">Descubrimientos</a><a href="#consulta">Próxima consulta</a><a href="#backup">Backup</a>
 </div>
 
 <div class="grid" id="hoy">
@@ -80,6 +100,51 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 <section class="card"><h2>🎯 Regla simple de Blanca</h2><p><b>Al levantarte:</b> rutina intestinal indicada.</p><p><b>Mañana:</b> hidratación y ayuno.</p><p><b>Primera hambre:</b> comenzar por proteína.</p><p><b>Mediodía:</b> proteína + vegetales A/B.</p><p><b>Tarde:</b> merienda organizada.</p><p><b>18–19 h:</b> suplementación indicada.</p><p><b>Noche:</b> cena simple y ordenada.</p></section>
 </aside>
 </div>
+
+
+<section class="card meal-section" id="menu-dia">
+  <div class="meal-intro">
+    <div>
+      <h2 style="margin-bottom:5px">🍽️ Menú del día</h2>
+      <p>Cada día aparecen propuestas distintas. Podés recorrerlas con las flechas y guardar la que realmente elegiste.</p>
+    </div>
+    <button class="secondary shuffle-btn" onclick="shuffleAllMeals()">🎲 Otra combinación</button>
+  </div>
+  <div class="meal-grid">
+    <div class="meal-card" id="mealCard-lunch">
+      <div class="meal-card-head"><div class="meal-kind">🍽️ Almuerzo</div><div class="meal-counter" id="mealCounter-lunch"></div></div>
+      <div class="meal-option"><div class="meal-title" id="mealTitle-lunch"></div><div class="meal-text" id="mealText-lunch"></div></div>
+      <div class="meal-nav">
+        <button class="secondary" onclick="moveMeal('lunch',-1)">‹</button>
+        <button class="meal-select" onclick="selectMeal('lunch')">✓ Elegir esta opción</button>
+        <button class="secondary" onclick="moveMeal('lunch',1)">›</button>
+      </div>
+      <div class="meal-picked" id="mealPicked-lunch"></div>
+    </div>
+
+    <div class="meal-card" id="mealCard-snack">
+      <div class="meal-card-head"><div class="meal-kind">☕ Merienda</div><div class="meal-counter" id="mealCounter-snack"></div></div>
+      <div class="meal-option"><div class="meal-title" id="mealTitle-snack"></div><div class="meal-text" id="mealText-snack"></div></div>
+      <div class="meal-nav">
+        <button class="secondary" onclick="moveMeal('snack',-1)">‹</button>
+        <button class="meal-select" onclick="selectMeal('snack')">✓ Elegir esta opción</button>
+        <button class="secondary" onclick="moveMeal('snack',1)">›</button>
+      </div>
+      <div class="meal-picked" id="mealPicked-snack"></div>
+    </div>
+
+    <div class="meal-card" id="mealCard-dinner">
+      <div class="meal-card-head"><div class="meal-kind">🌙 Cena</div><div class="meal-counter" id="mealCounter-dinner"></div></div>
+      <div class="meal-option"><div class="meal-title" id="mealTitle-dinner"></div><div class="meal-text" id="mealText-dinner"></div></div>
+      <div class="meal-nav">
+        <button class="secondary" onclick="moveMeal('dinner',-1)">‹</button>
+        <button class="meal-select" onclick="selectMeal('dinner')">✓ Elegir esta opción</button>
+        <button class="secondary" onclick="moveMeal('dinner',1)">›</button>
+      </div>
+      <div class="meal-picked" id="mealPicked-dinner"></div>
+    </div>
+  </div>
+</section>
 
 <section class="card" id="registro" style="margin-top:18px">
 <h2>📌 Registro del día <span class="badge">10 segundos o detallado</span></h2>
@@ -192,6 +257,107 @@ const steps=[
 ];
 const msgs=["Hoy no hace falta hacerlo perfecto. Hace falta hacerlo.","Cada comida ordenada es una decisión a favor tuyo.","La constancia vale más que un día impecable.","Caminar, comer mejor y dormir mejor: tres pequeñas victorias.","Tu objetivo de hoy es simple: cumplir el próximo paso.","Los datos no juzgan: te ayudan a entender qué te funciona.","Cuidarte también es darte tiempo y continuidad."];
 
+const mealOptions={
+  lunch:[
+    {title:"Bife + huevo poché + ensalada",text:"Bife magro a la plancha + 1 huevo poché + ensalada abundante de lechuga, tomate, pepino, rúcula y cebolla + sésamo. Postre: gelatina sin azúcar con unas nueces."},
+    {title:"Pollo grillado + huevo + ensalada",text:"Pollo grillado + 1 huevo duro + ensalada de repollo, tomate, pepino y hojas verdes + semillas de girasol o calabaza. Postre: yogur natural con cacao 100%."},
+    {title:"Carne en tiras + vegetales",text:"Carne vacuna magra salteada con cebolla y morrón + ensalada de rúcula, tomate y pepino + huevo. Postre: chocolate 85–100%."},
+    {title:"Hamburguesa casera sin pan",text:"Hamburguesa casera de carne magra, sin pan + huevo a la plancha + ensalada grande de lechuga, tomate, cebolla y pepino + nueces picadas. Postre: gelatina sin azúcar."},
+    {title:"Pollo salteado + huevo",text:"Pollo salteado con zucchini, cebolla y morrón + huevo duro + ensalada de hojas verdes y tomate + semillas de chía. Postre: 1–2 cuadrados de chocolate ≥80%."},
+    {title:"Churrasco magro + ensalada",text:"Churrasco magro + 1 huevo + ensalada de repollo, rúcula, tomate, pepino y cebolla + semillas. Postre: yogur natural con cacao 100% y canela."},
+    {title:"Ensalada grande de pollo",text:"Pollo + huevo + lechuga + rúcula + tomate + pepino + cebolla + nueces. Aderezo de aceite de oliva, limón o vinagre. Postre: gelatina sin azúcar."},
+    {title:"Carne al horno fría + ensalada",text:"Carne al horno fría cortada fina + huevo + ensalada de tomate, rúcula, pepino, repollo y cebolla + almendras o nueces. Postre: chocolate 80–100%."},
+    {title:"Pollo al limón + huevo revuelto",text:"Pollo al limón + huevo revuelto + ensalada de lechuga, tomate, pepino, morrón y cebolla + semillas de calabaza. Postre: gelatina sin azúcar."},
+    {title:"Albóndigas caseras sin pan rallado",text:"Albóndigas caseras de carne magra sin pan rallado + huevo + ensalada grande de vegetales A + nueces. Postre: yogur natural con cacao puro."},
+    {title:"Bife con cebolla + huevo",text:"Bife con cebolla salteada + huevo + ensalada de tomate, rúcula y pepino. Postre: 1–2 cuadrados de chocolate 85%."},
+    {title:"Pechuga rellena + ensalada",text:"Pechuga de pollo rellena con espinaca + huevo + ensalada de hojas, tomate, pepino y cebolla + semillas. Postre: yogur natural + cacao 100%."}
+  ],
+  snack:[
+    {title:"Tostada integral con palta y huevo",text:"Tostada de pan integral con palta + huevo + unas aceitunas. Yogur natural sin azúcar si queda hambre."},
+    {title:"Pan integral + ricota + fruta",text:"Pan integral con ricota + unas nueces + una fruta A o B."},
+    {title:"Rollitos de pavita/jamón + queso",text:"Rollitos de jamón cocido natural o pavita con queso + palta + aceitunas + una tostada integral."},
+    {title:"Yogur + fruta + granola + nueces",text:"Yogur griego/natural sin azúcar + fruta cortada + pequeña cantidad de granola sin azúcar agregada + nueces."},
+    {title:"Tostada con ricota/queso + huevo",text:"Tostada integral con queso o ricota y tomate + huevo revuelto. Una fruta si se desea."},
+    {title:"Pollo frío + palta",text:"Pollo frío desmenuzado + palta sobre una tostada integral + aceitunas."},
+    {title:"Helado de fruta + yogur",text:"Yogur natural + fruta A/B congelada triturada tipo helado + nueces o semillas. Granola opcional, en pequeña cantidad y sin azúcar agregada."},
+    {title:"Ricota + dulce sin azúcar",text:"Pan integral con ricota y una capa fina de dulce sin azúcar agregada + algunas nueces."},
+    {title:"Sándwich abierto de pavita",text:"Una sola porción de pan integral con pavita, queso, tomate y palta."},
+    {title:"Huevo + queso + palta",text:"Huevo duro + queso + palta + tomate + aceitunas y una tostada integral."},
+    {title:"Helado casero de fruta",text:"Fruta congelada procesada con yogur natural + nueces picadas. Sin azúcar añadida."},
+    {title:"Tostada con ricota, palta y huevo",text:"Tostada integral con ricota, palta y huevo; o ricota con una pequeña cantidad de dulce sin azúcar."}
+  ],
+  dinner:[
+    {title:"Merluza al horno + vegetales",text:"Merluza al horno con limón + brócoli, zapallito y calabaza asada. Postre: 1–2 cuadraditos de chocolate ≥80% cacao."},
+    {title:"Omelette + berenjena + lentejas",text:"Omelette de huevo con espinaca y cebolla + berenjena y zapallo al horno + pequeña porción de lentejas. Postre: gelatina sin azúcar."},
+    {title:"Pechuga + vegetales + arroz integral",text:"Pechuga de pollo al horno + brócoli, coliflor, zanahoria y calabaza + pequeña porción de arroz integral. Postre: yogur natural con canela."},
+    {title:"Pescado + vegetales + garbanzos",text:"Pescado a la plancha + ensalada tibia de zucchini, berenjena, cebolla y calabaza + pequeña porción de garbanzos. Postre: yogur natural con cacao amargo."},
+    {title:"Tortilla + quinoa",text:"Tortilla de huevo, espinaca y cebolla + ensalada de brócoli, tomate y zanahoria + pequeña porción de quinoa. Postre: gelatina sin azúcar con unas nueces."},
+    {title:"Merluza/lenguado + verduras al horno",text:"Merluza o lenguado + berenjena, zucchini, cebolla, morrón y un poco de zapallo al horno. Postre: chocolate 85%."},
+    {title:"Pollo grillado + lentejas",text:"Pollo grillado + salteado de brócoli, coliflor, zanahoria, zucchini y cebolla + pequeña porción de lentejas. Postre: yogur natural + cacao 100% + canela."},
+    {title:"Tortilla de vegetales + legumbres",text:"Tortilla de vegetales con huevo + ensalada grande + pequeña porción de garbanzos o porotos. Postre: yogur natural sin azúcar."},
+    {title:"Pescado al papillote + arroz",text:"Pescado al papillote con limón y especias + brócoli, zucchini, zanahoria y calabaza. Pequeña porción de arroz integral si corresponde. Postre: chocolate ≥85%."},
+    {title:"Pollo salteado + quinoa/lentejas",text:"Pollo salteado con vegetales A/B + pequeña cantidad de quinoa o lentejas. Postre: fruta entera pequeña con algunas nueces."},
+    {title:"Omelette + garbanzos",text:"Omelette de huevo y espinaca + berenjena, zucchini y calabaza asados + pequeña porción de garbanzos. Postre: gelatina sin azúcar."},
+    {title:"Pescado grillado + lentejas",text:"Pescado grillado + ensalada tibia de brócoli, zanahoria, zucchini y zapallo + pequeña porción de lentejas. Postre: chocolate 80–100%."}
+  ]
+};
+
+function mealSeed(kind,dateKey){
+  let s=0,txt=dateKey+"-"+kind;
+  for(let i=0;i<txt.length;i++) s=(s*31+txt.charCodeAt(i))>>>0;
+  return s%mealOptions[kind].length;
+}
+function getMealState(){
+  const k=localDateKey(),d=getDayData(k);
+  d.menuView=d.menuView||{};
+  d.menuSelected=d.menuSelected||{};
+  ["lunch","snack","dinner"].forEach(kind=>{
+    if(d.menuView[kind]===undefined || d.menuView[kind]===null) d.menuView[kind]=mealSeed(kind,k);
+  });
+  saveDayData(k,d);
+  return d;
+}
+function renderMeals(){
+  const d=getMealState();
+  ["lunch","snack","dinner"].forEach(kind=>{
+    const arr=mealOptions[kind],idx=((d.menuView[kind]%arr.length)+arr.length)%arr.length,opt=arr[idx];
+    document.getElementById("mealTitle-"+kind).textContent=opt.title;
+    document.getElementById("mealText-"+kind).textContent=opt.text;
+    document.getElementById("mealCounter-"+kind).textContent=`${idx+1} / ${arr.length}`;
+    const selected=d.menuSelected[kind];
+    const card=document.getElementById("mealCard-"+kind);
+    const picked=document.getElementById("mealPicked-"+kind);
+    card.classList.toggle("selected",selected===idx);
+    picked.textContent=selected===idx ? "✓ Elegida para hoy" : (selected!==undefined ? "Hay otra opción guardada para hoy" : "Todavía no elegiste una opción");
+  });
+}
+function moveMeal(kind,delta){
+  const k=localDateKey(),d=getMealState(),arr=mealOptions[kind];
+  d.menuView[kind]=(d.menuView[kind]+delta+arr.length)%arr.length;
+  saveDayData(k,d);renderMeals();
+}
+function selectMeal(kind){
+  const k=localDateKey(),d=getMealState(),idx=d.menuView[kind];
+  d.menuSelected[kind]=idx;
+  d.metrics=d.metrics||{};
+  const opt=mealOptions[kind][idx];
+  d.metrics[kind+"Choice"]=opt.title;
+  d.metrics[kind+"ChoiceDetail"]=opt.text;
+  saveDayData(k,d);
+  renderMeals();showHistory();renderCalendar();buildConsultSummary();
+}
+function shuffleAllMeals(){
+  const k=localDateKey(),d=getMealState();
+  ["lunch","snack","dinner"].forEach(kind=>{
+    const arr=mealOptions[kind];
+    let next=Math.floor(Math.random()*arr.length);
+    if(arr.length>1 && next===d.menuView[kind]) next=(next+1)%arr.length;
+    d.menuView[kind]=next;
+  });
+  saveDayData(k,d);renderMeals();
+}
+
+
 function localDateKey(d=new Date()){const x=new Date(d);if(x.getHours()<RESET_HOUR)x.setDate(x.getDate()-1);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")}
 function getDayData(k=localDateKey()){return JSON.parse(localStorage.getItem("blanca_day_"+k)||'{"done":{},"metrics":{}}')}
 function saveDayData(k,data){localStorage.setItem("blanca_day_"+k,JSON.stringify(data))}
@@ -208,7 +374,7 @@ function tick(){const d=new Date();clock.textContent=d.toLocaleTimeString("es-AR
 function val(id){return document.getElementById(id).value}
 function saveEntry(){
  const k=localDateKey(),data=getDayData(k);
- data.metrics={weight:val("weight"),waist:val("waist"),walk:val("walk"),strength:val("strength"),intensity:val("intensity"),bedtime:val("bedtime"),waketime:val("waketime"),sleep:val("sleep"),sleepQuality:val("sleepQuality"),energy:val("energy"),mood:val("mood"),hunger:val("hunger"),stress:val("stress"),digestion:val("digestion"),cravings:val("cravings"),offplan:val("offplan"),notes:val("notes"),savedAt:new Date().toISOString()};
+ data.metrics={...(data.metrics||{}),weight:val("weight"),waist:val("waist"),walk:val("walk"),strength:val("strength"),intensity:val("intensity"),bedtime:val("bedtime"),waketime:val("waketime"),sleep:val("sleep"),sleepQuality:val("sleepQuality"),energy:val("energy"),mood:val("mood"),hunger:val("hunger"),stress:val("stress"),digestion:val("digestion"),cravings:val("cravings"),offplan:val("offplan"),notes:val("notes"),savedAt:new Date().toISOString()};
  saveDayData(k,data);alert("Registro guardado.");refreshAll()
 }
 function fillTodayForm(){
@@ -226,7 +392,7 @@ function renderCalendar(){
  for(let i=0;i<offset;i++){const e=document.createElement("div");e.className="day empty";calendar.appendChild(e)}
  for(let d=1;d<=days;d++){const dateObj=new Date(y,m,d),k=dateObj.getFullYear()+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0"),data=getDayData(k),done=data.done||{},n=Object.values(done).filter(Boolean).length,has=Object.keys(data.metrics||{}).length>0;const e=document.createElement("div");e.className="day"+(k===localDateKey()?" today":"")+((n||has)?" hasdata":"")+(n===steps.length?" complete":"");e.innerHTML=`<div class="daynum">${d}${has?'<span class="daydot"></span>':""}</div><div class="daymark">${n?`${n}/${steps.length}`:""}</div>`;e.onclick=()=>showDay(k);calendar.appendChild(e)}
 }
-function showDay(k){const d=getDayData(k),m=d.metrics||{},n=Object.values(d.done||{}).filter(Boolean).length;dayDetail.innerHTML=`<b>${k}</b><br>✅ Cumplimiento: ${n}/${steps.length}<br>⚖️ Peso: ${m.weight?m.weight+" kg":"—"} · Cintura: ${m.waist?m.waist+" cm":"—"}<br>🚶 Caminata: ${m.walk?m.walk+" min":"—"} · 🏋️ Fuerza: ${m.strength?m.strength+" min":"—"}<br>😴 Sueño: ${m.sleep?m.sleep+" h":"—"} · calidad ${m.sleepQuality||"—"}/5<br>⚡ Energía ${m.energy||"—"}/5 · 😊 Ánimo ${m.mood||"—"}/5 · 🍽️ Hambre ${m.hunger||"—"}/5 · 🧠 Estrés ${m.stress||"—"}/5<br>🫄 Digestión: ${m.digestion||"—"} · Antojos: ${m.cravings||"—"}<br>🍕 Fuera del esquema: ${m.offplan||"—"}<br>📝 ${m.notes||"Sin notas"}`
+function showDay(k){const d=getDayData(k),m=d.metrics||{},n=Object.values(d.done||{}).filter(Boolean).length;dayDetail.innerHTML=`<b>${k}</b><br>✅ Cumplimiento: ${n}/${steps.length}<br>⚖️ Peso: ${m.weight?m.weight+" kg":"—"} · Cintura: ${m.waist?m.waist+" cm":"—"}<br>🚶 Caminata: ${m.walk?m.walk+" min":"—"} · 🏋️ Fuerza: ${m.strength?m.strength+" min":"—"}<br>😴 Sueño: ${m.sleep?m.sleep+" h":"—"} · calidad ${m.sleepQuality||"—"}/5<br>⚡ Energía ${m.energy||"—"}/5 · 😊 Ánimo ${m.mood||"—"}/5 · 🍽️ Hambre ${m.hunger||"—"}/5 · 🧠 Estrés ${m.stress||"—"}/5<br>🫄 Digestión: ${m.digestion||"—"} · Antojos: ${m.cravings||"—"}<br>🍕 Fuera del esquema: ${m.offplan||"—"}<br>🍽️ Almuerzo elegido: ${m.lunchChoice||"—"}<br>☕ Merienda elegida: ${m.snackChoice||"—"}<br>🌙 Cena elegida: ${m.dinnerChoice||"—"}<br>📝 ${m.notes||"Sin notas"}`
 }
 function records(n=999){return allDayKeys().slice(-n).map(k=>({date:k,...getDayData(k).metrics,done:getDayData(k).done||{}}))}
 function num(x){const v=parseFloat(x);return Number.isFinite(v)?v:null}
@@ -271,7 +437,7 @@ function buildConsultSummary(){
  const n=parseInt(consultDays.value||20),rs=records(n),weights=rs.map(r=>num(r.weight)).filter(x=>x!==null),waists=rs.map(r=>num(r.waist)).filter(x=>x!==null);
  const firstW=weights[0],lastW=weights.at(-1),walk=rs.reduce((s,r)=>s+(num(r.walk)||0),0),strength=rs.reduce((s,r)=>s+(num(r.strength)||0),0),sleepAvg=avg(rs.map(r=>num(r.sleep))),energyAvg=avg(rs.map(r=>num(r.energy))),hungerAvg=avg(rs.map(r=>num(r.hunger))),stressAvg=avg(rs.map(r=>num(r.stress))),comp=avg(rs.map(compliance));
  const dig={};rs.forEach(r=>{if(r.digestion)dig[r.digestion]=(dig[r.digestion]||0)+1});const topDig=Object.entries(dig).sort((a,b)=>b[1]-a[1])[0];
- const notes=rs.filter(r=>r.notes).slice(-5).map(r=>`• ${r.date}: ${r.notes}`).join("\n");
+ const notes=rs.filter(r=>r.notes).slice(-5).map(r=>`• ${r.date}: ${r.notes}`).join("\n"); const meals=rs.slice(-7).filter(r=>r.lunchChoice||r.snackChoice||r.dinnerChoice).map(r=>`• ${r.date}: Almuerzo ${r.lunchChoice||"—"} | Merienda ${r.snackChoice||"—"} | Cena ${r.dinnerChoice||"—"}`).join("\n");
  const next=nextConsult.value?`\nPróxima consulta: ${nextConsult.value}`:"";
  consultSummary.textContent=`RESUMEN DE SEGUIMIENTO · ${rs.length} días registrados${next}
 
@@ -287,21 +453,20 @@ Estrés promedio: ${stressAvg!==null?stressAvg.toFixed(1)+"/5":"—"}
 Cumplimiento promedio del esquema: ${comp!==null?Math.round(comp)+"%":"—"}
 Digestión más registrada: ${topDig?topDig[0]+" ("+topDig[1]+" días)":"—"}
 
-Notas recientes:
-${notes||"—"}`
+Menús elegidos recientes:\n${meals||"—"}\n\nNotas recientes:\n${notes||"—"}`
 }
 function saveConsultDate(){localStorage.setItem("blanca_nextConsult",nextConsult.value);buildConsultSummary()}
 function copyConsult(){navigator.clipboard?.writeText(consultSummary.textContent).then(()=>alert("Resumen copiado."))}
 function exportBackup(){const data={version:3,exportedAt:new Date().toISOString(),resetHour:RESET_HOUR,startWeight:"primer registro",nextConsult:localStorage.getItem("blanca_nextConsult")||"",days:{}};allDayKeys().forEach(k=>data.days[k]=getDayData(k));download("blanca_asistente_backup_"+localDateKey()+".json",JSON.stringify(data,null,2),"application/json")}
 function exportForChatGPT(){const data={purpose:"Analizar evolución de nutrición, hábitos, sueño, actividad física, hambre, estrés y cumplimiento. Buscar tendencias, cambios y preguntas útiles para la próxima consulta. No asumir causalidad médica.",startWeight:"primer registro",exportedAt:new Date().toISOString(),records:records()};download("blanca_registro_para_chatgpt_"+localDateKey()+".json",JSON.stringify(data,null,2),"application/json")}
 function exportCSV(){
- const cols=["date","weight","waist","walk","strength","intensity","bedtime","waketime","sleep","sleepQuality","energy","mood","hunger","stress","digestion","cravings","offplan","notes","compliance"];
+ const cols=["date","weight","waist","walk","strength","intensity","bedtime","waketime","sleep","sleepQuality","energy","mood","hunger","stress","digestion","cravings","offplan","lunchChoice","snackChoice","dinnerChoice","notes","compliance"];
  const esc=v=>`"${String(v??"").replaceAll('"','""')}"`;const lines=[cols.join(",")];records().forEach(r=>lines.push(cols.map(c=>esc(c==="compliance"?Math.round(compliance(r)):r[c])).join(",")));download("blanca_registro_nutricion_"+localDateKey()+".csv",lines.join("\n"),"text/csv;charset=utf-8")
 }
 function download(name,text,type){const blob=new Blob([text],{type}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
 function importBackup(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data.days)throw Error("Formato no válido");Object.entries(data.days).forEach(([k,v])=>saveDayData(k,v));if(data.nextConsult){localStorage.setItem("blanca_nextConsult",data.nextConsult);nextConsult.value=data.nextConsult}refreshAll();alert("Registro recuperado.")}catch(e){alert("No pude recuperar el archivo: "+e.message)}ev.target.value=""};r.readAsText(f)}
 function resetToday(){if(confirm("¿Querés borrar solamente los checks de hoy? El resto del registro queda intacto.")){const k=localDateKey(),d=getDayData(k);d.done={};saveDayData(k,d);refreshAll()}}
-function refreshAll(){render();showHistory();renderCalendar();updateKPIs();updateCharts();buildInsights();buildConsultSummary()}
+function refreshAll(){render();renderMeals();showHistory();renderCalendar();updateKPIs();updateCharts();buildInsights();buildConsultSummary()}
 mot.textContent=msgs[new Date().getDate()%msgs.length];nextConsult.value=localStorage.getItem("blanca_nextConsult")||"";fillTodayForm();tick();setInterval(tick,60000);refreshAll();window.addEventListener("resize",updateCharts);
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
