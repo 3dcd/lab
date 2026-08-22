@@ -97,7 +97,15 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 </main>
 <aside style="display:grid;gap:18px">
 <section class="card"><h2>⭐ Enfoque de hoy</h2><div id="mot" class="mot"></div><div class="bar"><div id="fill" class="fill"></div></div><div id="progress" class="small" style="margin-top:6px"></div></section>
-<section class="card"><h2>🎯 Regla simple de Blanca</h2><p><b>Al levantarte:</b> rutina intestinal indicada.</p><p><b>Mañana:</b> hidratación y ayuno.</p><p><b>Primera hambre:</b> comenzar por proteína.</p><p><b>Mediodía:</b> proteína + vegetales A/B.</p><p><b>Tarde:</b> merienda organizada.</p><p><b>18–19 h:</b> suplementación indicada.</p><p><b>Noche:</b> cena simple y ordenada.</p></section>
+<section class="card"><h2>🎯 Regla simple de Blanca</h2>
+<p><b>Mañana:</b> rutina intestinal + ayuno hasta aprox. las 12 h.</p>
+<p><b>Romper el ayuno:</b> empezar por proteína.</p>
+<p><b>Almuerzo:</b> carnes blancas/rojas o huevo + vegetales A.</p>
+<p><b>16–18 h:</b> merienda organizada.</p>
+<p><b>18–19 h:</b> bisglicinato de magnesio + vitamina C 1 g.</p>
+<p><b>Antes de cenar (~20 h):</b> triptófano.</p>
+<p><b>Cena:</b> vegetales A/B (C en menor medida) + pollo/pescado/huevo.</p>
+<p><b>Antes de dormir:</b> tintura compuesta relajante.</p></section>
 </aside>
 </div>
 
@@ -243,63 +251,66 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 <script>
 const RESET_HOUR=2, START_WEIGHT=null;
 const steps=[
-{id:"tongue",from:2,to:8,t:"Al levantarte",title:"👅 Limpieza de lengua",d:"Comenzá el día con la limpieza de lengua según la rutina indicada.",tags:["rutina de mañana"]},
-{id:"pro",from:2,to:8,t:"Luego",title:"🦠 Probiótico",d:"Tomalo según la cantidad y frecuencia que te indicó la nutricionista.",tags:["inicio intestinal","seguir la dosis indicada"]},
-{id:"prep",from:6,to:9,t:"+ 5 min",title:"🥛 Agua templada + limón + aloe",d:"Aprox. 200 cc de agua templada + jugo de ½ limón colado + aloe vera según la indicación para Blanca.",tags:["200 cc","½ limón colado","aloe vera"]},
-{id:"fast",from:6,to:12,t:"Mañana",title:"☀️ Ayuno e hidratación",d:"Agua, mate, té o café no torrado. La idea es evitar el picoteo y sostener la mañana ordenada.",tags:["💧 agua","🧉 mate","🍵 té","☕ café no torrado"]},
-{id:"first",from:10,to:13,t:"Primera hambre",title:"🥚 Empezar por proteína",d:"Si aparece hambre antes del almuerzo, comenzá por una opción proteica: huevo o frutos secos.",tags:["🥚 huevo","🥜 frutos secos"]},
-{id:"lunch",from:12,to:15.5,t:"Almuerzo",title:"🍽️ Proteína + vegetales",d:"Carne, pollo, pescado o huevo + vegetales A/B. Según la alternativa indicada también pueden aparecer arroz integral/yamaní, quinoa o legumbres.",tags:["🥩 carne","🍗 pollo","🐟 pescado","🥚 huevo","🥬 vegetales A/B"]},
-{id:"lunchsupp",from:12,to:15.5,t:"Con comida",title:"💊 Omega‑3 / cúrcuma",d:"En el esquema de Blanca aparecen omega‑3 y cúrcuma + pimienta asociados a las comidas. Respetá producto y dosis indicados por la nutricionista.",tags:["Omega‑3 EPA+DHA","cúrcuma + pimienta"]},
-{id:"snack",from:16,to:18,t:"16–18 h",title:"☕ Merienda organizada",d:"Elegí una opción: yogur + granola + fruta; infusión + fruta + granola; pan integral + ricota/palta; o huevo + tomate.",tags:["🥛 yogur/granola/fruta","🍞 pan integral","🥚 huevo + tomate"]},
-{id:"supp",from:18,to:20,t:"18–19 h",title:"💊 Magnesio + vitamina C",d:"Bisglicinato de magnesio + vitamina C según la indicación de la consulta.",tags:["bisglicinato de magnesio","vitamina C"]},
-{id:"dinner",from:20,to:23,t:"Cena",title:"🌙 Cena simple",d:"Vegetales A/B + pollo, pescado o huevo. También pueden usarse las alternativas integrales o legumbres indicadas.",tags:["🥬 vegetales A/B","🍗 pollo","🐟 pescado","🥚 huevo","🫘 legumbres"]},
-{id:"sweet",from:20,to:23.5,t:"Antojo",title:"🍫 Si querés algo dulce",d:"Gelatina dietética o chocolate amargo 70–80% cacao.",tags:["🍮 gelatina diet","🍫 70–80% cacao"]}
+{id:"pro",from:2,to:8,t:"Al levantarte",title:"🦠 Probiótico",d:"Primero del día, según la cantidad/frecuencia indicada por la nutricionista.",tags:["probiótico","rutina intestinal"]},
+{id:"prep",from:6,to:9,t:"+ 5 min",title:"🥛 Agua templada + limón + aloe",d:"Aprox. 200 cc de agua templada + jugo de ½ limón + 1 cucharada sopera de aloe vera. El vinagre de manzana es opcional.",tags:["200 cc","½ limón","1 cda. aloe","vinagre opcional"]},
+{id:"fast",from:6,to:12,t:"Mañana",title:"☀️ Ayuno e hidratación",d:"Mantener el ayuno hasta aprox. las 12 h. Agua, mate, té o café no torrado. Evitar picoteo.",tags:["💧 agua","🧉 mate","🍵 té","☕ café no torrado"]},
+{id:"coffee",from:7,to:10,t:"Antes de 10 h",title:"☕ Opción de café",d:"Café no torrado con canela. En la consulta también apareció aceite de coco y cacao; dejalo como opción a confirmar con la nutricionista si querés sostener un ayuno estricto.",tags:["canela","aceite de coco opcional","cacao opcional"]},
+{id:"breakfast",from:11.5,to:13,t:"~12 h",title:"🥚 Romper el ayuno",d:"Empezar por proteína. Puede ser huevo o frutos secos antes del almuerzo si aparece hambre.",tags:["🥚 huevo","🥜 frutos secos"]},
+{id:"lunch",from:12,to:15.5,t:"Almuerzo",title:"🍽️ Proteína + vegetales A",d:"Carnes blancas o rojas, huevo y vegetales A. Se pueden sumar semillas activadas y frutos secos. Postre: gelatina diet o chocolate/cacao puro ≥70%.",tags:["🥩 carne","🍗 pollo","🥚 huevo","🥬 vegetales A","🌱 semillas","🥜 frutos secos"]},
+{id:"turmericLunch",from:12,to:15.5,t:"Con almuerzo",title:"🌿 Cúrcuma + pimienta",d:"Cúrcuma + pimienta negra con el almuerzo, según la indicación.",tags:["cúrcuma","pimienta negra"]},
+{id:"castana",from:10,to:18,t:"Durante el día",title:"🌰 Tintura de castaña de Indias",d:"20 gotas, 1 vez al día. Si hay ataque de hemorroides, la indicación registrada fue 2 veces al día.",tags:["20 gotas","1 vez/día","2 veces/día si ataque"]},
+{id:"snack",from:16,to:18,t:"16–18 h",title:"☕ Merienda",d:"Opciones saladas: jamón, pavita, pollo, queso, nueces, palta, aceitunas, huevo + 1 rodaja de pan integral. Opción dulce: frutas A/B + granola; yogur; pan integral con ricota, queso feteado o pequeña cantidad de dulce.",tags:["pavita","queso","palta","huevo","pan integral","frutas A/B","granola","yogur"]},
+{id:"supp",from:18,to:20,t:"18–19 h",title:"💊 Magnesio + vitamina C",d:"Bisglicinato de magnesio + vitamina C 1 g.",tags:["bisglicinato de magnesio","vitamina C 1 g"]},
+{id:"trypto",from:19.5,to:20.5,t:"~20 h",title:"🌙 Triptófano",d:"Tomarlo antes de la cena para acompañar el objetivo de sueño, según la indicación de la consulta.",tags:["antes de cenar","sueño"]},
+{id:"dinner",from:20,to:23,t:"Cena",title:"🍽️ Cena",d:"Vegetales A y B; vegetales C en menor medida. Pollo, pescado o huevo. Se pueden agregar cereales integrales o legumbres. Postre: cacao/chocolate según el esquema.",tags:["🥬 A/B","C en menor medida","🍗 pollo","🐟 pescado","🥚 huevo","🌾 integrales","🫘 legumbres"]},
+{id:"omega",from:20,to:23,t:"Con cena",title:"💊 Omega‑3 + cúrcuma",d:"Omega‑3 con la cena. También cúrcuma + pimienta negra con la cena, según la indicación.",tags:["Omega‑3","cúrcuma","pimienta negra"]},
+{id:"nightTinture",from:22,to:26,t:"Antes de dormir",title:"🌿 Tintura compuesta",d:"Tintura compuesta de pasiflora, melisa, valeriana y tilo según la dosis indicada por la nutricionista.",tags:["pasiflora","melisa","valeriana","tilo"]}
 ];
 const msgs=["Hoy no hace falta hacerlo perfecto. Hace falta hacerlo.","Cada comida ordenada es una decisión a favor tuyo.","La constancia vale más que un día impecable.","Caminar, comer mejor y dormir mejor: tres pequeñas victorias.","Tu objetivo de hoy es simple: cumplir el próximo paso.","Los datos no juzgan: te ayudan a entender qué te funciona.","Cuidarte también es darte tiempo y continuidad."];
 
 const mealOptions={
-  lunch:[
-    {title:"Bife + huevo poché + ensalada",text:"Bife magro a la plancha + 1 huevo poché + ensalada abundante de lechuga, tomate, pepino, rúcula y cebolla + sésamo. Postre: gelatina sin azúcar con unas nueces."},
-    {title:"Pollo grillado + huevo + ensalada",text:"Pollo grillado + 1 huevo duro + ensalada de repollo, tomate, pepino y hojas verdes + semillas de girasol o calabaza. Postre: yogur natural con cacao 100%."},
-    {title:"Carne en tiras + vegetales",text:"Carne vacuna magra salteada con cebolla y morrón + ensalada de rúcula, tomate y pepino + huevo. Postre: chocolate 85–100%."},
-    {title:"Hamburguesa casera sin pan",text:"Hamburguesa casera de carne magra, sin pan + huevo a la plancha + ensalada grande de lechuga, tomate, cebolla y pepino + nueces picadas. Postre: gelatina sin azúcar."},
-    {title:"Pollo salteado + huevo",text:"Pollo salteado con zucchini, cebolla y morrón + huevo duro + ensalada de hojas verdes y tomate + semillas de chía. Postre: 1–2 cuadrados de chocolate ≥80%."},
-    {title:"Churrasco magro + ensalada",text:"Churrasco magro + 1 huevo + ensalada de repollo, rúcula, tomate, pepino y cebolla + semillas. Postre: yogur natural con cacao 100% y canela."},
-    {title:"Ensalada grande de pollo",text:"Pollo + huevo + lechuga + rúcula + tomate + pepino + cebolla + nueces. Aderezo de aceite de oliva, limón o vinagre. Postre: gelatina sin azúcar."},
-    {title:"Carne al horno fría + ensalada",text:"Carne al horno fría cortada fina + huevo + ensalada de tomate, rúcula, pepino, repollo y cebolla + almendras o nueces. Postre: chocolate 80–100%."},
-    {title:"Pollo al limón + huevo revuelto",text:"Pollo al limón + huevo revuelto + ensalada de lechuga, tomate, pepino, morrón y cebolla + semillas de calabaza. Postre: gelatina sin azúcar."},
-    {title:"Albóndigas caseras sin pan rallado",text:"Albóndigas caseras de carne magra sin pan rallado + huevo + ensalada grande de vegetales A + nueces. Postre: yogur natural con cacao puro."},
-    {title:"Bife con cebolla + huevo",text:"Bife con cebolla salteada + huevo + ensalada de tomate, rúcula y pepino. Postre: 1–2 cuadrados de chocolate 85%."},
-    {title:"Pechuga rellena + ensalada",text:"Pechuga de pollo rellena con espinaca + huevo + ensalada de hojas, tomate, pepino y cebolla + semillas. Postre: yogur natural + cacao 100%."}
-  ],
-  snack:[
-    {title:"Tostada integral con palta y huevo",text:"Tostada de pan integral con palta + huevo + unas aceitunas. Yogur natural sin azúcar si queda hambre."},
-    {title:"Pan integral + ricota + fruta",text:"Pan integral con ricota + unas nueces + una fruta A o B."},
-    {title:"Rollitos de pavita/jamón + queso",text:"Rollitos de jamón cocido natural o pavita con queso + palta + aceitunas + una tostada integral."},
-    {title:"Yogur + fruta + granola + nueces",text:"Yogur griego/natural sin azúcar + fruta cortada + pequeña cantidad de granola sin azúcar agregada + nueces."},
-    {title:"Tostada con ricota/queso + huevo",text:"Tostada integral con queso o ricota y tomate + huevo revuelto. Una fruta si se desea."},
-    {title:"Pollo frío + palta",text:"Pollo frío desmenuzado + palta sobre una tostada integral + aceitunas."},
-    {title:"Helado de fruta + yogur",text:"Yogur natural + fruta A/B congelada triturada tipo helado + nueces o semillas. Granola opcional, en pequeña cantidad y sin azúcar agregada."},
-    {title:"Ricota + dulce sin azúcar",text:"Pan integral con ricota y una capa fina de dulce sin azúcar agregada + algunas nueces."},
-    {title:"Sándwich abierto de pavita",text:"Una sola porción de pan integral con pavita, queso, tomate y palta."},
-    {title:"Huevo + queso + palta",text:"Huevo duro + queso + palta + tomate + aceitunas y una tostada integral."},
-    {title:"Helado casero de fruta",text:"Fruta congelada procesada con yogur natural + nueces picadas. Sin azúcar añadida."},
-    {title:"Tostada con ricota, palta y huevo",text:"Tostada integral con ricota, palta y huevo; o ricota con una pequeña cantidad de dulce sin azúcar."}
-  ],
-  dinner:[
-    {title:"Merluza al horno + vegetales",text:"Merluza al horno con limón + brócoli, zapallito y calabaza asada. Postre: 1–2 cuadraditos de chocolate ≥80% cacao."},
-    {title:"Omelette + berenjena + lentejas",text:"Omelette de huevo con espinaca y cebolla + berenjena y zapallo al horno + pequeña porción de lentejas. Postre: gelatina sin azúcar."},
-    {title:"Pechuga + vegetales + arroz integral",text:"Pechuga de pollo al horno + brócoli, coliflor, zanahoria y calabaza + pequeña porción de arroz integral. Postre: yogur natural con canela."},
-    {title:"Pescado + vegetales + garbanzos",text:"Pescado a la plancha + ensalada tibia de zucchini, berenjena, cebolla y calabaza + pequeña porción de garbanzos. Postre: yogur natural con cacao amargo."},
-    {title:"Tortilla + quinoa",text:"Tortilla de huevo, espinaca y cebolla + ensalada de brócoli, tomate y zanahoria + pequeña porción de quinoa. Postre: gelatina sin azúcar con unas nueces."},
-    {title:"Merluza/lenguado + verduras al horno",text:"Merluza o lenguado + berenjena, zucchini, cebolla, morrón y un poco de zapallo al horno. Postre: chocolate 85%."},
-    {title:"Pollo grillado + lentejas",text:"Pollo grillado + salteado de brócoli, coliflor, zanahoria, zucchini y cebolla + pequeña porción de lentejas. Postre: yogur natural + cacao 100% + canela."},
-    {title:"Tortilla de vegetales + legumbres",text:"Tortilla de vegetales con huevo + ensalada grande + pequeña porción de garbanzos o porotos. Postre: yogur natural sin azúcar."},
-    {title:"Pescado al papillote + arroz",text:"Pescado al papillote con limón y especias + brócoli, zucchini, zanahoria y calabaza. Pequeña porción de arroz integral si corresponde. Postre: chocolate ≥85%."},
-    {title:"Pollo salteado + quinoa/lentejas",text:"Pollo salteado con vegetales A/B + pequeña cantidad de quinoa o lentejas. Postre: fruta entera pequeña con algunas nueces."},
-    {title:"Omelette + garbanzos",text:"Omelette de huevo y espinaca + berenjena, zucchini y calabaza asados + pequeña porción de garbanzos. Postre: gelatina sin azúcar."},
-    {title:"Pescado grillado + lentejas",text:"Pescado grillado + ensalada tibia de brócoli, zanahoria, zucchini y zapallo + pequeña porción de lentejas. Postre: chocolate 80–100%."}
-  ]
+lunch:[
+{title:"Bife magro + huevo + vegetales A",text:"Bife magro a la plancha + 1 huevo + vegetales A + semillas activadas. Postre: gelatina diet o chocolate ≥70%."},
+{title:"Pollo grillado + huevo + vegetales A",text:"Pollo grillado + huevo + vegetales A + semillas. Postre: yogur natural con cacao puro."},
+{title:"Carne magra + ensalada A",text:"Carne vacuna magra + huevo + vegetales A + frutos secos. Postre: chocolate 80–100%."},
+{title:"Hamburguesa casera sin pan",text:"Hamburguesa casera de carne magra sin pan + huevo + vegetales A + nueces. Postre: gelatina diet."},
+{title:"Pollo + huevo + vegetales A",text:"Pollo salteado o grillado + huevo + vegetales A + semillas activadas. Postre: chocolate ≥80%."},
+{title:"Churrasco magro + ensalada A",text:"Churrasco magro + huevo + vegetales A + semillas. Postre: yogur con cacao 100% y canela."},
+{title:"Ensalada grande de pollo",text:"Pollo + huevo + vegetales A + nueces. Aderezo de oliva, limón o vinagre. Postre: gelatina diet."},
+{title:"Carne al horno + vegetales A",text:"Carne al horno fría + huevo + vegetales A + almendras o nueces. Postre: chocolate 80–100%."},
+{title:"Pollo al limón + huevo",text:"Pollo al limón + huevo revuelto + vegetales A + semillas. Postre: gelatina diet."},
+{title:"Albóndigas magras",text:"Albóndigas caseras de carne magra sin pan rallado + huevo + vegetales A + nueces. Postre: yogur con cacao puro."},
+{title:"Bife con cebolla + huevo",text:"Bife con cebolla salteada + huevo + vegetales A. Postre: chocolate ≥70%."},
+{title:"Pechuga rellena + vegetales A",text:"Pechuga de pollo rellena con espinaca + huevo + vegetales A + semillas. Postre: yogur + cacao puro."}
+],
+snack:[
+{title:"Pan integral + palta + huevo",text:"1 rodaja de pan integral con palta + huevo + aceitunas. Yogur natural si queda hambre."},
+{title:"Pan integral + ricota + nueces",text:"1 rodaja de pan integral con ricota + nueces + fruta A o B."},
+{title:"Pavita + queso + palta",text:"Pavita o jamón + queso + palta + aceitunas + 1 rodaja de pan integral."},
+{title:"Yogur + fruta + granola",text:"Yogur natural sin azúcar + fruta A/B + pequeña cantidad de granola."},
+{title:"Ricota o queso + tomate + huevo",text:"1 rodaja de pan integral con ricota o queso + tomate + huevo revuelto."},
+{title:"Pollo frío + palta",text:"Pollo frío desmenuzado + palta + aceitunas + 1 rodaja de pan integral."},
+{title:"Fruta A/B tipo helado + yogur",text:"Fruta A/B congelada triturada + yogur natural + nueces o semillas. Granola opcional."},
+{title:"Ricota + dulce",text:"Pan integral con ricota + pequeña cantidad de dulce + nueces."},
+{title:"Sándwich abierto de pavita",text:"1 rodaja de pan integral con pavita, queso, tomate y palta."},
+{title:"Huevo + queso + palta",text:"Huevo duro + queso + palta + tomate + aceitunas + 1 rodaja de pan integral."},
+{title:"Yogur + granola + fruta A/B",text:"Yogur natural + fruta A/B + granola en pequeña cantidad."},
+{title:"Pan integral + ricota + palta",text:"1 rodaja de pan integral con ricota y palta; también puede variar con queso feteado o un poco de dulce."}
+],
+dinner:[
+{title:"Merluza + vegetales A/B",text:"Merluza al horno + vegetales A/B; C solo en menor medida. Postre: chocolate ≥70%."},
+{title:"Omelette + vegetales + lentejas",text:"Omelette de huevo + vegetales A/B + pequeña porción de lentejas. Postre: gelatina diet."},
+{title:"Pollo + vegetales + arroz integral",text:"Pechuga de pollo + vegetales A/B + pequeña porción de arroz integral."},
+{title:"Pescado + vegetales + garbanzos",text:"Pescado + vegetales A/B + pequeña porción de garbanzos. Postre: yogur con cacao."},
+{title:"Tortilla + quinoa",text:"Tortilla de huevo + vegetales A/B + pequeña porción de quinoa. Postre: gelatina diet."},
+{title:"Merluza/lenguado + vegetales",text:"Merluza o lenguado + vegetales A/B; C en menor medida. Postre: chocolate ≥70%."},
+{title:"Pollo grillado + lentejas",text:"Pollo grillado + vegetales A/B + pequeña porción de lentejas. Postre: yogur + cacao."},
+{title:"Tortilla + legumbres",text:"Tortilla de huevo + vegetales A/B + pequeña porción de garbanzos o porotos."},
+{title:"Pescado + arroz integral",text:"Pescado al papillote + vegetales A/B + pequeña porción de arroz integral. Postre: chocolate ≥70%."},
+{title:"Pollo + quinoa/lentejas",text:"Pollo salteado + vegetales A/B + pequeña cantidad de quinoa o lentejas."},
+{title:"Omelette + garbanzos",text:"Omelette de huevo + vegetales A/B + pequeña porción de garbanzos. Postre: gelatina diet."},
+{title:"Pescado grillado + lentejas",text:"Pescado grillado + vegetales A/B + pequeña porción de lentejas. Postre: chocolate 70–100%."}
+]
 };
 
 function mealSeed(kind,dateKey){
