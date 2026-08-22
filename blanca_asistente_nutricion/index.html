@@ -114,6 +114,43 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 .period-pill.dinner{background:var(--dinner-bg);border-color:var(--dinner-line);color:var(--dinner-ink)}
 .period-pill.supp{background:var(--supp-bg);border-color:var(--supp-line);color:var(--supp-ink)}
 
+
+/* ===== PREVIEW VISUAL DE PLATOS ===== */
+.meal-preview-row{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.meal-thumb-btn{
+  display:inline-flex;align-items:center;gap:9px;min-height:44px;
+  padding:6px 10px 6px 6px;border-radius:14px;border:1px solid var(--line);
+  background:#ffffffcc;color:var(--ink);font-weight:900;cursor:pointer;
+}
+.meal-thumb-btn img{
+  width:38px;height:38px;object-fit:cover;border-radius:10px;border:1px solid var(--line);
+}
+.meal-title.previewable{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:4px}
+.meal-title.previewable:focus{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+.dish-modal{
+  position:fixed;inset:0;z-index:9999;background:rgba(20,30,25,.58);
+  display:none;align-items:center;justify-content:center;padding:18px;
+}
+.dish-modal.open{display:flex}
+.dish-modal-card{
+  width:min(92vw,760px);max-height:90vh;overflow:auto;
+  background:#fff;border-radius:22px;border:1px solid #d9e3dc;
+  box-shadow:0 24px 70px rgba(0,0,0,.28);padding:14px;position:relative;
+}
+.dish-modal-close{
+  position:absolute;right:12px;top:12px;width:44px;height:44px;border-radius:50%;
+  border:0;background:rgba(255,255,255,.94);color:#243229;font-size:24px;
+  display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.16);z-index:2;
+}
+.dish-modal-image{display:block;width:100%;height:auto;max-height:68vh;object-fit:contain;border-radius:16px;background:#f6f7f6}
+.dish-modal-title{font-size:18px;font-weight:900;margin:12px 4px 4px}
+.dish-modal-text{font-size:14px;color:var(--muted);line-height:1.5;margin:0 4px 4px}
+body.modal-open{overflow:hidden}
+@media(max-width:520px){
+  .dish-modal{padding:10px}
+  .dish-modal-card{width:96vw;padding:10px;border-radius:18px}
+}
+
 </style>
 </head>
 <body>
@@ -172,7 +209,16 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
   <div class="meal-grid">
     <div class="meal-card" id="mealCard-lunch">
       <div class="meal-card-head"><div class="meal-kind">🍽️ Almuerzo</div><div class="meal-counter" id="mealCounter-lunch"></div></div>
-      <div class="meal-option"><div class="meal-title" id="mealTitle-lunch"></div><div class="meal-text" id="mealText-lunch"></div></div>
+      <div class="meal-option">
+  <div class="meal-title previewable" id="mealTitle-lunch" role="button" tabindex="0" aria-label="Ver referencia del plato"></div>
+  <div class="meal-text" id="mealText-lunch"></div>
+  <div class="meal-preview-row">
+    <button type="button" class="meal-thumb-btn" id="mealPreviewBtn-lunch">
+      <img id="mealThumb-lunch" alt="">
+      <span>👁 Ver referencia</span>
+    </button>
+  </div>
+</div>
       <div class="meal-nav">
         <button class="secondary" onclick="moveMeal('lunch',-1)">‹</button>
         <button class="meal-select" onclick="selectMeal('lunch')">✓ Elegir esta opción</button>
@@ -296,6 +342,16 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 <input id="importFile" type="file" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
 </section>
 
+
+<div class="dish-modal" id="dishModal" aria-hidden="true">
+  <div class="dish-modal-card" role="dialog" aria-modal="true" aria-labelledby="dishModalTitle">
+    <button type="button" class="dish-modal-close" id="dishModalClose" aria-label="Cerrar">×</button>
+    <img class="dish-modal-image" id="dishModalImage" alt="">
+    <div class="dish-modal-title" id="dishModalTitle"></div>
+    <div class="dish-modal-text" id="dishModalText"></div>
+  </div>
+</div>
+
 <div class="footer">Herramienta de organización basada en las indicaciones registradas en la consulta. No reemplaza la indicación profesional. Los datos quedan en este navegador y el “día” cambia a las 02:00. Si esta carpeta se publica por HTTPS, puede agregarse a la pantalla de inicio como una app.</div>
 </div>
 
@@ -321,18 +377,18 @@ const msgs=["Hoy no hace falta hacerlo perfecto. Hace falta hacerlo.","Cada comi
 
 const mealOptions={
 lunch:[
-{title:"Bife magro + huevo + vegetales A",text:"Bife magro a la plancha + 1 huevo + vegetales A + semillas activadas. Postre: gelatina diet o chocolate ≥70%."},
-{title:"Pollo grillado + huevo + vegetales A",text:"Pollo grillado + huevo + vegetales A + semillas. Postre: yogur natural con cacao puro."},
-{title:"Carne magra + ensalada A",text:"Carne vacuna magra + huevo + vegetales A + frutos secos. Postre: chocolate 80–100%."},
-{title:"Hamburguesa casera sin pan",text:"Hamburguesa casera de carne magra sin pan + huevo + vegetales A + nueces. Postre: gelatina diet."},
-{title:"Pollo + huevo + vegetales A",text:"Pollo salteado o grillado + huevo + vegetales A + semillas activadas. Postre: chocolate ≥80%."},
-{title:"Churrasco magro + ensalada A",text:"Churrasco magro + huevo + vegetales A + semillas. Postre: yogur con cacao 100% y canela."},
-{title:"Ensalada grande de pollo",text:"Pollo + huevo + vegetales A + nueces. Aderezo de oliva, limón o vinagre. Postre: gelatina diet."},
-{title:"Carne al horno + vegetales A",text:"Carne al horno fría + huevo + vegetales A + almendras o nueces. Postre: chocolate 80–100%."},
-{title:"Pollo al limón + huevo",text:"Pollo al limón + huevo revuelto + vegetales A + semillas. Postre: gelatina diet."},
-{title:"Albóndigas magras",text:"Albóndigas caseras de carne magra sin pan rallado + huevo + vegetales A + nueces. Postre: yogur con cacao puro."},
-{title:"Bife con cebolla + huevo",text:"Bife con cebolla salteada + huevo + vegetales A. Postre: chocolate ≥70%."},
-{title:"Pechuga rellena + vegetales A",text:"Pechuga de pollo rellena con espinaca + huevo + vegetales A + semillas. Postre: yogur + cacao puro."}
+{title:"Bife magro + huevo + vegetales A",text:"Bife magro a la plancha + 1 huevo + vegetales A + semillas activadas. Postre: gelatina diet o chocolate ≥70%.",thumb:"images/almuerzo/almuerzo_01_thumb.jpg",img:"images/almuerzo/almuerzo_01.jpg"},
+{title:"Pollo grillado + huevo + vegetales A",text:"Pollo grillado + huevo + vegetales A + semillas. Postre: yogur natural con cacao puro.",thumb:"images/almuerzo/almuerzo_02_thumb.jpg",img:"images/almuerzo/almuerzo_02.jpg"},
+{title:"Carne magra + ensalada A",text:"Carne vacuna magra + huevo + vegetales A + frutos secos. Postre: chocolate 80–100%.",thumb:"images/almuerzo/almuerzo_03_thumb.jpg",img:"images/almuerzo/almuerzo_03.jpg"},
+{title:"Hamburguesa casera sin pan",text:"Hamburguesa casera de carne magra sin pan + huevo + vegetales A + nueces. Postre: gelatina diet.",thumb:"images/almuerzo/almuerzo_04_thumb.jpg",img:"images/almuerzo/almuerzo_04.jpg"},
+{title:"Pollo + huevo + vegetales A",text:"Pollo salteado o grillado + huevo + vegetales A + semillas activadas. Postre: chocolate ≥80%.",thumb:"images/almuerzo/almuerzo_05_thumb.jpg",img:"images/almuerzo/almuerzo_05.jpg"},
+{title:"Churrasco magro + ensalada A",text:"Churrasco magro + huevo + vegetales A + semillas. Postre: yogur con cacao 100% y canela.",thumb:"images/almuerzo/almuerzo_06_thumb.jpg",img:"images/almuerzo/almuerzo_06.jpg"},
+{title:"Ensalada grande de pollo",text:"Pollo + huevo + vegetales A + nueces. Aderezo de oliva, limón o vinagre. Postre: gelatina diet.",thumb:"images/almuerzo/almuerzo_07_thumb.jpg",img:"images/almuerzo/almuerzo_07.jpg"},
+{title:"Carne al horno + vegetales A",text:"Carne al horno fría + huevo + vegetales A + almendras o nueces. Postre: chocolate 80–100%.",thumb:"images/almuerzo/almuerzo_08_thumb.jpg",img:"images/almuerzo/almuerzo_08.jpg"},
+{title:"Pollo al limón + huevo",text:"Pollo al limón + huevo revuelto + vegetales A + semillas. Postre: gelatina diet.",thumb:"images/almuerzo/almuerzo_09_thumb.jpg",img:"images/almuerzo/almuerzo_09.jpg"},
+{title:"Albóndigas magras",text:"Albóndigas caseras de carne magra sin pan rallado + huevo + vegetales A + nueces. Postre: yogur con cacao puro.",thumb:"images/almuerzo/almuerzo_10_thumb.jpg",img:"images/almuerzo/almuerzo_10.jpg"},
+{title:"Bife con cebolla + huevo",text:"Bife con cebolla salteada + huevo + vegetales A. Postre: chocolate ≥70%.",thumb:"images/almuerzo/almuerzo_11_thumb.jpg",img:"images/almuerzo/almuerzo_11.jpg"},
+{title:"Pechuga rellena + vegetales A",text:"Pechuga de pollo rellena con espinaca + huevo + vegetales A + semillas. Postre: yogur + cacao puro.",thumb:"images/almuerzo/almuerzo_12_thumb.jpg",img:"images/almuerzo/almuerzo_12.jpg"}
 ],
 snack:[
 {title:"Pan integral + palta + huevo",text:"1 rodaja de pan integral con palta + huevo + aceitunas. Yogur natural si queda hambre."},
@@ -386,6 +442,13 @@ function renderMeals(){
     document.getElementById("mealTitle-"+kind).textContent=opt.title;
     document.getElementById("mealText-"+kind).textContent=opt.text;
     document.getElementById("mealCounter-"+kind).textContent=`${idx+1} / ${arr.length}`;
+    if(kind==="lunch"){
+      const thumb=document.getElementById("mealThumb-lunch");
+      if(thumb){
+        thumb.src=opt.thumb||"";
+        thumb.alt=opt.title ? "Referencia visual de "+opt.title : "Referencia visual";
+      }
+    }
     const selected=d.menuSelected[kind];
     const card=document.getElementById("mealCard-"+kind);
     const picked=document.getElementById("mealPicked-"+kind);
@@ -393,6 +456,32 @@ function renderMeals(){
     picked.textContent=selected===idx ? "✓ Elegida para hoy" : (selected!==undefined ? "Hay otra opción guardada para hoy" : "Todavía no elegiste una opción");
   });
 }
+
+function currentMealOption(kind){
+  const d=getMealState(),arr=mealOptions[kind];
+  const idx=((d.menuView[kind]%arr.length)+arr.length)%arr.length;
+  return arr[idx];
+}
+function openDishPreview(kind){
+  const opt=currentMealOption(kind);
+  if(!opt || !opt.img) return;
+  const modal=document.getElementById("dishModal");
+  const img=document.getElementById("dishModalImage");
+  document.getElementById("dishModalTitle").textContent=opt.title;
+  document.getElementById("dishModalText").textContent=opt.text;
+  img.src=opt.img;
+  img.alt="Referencia visual de "+opt.title;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden","false");
+  document.body.classList.add("modal-open");
+}
+function closeDishPreview(){
+  const modal=document.getElementById("dishModal");
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden","true");
+  document.body.classList.remove("modal-open");
+}
+
 function moveMeal(kind,delta){
   const k=localDateKey(),d=getMealState(),arr=mealOptions[kind];
   d.menuView[kind]=(d.menuView[kind]+delta+arr.length)%arr.length;
@@ -540,6 +629,24 @@ function download(name,text,type){const blob=new Blob([text],{type}),a=document.
 function importBackup(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data.days)throw Error("Formato no válido");Object.entries(data.days).forEach(([k,v])=>saveDayData(k,v));if(data.nextConsult){localStorage.setItem("blanca_nextConsult",data.nextConsult);nextConsult.value=data.nextConsult}refreshAll();alert("Registro recuperado.")}catch(e){alert("No pude recuperar el archivo: "+e.message)}ev.target.value=""};r.readAsText(f)}
 function resetToday(){if(confirm("¿Querés borrar solamente los checks de hoy? El resto del registro queda intacto.")){const k=localDateKey(),d=getDayData(k);d.done={};saveDayData(k,d);refreshAll()}}
 function refreshAll(){render();renderMeals();showHistory();renderCalendar();updateKPIs();updateCharts();buildInsights();buildConsultSummary()}
+
+const lunchPreviewBtn=document.getElementById("mealPreviewBtn-lunch");
+if(lunchPreviewBtn) lunchPreviewBtn.addEventListener("click",()=>openDishPreview("lunch"));
+const lunchTitle=document.getElementById("mealTitle-lunch");
+if(lunchTitle){
+  lunchTitle.addEventListener("click",()=>openDishPreview("lunch"));
+  lunchTitle.addEventListener("keydown",e=>{
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();openDishPreview("lunch")}
+  });
+}
+const dishModalClose=document.getElementById("dishModalClose");
+if(dishModalClose) dishModalClose.addEventListener("click",closeDishPreview);
+const dishModal=document.getElementById("dishModal");
+if(dishModal) dishModal.addEventListener("click",e=>{if(e.target===dishModal)closeDishPreview()});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&document.getElementById("dishModal")?.classList.contains("open")) closeDishPreview();
+});
+
 mot.textContent=msgs[new Date().getDate()%msgs.length];nextConsult.value=localStorage.getItem("blanca_nextConsult")||"";fillTodayForm();tick();setInterval(tick,60000);refreshAll();window.addEventListener("resize",updateCharts);
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
