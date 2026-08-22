@@ -1,4 +1,4 @@
-const CACHE='blanca-asistente-v4';
+const CACHE='blanca-asistente-colores-v2';
 const ASSETS=[
   './',
   './index.html',

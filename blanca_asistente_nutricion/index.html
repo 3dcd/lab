@@ -71,6 +71,49 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 .meal-picked{margin-top:8px;font-size:12px;font-weight:900;color:var(--accent);min-height:18px}
 .shuffle-btn{width:auto!important;margin:0!important}
 
+
+/* ===== ORIENTACIÓN VISUAL POR MOMENTO DEL DÍA ===== */
+:root{
+  --morning-bg:#fff7df; --morning-line:#ead6a4; --morning-ink:#8a6b22;
+  --lunch-bg:#dff1e2; --lunch-line:#8fc69a; --lunch-ink:#2f6b3b;
+  --snack-bg:#eadcf5; --snack-line:#b99bd6; --snack-ink:#67427f;
+  --dinner-bg:#dde9f7; --dinner-line:#93afd4; --dinner-ink:#3a5f8d;
+  --supp-bg:#f2f4f5; --supp-line:#d3d8dc; --supp-ink:#626a72;
+  --night-bg:#f1eff8; --night-line:#cbc4df; --night-ink:#62577c;
+}
+.step.period-morning{background:var(--morning-bg);border-color:var(--morning-line)}
+.step.period-lunch{background:var(--lunch-bg);border-color:var(--lunch-line)}
+.step.period-snack{background:var(--snack-bg);border-color:var(--snack-line)}
+.step.period-dinner{background:var(--dinner-bg);border-color:var(--dinner-line)}
+.step.period-supp{background:var(--supp-bg);border-color:var(--supp-line)}
+.step.period-night{background:var(--night-bg);border-color:var(--night-line)}
+.step.period-morning .time,.step.period-morning .title{color:var(--morning-ink)}
+.step.period-lunch .time,.step.period-lunch .title{color:var(--lunch-ink)}
+.step.period-snack .time,.step.period-snack .title{color:var(--snack-ink)}
+.step.period-dinner .time,.step.period-dinner .title{color:var(--dinner-ink)}
+.step.period-supp .time,.step.period-supp .title{color:var(--supp-ink)}
+.step.period-night .time,.step.period-night .title{color:var(--night-ink)}
+.step.active{border-width:2px}
+.step.active.period-morning{box-shadow:0 0 0 2px var(--morning-line),0 8px 18px rgba(138,107,34,.07)}
+.step.active.period-lunch{box-shadow:0 0 0 2px var(--lunch-line),0 8px 18px rgba(56,114,67,.07)}
+.step.active.period-snack{box-shadow:0 0 0 2px var(--snack-line),0 8px 18px rgba(118,82,143,.07)}
+.step.active.period-dinner{box-shadow:0 0 0 2px var(--dinner-line),0 8px 18px rgba(70,106,150,.07)}
+.step.active.period-supp{box-shadow:0 0 0 2px var(--supp-line),0 8px 18px rgba(98,106,114,.07)}
+.step.active.period-night{box-shadow:0 0 0 2px var(--night-line),0 8px 18px rgba(98,87,124,.07)}
+.meal-card#mealCard-lunch{background:linear-gradient(180deg,var(--lunch-bg) 0%,#f8fcf8 100%);border-color:var(--lunch-line)}
+.meal-card#mealCard-snack{background:linear-gradient(180deg,var(--snack-bg) 0%,#fcf9fe 100%);border-color:var(--snack-line)}
+.meal-card#mealCard-dinner{background:linear-gradient(180deg,var(--dinner-bg) 0%,#f8fbff 100%);border-color:var(--dinner-line)}
+#mealCard-lunch .meal-kind{color:var(--lunch-ink)}
+#mealCard-snack .meal-kind{color:var(--snack-ink)}
+#mealCard-dinner .meal-kind{color:var(--dinner-ink)}
+.period-legend{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+.period-pill{font-size:12px;font-weight:900;padding:7px 10px;border-radius:999px;border:1px solid var(--line)}
+.period-pill.morning{background:var(--morning-bg);border-color:var(--morning-line);color:var(--morning-ink)}
+.period-pill.lunch{background:var(--lunch-bg);border-color:var(--lunch-line);color:var(--lunch-ink)}
+.period-pill.snack{background:var(--snack-bg);border-color:var(--snack-line);color:var(--snack-ink)}
+.period-pill.dinner{background:var(--dinner-bg);border-color:var(--dinner-line);color:var(--dinner-ink)}
+.period-pill.supp{background:var(--supp-bg);border-color:var(--supp-line);color:var(--supp-ink)}
+
 </style>
 </head>
 <body>
@@ -93,12 +136,20 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 <div class="grid" id="hoy">
 <main class="card">
 <div class="now"><small>AHORA</small><strong id="nowTitle">Cargando…</strong><div id="nowText" class="desc"></div></div>
-<h2>🕐 Tu día de un vistazo</h2><div id="timeline" class="timeline"></div>
+<h2>🕐 Tu día de un vistazo</h2>
+<div class="period-legend">
+  <span class="period-pill morning">☀️ Mañana / desayuno</span>
+  <span class="period-pill lunch">🍽️ Almuerzo</span>
+  <span class="period-pill snack">☕ Merienda</span>
+  <span class="period-pill dinner">🌙 Cena</span>
+  <span class="period-pill supp">💊 Suplementos</span>
+</div>
+<div id="timeline" class="timeline"></div>
 </main>
 <aside style="display:grid;gap:18px">
 <section class="card"><h2>⭐ Enfoque de hoy</h2><div id="mot" class="mot"></div><div class="bar"><div id="fill" class="fill"></div></div><div id="progress" class="small" style="margin-top:6px"></div></section>
 <section class="card"><h2>🎯 Regla simple de Blanca</h2>
-<p><b>Mañana:</b> rutina intestinal + ayuno hasta aprox. las 12 h.</p>
+<p><b>Mañana / desayuno:</b> rutina intestinal + ayuno hasta aprox. las 12 h.</p>
 <p><b>Romper el ayuno:</b> empezar por proteína.</p>
 <p><b>Almuerzo:</b> carnes blancas/rojas o huevo + vegetales A.</p>
 <p><b>16–18 h:</b> merienda organizada.</p>
@@ -376,9 +427,20 @@ function allDayKeys(){const a=[];for(let i=0;i<localStorage.length;i++){const k=
 function toggle(id){const k=localDateKey(),data=getDayData(k);data.done[id]=!data.done[id];saveDayData(k,data);refreshAll()}
 function effectiveHour(){let h=new Date().getHours()+new Date().getMinutes()/60;if(h<RESET_HOUR)h+=24;return h}
 function active(){const h=effectiveHour(),a=steps.filter(s=>h>=s.from&&h<s.to).sort((a,b)=>b.from-a.from);return a[0]||(h<6?steps[0]:steps.at(-1))}
+
+function periodClass(step){
+  const id=step.id;
+  if(["pro","prep","fast","coffee","breakfast"].includes(id)) return "period-morning";
+  if(id==="lunch") return "period-lunch";
+  if(id==="snack") return "period-snack";
+  if(id==="dinner") return "period-dinner";
+  if(id==="nightTinture") return "period-night";
+  return "period-supp";
+}
+
 function render(){
  const data=getDayData(),done=data.done||{},a=active(),box=document.getElementById("timeline");box.innerHTML="";
- steps.forEach(s=>{const e=document.createElement("div");e.className="step"+(s.id===a.id?" active":"")+(done[s.id]?" done":"");e.innerHTML=`<div class="time">${s.t}</div><div><div class="title">${s.title}</div><div class="desc">${s.d}</div><div class="tags">${s.tags.map(x=>`<span class="tag">${x}</span>`).join("")}</div></div><div class="check ${done[s.id]?"on":""}" onclick="toggle('${s.id}')">${done[s.id]?"✓":""}</div>`;box.appendChild(e)});
+ steps.forEach(s=>{const e=document.createElement("div");e.className="step "+periodClass(s)+(s.id===a.id?" active":"")+(done[s.id]?" done":"");e.innerHTML=`<div class="time">${s.t}</div><div><div class="title">${s.title}</div><div class="desc">${s.d}</div><div class="tags">${s.tags.map(x=>`<span class="tag">${x}</span>`).join("")}</div></div><div class="check ${done[s.id]?"on":""}" onclick="toggle('${s.id}')">${done[s.id]?"✓":""}</div>`;box.appendChild(e)});
  nowTitle.textContent=a.title;nowText.textContent=a.d;const n=steps.filter(s=>done[s.id]).length;progress.textContent=`${n} de ${steps.length} pasos completados`;fill.style.width=(n/steps.length*100)+"%"
 }
 function tick(){const d=new Date();clock.textContent=d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});date.textContent=d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"});render()}
