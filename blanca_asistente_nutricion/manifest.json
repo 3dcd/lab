@@ -1,0 +1,22 @@
+{
+  "name": "Blanca · Asistente Diario",
+  "short_name": "Blanca",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f6f2",
+  "theme_color": "#275b43",
+  "description": "Rutina diaria, alimentación, suplementos y seguimiento personal.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

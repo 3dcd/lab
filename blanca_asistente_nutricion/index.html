@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#275b43">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Blanca">
+
+<title>Blanca · Asistente Diario</title>
+<style>
+:root{
+  --bg:#f2f6f2;--card:#ffffff;--ink:#203128;--muted:#6c7a72;--accent:#2e7d57;--accent2:#5da27a;
+  --soft:#e9f4ed;--line:#dbe4de;--gold:#d79a3a;--danger:#b95151;--shadow:0 12px 28px rgba(34,70,49,.08)
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#edf5ef,#f8faf8 44%,#eef3ef);color:var(--ink)}
+.wrap{max-width:1220px;margin:auto;padding:18px}
+.hero{background:linear-gradient(135deg,#214f3a,#3e8c65);color:#fff;border-radius:28px;padding:26px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;width:240px;height:240px;border-radius:50%;right:-90px;top:-100px;background:#ffffff12}
+.hero h1{margin:0;font-size:clamp(30px,5vw,48px)}
+.hero p{margin:8px 0 0;color:#e8f5ed;max-width:780px}
+.chips{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.chip{background:#ffffff22;padding:9px 13px;border-radius:999px;font-weight:800}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.nav a{color:var(--ink);text-decoration:none;background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:999px;font-size:13px;font-weight:800}
+.grid{display:grid;grid-template-columns:1.3fr .7fr;gap:18px}.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.grid,.two,.three{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
+.card h2,.card h3{margin-top:0}
+.now{background:var(--soft);border:2px solid #b9d6c5;border-radius:18px;padding:16px;margin-bottom:16px}.now small{color:var(--muted);font-weight:900}.now strong{display:block;font-size:25px;margin:4px 0}
+.timeline{display:grid;gap:10px}.step{display:grid;grid-template-columns:86px 1fr 32px;gap:12px;align-items:center;border:1px solid var(--line);border-radius:17px;padding:14px;background:#fff}.step.active{border:2px solid var(--accent);background:var(--soft)}.step.done{opacity:.58}.time{font-weight:900;color:var(--accent)}.title{font-weight:900;font-size:17px}.desc{font-size:14px;color:var(--muted);line-height:1.4;margin-top:3px}.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.tag{background:#f1f4f2;border:1px solid var(--line);border-radius:999px;padding:6px 9px;font-size:12px}
+.check{width:29px;height:29px;border:2px solid var(--accent);border-radius:50%;display:grid;place-items:center;cursor:pointer;font-weight:900}.check.on{background:var(--accent);color:#fff}
+.mot{font-size:21px;font-weight:900;line-height:1.3;background:var(--soft);border-radius:16px;padding:16px}
+.bar{height:10px;background:#e8ece9;border-radius:99px;overflow:hidden;margin-top:12px}.fill{height:100%;background:var(--accent);width:0}
+label{font-size:12px;color:var(--muted);font-weight:900;display:block;margin-bottom:5px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:11px;background:#fff;font:inherit;color:var(--ink)}
+textarea{min-height:86px;resize:vertical}.field{margin-bottom:11px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}@media(max-width:600px){.row,.row3{grid-template-columns:1fr}}
+.rangebox{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.rangebox output{font-weight:900;color:var(--accent);min-width:24px;text-align:center}
+button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-weight:900;cursor:pointer}.btnwide{width:100%}.secondary{background:#eff4f0;color:var(--ink);border:1px solid var(--line)}.danger{background:#f8ecec;color:var(--danger);border:1px solid #efd0d0}
+.small{font-size:12px;color:var(--muted);line-height:1.45}.muted{color:var(--muted)}
+.calendar-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.calendar-title{font-weight:900;font-size:17px;text-transform:capitalize}.weekdays,.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.weekdays div{text-align:center;font-size:11px;color:var(--muted);font-weight:900;padding:4px}.day{min-height:61px;border:1px solid var(--line);border-radius:12px;padding:6px;background:#fff;position:relative;cursor:pointer}.day.empty{visibility:hidden}.day.today{border:2px solid var(--accent)}.day.hasdata{background:#f5faf7}.day.complete{background:#e5f3ea;border-color:#9ac4aa}.daynum{font-weight:900;font-size:13px}.daymark{position:absolute;right:6px;bottom:5px;font-size:11px;font-weight:900;color:var(--accent)}.daydot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-left:4px}
+.detail{margin-top:10px;padding:12px;border:1px dashed #bdd1c3;border-radius:13px;background:#fafcfb;font-size:13px;line-height:1.5}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}.kpi{background:#f7faf8;border:1px solid var(--line);border-radius:16px;padding:13px}.kpi small{color:var(--muted);font-weight:800}.kpi strong{display:block;font-size:25px;margin-top:3px}
+.chart{width:100%;height:210px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(#fbfcfb,#f6f9f7);display:block}
+.insights{display:grid;gap:9px}.insight{padding:12px;border-radius:14px;background:#f6faf7;border:1px solid var(--line);line-height:1.45}.insight b{color:var(--accent)}
+.history{display:grid;gap:7px}.hist{display:flex;justify-content:space-between;gap:10px;border:1px solid var(--line);padding:10px;border-radius:12px;font-size:13px;background:#fbfcfb}
+.backup{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}@media(max-width:650px){.backup{grid-template-columns:1fr}}
+.consult{background:linear-gradient(135deg,#fbfcfb,#eef6f1);border:1px solid #cfe0d5;border-radius:16px;padding:14px;white-space:pre-line;line-height:1.55}
+.footer{text-align:center;color:var(--muted);font-size:12px;margin:18px}
+.badge{display:inline-block;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:900;background:#edf3ef;color:var(--accent)}
+
+.meal-section{margin-top:18px}
+.meal-intro{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.meal-intro p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+.meal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:900px){.meal-grid{grid-template-columns:1fr}}
+.meal-card{border:1px solid var(--line);border-radius:20px;padding:15px;background:linear-gradient(180deg,#fff,#f8fbf9);position:relative;overflow:hidden}
+.meal-card.selected{border:2px solid var(--accent);background:var(--soft)}
+.meal-card-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px}
+.meal-kind{font-weight:900;font-size:18px}
+.meal-counter{font-size:12px;color:var(--muted);font-weight:800;background:#f0f4f1;border:1px solid var(--line);padding:5px 8px;border-radius:999px}
+.meal-option{min-height:158px;display:flex;flex-direction:column;justify-content:center;padding:8px 2px}
+.meal-title{font-weight:900;font-size:17px;line-height:1.25;margin-bottom:7px;color:var(--ink)}
+.meal-text{font-size:14px;line-height:1.5;color:var(--muted)}
+.meal-nav{display:grid;grid-template-columns:44px 1fr 44px;gap:8px;align-items:center;margin-top:10px}
+.meal-nav button{margin:0;padding:10px 8px;font-size:18px}
+.meal-select{margin:0!important}
+.meal-picked{margin-top:8px;font-size:12px;font-weight:900;color:var(--accent);min-height:18px}
+.shuffle-btn{width:auto!important;margin:0!important}
+
+
+/* ===== ORIENTACIÓN VISUAL POR MOMENTO DEL DÍA ===== */
+:root{
+  --morning-bg:#fff7df; --morning-line:#ead6a4; --morning-ink:#8a6b22;
+  --lunch-bg:#dff1e2; --lunch-line:#8fc69a; --lunch-ink:#2f6b3b;
+  --snack-bg:#eadcf5; --snack-line:#b99bd6; --snack-ink:#67427f;
+  --dinner-bg:#dde9f7; --dinner-line:#93afd4; --dinner-ink:#3a5f8d;
+  --supp-bg:#f2f4f5; --supp-line:#d3d8dc; --supp-ink:#626a72;
+  --night-bg:#f1eff8; --night-line:#cbc4df; --night-ink:#62577c;
+}
+.step.period-morning{background:var(--morning-bg);border-color:var(--morning-line)}
+.step.period-lunch{background:var(--lunch-bg);border-color:var(--lunch-line)}
+.step.period-snack{background:var(--snack-bg);border-color:var(--snack-line)}
+.step.period-dinner{background:var(--dinner-bg);border-color:var(--dinner-line)}
+.step.period-supp{background:var(--supp-bg);border-color:var(--supp-line)}
+.step.period-night{background:var(--night-bg);border-color:var(--night-line)}
+.step.period-morning .time,.step.period-morning .title{color:var(--morning-ink)}
+.step.period-lunch .time,.step.period-lunch .title{color:var(--lunch-ink)}
+.step.period-snack .time,.step.period-snack .title{color:var(--snack-ink)}
+.step.period-dinner .time,.step.period-dinner .title{color:var(--dinner-ink)}
+.step.period-supp .time,.step.period-supp .title{color:var(--supp-ink)}
+.step.period-night .time,.step.period-night .title{color:var(--night-ink)}
+.step.active{border-width:2px}
+.step.active.period-morning{box-shadow:0 0 0 2px var(--morning-line),0 8px 18px rgba(138,107,34,.07)}
+.step.active.period-lunch{box-shadow:0 0 0 2px var(--lunch-line),0 8px 18px rgba(56,114,67,.07)}
+.step.active.period-snack{box-shadow:0 0 0 2px var(--snack-line),0 8px 18px rgba(118,82,143,.07)}
+.step.active.period-dinner{box-shadow:0 0 0 2px var(--dinner-line),0 8px 18px rgba(70,106,150,.07)}
+.step.active.period-supp{box-shadow:0 0 0 2px var(--supp-line),0 8px 18px rgba(98,106,114,.07)}
+.step.active.period-night{box-shadow:0 0 0 2px var(--night-line),0 8px 18px rgba(98,87,124,.07)}
+.meal-card#mealCard-lunch{background:linear-gradient(180deg,var(--lunch-bg) 0%,#f8fcf8 100%);border-color:var(--lunch-line)}
+.meal-card#mealCard-snack{background:linear-gradient(180deg,var(--snack-bg) 0%,#fcf9fe 100%);border-color:var(--snack-line)}
+.meal-card#mealCard-dinner{background:linear-gradient(180deg,var(--dinner-bg) 0%,#f8fbff 100%);border-color:var(--dinner-line)}
+#mealCard-lunch .meal-kind{color:var(--lunch-ink)}
+#mealCard-snack .meal-kind{color:var(--snack-ink)}
+#mealCard-dinner .meal-kind{color:var(--dinner-ink)}
+.period-legend{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+.period-pill{font-size:12px;font-weight:900;padding:7px 10px;border-radius:999px;border:1px solid var(--line)}
+.period-pill.morning{background:var(--morning-bg);border-color:var(--morning-line);color:var(--morning-ink)}
+.period-pill.lunch{background:var(--lunch-bg);border-color:var(--lunch-line);color:var(--lunch-ink)}
+.period-pill.snack{background:var(--snack-bg);border-color:var(--snack-line);color:var(--snack-ink)}
+.period-pill.dinner{background:var(--dinner-bg);border-color:var(--dinner-line);color:var(--dinner-ink)}
+.period-pill.supp{background:var(--supp-bg);border-color:var(--supp-line);color:var(--supp-ink)}
+
+
+/* ===== RESALTADO CLARO DEL MOMENTO ACTUAL ===== */
+.step.active{
+  position:relative;
+  border-width:3px !important;
+  transform:translateY(-1px);
+  opacity:1 !important;
+}
+.step.active::before{
+  content:"AHORA";
+  position:absolute;
+  right:12px;
+  top:-11px;
+  padding:4px 9px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:1000;
+  letter-spacing:.08em;
+  color:#fff;
+  background:var(--accent);
+  box-shadow:0 4px 12px rgba(0,0,0,.12);
+}
+.step.active.period-morning::before{background:var(--morning-ink)}
+.step.active.period-lunch::before{background:var(--lunch-ink)}
+.step.active.period-snack::before{background:var(--snack-ink)}
+.step.active.period-dinner::before{background:var(--dinner-ink)}
+.step.active.period-supp::before{background:var(--supp-ink)}
+.step.active.period-night::before{background:var(--night-ink)}
+
+.now{
+  box-shadow:0 0 0 3px rgba(46,125,87,.10),0 10px 24px rgba(46,125,87,.09);
+}
+.now strong::before{content:"📍 ";}
+
+@media(max-width:520px){
+  .step.active::before{right:8px;top:-10px}
+}
+
+</style>
+<style>
+.recipe-btn{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:8px 12px;border-radius:14px;border:1px solid var(--lunch-line);background:var(--lunch-bg);color:var(--lunch-ink);font-weight:900;cursor:pointer}
+.recipe-modal{position:fixed;inset:0;z-index:10000;background:rgba(20,30,25,.6);display:none;align-items:center;justify-content:center;padding:18px}.recipe-modal.open{display:flex}
+.recipe-card{width:min(94vw,720px);max-height:88vh;overflow:auto;background:#fff;border-radius:22px;border:1px solid var(--lunch-line);padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.28);position:relative}
+.recipe-close{position:absolute;right:12px;top:12px;width:44px;height:44px;border:0;border-radius:50%;background:#f4f6f4;font-size:24px;cursor:pointer}
+.recipe-kicker{font-size:12px;font-weight:900;color:var(--lunch-ink);text-transform:uppercase}.recipe-title{font-size:21px;font-weight:900;margin:5px 50px 12px 0}.recipe-time{display:inline-block;background:var(--lunch-bg);color:var(--lunch-ink);border-radius:999px;padding:6px 10px;font-weight:900;font-size:12px}.recipe-section{margin-top:15px}.recipe-section h3{font-size:15px;margin:0 0 7px}.recipe-section ul,.recipe-section ol{padding-left:22px;line-height:1.55}.recipe-tip{margin-top:16px;padding:12px;border-radius:14px;background:#f6f8f6;border:1px solid var(--line)}
+</style></head>
+<body>
+<div class="wrap">
+<section class="hero">
+<h1>🌿 Blanca · Asistente Diario</h1>
+<p>Tu rutina diaria, alimentación, suplementos, seguimiento y evolución en un solo lugar.</p>
+<div class="chips">
+<div class="chip">🕒 <span id="clock">--:--</span></div>
+<div class="chip">📅 <span id="date">--</span></div>
+<div class="chip">⚖️ Punto de partida: primer registro</div>
+<div class="chip">🔄 Nuevo día: 02:00</div>
+</div>
+</section>
+
+<div class="nav">
+<a href="#hoy">Hoy</a><a href="#menu-dia">Menú del día</a><a href="#registro">Registro</a><a href="#calendario">Calendario</a><a href="#evolucion">Evolución</a><a href="#descubrimientos">Descubrimientos</a><a href="#consulta">Próxima consulta</a><a href="#backup">Backup</a>
+</div>
+
+<div class="grid" id="hoy">
+<main class="card">
+<div class="now"><small>AHORA</small><strong id="nowTitle">Cargando…</strong><div id="nowText" class="desc"></div></div>
+<h2>🕐 Tu día de un vistazo</h2>
+<div class="period-legend">
+  <span class="period-pill morning">☀️ Mañana / desayuno</span>
+  <span class="period-pill lunch">🍽️ Almuerzo</span>
+  <span class="period-pill snack">☕ Merienda</span>
+  <span class="period-pill dinner">🌙 Cena</span>
+  <span class="period-pill supp">💊 Suplementos</span>
+</div>
+<div id="timeline" class="timeline"></div>
+</main>
+<aside style="display:grid;gap:18px">
+<section class="card"><h2>⭐ Enfoque de hoy</h2><div id="mot" class="mot"></div><div class="bar"><div id="fill" class="fill"></div></div><div id="progress" class="small" style="margin-top:6px"></div></section>
+<section class="card"><h2>🎯 Regla simple de Blanca</h2>
+<p><b>Mañana / desayuno:</b> rutina intestinal + ayuno hasta aprox. las 12 h.</p>
+<p><b>Romper el ayuno:</b> empezar por proteína.</p>
+<p><b>Almuerzo:</b> carnes blancas/rojas o huevo + vegetales A.</p>
+<p><b>16–18 h:</b> merienda organizada.</p>
+<p><b>18–19 h:</b> bisglicinato de magnesio + vitamina C 1 g.</p>
+<p><b>Antes de cenar (~20 h):</b> triptófano.</p>
+<p><b>Cena:</b> vegetales A/B (C en menor medida) + pollo/pescado/huevo.</p>
+<p><b>Antes de dormir:</b> tintura compuesta relajante.</p></section>
+</aside>
+</div>
+
+
+<section class="card meal-section" id="menu-dia">
+  <div class="meal-intro">
+    <div>
+      <h2 style="margin-bottom:5px">🍽️ Menú del día</h2>
+      <p>Cada día aparecen propuestas distintas. Podés recorrerlas con las flechas y guardar la que realmente elegiste.</p>
+    </div>
+    <button class="secondary shuffle-btn" onclick="shuffleAllMeals()">🎲 Otra combinación</button>
+  </div>
+  <div class="meal-grid">
+    <div class="meal-card" id="mealCard-lunch">
+      <div class="meal-card-head"><div class="meal-kind">🍽️ Almuerzo</div><div class="meal-counter" id="mealCounter-lunch"></div></div>
+      <div class="meal-option">
+  <div class="meal-title" id="mealTitle-lunch"></div>
+  <div class="meal-text" id="mealText-lunch"></div>
+  <div style="margin-top:10px">
+    <button type="button" class="recipe-btn" id="mealRecipeBtn-lunch">👨‍🍳 Ver receta</button>
+  </div>
+</div>
+      <div class="meal-nav">
+        <button class="secondary" onclick="moveMeal('lunch',-1)">‹</button>
+        <button class="meal-select" onclick="selectMeal('lunch')">✓ Elegir esta opción</button>
+        <button class="secondary" onclick="moveMeal('lunch',1)">›</button>
+      </div>
+      <div class="meal-picked" id="mealPicked-lunch"></div>
+    </div>
+
+    <div class="meal-card" id="mealCard-snack">
+      <div class="meal-card-head"><div class="meal-kind">☕ Merienda</div><div class="meal-counter" id="mealCounter-snack"></div></div>
+      <div class="meal-option"><div class="meal-title" id="mealTitle-snack"></div><div class="meal-text" id="mealText-snack"></div></div>
+      <div class="meal-nav">
+        <button class="secondary" onclick="moveMeal('snack',-1)">‹</button>
+        <button class="meal-select" onclick="selectMeal('snack')">✓ Elegir esta opción</button>
+        <button class="secondary" onclick="moveMeal('snack',1)">›</button>
+      </div>
+      <div class="meal-picked" id="mealPicked-snack"></div>
+    </div>
+
+    <div class="meal-card" id="mealCard-dinner">
+      <div class="meal-card-head"><div class="meal-kind">🌙 Cena</div><div class="meal-counter" id="mealCounter-dinner"></div></div>
+      <div class="meal-option"><div class="meal-title" id="mealTitle-dinner"></div><div class="meal-text" id="mealText-dinner"></div></div>
+      <div class="meal-nav">
+        <button class="secondary" onclick="moveMeal('dinner',-1)">‹</button>
+        <button class="meal-select" onclick="selectMeal('dinner')">✓ Elegir esta opción</button>
+        <button class="secondary" onclick="moveMeal('dinner',1)">›</button>
+      </div>
+      <div class="meal-picked" id="mealPicked-dinner"></div>
+    </div>
+  </div>
+</section>
+
+<section class="card" id="registro" style="margin-top:18px">
+<h2>📌 Registro del día <span class="badge">10 segundos o detallado</span></h2>
+<div class="two">
+<div>
+<h3>Medidas y actividad</h3>
+<div class="row"><div class="field"><label>Peso (kg)</label><input id="weight" type="number" step=".1" placeholder="Ej. 64.5"></div><div class="field"><label>Cintura (cm) · opcional/semanal</label><input id="waist" type="number" step=".1" placeholder="Ej. 82"></div></div>
+<div class="row3"><div class="field"><label>Caminata (min)</label><input id="walk" type="number" placeholder="Ej. 30"></div><div class="field"><label>Pesas/fuerza (min)</label><input id="strength" type="number" placeholder="Ej. 45"></div><div class="field"><label>Intensidad</label><select id="intensity"><option value="">—</option><option>Suave</option><option>Moderada</option><option>Alta</option></select></div></div>
+<h3>Sueño</h3>
+<div class="row3"><div class="field"><label>Hora de acostarte</label><input id="bedtime" type="time"></div><div class="field"><label>Hora de levantarte</label><input id="waketime" type="time"></div><div class="field"><label>Horas dormidas</label><input id="sleep" type="number" step=".1" placeholder="Ej. 6.5"></div></div>
+<div class="field"><label>Calidad del sueño (1–5)</label><div class="rangebox"><input id="sleepQuality" type="range" min="1" max="5" value="3" oninput="sqOut.value=this.value"><output id="sqOut">3</output></div></div>
+</div>
+
+<div>
+<h3>Cómo te sentiste</h3>
+<div class="row">
+<div class="field"><label>Energía (1–5)</label><div class="rangebox"><input id="energy" type="range" min="1" max="5" value="3" oninput="energyOut.value=this.value"><output id="energyOut">3</output></div></div>
+<div class="field"><label>Ánimo (1–5)</label><div class="rangebox"><input id="mood" type="range" min="1" max="5" value="3" oninput="moodOut.value=this.value"><output id="moodOut">3</output></div></div>
+</div>
+<div class="row">
+<div class="field"><label>Hambre (1–5)</label><div class="rangebox"><input id="hunger" type="range" min="1" max="5" value="3" oninput="hungerOut.value=this.value"><output id="hungerOut">3</output></div></div>
+<div class="field"><label>Estrés (1–5)</label><div class="rangebox"><input id="stress" type="range" min="1" max="5" value="3" oninput="stressOut.value=this.value"><output id="stressOut">3</output></div></div>
+</div>
+<div class="field"><label>Digestión</label><select id="digestion"><option value="">Elegir</option><option>Normal</option><option>Hinchado</option><option>Constipado</option><option>Acidez</option><option>Diarrea</option><option>Otro</option></select></div>
+<div class="field"><label>Antojos / ansiedad por comer</label><select id="cravings"><option value="">Elegir</option><option>Ninguno</option><option>Leve</option><option>Moderado</option><option>Fuerte</option></select></div>
+<div class="field"><label>Comida fuera del esquema · sin culpa, solo dato</label><input id="offplan" placeholder="Ej. pizza, cumpleaños, nada"></div>
+<div class="field"><label>Nota libre</label><textarea id="notes" placeholder="Ej. hoy tuve buena energía, me sentí liviana, dormí mejor…"></textarea></div>
+</div>
+</div>
+<button class="btnwide" onclick="saveEntry()">💾 Guardar registro de hoy</button>
+</section>
+
+<div class="two" style="margin-top:18px">
+<section class="card" id="calendario">
+<h2>🗓️ Calendario de seguimiento</h2>
+<div class="calendar-head"><button class="secondary" onclick="changeMonth(-1)">‹</button><div id="calendarTitle" class="calendar-title"></div><button class="secondary" onclick="changeMonth(1)">›</button></div>
+<div class="weekdays"><div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
+<div id="calendar" class="calendar"></div><div id="dayDetail" class="detail">Tocá un día para ver el resumen guardado.</div>
+</section>
+
+<section class="card">
+<h2>📚 Últimos registros</h2><div id="history" class="history"></div>
+</section>
+</div>
+
+<section class="card" id="evolucion" style="margin-top:18px">
+<h2>📈 Evolución</h2>
+<div class="kpis">
+<div class="kpi"><small>Peso actual</small><strong id="kpiWeight">—</strong></div>
+<div class="kpi"><small>Cambio desde inicio</small><strong id="kpiChange">—</strong></div>
+<div class="kpi"><small>Caminata 7 días</small><strong id="kpiWalk">—</strong></div>
+<div class="kpi"><small>Cumplimiento 7 días</small><strong id="kpiCompliance">—</strong></div>
+</div>
+<div class="two" style="margin-top:14px">
+<div><h3>⚖️ Peso</h3><canvas id="weightChart" class="chart"></canvas></div>
+<div><h3>🚶 Caminata</h3><canvas id="walkChart" class="chart"></canvas></div>
+</div>
+<div class="two" style="margin-top:14px">
+<div><h3>😴 Sueño</h3><canvas id="sleepChart" class="chart"></canvas></div>
+<div><h3>✅ Cumplimiento diario</h3><canvas id="complianceChart" class="chart"></canvas></div>
+</div>
+</section>
+
+<section class="card" id="descubrimientos" style="margin-top:18px">
+<h2>🔎 Panel de descubrimientos</h2>
+<p class="small">Estas frases se calculan solo con tus propios registros. Son observaciones simples, no conclusiones médicas.</p>
+<div id="insights" class="insights"></div>
+</section>
+
+<section class="card" id="consulta" style="margin-top:18px">
+<h2>🩺 Resumen para la próxima consulta</h2>
+<div class="row">
+<div class="field"><label>Fecha estimada de próxima consulta</label><input id="nextConsult" type="date" onchange="saveConsultDate()"></div>
+<div class="field"><label>Período a resumir</label><select id="consultDays" onchange="buildConsultSummary()"><option value="20">Últimos 20 días</option><option value="14">Últimos 14 días</option><option value="30">Últimos 30 días</option></select></div>
+</div>
+<div id="consultSummary" class="consult"></div>
+<button class="btnwide" onclick="copyConsult()">📋 Copiar resumen</button>
+</section>
+
+<section class="card" id="backup" style="margin-top:18px">
+<h2>💾 Datos, backup y análisis</h2>
+<p class="small">Los datos quedan guardados en este navegador aunque cierres el HTML. Si borrás los datos del navegador, cambiás de dispositivo o usás otro navegador, pueden desaparecer. Exportá una copia periódicamente.</p>
+<div class="backup">
+<button onclick="exportBackup()">⬇️ Backup JSON</button>
+<button class="secondary" onclick="exportCSV()">📊 Exportar CSV</button>
+<button class="secondary" onclick="exportForChatGPT()">🤖 Exportar para ChatGPT</button>
+<button class="secondary" onclick="document.getElementById('importFile').click()">⬆️ Recuperar backup</button>
+<button class="danger" onclick="resetToday()">↺ Reiniciar checks de hoy</button>
+</div>
+<input id="importFile" type="file" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
+</section>
+
+
+<div class="recipe-modal" id="recipeModal" aria-hidden="true"><div class="recipe-card" role="dialog" aria-modal="true"><button type="button" class="recipe-close" id="recipeClose">×</button><div class="recipe-kicker">👨‍🍳 Receta rápida</div><div class="recipe-title" id="recipeTitle"></div><div class="recipe-time" id="recipeTime"></div><div class="recipe-section"><h3>Ingredientes</h3><ul id="recipeIngredients"></ul></div><div class="recipe-section"><h3>Preparación</h3><ol id="recipeSteps"></ol></div><div class="recipe-tip" id="recipeTip"></div></div></div><div class="footer">Herramienta de organización basada en las indicaciones registradas en la consulta. No reemplaza la indicación profesional. Los datos quedan en este navegador y el “día” cambia a las 02:00. Si esta carpeta se publica por HTTPS, puede agregarse a la pantalla de inicio como una app.</div>
+</div>
+
+<script>
+const RESET_HOUR=2, START_WEIGHT=null;
+const steps=[
+{id:"pro",from:2,to:8,t:"Al levantarte",title:"🦠 Probiótico",d:"Primero del día, según la cantidad/frecuencia indicada por la nutricionista.",tags:["probiótico","rutina intestinal"]},
+{id:"prep",from:6,to:9,t:"+ 5 min",title:"🥛 Agua templada + limón + aloe",d:"Aprox. 200 cc de agua templada + jugo de ½ limón + 1 cucharada sopera de aloe vera. El vinagre de manzana es opcional.",tags:["200 cc","½ limón","1 cda. aloe","vinagre opcional"]},
+{id:"fast",from:6,to:12,t:"Mañana",title:"☀️ Ayuno e hidratación",d:"Mantener el ayuno hasta aprox. las 12 h. Agua, mate, té o café no torrado. Evitar picoteo.",tags:["💧 agua","🧉 mate","🍵 té","☕ café no torrado"]},
+{id:"coffee",from:7,to:10,t:"Antes de 10 h",title:"☕ Opción de café",d:"Café no torrado con canela. En la consulta también apareció aceite de coco y cacao; dejalo como opción a confirmar con la nutricionista si querés sostener un ayuno estricto.",tags:["canela","aceite de coco opcional","cacao opcional"]},
+{id:"breakfast",from:11.5,to:13,t:"~12 h",title:"🥚 Romper el ayuno",d:"Empezar por proteína. Puede ser huevo o frutos secos antes del almuerzo si aparece hambre.",tags:["🥚 huevo","🥜 frutos secos"]},
+{id:"lunch",from:12,to:15.5,t:"Almuerzo",title:"🍽️ Proteína + vegetales A",d:"Carnes blancas o rojas, huevo y vegetales A. Se pueden sumar semillas activadas y frutos secos. Postre: gelatina diet o chocolate/cacao puro ≥70%.",tags:["🥩 carne","🍗 pollo","🥚 huevo","🥬 vegetales A","🌱 semillas","🥜 frutos secos"]},
+{id:"turmericLunch",from:12,to:15.5,t:"Con almuerzo",title:"🌿 Cúrcuma + pimienta",d:"Cúrcuma + pimienta negra con el almuerzo, según la indicación.",tags:["cúrcuma","pimienta negra"]},
+{id:"castana",from:10,to:18,t:"Durante el día",title:"🌰 Tintura de castaña de Indias",d:"20 gotas, 1 vez al día. Si hay ataque de hemorroides, la indicación registrada fue 2 veces al día.",tags:["20 gotas","1 vez/día","2 veces/día si ataque"]},
+{id:"snack",from:16,to:18,t:"16–18 h",title:"☕ Merienda",d:"Opciones saladas: jamón, pavita, pollo, queso, nueces, palta, aceitunas, huevo + 1 rodaja de pan integral. Opción dulce: frutas A/B + granola; yogur; pan integral con ricota, queso feteado o pequeña cantidad de dulce.",tags:["pavita","queso","palta","huevo","pan integral","frutas A/B","granola","yogur"]},
+{id:"supp",from:18,to:20,t:"18–19 h",title:"💊 Magnesio + vitamina C",d:"Bisglicinato de magnesio + vitamina C 1 g.",tags:["bisglicinato de magnesio","vitamina C 1 g"]},
+{id:"trypto",from:19.5,to:20.5,t:"~20 h",title:"🌙 Triptófano",d:"Tomarlo antes de la cena para acompañar el objetivo de sueño, según la indicación de la consulta.",tags:["antes de cenar","sueño"]},
+{id:"dinner",from:20,to:23,t:"Cena",title:"🍽️ Cena",d:"Vegetales A y B; vegetales C en menor medida. Pollo, pescado o huevo. Se pueden agregar cereales integrales o legumbres. Postre: cacao/chocolate según el esquema.",tags:["🥬 A/B","C en menor medida","🍗 pollo","🐟 pescado","🥚 huevo","🌾 integrales","🫘 legumbres"]},
+{id:"omega",from:20,to:23,t:"Con cena",title:"💊 Omega‑3 + cúrcuma",d:"Omega‑3 con la cena. También cúrcuma + pimienta negra con la cena, según la indicación.",tags:["Omega‑3","cúrcuma","pimienta negra"]},
+{id:"nightTinture",from:22,to:26,t:"Antes de dormir",title:"🌿 Tintura compuesta",d:"Tintura compuesta de pasiflora, melisa, valeriana y tilo según la dosis indicada por la nutricionista.",tags:["pasiflora","melisa","valeriana","tilo"]}
+];
+const msgs=["Hoy no hace falta hacerlo perfecto. Hace falta hacerlo.","Cada comida ordenada es una decisión a favor tuyo.","La constancia vale más que un día impecable.","Caminar, comer mejor y dormir mejor: tres pequeñas victorias.","Tu objetivo de hoy es simple: cumplir el próximo paso.","Los datos no juzgan: te ayudan a entender qué te funciona.","Cuidarte también es darte tiempo y continuidad."];
+
+const dinnerRecipes=[{"title":"Merluza al horno + vegetales A/B","ingredients":["🐟 1 filete de merluza","🥦 brócoli","🥒 zucchini","🫑 morrón","🥕 zanahoria","🎃 calabaza","🍋 limón","🫒 oliva, pimienta y hierbas"],"steps":["Calentar el horno a temperatura moderada, alrededor de 180–200 °C.","Cortar zanahoria y calabaza chicas porque tardan más; llevarlas al horno primero unos 10 minutos.","Agregar brócoli, zucchini y morrón. Colocar la merluza, condimentar y sumar limón.","Hornear aproximadamente 12–18 minutos más, hasta que el pescado esté opaco y se separe fácilmente con tenedor."],"time":"25–35 min","tip":"💡 Si el filete es fino, agregalo después que las verduras para no secarlo."},{"title":"Omelette + vegetales + lentejas","ingredients":["🥚 2 huevos","🌿 espinaca","🫑 morrón","🧅 cebolla","🫘 lentejas ya cocidas","pimienta y hierbas"],"steps":["Picar cebolla y morrón y saltearlos a fuego medio hasta ablandar.","Agregar la espinaca solo 1–2 minutos, hasta que baje.","Batir los huevos, volcar sobre los vegetales y cocinar a fuego bajo.","Cuando esté firme abajo, doblar el omelette. Servir con una pequeña porción de lentejas calientes."],"time":"15–20 min","tip":"💡 Fuego bajo y tapa ayudan a cocinar el centro sin quemar la base."},{"title":"Pollo + vegetales + arroz integral","ingredients":["🍗 1 pechuga o filete de pollo","🥦 brócoli","🥒 zucchini","🥕 zanahoria","🎃 calabaza","🍚 arroz integral cocido","🍋 limón y especias"],"steps":["Cortar el pollo en filetes o tiras de grosor parejo.","Cocinar zanahoria y calabaza primero; sumar brócoli y zucchini después.","Grillar el pollo hasta que esté completamente cocido y dorado por fuera.","Servir con los vegetales y una pequeña porción de arroz integral ya cocido."],"time":"20–30 min","tip":"💡 Tener arroz integral ya cocido en heladera hace que esta cena sea mucho más rápida."},{"title":"Pescado + vegetales + garbanzos","ingredients":["🐟 pescado en filete","🍆 berenjena","🥒 zucchini","🫑 morrón","🧅 cebolla","🫘 garbanzos cocidos","🍋 limón"],"steps":["Cortar berenjena, zucchini, morrón y cebolla en tiras.","Saltear primero cebolla y berenjena; luego sumar zucchini y morrón.","Cocinar el pescado en plancha caliente, girándolo con cuidado, hasta cocción completa.","Servir con los vegetales y una pequeña porción de garbanzos; terminar con limón."],"time":"20–25 min","tip":"💡 Secá el pescado con papel antes de la plancha para que dore mejor."},{"title":"Tortilla + quinoa","ingredients":["🥚 2 huevos","🌿 espinaca","🥒 zucchini","🫑 morrón","🧅 cebolla","quinoa ya cocida"],"steps":["Picar los vegetales. Cocinar cebolla y morrón primero; sumar zucchini y espinaca al final.","Batir los huevos y mezclarlos con los vegetales.","Cocinar en sartén antiadherente a fuego bajo hasta que la base esté firme; girar con plato o terminar tapada.","Acompañar con una pequeña porción de quinoa cocida."],"time":"15–20 min","tip":"💡 Escurrí bien los vegetales para que la tortilla no quede aguada."},{"title":"Merluza/lenguado + vegetales","ingredients":["🐟 merluza o lenguado","🥦 brócoli","coliflor","🍆 berenjena","🎃 calabaza","🍋 limón","hierbas"],"steps":["Cortar la calabaza pequeña y comenzar su cocción primero.","Agregar berenjena, brócoli y coliflor cuando la calabaza ya empiece a ablandarse.","Cocinar el pescado aparte a la plancha o incorporarlo al horno en los últimos 12–18 minutos.","Servir con limón y hierbas."],"time":"25–35 min","tip":"💡 El lenguado suele ser fino: vigilalo porque puede cocinarse antes que la merluza."},{"title":"Pollo grillado + lentejas","ingredients":["🍗 pollo","🥬 repollo","🥒 pepino","🍅 tomate","🥕 zanahoria","🫘 lentejas cocidas","🍋 limón o vinagre"],"steps":["Grillar el pollo hasta cocción completa y dejarlo reposar unos minutos.","Cortar repollo fino, pepino y tomate; rallar una pequeña cantidad de zanahoria.","Calentar apenas las lentejas o utilizarlas a temperatura ambiente.","Servir el pollo con la ensalada y una pequeña porción de lentejas."],"time":"15–20 min","tip":"💡 Cortar el pollo después del reposo ayuda a que conserve sus jugos."},{"title":"Tortilla + legumbres","ingredients":["🥚 2 huevos","🌿 espinaca","🍄 champiñones","🫑 morrón","🧅 cebolla","🫘 garbanzos o porotos cocidos"],"steps":["Saltear cebolla, morrón y champiñones hasta que pierdan humedad.","Agregar espinaca al final.","Batir los huevos, incorporar los vegetales y cocinar la tortilla a fuego bajo.","Servir con una pequeña porción de garbanzos o porotos ya cocidos."],"time":"15–20 min","tip":"💡 Los champiñones conviene dorarlos antes para que no larguen agua dentro de la tortilla."},{"title":"Pescado al papillote + arroz integral","ingredients":["🐟 filete de pescado","🥒 zucchini","🫑 morrón","🥕 zanahoria","🧅 cebolla","🍚 arroz integral cocido","🍋 limón","papel de horno o aluminio"],"steps":["Cortar los vegetales finos para que se cocinen junto con el pescado.","Colocar una cama de vegetales sobre el papel, apoyar el pescado y condimentar con limón y hierbas.","Cerrar bien el paquete para conservar el vapor.","Hornear a 180–200 °C aproximadamente 15–20 minutos. Abrir con cuidado y acompañar con poco arroz integral."],"time":"20–25 min","tip":"💡 Al abrir el papillote sale vapor muy caliente; abrilo alejándolo de la cara."},{"title":"Pollo salteado + quinoa/lentejas","ingredients":["🍗 pollo en tiras","🥒 zucchini","🍆 berenjena","🫑 morrón","🧅 cebolla","quinoa o 🫘 lentejas cocidas","especias"],"steps":["Cortar pollo y vegetales en tamaños parecidos.","Dorar primero el pollo en sartén caliente y reservarlo.","Saltear cebolla y berenjena; sumar morrón y zucchini.","Volver a incorporar el pollo y terminar la cocción. Servir con una pequeña porción de quinoa o lentejas."],"time":"20–25 min","tip":"💡 No llenes demasiado la sartén: si está muy cargada, los ingredientes hierven en vez de dorarse."},{"title":"Omelette + garbanzos","ingredients":["🥚 2 huevos","🌿 espinaca","🍄 champiñones","🧅 cebolla","🫘 garbanzos cocidos","pimienta y hierbas"],"steps":["Saltear cebolla y champiñones hasta dorar y evaporar el líquido.","Agregar espinaca y cocinar apenas.","Batir los huevos, volcar y cocinar a fuego bajo hasta que el centro esté casi firme.","Doblar y acompañar con una pequeña porción de garbanzos."],"time":"15–20 min","tip":"💡 Una sartén antiadherente chica ayuda a que el omelette quede más alto y fácil de doblar."},{"title":"Pescado grillado + lentejas","ingredients":["🐟 pescado","🥦 brócoli","🥒 zucchini","🍅 tomate","🎃 calabaza","🫘 lentejas cocidas","🍋 limón"],"steps":["Cortar la calabaza pequeña y cocinarla primero hasta que empiece a ablandarse.","Agregar brócoli y zucchini; el tomate puede ir al final para que mantenga textura.","Grillar el pescado hasta cocción completa.","Servir con los vegetales, una pequeña porción de lentejas y limón."],"time":"20–30 min","tip":"💡 Preparar las lentejas con anticipación permite armar esta cena sin sumar mucho tiempo."}];
+const lunchRecipes=[{"title":"Bife magro + huevo + ensalada A","ingredients":["1 bife magro","1 huevo","lechuga","rúcula","pepino","tomate","semillas activadas","limón o vinagre"],"steps":["Calentar bien la plancha.","Cocinar el bife 3–5 min por lado aproximadamente, según grosor y punto.","Preparar el huevo duro, poché o a la plancha.","Armar la ensalada con lechuga, rúcula, pepino y tomate y terminar con semillas."],"time":"15–20 min","tip":"Limón, pimienta y hierbas dan sabor sin necesidad de una salsa pesada."},{"title":"Pollo grillado + huevo + brócoli","ingredients":["1 filete de pollo","1 huevo","brócoli","coliflor","morrón","semillas","limón y hierbas"],"steps":["Emparejar el grosor del pollo.","Grillarlo 4–6 min por lado aproximadamente, hasta cocción completa.","Cocinar al vapor o saltear brevemente brócoli y coliflor; sumar morrón.","Preparar el huevo y terminar con semillas."],"time":"20 min","tip":"No cocinar de más el pollo para que conserve jugosidad."},{"title":"Carne magra + ensalada de rúcula","ingredients":["carne vacuna magra","1 huevo","rúcula","tomate","pepino","rabanito","nueces o almendras"],"steps":["Cocinar la carne en plancha o sartén.","Preparar el huevo.","Armar una ensalada de rúcula, tomate, pepino y rabanito.","Agregar unas nueces o almendras picadas."],"time":"15–20 min","tip":"Los frutos secos suman textura; usalos como complemento."},{"title":"Hamburguesa casera sin pan","ingredients":["carne magra picada","1 huevo","lechuga","tomate","pepino","morrón","nueces","perejil o pimienta opcionales"],"steps":["Formar la hamburguesa sin pan rallado.","Cocinar 4–6 min por lado aproximadamente, según espesor, hasta cocción segura.","Preparar el huevo.","Servir con lechuga, tomate, pepino, morrón y unas nueces."],"time":"15–20 min","tip":"Perejil, ajo o pimienta pueden condimentar la carne antes de formar la hamburguesa."},{"title":"Pollo + huevo + zucchini","ingredients":["pollo en tiras o filetes","1 huevo","zucchini","berenjena","morrón","semillas activadas","limón y especias"],"steps":["Cortar el pollo en tiras o filetes parejos.","Saltear o grillar hasta cocción completa.","Saltear zucchini, berenjena y morrón.","Preparar el huevo y terminar con semillas."],"time":"15–20 min","tip":"En tiras se cocina rápido y se mezcla muy bien con los vegetales."},{"title":"Churrasco magro + repollo","ingredients":["1 churrasco magro","1 huevo","repollo","pepino","rúcula","tomate","semillas"],"steps":["Cocinar el churrasco en plancha caliente 3–5 min por lado aproximadamente.","Preparar el huevo.","Mezclar repollo fino, pepino, rúcula y tomate.","Terminar con semillas y limón o vinagre."],"time":"15–20 min","tip":"Una plancha bien caliente ayuda a dorar sin agregar demasiado aceite."},{"title":"Ensalada grande de pollo","ingredients":["pollo grillado","1 huevo","lechuga","rúcula","tomate","pepino","apio","rabanito","nueces","oliva, limón o vinagre"],"steps":["Grillar el pollo y cortarlo en tiras.","Preparar el huevo.","Armar una base abundante con los vegetales A.","Sumar pollo, huevo, nueces y un aderezo simple."],"time":"15–20 min","tip":"También sirve para aprovechar pollo ya cocido."},{"title":"Carne al horno + vegetales A","ingredients":["carne magra para horno","1 huevo","tomate","pepino","rúcula","champiñones","almendras o nueces"],"steps":["Condimentar y hornear la carne hasta cocción segura.","Dejar reposar y cortar en fetas.","Preparar el huevo.","Acompañar con tomate, pepino, rúcula, champiñones y frutos secos."],"time":"30–60 min según corte","tip":"Podés preparar de más y usarla fría al día siguiente."},{"title":"Pollo al limón + huevo","ingredients":["pollo","1 huevo","zucchini","morrón","espinaca","semillas","limón"],"steps":["Cocinar el pollo hasta cocción completa.","Agregar limón hacia el final.","Saltear zucchini y morrón; sumar espinaca apenas al final.","Hacer el huevo revuelto y terminar con semillas."],"time":"15–20 min","tip":"Un poco de limón al final conserva mejor el aroma."},{"title":"Albóndigas magras + ensalada A","ingredients":["carne magra picada","1 huevo","lechuga","pepino","tomate","repollo","nueces","ajo, perejil o pimienta opcionales"],"steps":["Condimentar la carne y formar albóndigas pequeñas sin pan rallado.","Cocinarlas al horno o sartén hasta cocción segura.","Preparar el huevo.","Servir con ensalada de lechuga, pepino, tomate y repollo y unas nueces."],"time":"20–30 min","tip":"Hacerlas pequeñas facilita una cocción pareja."},{"title":"Bife con morrón + huevo","ingredients":["1 bife magro","morrón en tiras","1 huevo","rúcula","pepino","tomate","pimienta y hierbas"],"steps":["Saltear el morrón en tiras hasta que esté tierno.","Cocinar el bife al punto deseado.","Preparar el huevo.","Servir con rúcula, pepino y tomate."],"time":"15–20 min","tip":"El morrón reemplaza a la cebolla y mantiene este almuerzo dentro del grupo A."},{"title":"Pechuga rellena + vegetales A","ingredients":["1 pechuga","espinaca","1 huevo","brócoli","zucchini","tomate","semillas"],"steps":["Abrir la pechuga tipo libro.","Rellenar con espinaca y cerrar.","Hornear hasta cocción completa.","Servir con huevo, brócoli, zucchini, tomate y semillas."],"time":"25–35 min","tip":"No rellenar demasiado ayuda a que cierre y se cocine de manera pareja."}];
+const mealOptions={
+lunch:[
+{"title":"Bife magro + huevo + ensalada A","text":"Bife magro a la plancha + 1 huevo + lechuga, rúcula, pepino y tomate + semillas activadas. Postre: gelatina diet o chocolate ≥70%."},
+{"title":"Pollo grillado + huevo + brócoli","text":"Pollo grillado + 1 huevo + brócoli, coliflor y morrón + semillas. Postre: yogur natural con cacao puro."},
+{"title":"Carne magra + ensalada de rúcula","text":"Carne vacuna magra + huevo + rúcula, tomate, pepino y rabanito + nueces o almendras. Postre: chocolate 80–100%."},
+{"title":"Hamburguesa casera sin pan","text":"Hamburguesa casera de carne magra sin pan + huevo + lechuga, tomate, pepino y morrón + nueces. Postre: gelatina diet."},
+{"title":"Pollo + huevo + zucchini","text":"Pollo salteado o grillado + huevo + zucchini, berenjena y morrón + semillas activadas. Postre: chocolate ≥80%."},
+{"title":"Churrasco magro + repollo","text":"Churrasco magro + huevo + repollo, pepino, rúcula y tomate + semillas. Postre: yogur con cacao 100% y canela."},
+{"title":"Ensalada grande de pollo","text":"Pollo + huevo + lechuga, rúcula, tomate, pepino, apio y rabanito + nueces. Aderezo de oliva, limón o vinagre. Postre: gelatina diet."},
+{"title":"Carne al horno + vegetales A","text":"Carne al horno fría + huevo + tomate, pepino, rúcula y champiñones + almendras o nueces. Postre: chocolate 80–100%."},
+{"title":"Pollo al limón + huevo","text":"Pollo al limón + huevo revuelto + zucchini, morrón y espinaca + semillas. Postre: gelatina diet."},
+{"title":"Albóndigas magras + ensalada A","text":"Albóndigas caseras de carne magra sin pan rallado + huevo + lechuga, pepino, tomate y repollo + nueces. Postre: yogur con cacao puro."},
+{"title":"Bife con morrón + huevo","text":"Bife magro con morrón salteado + huevo + rúcula, pepino y tomate. Postre: chocolate ≥70%."},
+{"title":"Pechuga rellena + vegetales A","text":"Pechuga de pollo rellena con espinaca + huevo + brócoli, zucchini y tomate + semillas. Postre: yogur + cacao puro."}
+],
+snack:[
+{title:"Pan integral + palta + huevo",text:"1 rodaja de pan integral con palta + huevo + aceitunas. Yogur natural si queda hambre."},
+{title:"Pan integral + ricota + nueces",text:"1 rodaja de pan integral con ricota + nueces + fruta A o B."},
+{title:"Pavita + queso + palta",text:"Pavita o jamón + queso + palta + aceitunas + 1 rodaja de pan integral."},
+{title:"Yogur + fruta + granola",text:"Yogur natural sin azúcar + fruta A/B + pequeña cantidad de granola."},
+{title:"Ricota o queso + tomate + huevo",text:"1 rodaja de pan integral con ricota o queso + tomate + huevo revuelto."},
+{title:"Pollo frío + palta",text:"Pollo frío desmenuzado + palta + aceitunas + 1 rodaja de pan integral."},
+{title:"Fruta A/B tipo helado + yogur",text:"Fruta A/B congelada triturada + yogur natural + nueces o semillas. Granola opcional."},
+{title:"Ricota + dulce",text:"Pan integral con ricota + pequeña cantidad de dulce + nueces."},
+{title:"Sándwich abierto de pavita",text:"1 rodaja de pan integral con pavita, queso, tomate y palta."},
+{title:"Huevo + queso + palta",text:"Huevo duro + queso + palta + tomate + aceitunas + 1 rodaja de pan integral."},
+{title:"Yogur + granola + fruta A/B",text:"Yogur natural + fruta A/B + granola en pequeña cantidad."},
+{title:"Pan integral + ricota + palta",text:"1 rodaja de pan integral con ricota y palta; también puede variar con queso feteado o un poco de dulce."}
+],
+dinner:[
+{"title":"Merluza al horno + vegetales A/B","text":"🐟 Merluza al horno con 🥦 brócoli, zucchini y 🫑 morrón (A) + 🥕 zanahoria y 🎃 calabaza (B). Si se usa C, solo una pequeña porción. Postre: 🍫 chocolate ≥70%."},
+{"title":"Omelette + vegetales + lentejas","text":"🥚 Omelette con 🌿 espinaca y 🫑 morrón (A) + 🧅 cebolla (B), acompañado con una pequeña porción de 🫘 lentejas. Postre: gelatina diet."},
+{"title":"Pollo + vegetales + arroz integral","text":"🍗 Pechuga de pollo con 🥦 brócoli y zucchini (A) + 🥕 zanahoria y 🎃 calabaza (B) + pequeña porción de 🍚 arroz integral."},
+{"title":"Pescado + vegetales + garbanzos","text":"🐟 Pescado a la plancha con 🍆 berenjena, zucchini y 🫑 morrón (A) + 🧅 cebolla (B) + pequeña porción de 🫘 garbanzos. Postre: yogur con cacao."},
+{"title":"Tortilla + quinoa","text":"🥚 Tortilla con 🌿 espinaca, zucchini y 🫑 morrón (A) + 🧅 cebolla (B), acompañada con pequeña porción de quinoa. Postre: gelatina diet."},
+{"title":"Merluza/lenguado + vegetales","text":"🐟 Merluza o lenguado con 🥦 brócoli, coliflor y 🍆 berenjena (A) + 🎃 calabaza (B). Vegetales C solo en menor medida. Postre: 🍫 chocolate ≥70%."},
+{"title":"Pollo grillado + lentejas","text":"🍗 Pollo grillado con 🥬 repollo, 🥒 pepino y 🍅 tomate (A) + 🥕 zanahoria (B) + pequeña porción de 🫘 lentejas. Postre: yogur + cacao."},
+{"title":"Tortilla + legumbres","text":"🥚 Tortilla de huevo con 🌿 espinaca, 🍄 champiñones y 🫑 morrón (A) + 🧅 cebolla (B) + pequeña porción de 🫘 garbanzos o porotos."},
+{"title":"Pescado al papillote + arroz integral","text":"🐟 Pescado al papillote con zucchini y 🫑 morrón (A) + 🥕 zanahoria y 🧅 cebolla (B) + pequeña porción de 🍚 arroz integral. Postre: 🍫 chocolate ≥70%."},
+{"title":"Pollo salteado + quinoa/lentejas","text":"🍗 Pollo salteado con zucchini, 🍆 berenjena y 🫑 morrón (A) + 🧅 cebolla (B) + pequeña cantidad de quinoa o 🫘 lentejas."},
+{"title":"Omelette + garbanzos","text":"🥚 Omelette de 🌿 espinaca y 🍄 champiñones (A) + 🧅 cebolla (B), con pequeña porción de 🫘 garbanzos. Postre: gelatina diet."},
+{"title":"Pescado grillado + lentejas","text":"🐟 Pescado grillado con 🥦 brócoli, zucchini y 🍅 tomate (A) + 🎃 calabaza (B) + pequeña porción de 🫘 lentejas. Postre: 🍫 chocolate 70–100%."}
+]
+};
+
+function mealSeed(kind,dateKey){
+  let s=0,txt=dateKey+"-"+kind;
+  for(let i=0;i<txt.length;i++) s=(s*31+txt.charCodeAt(i))>>>0;
+  return s%mealOptions[kind].length;
+}
+function getMealState(){
+  const k=localDateKey(),d=getDayData(k);
+  d.menuView=d.menuView||{};
+  d.menuSelected=d.menuSelected||{};
+  ["lunch","snack","dinner"].forEach(kind=>{
+    if(d.menuView[kind]===undefined || d.menuView[kind]===null) d.menuView[kind]=mealSeed(kind,k);
+  });
+  saveDayData(k,d);
+  return d;
+}
+function renderMeals(){
+  const d=getMealState();
+  ["lunch","snack","dinner"].forEach(kind=>{
+    const arr=mealOptions[kind],idx=((d.menuView[kind]%arr.length)+arr.length)%arr.length,opt=arr[idx];
+    document.getElementById("mealTitle-"+kind).textContent=opt.title;
+    document.getElementById("mealText-"+kind).textContent=opt.text;
+    document.getElementById("mealCounter-"+kind).textContent=`${idx+1} / ${arr.length}`;
+    const selected=d.menuSelected[kind];
+    const card=document.getElementById("mealCard-"+kind);
+    const picked=document.getElementById("mealPicked-"+kind);
+    card.classList.toggle("selected",selected===idx);
+    picked.textContent=selected===idx ? "✓ Elegida para hoy" : (selected!==undefined ? "Hay otra opción guardada para hoy" : "Todavía no elegiste una opción");
+  });
+}
+
+function openMealRecipe(kind){
+  const d=getMealState(),a=mealOptions[kind],i=((d.menuView[kind]%a.length)+a.length)%a.length;
+  const source=kind==="dinner"?dinnerRecipes:lunchRecipes,r=source[i];
+  document.getElementById("recipeTitle").textContent=r.title;
+  document.getElementById("recipeTime").textContent="⏱️ "+r.time;
+  let u=document.getElementById("recipeIngredients");u.innerHTML="";
+  r.ingredients.forEach(x=>{let l=document.createElement("li");l.textContent=x;u.appendChild(l)});
+  let o=document.getElementById("recipeSteps");o.innerHTML="";
+  r.steps.forEach(x=>{let l=document.createElement("li");l.textContent=x;o.appendChild(l)});
+  document.getElementById("recipeTip").textContent=r.tip;
+  document.getElementById("recipeModal").classList.add("open");document.body.classList.add("modal-open");
+}
+function openLunchRecipe(){openMealRecipe("lunch")}
+function openDinnerRecipe(){openMealRecipe("dinner")}
+function closeLunchRecipe(){document.getElementById("recipeModal").classList.remove("open");document.body.classList.remove("modal-open")}
+function moveMeal(kind,delta){
+  const k=localDateKey(),d=getMealState(),arr=mealOptions[kind];
+  d.menuView[kind]=(d.menuView[kind]+delta+arr.length)%arr.length;
+  saveDayData(k,d);renderMeals();
+}
+function selectMeal(kind){
+  const k=localDateKey(),d=getMealState(),idx=d.menuView[kind];
+  d.menuSelected[kind]=idx;
+  d.metrics=d.metrics||{};
+  const opt=mealOptions[kind][idx];
+  d.metrics[kind+"Choice"]=opt.title;
+  d.metrics[kind+"ChoiceDetail"]=opt.text;
+  saveDayData(k,d);
+  renderMeals();showHistory();renderCalendar();buildConsultSummary();
+}
+function shuffleAllMeals(){
+  const k=localDateKey(),d=getMealState();
+  ["lunch","snack","dinner"].forEach(kind=>{
+    const arr=mealOptions[kind];
+    let next=Math.floor(Math.random()*arr.length);
+    if(arr.length>1 && next===d.menuView[kind]) next=(next+1)%arr.length;
+    d.menuView[kind]=next;
+  });
+  saveDayData(k,d);renderMeals();
+}
+
+
+function localDateKey(d=new Date()){const x=new Date(d);if(x.getHours()<RESET_HOUR)x.setDate(x.getDate()-1);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")}
+function getDayData(k=localDateKey()){return JSON.parse(localStorage.getItem("blanca_day_"+k)||'{"done":{},"metrics":{}}')}
+function saveDayData(k,data){localStorage.setItem("blanca_day_"+k,JSON.stringify(data))}
+function allDayKeys(){const a=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("blanca_day_"))a.push(k.slice(11))}return a.sort()}
+function toggle(id){const k=localDateKey(),data=getDayData(k);data.done[id]=!data.done[id];saveDayData(k,data);refreshAll()}
+function effectiveHour(){let h=new Date().getHours()+new Date().getMinutes()/60;if(h<RESET_HOUR)h+=24;return h}
+function active(){
+  const h=effectiveHour();
+  const activeSteps=steps.filter(s=>h>=s.from&&h<s.to);
+  if(!activeSteps.length) return h<6?steps[0]:steps.at(-1);
+  const priority={lunch:50,snack:50,dinner:50,breakfast:45,prep:40,pro:40,fast:35,coffee:30,supp:25,trypto:25,omega:25,turmericLunch:25,castana:20,nightTinture:20};
+  return activeSteps.sort((a,b)=>(priority[b.id]||0)-(priority[a.id]||0) || b.from-a.from)[0];
+}
+
+function periodClass(step){
+  const id=step.id;
+  if(["pro","prep","fast","coffee","breakfast"].includes(id)) return "period-morning";
+  if(id==="lunch") return "period-lunch";
+  if(id==="snack") return "period-snack";
+  if(id==="dinner") return "period-dinner";
+  if(id==="nightTinture") return "period-night";
+  return "period-supp";
+}
+
+function render(){
+ const data=getDayData(),done=data.done||{},a=active(),box=document.getElementById("timeline");box.innerHTML="";
+ steps.forEach(s=>{const e=document.createElement("div");e.className="step "+periodClass(s)+(s.id===a.id?" active":"")+(done[s.id]?" done":"");e.innerHTML=`<div class="time">${s.t}</div><div><div class="title">${s.title}</div><div class="desc">${s.d}</div><div class="tags">${s.tags.map(x=>`<span class="tag">${x}</span>`).join("")}</div></div><div class="check ${done[s.id]?"on":""}" onclick="toggle('${s.id}')">${done[s.id]?"✓":""}</div>`;box.appendChild(e)});
+ nowTitle.textContent=a.title;
+  const td=new Date();
+  const localNow=td.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+  nowText.textContent=a.d+" · Hora local: "+localNow;
+  const n=steps.filter(s=>done[s.id]).length;
+  progress.textContent=`${n} de ${steps.length} pasos completados`;
+  fill.style.width=(n/steps.length*100)+"%"
+}
+function tick(){const d=new Date();clock.textContent=d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});date.textContent=d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"});render()}
+function val(id){return document.getElementById(id).value}
+function saveEntry(){
+ const k=localDateKey(),data=getDayData(k);
+ data.metrics={...(data.metrics||{}),weight:val("weight"),waist:val("waist"),walk:val("walk"),strength:val("strength"),intensity:val("intensity"),bedtime:val("bedtime"),waketime:val("waketime"),sleep:val("sleep"),sleepQuality:val("sleepQuality"),energy:val("energy"),mood:val("mood"),hunger:val("hunger"),stress:val("stress"),digestion:val("digestion"),cravings:val("cravings"),offplan:val("offplan"),notes:val("notes"),savedAt:new Date().toISOString()};
+ saveDayData(k,data);alert("Registro guardado.");refreshAll()
+}
+function fillTodayForm(){
+ const m=getDayData().metrics||{};
+ ["weight","waist","walk","strength","intensity","bedtime","waketime","sleep","sleepQuality","energy","mood","hunger","stress","digestion","cravings","offplan","notes"].forEach(id=>{if(m[id]!==undefined&&m[id]!==null&&m[id]!=="")document.getElementById(id).value=m[id]});
+ sqOut.value=sleepQuality.value;energyOut.value=energy.value;moodOut.value=mood.value;hungerOut.value=hunger.value;stressOut.value=stress.value;
+}
+function showHistory(){
+ history.innerHTML=allDayKeys().slice().reverse().slice(0,8).map(k=>{const d=getDayData(k),m=d.metrics||{},n=Object.values(d.done||{}).filter(Boolean).length;return `<div class="hist"><span><b>${k}</b><br>${m.energy?"⚡ "+m.energy+"/5 · ":""}${m.digestion||"Sin digestión"} · ${n}/${steps.length} checks</span><span>${m.weight?m.weight+" kg":""}${m.walk?"<br>🚶 "+m.walk+" min":""}${m.sleep?"<br>😴 "+m.sleep+" h":""}</span></div>`}).join("")||'<div class="small">Todavía no hay registros.</div>'
+}
+let calCursor=new Date();calCursor.setDate(1);
+function changeMonth(n){calCursor.setMonth(calCursor.getMonth()+n);renderCalendar()}
+function renderCalendar(){
+ const y=calCursor.getFullYear(),m=calCursor.getMonth();calendarTitle.textContent=new Date(y,m,1).toLocaleDateString("es-AR",{month:"long",year:"numeric"});const first=new Date(y,m,1),days=new Date(y,m+1,0).getDate(),offset=(first.getDay()+6)%7;calendar.innerHTML="";
+ for(let i=0;i<offset;i++){const e=document.createElement("div");e.className="day empty";calendar.appendChild(e)}
+ for(let d=1;d<=days;d++){const dateObj=new Date(y,m,d),k=dateObj.getFullYear()+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0"),data=getDayData(k),done=data.done||{},n=Object.values(done).filter(Boolean).length,has=Object.keys(data.metrics||{}).length>0;const e=document.createElement("div");e.className="day"+(k===localDateKey()?" today":"")+((n||has)?" hasdata":"")+(n===steps.length?" complete":"");e.innerHTML=`<div class="daynum">${d}${has?'<span class="daydot"></span>':""}</div><div class="daymark">${n?`${n}/${steps.length}`:""}</div>`;e.onclick=()=>showDay(k);calendar.appendChild(e)}
+}
+function showDay(k){const d=getDayData(k),m=d.metrics||{},n=Object.values(d.done||{}).filter(Boolean).length;dayDetail.innerHTML=`<b>${k}</b><br>✅ Cumplimiento: ${n}/${steps.length}<br>⚖️ Peso: ${m.weight?m.weight+" kg":"—"} · Cintura: ${m.waist?m.waist+" cm":"—"}<br>🚶 Caminata: ${m.walk?m.walk+" min":"—"} · 🏋️ Fuerza: ${m.strength?m.strength+" min":"—"}<br>😴 Sueño: ${m.sleep?m.sleep+" h":"—"} · calidad ${m.sleepQuality||"—"}/5<br>⚡ Energía ${m.energy||"—"}/5 · 😊 Ánimo ${m.mood||"—"}/5 · 🍽️ Hambre ${m.hunger||"—"}/5 · 🧠 Estrés ${m.stress||"—"}/5<br>🫄 Digestión: ${m.digestion||"—"} · Antojos: ${m.cravings||"—"}<br>🍕 Fuera del esquema: ${m.offplan||"—"}<br>🍽️ Almuerzo elegido: ${m.lunchChoice||"—"}<br>☕ Merienda elegida: ${m.snackChoice||"—"}<br>🌙 Cena elegida: ${m.dinnerChoice||"—"}<br>📝 ${m.notes||"Sin notas"}`
+}
+function records(n=999){return allDayKeys().slice(-n).map(k=>({date:k,...getDayData(k).metrics,done:getDayData(k).done||{}}))}
+function num(x){const v=parseFloat(x);return Number.isFinite(v)?v:null}
+function avg(a){const v=a.filter(x=>x!==null&&x!==undefined&&Number.isFinite(x));return v.length?v.reduce((s,x)=>s+x,0)/v.length:null}
+function compliance(r){return Object.values(r.done||{}).filter(Boolean).length/steps.length*100}
+function updateKPIs(){
+ const rs=records(),weights=rs.map(r=>num(r.weight)).filter(x=>x!==null),firstW=weights[0],lastW=weights.at(-1),last7=rs.slice(-7);
+ kpiWeight.textContent=lastW!==undefined?lastW.toFixed(1)+" kg":"—";
+ kpiChange.textContent=(firstW!==undefined&&lastW!==undefined)?(lastW-firstW>=0?"+":"")+(lastW-firstW).toFixed(1)+" kg":"—";
+ const w=last7.reduce((s,r)=>s+(num(r.walk)||0),0);kpiWalk.textContent=w?w+" min":"—";
+ const c=avg(last7.map(compliance));kpiCompliance.textContent=c!==null?Math.round(c)+"%":"—"
+}
+function drawChart(canvasId,data,valueFn,labelFn){
+ const c=document.getElementById(canvasId),ctx=c.getContext("2d"),w=c.clientWidth,h=c.clientHeight,dpr=devicePixelRatio||1;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
+ const pts=data.map((r,i)=>({x:i,y:valueFn(r),lab:labelFn(r)})).filter(p=>p.y!==null&&Number.isFinite(p.y));
+ if(!pts.length){ctx.fillStyle="#6c7a72";ctx.font="14px system-ui";ctx.fillText("Todavía no hay datos suficientes.",18,35);return}
+ const ys=pts.map(p=>p.y),min=Math.min(...ys),max=Math.max(...ys),span=(max-min)||1,pad=28;
+ ctx.strokeStyle="#dbe4de";ctx.lineWidth=1;for(let i=0;i<4;i++){const yy=pad+(h-2*pad)*i/3;ctx.beginPath();ctx.moveTo(pad,yy);ctx.lineTo(w-pad,yy);ctx.stroke()}
+ ctx.strokeStyle="#2e7d57";ctx.lineWidth=2.5;ctx.beginPath();
+ pts.forEach((p,j)=>{const x=pad+(w-2*pad)*(pts.length===1?.5:j/(pts.length-1)),y=h-pad-(h-2*pad)*(p.y-min)/span;p._x=x;p._y=y;j?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
+ ctx.fillStyle="#2e7d57";pts.forEach(p=>{ctx.beginPath();ctx.arc(p._x,p._y,3.5,0,Math.PI*2);ctx.fill()});
+ ctx.fillStyle="#6c7a72";ctx.font="11px system-ui";ctx.fillText(max.toFixed(1),4,pad+3);ctx.fillText(min.toFixed(1),4,h-pad+3)
+}
+function updateCharts(){const rs=records(30);drawChart("weightChart",rs,r=>num(r.weight),r=>r.date);drawChart("walkChart",rs,r=>num(r.walk),r=>r.date);drawChart("sleepChart",rs,r=>num(r.sleep),r=>r.date);drawChart("complianceChart",rs,r=>compliance(r),r=>r.date)}
+function pearson(pairs){
+ if(pairs.length<4)return null;const xs=pairs.map(p=>p[0]),ys=pairs.map(p=>p[1]),mx=avg(xs),my=avg(ys);let n=0,dx=0,dy=0;pairs.forEach(([x,y])=>{n+=(x-mx)*(y-my);dx+=(x-mx)**2;dy+=(y-my)**2});return dx&&dy?n/Math.sqrt(dx*dy):null
+}
+function buildInsights(){
+ const rs=records(60),out=[];
+ if(rs.length<4){insights.innerHTML='<div class="insight">Guardá algunos días más y acá van a empezar a aparecer patrones útiles.</div>';return}
+ const pairs=(a,b)=>rs.map(r=>[num(r[a]),num(r[b])]).filter(p=>p[0]!==null&&p[1]!==null);
+ const sleepEnergy=pearson(pairs("sleep","energy")),stressHunger=pearson(pairs("stress","hunger"));
+ if(sleepEnergy!==null&&Math.abs(sleepEnergy)>.25)out.push(`<div class="insight"><b>😴 Sueño y energía:</b> en tus registros aparece una relación ${sleepEnergy>0?"positiva":"inversa"} entre horas de sueño y energía (${sleepEnergy.toFixed(2)}). ${sleepEnergy>0?"Cuando dormís más, tendés a registrar más energía.":""}</div>`);
+ if(stressHunger!==null&&Math.abs(stressHunger)>.25)out.push(`<div class="insight"><b>🧠 Estrés y hambre:</b> aparece una relación ${stressHunger>0?"positiva":"inversa"} (${stressHunger.toFixed(2)}). ${stressHunger>0?"Los días de más estrés tendés a marcar más hambre.":""}</div>`);
+ const goodSleep=rs.filter(r=>num(r.sleep)>=7),lowSleep=rs.filter(r=>num(r.sleep)!==null&&num(r.sleep)<7),gWalk=avg(goodSleep.map(r=>num(r.walk))),lWalk=avg(lowSleep.map(r=>num(r.walk)));
+ if(gWalk!==null&&lWalk!==null&&Math.abs(gWalk-lWalk)>=10)out.push(`<div class="insight"><b>🚶 Sueño y movimiento:</b> cuando dormiste 7 h o más caminaste en promedio ${Math.round(gWalk)} min; con menos de 7 h, ${Math.round(lWalk)} min.</div>`);
+ const recent=rs.slice(-7),prev=rs.slice(-14,-7),rc=avg(recent.map(compliance)),pc=avg(prev.map(compliance));if(rc!==null&&pc!==null)out.push(`<div class="insight"><b>✅ Constancia:</b> esta semana promediás ${Math.round(rc)}% de cumplimiento${rc>pc?" y mejoraste frente a la semana anterior.":rc<pc?" y bajaste frente a la semana anterior.":"."}</div>`);
+ const cravingsStrong=rs.filter(r=>r.cravings==="Fuerte"||r.cravings==="Moderado");if(cravingsStrong.length>=2){const avStress=avg(cravingsStrong.map(r=>num(r.stress)));if(avStress!==null)out.push(`<div class="insight"><b>🍫 Antojos:</b> en los días con antojos moderados/fuertes, tu estrés promedio fue ${avStress.toFixed(1)}/5.</div>`)}
+ insights.innerHTML=out.length?out.join(""):'<div class="insight">Todavía no aparece un patrón fuerte. Seguí registrando: eso también es información.</div>'
+}
+function buildConsultSummary(){
+ const n=parseInt(consultDays.value||20),rs=records(n),weights=rs.map(r=>num(r.weight)).filter(x=>x!==null),waists=rs.map(r=>num(r.waist)).filter(x=>x!==null);
+ const firstW=weights[0],lastW=weights.at(-1),walk=rs.reduce((s,r)=>s+(num(r.walk)||0),0),strength=rs.reduce((s,r)=>s+(num(r.strength)||0),0),sleepAvg=avg(rs.map(r=>num(r.sleep))),energyAvg=avg(rs.map(r=>num(r.energy))),hungerAvg=avg(rs.map(r=>num(r.hunger))),stressAvg=avg(rs.map(r=>num(r.stress))),comp=avg(rs.map(compliance));
+ const dig={};rs.forEach(r=>{if(r.digestion)dig[r.digestion]=(dig[r.digestion]||0)+1});const topDig=Object.entries(dig).sort((a,b)=>b[1]-a[1])[0];
+ const notes=rs.filter(r=>r.notes).slice(-5).map(r=>`• ${r.date}: ${r.notes}`).join("\n"); const meals=rs.slice(-7).filter(r=>r.lunchChoice||r.snackChoice||r.dinnerChoice).map(r=>`• ${r.date}: Almuerzo ${r.lunchChoice||"—"} | Merienda ${r.snackChoice||"—"} | Cena ${r.dinnerChoice||"—"}`).join("\n");
+ const next=nextConsult.value?`\nPróxima consulta: ${nextConsult.value}`:"";
+ consultSummary.textContent=`RESUMEN DE SEGUIMIENTO · ${rs.length} días registrados${next}
+
+Peso inicial del período: ${firstW!==undefined?firstW.toFixed(1)+" kg":"—"}
+Peso actual: ${lastW!==undefined?lastW.toFixed(1)+" kg":"—"}${firstW!==undefined&&lastW!==undefined?` · cambio ${(lastW-firstW>=0?"+":"")+(lastW-firstW).toFixed(1)} kg`:""}
+Cintura: ${waists.length?waists[0].toFixed(1)+" → "+waists.at(-1).toFixed(1)+" cm":"—"}
+Caminata acumulada: ${walk} min
+Fuerza acumulada: ${strength} min
+Sueño promedio: ${sleepAvg!==null?sleepAvg.toFixed(1)+" h":"—"}
+Energía promedio: ${energyAvg!==null?energyAvg.toFixed(1)+"/5":"—"}
+Hambre promedio: ${hungerAvg!==null?hungerAvg.toFixed(1)+"/5":"—"}
+Estrés promedio: ${stressAvg!==null?stressAvg.toFixed(1)+"/5":"—"}
+Cumplimiento promedio del esquema: ${comp!==null?Math.round(comp)+"%":"—"}
+Digestión más registrada: ${topDig?topDig[0]+" ("+topDig[1]+" días)":"—"}
+
+Menús elegidos recientes:\n${meals||"—"}\n\nNotas recientes:\n${notes||"—"}`
+}
+function saveConsultDate(){localStorage.setItem("blanca_nextConsult",nextConsult.value);buildConsultSummary()}
+function copyConsult(){navigator.clipboard?.writeText(consultSummary.textContent).then(()=>alert("Resumen copiado."))}
+function exportBackup(){const data={version:3,exportedAt:new Date().toISOString(),resetHour:RESET_HOUR,startWeight:"primer registro",nextConsult:localStorage.getItem("blanca_nextConsult")||"",days:{}};allDayKeys().forEach(k=>data.days[k]=getDayData(k));download("blanca_asistente_backup_"+localDateKey()+".json",JSON.stringify(data,null,2),"application/json")}
+function exportForChatGPT(){const data={purpose:"Analizar evolución de nutrición, hábitos, sueño, actividad física, hambre, estrés y cumplimiento. Buscar tendencias, cambios y preguntas útiles para la próxima consulta. No asumir causalidad médica.",startWeight:"primer registro",exportedAt:new Date().toISOString(),records:records()};download("blanca_registro_para_chatgpt_"+localDateKey()+".json",JSON.stringify(data,null,2),"application/json")}
+function exportCSV(){
+ const cols=["date","weight","waist","walk","strength","intensity","bedtime","waketime","sleep","sleepQuality","energy","mood","hunger","stress","digestion","cravings","offplan","lunchChoice","snackChoice","dinnerChoice","notes","compliance"];
+ const esc=v=>`"${String(v??"").replaceAll('"','""')}"`;const lines=[cols.join(",")];records().forEach(r=>lines.push(cols.map(c=>esc(c==="compliance"?Math.round(compliance(r)):r[c])).join(",")));download("blanca_registro_nutricion_"+localDateKey()+".csv",lines.join("\n"),"text/csv;charset=utf-8")
+}
+function download(name,text,type){const blob=new Blob([text],{type}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function importBackup(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data.days)throw Error("Formato no válido");Object.entries(data.days).forEach(([k,v])=>saveDayData(k,v));if(data.nextConsult){localStorage.setItem("blanca_nextConsult",data.nextConsult);nextConsult.value=data.nextConsult}refreshAll();alert("Registro recuperado.")}catch(e){alert("No pude recuperar el archivo: "+e.message)}ev.target.value=""};r.readAsText(f)}
+function resetToday(){if(confirm("¿Querés borrar solamente los checks de hoy? El resto del registro queda intacto.")){const k=localDateKey(),d=getDayData(k);d.done={};saveDayData(k,d);refreshAll()}}
+function refreshAll(){render();renderMeals();showHistory();renderCalendar();updateKPIs();updateCharts();buildInsights();buildConsultSummary()}
+
+const rb=document.getElementById("mealRecipeBtn-lunch");
+if(rb) rb.addEventListener("click",openLunchRecipe);
+const rbd=document.getElementById("mealRecipeBtn-dinner");
+if(rbd) rbd.addEventListener("click",openDinnerRecipe);
+const rc=document.getElementById("recipeClose");
+if(rc) rc.addEventListener("click",closeLunchRecipe);
+const rm=document.getElementById("recipeModal");
+if(rm) rm.addEventListener("click",e=>{if(e.target===rm)closeLunchRecipe()});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && document.getElementById("recipeModal")?.classList.contains("open")) closeLunchRecipe();
+});
+
+mot.textContent=msgs[new Date().getDate()%msgs.length];nextConsult.value=localStorage.getItem("blanca_nextConsult")||"";fillTodayForm();tick();setInterval(tick,60000);refreshAll();window.addEventListener("resize",updateCharts);
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
