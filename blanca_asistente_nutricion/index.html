@@ -152,6 +152,51 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
   .step.active::before{right:8px;top:-10px}
 }
 
+
+/* ===== RECETA MODAL: SCROLL PROPIO + NAVEGACIÓN ===== */
+.recipe-modal{
+  overscroll-behavior:contain;
+  touch-action:none;
+}
+.recipe-card{
+  max-height:88vh;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+}
+.recipe-card::-webkit-scrollbar{width:8px}
+.recipe-card::-webkit-scrollbar-thumb{background:#c9d3cc;border-radius:99px}
+.recipe-nav{
+  display:grid;
+  grid-template-columns:46px 1fr 46px;
+  gap:8px;
+  align-items:center;
+  margin:4px 46px 14px 0;
+}
+.recipe-nav button{
+  width:46px;height:46px;border-radius:50%;padding:0;margin:0;
+  font-size:25px;display:grid;place-items:center;
+  background:var(--lunch-bg);color:var(--lunch-ink);border:1px solid var(--lunch-line);
+}
+.recipe-nav-center{
+  text-align:center;font-size:12px;font-weight:900;color:var(--muted);
+}
+body.modal-open{
+  overflow:hidden !important;
+  position:fixed;
+  width:100%;
+}
+@media(max-width:520px){
+  .recipe-modal{padding:10px}
+  .recipe-card{
+    width:96vw;
+    max-height:84vh;
+    padding:15px;
+  }
+  .recipe-title{font-size:19px}
+}
+
 </style>
 <style>
 .recipe-btn{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:8px 12px;border-radius:14px;border:1px solid var(--lunch-line);background:var(--lunch-bg);color:var(--lunch-ink);font-weight:900;cursor:pointer}
@@ -351,7 +396,14 @@ button{padding:11px 14px;border:0;border-radius:12px;background:var(--accent);co
 </section>
 
 
-<div class="recipe-modal" id="recipeModal" aria-hidden="true"><div class="recipe-card" role="dialog" aria-modal="true"><button type="button" class="recipe-close" id="recipeClose">×</button><div class="recipe-kicker">👨‍🍳 Receta rápida</div><div class="recipe-title" id="recipeTitle"></div><div class="recipe-time" id="recipeTime"></div><div class="recipe-section"><h3>Ingredientes</h3><ul id="recipeIngredients"></ul></div><div class="recipe-section"><h3>Preparación</h3><ol id="recipeSteps"></ol></div><div class="recipe-tip" id="recipeTip"></div></div></div><div class="footer">Herramienta de organización basada en las indicaciones registradas en la consulta. No reemplaza la indicación profesional. Los datos quedan en este navegador y el “día” cambia a las 02:00. Si esta carpeta se publica por HTTPS, puede agregarse a la pantalla de inicio como una app.</div>
+<div class="recipe-modal" id="recipeModal" aria-hidden="true"><div class="recipe-card" role="dialog" aria-modal="true"><button type="button" class="recipe-close" id="recipeClose">×</button><div class="recipe-kicker">👨‍🍳 Receta rápida</div>
+<div class="recipe-title" id="recipeTitle"></div>
+<div class="recipe-nav">
+  <button type="button" id="recipePrev" aria-label="Receta anterior">‹</button>
+  <div class="recipe-nav-center" id="recipeCounter">1 / 12</div>
+  <button type="button" id="recipeNext" aria-label="Receta siguiente">›</button>
+</div>
+<div class="recipe-time" id="recipeTime"></div><div class="recipe-section"><h3>Ingredientes</h3><ul id="recipeIngredients"></ul></div><div class="recipe-section"><h3>Preparación</h3><ol id="recipeSteps"></ol></div><div class="recipe-tip" id="recipeTip"></div></div></div><div class="footer">Herramienta de organización basada en las indicaciones registradas en la consulta. No reemplaza la indicación profesional. Los datos quedan en este navegador y el “día” cambia a las 02:00. Si esta carpeta se publica por HTTPS, puede agregarse a la pantalla de inicio como una app.</div>
 </div>
 
 <script>
@@ -452,22 +504,73 @@ function renderMeals(){
   });
 }
 
-function openMealRecipe(kind){
-  const d=getMealState(),a=mealOptions[kind],i=((d.menuView[kind]%a.length)+a.length)%a.length;
-  const source=kind==="dinner"?dinnerRecipes:(kind==="snack"?snackRecipes:lunchRecipes),r=source[i];
+let currentRecipeKind="lunch";
+let savedBodyScrollY=0;
+
+function recipeSource(kind){
+  return kind==="dinner" ? dinnerRecipes : (kind==="snack" ? snackRecipes : lunchRecipes);
+}
+function currentRecipeIndex(kind){
+  const d=getMealState(),a=mealOptions[kind];
+  return ((d.menuView[kind]%a.length)+a.length)%a.length;
+}
+function renderRecipe(kind){
+  currentRecipeKind=kind;
+  const source=recipeSource(kind);
+  const idx=currentRecipeIndex(kind);
+  const r=source[idx];
+  if(!r) return;
+
   document.getElementById("recipeTitle").textContent=r.title;
   document.getElementById("recipeTime").textContent="⏱️ "+r.time;
-  let u=document.getElementById("recipeIngredients");u.innerHTML="";
-  r.ingredients.forEach(x=>{let l=document.createElement("li");l.textContent=x;u.appendChild(l)});
-  let o=document.getElementById("recipeSteps");o.innerHTML="";
-  r.steps.forEach(x=>{let l=document.createElement("li");l.textContent=x;o.appendChild(l)});
+  document.getElementById("recipeCounter").textContent=`${idx+1} / ${source.length}`;
+
+  const u=document.getElementById("recipeIngredients");
+  u.innerHTML="";
+  r.ingredients.forEach(x=>{const li=document.createElement("li");li.textContent=x;u.appendChild(li)});
+
+  const o=document.getElementById("recipeSteps");
+  o.innerHTML="";
+  r.steps.forEach(x=>{const li=document.createElement("li");li.textContent=x;o.appendChild(li)});
+
   document.getElementById("recipeTip").textContent=r.tip;
-  document.getElementById("recipeModal").classList.add("open");document.body.classList.add("modal-open");
+
+  const card=document.querySelector(".recipe-card");
+  if(card) card.scrollTop=0;
 }
+
+function openMealRecipe(kind){
+  savedBodyScrollY=window.scrollY || document.documentElement.scrollTop || 0;
+  renderRecipe(kind);
+  const modal=document.getElementById("recipeModal");
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden","false");
+  document.body.style.top=`-${savedBodyScrollY}px`;
+  document.body.classList.add("modal-open");
+}
+
 function openLunchRecipe(){openMealRecipe("lunch")}
 function openSnackRecipe(){openMealRecipe("snack")}
 function openDinnerRecipe(){openMealRecipe("dinner")}
-function closeLunchRecipe(){document.getElementById("recipeModal").classList.remove("open");document.body.classList.remove("modal-open")}
+
+function moveRecipe(delta){
+  const kind=currentRecipeKind;
+  const k=localDateKey(),d=getMealState(),arr=mealOptions[kind];
+  d.menuView[kind]=(d.menuView[kind]+delta+arr.length)%arr.length;
+  saveDayData(k,d);
+  renderMeals();      // sincroniza la tarjeta de atrás
+  renderRecipe(kind); // actualiza la receta abierta
+}
+
+function closeLunchRecipe(){
+  const modal=document.getElementById("recipeModal");
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden","true");
+  document.body.classList.remove("modal-open");
+  document.body.style.top="";
+  window.scrollTo(0,savedBodyScrollY);
+  renderMeals();
+}
 function moveMeal(kind,delta){
   const k=localDateKey(),d=getMealState(),arr=mealOptions[kind];
   d.menuView[kind]=(d.menuView[kind]+delta+arr.length)%arr.length;
@@ -634,12 +737,31 @@ const rbs=document.getElementById("mealRecipeBtn-snack");
 if(rbs) rbs.addEventListener("click",openSnackRecipe);
 const rbd=document.getElementById("mealRecipeBtn-dinner");
 if(rbd) rbd.addEventListener("click",openDinnerRecipe);
+
 const rc=document.getElementById("recipeClose");
 if(rc) rc.addEventListener("click",closeLunchRecipe);
+
+const rp=document.getElementById("recipePrev");
+if(rp) rp.addEventListener("click",()=>moveRecipe(-1));
+const rn=document.getElementById("recipeNext");
+if(rn) rn.addEventListener("click",()=>moveRecipe(1));
+
 const rm=document.getElementById("recipeModal");
-if(rm) rm.addEventListener("click",e=>{if(e.target===rm)closeLunchRecipe()});
+if(rm){
+  rm.addEventListener("click",e=>{if(e.target===rm)closeLunchRecipe()});
+  // Evita que el gesto táctil del modal "atraviese" y mueva la página de fondo.
+  rm.addEventListener("touchmove",e=>{
+    const card=e.target.closest(".recipe-card");
+    if(!card) e.preventDefault();
+  },{passive:false});
+}
+
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape" && document.getElementById("recipeModal")?.classList.contains("open")) closeLunchRecipe();
+  const isOpen=document.getElementById("recipeModal")?.classList.contains("open");
+  if(!isOpen) return;
+  if(e.key==="Escape") closeLunchRecipe();
+  if(e.key==="ArrowLeft") moveRecipe(-1);
+  if(e.key==="ArrowRight") moveRecipe(1);
 });
 
 mot.textContent=msgs[new Date().getDate()%msgs.length];nextConsult.value=localStorage.getItem("blanca_nextConsult")||"";fillTodayForm();tick();setInterval(tick,60000);refreshAll();window.addEventListener("resize",updateCharts);
