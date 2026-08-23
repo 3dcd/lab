@@ -1,4 +1,4 @@
-const CACHE='blanca-recetas-almuerzo-cena-v2';
+const CACHE='blanca-tres-comidas-recetas-v3';
 const ASSETS=[
   './',
   './index.html',
