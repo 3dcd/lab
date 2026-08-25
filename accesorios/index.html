@@ -109,6 +109,11 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
     <div class="row"><input id="widthMm" type="range" min="20" max="140" value="55"><div class="value" id="widthV">55 mm</div></div>
     <div class="status" id="widthDetail" style="margin-top:7px">Solo una medida manda a la vez. Si elegís ALTO, el ancho se calcula solo sin deformar la figura; si elegís ANCHO, se calcula el alto.</div>
   </div>
+  <div class="group imageOnly" id="imageThicknessGroup">
+    <label>Espesor del plástico</label>
+    <div class="row"><input id="imageThickness" type="range" min="1.5" max="5" step="0.25" value="2"><div class="value" id="imageThicknessV">2,00 mm</div></div>
+    <div class="recutHelp">Controla el espesor de la base de la pieza. Si tiene borde, el filete queda 0,75 mm más alto.</div>
+  </div>
   <div class="group imageOnly" id="imageTerminationGroup">
     <label>Terminación</label>
     <div class="optiongrid" id="borderMode">
@@ -194,9 +199,9 @@ if(window.visualViewport){
   visualViewport.addEventListener('resize',syncVisibleViewport,{passive:true});
   visualViewport.addEventListener('scroll',syncVisibleViewport,{passive:true});
 }
-const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),height:$('#heightMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status'),autoBg:$('#autoBg'),autoBgChip:$('#autoBgChip'),cutTolerance:$('#cutTolerance'),cutMargin:$('#cutMargin'),cutSmooth:$('#cutSmooth'),projectName:$('#projectName'),saveProject:$('#saveProject'),openProject:$('#openProject'),projectFile:$('#projectFile'),svgThickness:$('#svgThickness')};
+const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),height:$('#heightMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status'),autoBg:$('#autoBg'),autoBgChip:$('#autoBgChip'),cutTolerance:$('#cutTolerance'),cutMargin:$('#cutMargin'),cutSmooth:$('#cutSmooth'),projectName:$('#projectName'),saveProject:$('#saveProject'),openProject:$('#openProject'),projectFile:$('#projectFile'),svgThickness:$('#svgThickness'),imageThickness:$('#imageThickness')};
 const work=document.createElement('canvas'),ctx=work.getContext('2d',{willReadFrequently:true});
-let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.88,bgColor='#ffffff',detectedBgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1,lastInnerBoundsPx=null,lastOuterBoundsPx=null,sourceHasTransparency=false,currentFileType='',sourceDataURL='',sourceFileName='imagen.png',previewMode='2d',stlTriangles=[],viewYaw=-0.65,viewPitch=0.72,viewZoom=1,currentGlbUrl='',preparedSourceCanvas=null,dimensionBasis='height',lastPhysicalW=55,lastPhysicalH=70,sourceFromPaste=false,currentSvgPlastic=false,svgKeepHoles=true,svgPlasticThickness=2.75,lastHoleContours=[],lastOuterHoleContours=[],lastHolesMM=[],lastOuterHolesMM=[];
+let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.88,bgColor='#ffffff',detectedBgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1,lastInnerBoundsPx=null,lastOuterBoundsPx=null,sourceHasTransparency=false,currentFileType='',sourceDataURL='',sourceFileName='imagen.png',previewMode='2d',stlTriangles=[],viewYaw=-0.65,viewPitch=0.72,viewZoom=1,currentGlbUrl='',preparedSourceCanvas=null,dimensionBasis='height',lastPhysicalW=55,lastPhysicalH=70,sourceFromPaste=false,currentSvgPlastic=false,svgKeepHoles=true,svgPlasticThickness=2.75,imageThickness=2,lastHoleContours=[],lastOuterHoleContours=[],lastHolesMM=[],lastOuterHolesMM=[];
 const CFG={threshold:48,simplify:3,base:2,total:2.75,hole:3.2,ring:8,marginPx:10,cakePinLength:18,cakePinWidth:4};
 let autoTimer=null;
 function scheduleGenerate(delay=80){
@@ -211,8 +216,9 @@ function updateMeasureLabels(){
   $('#widthV').textContent=iw.toFixed(1)+' mm';
   $('#heightV').textContent=ih.toFixed(1)+' mm';
   $('#widthDetail').textContent=(dimensionBasis==='height'?'Referencia: ALTO. ':'Referencia: ANCHO. ')+(hasBorder?'Exterior aprox. '+ew.toFixed(1)+' × '+eh.toFixed(1)+' mm con borde de '+wallWidth+' mm.':'Sin borde: '+iw.toFixed(1)+' × '+ih.toFixed(1)+' mm.');
-  $('#specHeight').textContent=(hasBorder?CFG.total:CFG.base)+' mm';
-  $('#sumHeight').textContent=(hasBorder?CFG.total:CFG.base)+' mm';
+  const baseH=currentSvgPlastic?svgPlasticThickness:imageThickness,totalH=currentSvgPlastic?svgPlasticThickness:(imageThickness+(hasBorder?0.75:0));
+  $('#specHeight').textContent=totalH.toFixed(2)+' mm';
+  $('#sumHeight').textContent=totalH.toFixed(2)+' mm';
 }
 function setDimensionBasis(mode){
   dimensionBasis=mode==='width'?'width':'height';
@@ -275,6 +281,7 @@ document.querySelectorAll('#shapegrid button').forEach(b=>b.onclick=()=>{
 });
 document.querySelectorAll('#svgHoleMode button').forEach(b=>b.onclick=()=>{svgKeepHoles=b.dataset.holes==='keep';document.querySelectorAll('#svgHoleMode button').forEach(x=>x.classList.toggle('active',x===b));markParametersDirty();saveActiveObject();scheduleGenerate(30)});
 if(els.svgThickness)els.svgThickness.oninput=()=>{svgPlasticThickness=+els.svgThickness.value;$('#svgThicknessV').textContent=String(svgPlasticThickness).replace('.',',')+' mm';markParametersDirty();saveActiveObject();scheduleGenerate(50)};
+if(els.imageThickness)els.imageThickness.oninput=()=>{imageThickness=+els.imageThickness.value;$('#imageThicknessV').textContent=imageThickness.toFixed(2).replace('.',',')+' mm';markParametersDirty();saveActiveObject();updateMeasureLabels();scheduleGenerate(50)};
 updateMeasureLabels();
 function colorDistance(r1,g1,b1,r2,g2,b2){return Math.hypot(r1-r2,g1-g2,b1-b2)}
 function alphaMaskFromImageData(data,w,h){
@@ -341,7 +348,7 @@ function detectEdgeBackground(){
 function buildPreparedSourceCanvas(max=900){
   // SVG: raster de trabajo de alta resolución para que la vista y la detección no dependan
   // de los pocos píxeles declarados por Illustrator. El original SVG se conserva intacto.
-  if(isCurrentSVG())max=Math.max(max,1400);
+  if(isCurrentSVG()){const touch=matchMedia('(pointer:coarse)').matches;max=Math.max(max,touch?1000:1400);}
   const nativeMax=Math.max(sourceImg.width,sourceImg.height)||1;
   const sc=isCurrentSVG()?Math.min(8,max/nativeMax):Math.min(1,max/nativeMax);
   const sw=Math.max(1,Math.round(sourceImg.width*sc)),sh=Math.max(1,Math.round(sourceImg.height*sc));
@@ -415,7 +422,19 @@ async function loadFile(f,opts={}){const ok=/^image\/(png|jpeg|webp|svg\+xml)$/.
 
 function isSVGType(fileType=currentFileType,fileName=sourceFileName,dataURL=sourceDataURL){return String(fileType||'').includes('svg')||/\.svg$/i.test(String(fileName||''))||String(dataURL||'').startsWith('data:image/svg+xml')}
 function isCurrentSVG(){return isSVGType()}
-function buildMask(){return currentSvgPlastic&&isCurrentSVG()?smartForegroundMask(original.data,work.width,work.height,true):smartForegroundMask(original.data,work.width,work.height,false)}
+function svgPlasticMaskFromImageData(data,w,h){
+  // Motor independiente del recorte JPG: para Plástico 3D el SVG se interpreta como geometría.
+  // Transparente y blanco/casi blanco = vacío; cualquier trazo/relleno visible = plástico.
+  const out=new Uint8Array(w*h);
+  for(let i=0;i<w*h;i++){
+    const r=data[i*4],g=data[i*4+1],b=data[i*4+2],a=data[i*4+3];
+    if(a<24){out[i]=0;continue}
+    const nearWhite=r>245&&g>245&&b>245;
+    out[i]=nearWhite?0:1;
+  }
+  return meaningfulComponents(out,w,h,Math.max(3,Math.round(w*h*.000004)));
+}
+function buildMask(){return currentSvgPlastic&&isCurrentSVG()?svgPlasticMaskFromImageData(original.data,work.width,work.height):smartForegroundMask(original.data,work.width,work.height,false)}
 function findHoleContours(src,w,h,minPixels=Math.max(12,Math.round(w*h*.000025))){
   // Fondo que NO está conectado al borde = agujero interior real.
   const exterior=new Uint8Array(src.length),q=[],push=i=>{if(i>=0&&i<src.length&&!src[i]&&!exterior[i]){exterior[i]=1;q.push(i)}};
@@ -435,7 +454,7 @@ function findHoleContours(src,w,h,minPixels=Math.max(12,Math.round(w*h*.000025))
 }
 function maskBounds(src,w,h){let minX=w,minY=h,maxX=-1,maxY=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(src[y*w+x]){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y}return maxX<0?null:{minX,minY,maxX,maxY,w:maxX-minX+1,h:maxY-minY+1}}
 function gridOccupancy(src,w,h,b,step){const gw=Math.max(1,Math.ceil(b.w/step)),gh=Math.max(1,Math.ceil(b.h/step)),out=new Uint8Array(gw*gh);for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){const x0=b.minX+gx*step,y0=b.minY+gy*step,x1=Math.min(b.maxX+1,x0+step),y1=Math.min(b.maxY+1,y0+step);let hit=0;for(let y=y0;y<y1&&!hit;y++)for(let x=x0;x<x1;x++)if(src[y*w+x]){hit=1;break}out[gy*gw+gx]=hit}return{data:out,gw,gh}}
-function extrudeMaskGrid(src,w,h,b,scale,z0,z1,cellMM=.24){
+function extrudeMaskGrid(src,w,h,b,scale,z0,z1,cellMM=(matchMedia('(pointer:coarse)').matches?.22:.14)){
   const step=Math.max(1,Math.round(cellMM/Math.max(scale,1e-6))),g=gridOccupancy(src,w,h,b,step),cw=step*scale,ch=step*scale;let s='';
   const occ=(x,y)=>x>=0&&y>=0&&x<g.gw&&y<g.gh&&g.data[y*g.gw+x];
   for(let gy=0;gy<g.gh;gy++)for(let gx=0;gx<g.gw;gx++)if(occ(gx,gy)){
@@ -593,9 +612,9 @@ function cakeAnchor(poly){
 }
 function buildUnifiedSTL(inner,outer){
   const body=hasBorder?outer:inner;
-  const pieceHeight=hasBorder?CFG.total:CFG.base;
-  const baseBody=extrude(body,0,CFG.base);
-  const wallBody=hasBorder?ringWall(outer,inner,0,CFG.total):'';
+  const baseH=imageThickness,pieceHeight=hasBorder?(imageThickness+0.75):imageThickness;
+  const baseBody=extrude(body,0,baseH);
+  const wallBody=hasBorder?ringWall(outer,inner,0,pieceHeight):'';
   let attachment='';
   if(attachmentMode==='keychain'){
     const [x,top]=topAnchor(body),ro=CFG.ring/2,ri=CFG.hole/2,overlap=.8,cy=top+ro-overlap;
@@ -856,7 +875,7 @@ function laserSVGCompound(outer,holes=[],label='contorno con huecos'){
 let sessionObjects=[],activeObjectId=null,objectSeq=0,objectSwitching=false;
 const objectListEl=$('#objectList'),busyVeil=$('#busyveil');
 function setBusy(v){busyVeil?.classList.toggle('show',!!v)}
-function objectSettings(){return {shape,hasBorder,wallWidth,attachmentMode,designScale,bgColor,width:+els.width.value,height:+els.height.value,dimensionBasis,cutTolerance:+els.cutTolerance.value,cutMargin:+els.cutMargin.value,cutSmooth:+els.cutSmooth.value,svgKeepHoles,svgPlasticThickness}}
+function objectSettings(){return {shape,hasBorder,wallWidth,attachmentMode,designScale,bgColor,width:+els.width.value,height:+els.height.value,dimensionBasis,cutTolerance:+els.cutTolerance.value,cutMargin:+els.cutMargin.value,cutSmooth:+els.cutSmooth.value,svgKeepHoles,svgPlasticThickness,imageThickness}}
 function updateObjectModeUI(){
   const plastic=!!(currentSvgPlastic&&isCurrentSVG());
   document.querySelectorAll('.imageOnly').forEach(el=>el.classList.toggle('hidden',plastic));
@@ -874,7 +893,7 @@ function updateObjectModeUI(){
     $('#wallOptions').style.display=hasBorder?'block':'none';
   }
   document.querySelectorAll('#svgHoleMode button').forEach(x=>x.classList.toggle('active',(x.dataset.holes==='keep')===svgKeepHoles));
-  if(els.svgThickness){els.svgThickness.value=svgPlasticThickness;$('#svgThicknessV').textContent=String(svgPlasticThickness).replace('.',',')+' mm';}
+  if(els.svgThickness){els.svgThickness.value=svgPlasticThickness;$('#svgThicknessV').textContent=String(svgPlasticThickness).replace('.',',')+' mm';}if(els.imageThickness){els.imageThickness.value=imageThickness;$('#imageThicknessV').textContent=imageThickness.toFixed(2).replace('.',',')+' mm';}
 }
 function fillInternalHoles(src,w,h){
   const exterior=new Uint8Array(src.length),q=[];
@@ -909,7 +928,7 @@ function applyCurrentSettingsToAllOnce(){
     if(activePlastic){
       o.settings=targetPlastic?{...base,...common,svgKeepHoles:settings.svgKeepHoles,svgPlasticThickness:settings.svgPlasticThickness}:{...base,...common};
     }else{
-      o.settings=targetPlastic?{...base,...common}:{...base,...settings,svgKeepHoles:base.svgKeepHoles??true,svgPlasticThickness:base.svgPlasticThickness??2.75};
+      o.settings=targetPlastic?{...base,...common}:{...base,...settings,svgKeepHoles:base.svgKeepHoles??true,svgPlasticThickness:base.svgPlasticThickness??2.75,imageThickness:settings.imageThickness??2};
     }
   }
   renderObjectList();
@@ -933,8 +952,8 @@ controlsPanel.addEventListener('click',e=>{
   if(e.target.closest('#syncAllBtn')||e.target.closest('.objectcard')||e.target.closest('#pasteClipboard')||e.target.closest('#newBlank')||e.target.closest('#saveProject')||e.target.closest('#openProject')||e.target.closest('#download'))return;
   if(e.target.closest('#shapegrid button,#borderMode button,#wallWidthMode button,#attachmentMode button,#dimensionMode button,#bgPalette button,#autoBg'))markParametersDirty();
 },{capture:true});
-function saveActiveObject(){const o=sessionObjects.find(x=>x.id===activeObjectId);if(!o||objectSwitching||!sourceDataURL)return;o.settings=objectSettings();o.dataURL=sourceDataURL;o.fileName=sourceFileName;o.fileType=currentFileType;o.fromPaste=sourceFromPaste;o.detectedBgColor=detectedBgColor;o.hasTransparency=sourceHasTransparency;o.svgPlastic=!!currentSvgPlastic;o.name=els.projectName.value||o.name;renderObjectList()}
-function applyObjectSettings(s={}){shape=s.shape||'cutout';hasBorder=s.hasBorder!==false;wallWidth=+s.wallWidth||1;attachmentMode=s.attachmentMode||'keychain';designScale=+s.designScale||.88;bgColor=s.bgColor||'#ffffff';svgKeepHoles=s.svgKeepHoles!==false;svgPlasticThickness=Math.max(1.5,Math.min(5,+s.svgPlasticThickness||2.75));els.width.value=s.width||55;els.height.value=s.height||70;dimensionBasis=s.dimensionBasis||'height';lastPhysicalW=+els.width.value;lastPhysicalH=+els.height.value;els.designScale.value=Math.round(designScale*100);els.cutTolerance.value=s.cutTolerance||48;els.cutMargin.value=s.cutMargin??10;els.cutSmooth.value=s.cutSmooth||3;CFG.threshold=+els.cutTolerance.value;CFG.marginPx=+els.cutMargin.value;CFG.simplify=+els.cutSmooth.value;document.querySelectorAll('#shapegrid button').forEach(x=>x.classList.toggle('active',x.dataset.shape===shape));document.querySelectorAll('#dimensionMode button').forEach(x=>x.classList.toggle('active',x.dataset.dim===dimensionBasis));document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',(x.dataset.border==='yes')===hasBorder));document.querySelectorAll('#wallWidthMode button').forEach(x=>x.classList.toggle('active',+x.dataset.wall===wallWidth));document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x.dataset.attachment===attachmentMode));document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x.dataset.color.toLowerCase()===bgColor.toLowerCase()));$('#designControls').classList.toggle('hidden',shape==='cutout');$('#cutoutControls').classList.toggle('hidden',shape!=='cutout');$('#wallOptions').style.display=hasBorder?'block':'none';$('#designScaleV').textContent=Math.round(designScale*100)+'%';$('#cutToleranceV').textContent=els.cutTolerance.value;$('#cutMarginV').textContent=els.cutMargin.value+' px';$('#cutSmoothV').textContent=els.cutSmooth.value;updateObjectModeUI();updateMeasureLabels()}
+function saveActiveObject(){const o=sessionObjects.find(x=>x.id===activeObjectId);if(!o||objectSwitching||!sourceDataURL)return;o.settings=objectSettings();o.dataURL=sourceDataURL;o.fileName=sourceFileName;o.fileType=currentFileType;o.fromPaste=sourceFromPaste;o.detectedBgColor=detectedBgColor;o.hasTransparency=sourceHasTransparency;o.svgPlastic=!!currentSvgPlastic;renderObjectList()}
+function applyObjectSettings(s={}){shape=s.shape||'cutout';hasBorder=s.hasBorder!==false;wallWidth=+s.wallWidth||1;attachmentMode=s.attachmentMode||'keychain';designScale=+s.designScale||.88;bgColor=s.bgColor||'#ffffff';svgKeepHoles=s.svgKeepHoles!==false;svgPlasticThickness=Math.max(1.5,Math.min(5,+s.svgPlasticThickness||2.75));imageThickness=Math.max(1.5,Math.min(5,+s.imageThickness||2));els.width.value=s.width||55;els.height.value=s.height||70;dimensionBasis=s.dimensionBasis||'height';lastPhysicalW=+els.width.value;lastPhysicalH=+els.height.value;els.designScale.value=Math.round(designScale*100);els.cutTolerance.value=s.cutTolerance||48;els.cutMargin.value=s.cutMargin??10;els.cutSmooth.value=s.cutSmooth||3;CFG.threshold=+els.cutTolerance.value;CFG.marginPx=+els.cutMargin.value;CFG.simplify=+els.cutSmooth.value;document.querySelectorAll('#shapegrid button').forEach(x=>x.classList.toggle('active',x.dataset.shape===shape));document.querySelectorAll('#dimensionMode button').forEach(x=>x.classList.toggle('active',x.dataset.dim===dimensionBasis));document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',(x.dataset.border==='yes')===hasBorder));document.querySelectorAll('#wallWidthMode button').forEach(x=>x.classList.toggle('active',+x.dataset.wall===wallWidth));document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x.dataset.attachment===attachmentMode));document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x.dataset.color.toLowerCase()===bgColor.toLowerCase()));$('#designControls').classList.toggle('hidden',shape==='cutout');$('#cutoutControls').classList.toggle('hidden',shape!=='cutout');$('#wallOptions').style.display=hasBorder?'block':'none';$('#designScaleV').textContent=Math.round(designScale*100)+'%';$('#cutToleranceV').textContent=els.cutTolerance.value;$('#cutMarginV').textContent=els.cutMargin.value+' px';$('#cutSmoothV').textContent=els.cutSmooth.value;updateObjectModeUI();updateMeasureLabels()}
 function renderObjectList(){if(!objectListEl)return;objectListEl.innerHTML='';for(const o of sessionObjects){
   const card=document.createElement('div');card.className='objectcard'+(o.id===activeObjectId?' active':'')+(o.svgPlastic?' svgplastic':'');card.title='Abrir '+o.name;
   const im=document.createElement('img');im.className='objectthumb';im.src=o.dataURL;const meta=document.createElement('div');meta.className='objectmeta';
@@ -952,14 +971,14 @@ function chooseSVGImportMode(){
     asPlastic.onclick=()=>finish(true);
   });
 }
-async function acceptNewObjectSource(dataURL,fileName='pegado.png',fileType='image/png',opts={}){setBusy(true);try{saveActiveObject();if(opts.fromPaste){dataURL=await flattenPasteOnWhite(dataURL);fileType='image/png';fileName=(fileName||'pegado').replace(/\.[^.]+$/,'')+'_aplanado.png'}let svgPlastic=false;if(isSVGType(fileType,fileName,dataURL)){setBusy(false);svgPlastic=opts.svgPlastic!==undefined?!!opts.svgPlastic:await chooseSVGImportMode();setBusy(true)}const id=++objectSeq;const o={id,name:'Objeto '+id,dataURL,fileName,fileType,fromPaste:!!opts.fromPaste,svgPlastic,settings:objectSettings()};sessionObjects.push(o);markParametersDirty();activeObjectId=id;currentSvgPlastic=!!o.svgPlastic;els.projectName.value=o.name;objectSwitching=true;applyObjectSettings(o.settings);await inspectImageAndActivate(dataURL,fileName,fileType,{quiet:true,fromPaste:!!opts.fromPaste});updateObjectModeUI();objectSwitching=false;o.hasTransparency=sourceHasTransparency;o.detectedBgColor=detectedBgColor;renderObjectList();els.status.innerHTML='<span class="badge">'+(opts.fromPaste?'Pegado · recorte reconstruido':'Objeto nuevo')+'</span> '+o.name+' · '+sourceImg.width+' × '+sourceImg.height+' px · '+(opts.fromPaste?'alpha del lazo ignorado · fondo exterior detectado.':'podés seguir pegando sin cerrar nada.');scheduleGenerate(20)}finally{objectSwitching=false;setBusy(false)}}
-async function switchObject(id){if(id===activeObjectId)return;const target=sessionObjects.find(x=>x.id===id);if(!target)return;setBusy(true);try{saveActiveObject();activeObjectId=id;currentSvgPlastic=!!target.svgPlastic;objectSwitching=true;applyObjectSettings(target.settings||{});els.projectName.value=target.name;await inspectImageAndActivate(target.dataURL,target.fileName,target.fileType,{quiet:true,fromPaste:!!target.fromPaste});updateObjectModeUI();objectSwitching=false;renderObjectList();els.status.innerHTML='<span class="badge">Objeto activo</span> '+target.name+' · parámetros independientes recuperados.';scheduleGenerate(20)}catch(e){els.status.textContent='No pude abrir ese objeto: '+e.message}finally{objectSwitching=false;setBusy(false)}}
+async function acceptNewObjectSource(dataURL,fileName='pegado.png',fileType='image/png',opts={}){setBusy(true);try{saveActiveObject();if(opts.fromPaste){dataURL=await flattenPasteOnWhite(dataURL);fileType='image/png';fileName=(fileName||'pegado').replace(/\.[^.]+$/,'')+'_aplanado.png'}let svgPlastic=false;if(isSVGType(fileType,fileName,dataURL)){setBusy(false);svgPlastic=opts.svgPlastic!==undefined?!!opts.svgPlastic:await chooseSVGImportMode();setBusy(true)}const id=++objectSeq;const o={id,name:'Objeto '+id,dataURL,fileName,fileType,fromPaste:!!opts.fromPaste,svgPlastic,settings:objectSettings()};sessionObjects.push(o);markParametersDirty();activeObjectId=id;currentSvgPlastic=!!o.svgPlastic;objectSwitching=true;applyObjectSettings(o.settings);await inspectImageAndActivate(dataURL,fileName,fileType,{quiet:true,fromPaste:!!opts.fromPaste});updateObjectModeUI();objectSwitching=false;o.hasTransparency=sourceHasTransparency;o.detectedBgColor=detectedBgColor;renderObjectList();els.status.innerHTML='<span class="badge">'+(opts.fromPaste?'Pegado · recorte reconstruido':'Objeto nuevo')+'</span> '+o.name+' · '+sourceImg.width+' × '+sourceImg.height+' px · '+(opts.fromPaste?'alpha del lazo ignorado · fondo exterior detectado.':'podés seguir pegando sin cerrar nada.');scheduleGenerate(20)}finally{objectSwitching=false;setBusy(false)}}
+async function switchObject(id){if(id===activeObjectId)return;const target=sessionObjects.find(x=>x.id===id);if(!target)return;setBusy(true);try{saveActiveObject();activeObjectId=id;currentSvgPlastic=!!target.svgPlastic;objectSwitching=true;applyObjectSettings(target.settings||{});await inspectImageAndActivate(target.dataURL,target.fileName,target.fileType,{quiet:true,fromPaste:!!target.fromPaste});updateObjectModeUI();objectSwitching=false;renderObjectList();els.status.innerHTML='<span class="badge">Objeto activo</span> '+target.name+' · parámetros independientes recuperados.';scheduleGenerate(20)}catch(e){els.status.textContent='No pude abrir ese objeto: '+e.message}finally{objectSwitching=false;setBusy(false)}}
 function deleteObject(id){const idx=sessionObjects.findIndex(x=>x.id===id);if(idx<0)return;const was=id===activeObjectId;sessionObjects.splice(idx,1);if(!was){renderObjectList();return}activeObjectId=null;if(sessionObjects.length){switchObject(sessionObjects[Math.max(0,idx-1)].id)}else{sourceImg=null;sourceDataURL='';subjectCanvas=null;preparedSourceCanvas=null;els.download.disabled=true;els.saveProject.disabled=true;els.drop.classList.remove('loaded');els.drop.innerHTML='<strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span><span class="paste-mini">o pegá directamente con ⌘V / Ctrl+V</span>';els.status.textContent='Pegá o cargá una imagen para comenzar.';renderObjectList()}}
 function newBlankObject(){saveActiveObject();els.file.click()}
 async function pasteFromClipboardAPI(){try{if(!navigator.clipboard?.read)throw Error('Usá ⌘V / Ctrl+V directamente.');const items=await navigator.clipboard.read();for(const item of items){const type=item.types.find(t=>t.startsWith('image/'));if(type){const blob=await item.getType(type);const ext=type.split('/')[1].replace('jpeg','jpg');const f=new File([blob],'pegado_'+(objectSeq+1)+'.'+ext,{type});await loadFile(f,{fromPaste:true});return}}throw Error('El portapapeles no contiene una imagen.')}catch(e){els.status.textContent='Pegado: '+e.message}}
 document.addEventListener('paste',async e=>{const items=[...(e.clipboardData?.items||[])];const it=items.find(x=>x.type?.startsWith('image/'));if(!it)return;e.preventDefault();const blob=it.getAsFile();if(!blob)return;const ext=(blob.type.split('/')[1]||'png').replace('jpeg','jpg');const f=new File([blob],'pegado_'+(objectSeq+1)+'.'+ext,{type:blob.type});await loadFile(f,{fromPaste:true})});
 $('#pasteClipboard').onclick=pasteFromClipboardAPI;$('#newBlank').onclick=newBlankObject;
-['input','change'].forEach(ev=>document.querySelector('.controls').addEventListener(ev,e=>{if(activeObjectId&&!objectSwitching&&e.target!==els.projectFile)queueMicrotask(saveActiveObject)}));
+['input','change'].forEach(ev=>document.querySelector('.controls').addEventListener(ev,e=>{if(activeObjectId&&!objectSwitching&&e.target!==els.projectFile&&e.target!==els.projectName)queueMicrotask(saveActiveObject)}));
 function projectSnapshot(){
   saveActiveObject();
   return {
@@ -968,6 +987,7 @@ function projectSnapshot(){
     savedAt:new Date().toISOString(),
     objectSeq,
     activeObjectId,
+    projectName:(els.projectName.value||'').trim(),
     objects:sessionObjects.map(o=>({
       id:o.id,
       name:o.name,
@@ -992,7 +1012,7 @@ function parseStoreZip(buffer){
 async function saveEditableProject(){
   if(!sessionObjects.length)return;
   const data=projectSnapshot();
-  const label=sessionObjects.length===1?sanitizeName(sessionObjects[0].name||'proyecto'):sanitizeName('lote_'+sessionObjects.length+'_objetos');
+  const rawProject=(els.projectName.value||'').trim();const label=rawProject?sanitizeName(rawProject):'3DCD';
   const files=[{name:'proyecto.json',data:JSON.stringify(data,null,2)}];
   // Además del JSON autosuficiente, guardamos copias de las fuentes para inspección/recuperación manual.
   data.objects.forEach((o,i)=>{
@@ -1033,7 +1053,7 @@ async function openEditableProject(f){
     objectSeq=Math.max(+data.objectSeq||0,...sessionObjects.map(o=>+o.id||0));
     const wanted=sessionObjects.find(o=>o.id===+data.activeObjectId)||sessionObjects[0];
     activeObjectId=wanted.id;currentSvgPlastic=!!wanted.svgPlastic;objectSwitching=true;
-    applyObjectSettings(wanted.settings||{});els.projectName.value=wanted.name;
+    applyObjectSettings(wanted.settings||{});els.projectName.value=data.projectName||'';
     await inspectImageAndActivate(wanted.dataURL,wanted.fileName,wanted.fileType,{quiet:true,fromPaste:!!wanted.fromPaste});
     objectSwitching=false;renderObjectList();generate();
     els.saveProject.disabled=false;els.download.disabled=false;
@@ -1058,7 +1078,7 @@ function buildTemporaryGLB(tris){
   const designPoly=insetPolyTowardCenter((innerPoly&&innerPoly.length?innerPoly:bodyPoly),hasBorder?0.18:0.08);
   const uvPoly=(innerPoly&&innerPoly.length?innerPoly:bodyPoly);
   const bb=uvPoly.length?bounds(uvPoly):{minX:0,maxX:1,minY:0,maxY:1,w:1,h:1};
-  const spanX=Math.max(1e-6,bb.w),spanY=Math.max(1e-6,bb.h),topZ=CFG.base;
+  const spanX=Math.max(1e-6,bb.w),spanY=Math.max(1e-6,bb.h),topZ=(currentSvgPlastic?svgPlasticThickness:imageThickness);
   for(const tri of tris){
     const a=tri[0],b=tri[1],c=tri[2],ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
     let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx,nl=Math.hypot(nx,ny,nz)||1;nx/=nl;ny/=nl;nz/=nl;
@@ -1171,19 +1191,19 @@ async function downloadZip(){
     const files=[];
     for(let i=0;i<sessionObjects.length;i++){
       const o=sessionObjects[i];
-      activeObjectId=o.id;currentSvgPlastic=!!o.svgPlastic;objectSwitching=true;applyObjectSettings(o.settings||{});els.projectName.value=o.name;
+      activeObjectId=o.id;currentSvgPlastic=!!o.svgPlastic;objectSwitching=true;applyObjectSettings(o.settings||{});
       await inspectImageAndActivate(o.dataURL,o.fileName,o.fileType,{quiet:true,fromPaste:!!o.fromPaste});
       const project=sanitizeName(o.name||('objeto_'+(i+1))),folder=String(i+1).padStart(2,'0')+'_'+project;
       files.push(...await productionFilesForCurrentObject(folder,project));
     }
     files.unshift({name:'LEEME_LOTE.txt',data:'3DCD LAB · Producción por lote\nObjetos exportados: '+sessionObjects.length+'\nCada carpeta contiene STL, PNG cutter, PNG DTF UV, SVG láser y MEDIDAS.txt según la configuración propia de ese objeto.\n'});
     const blob=makeZip(files),a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);a.download='lote_'+sessionObjects.length+'_objetos_produccion.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+    a.href=URL.createObjectURL(blob);const batchName=(els.projectName.value||'').trim()?sanitizeName(els.projectName.value):('lote_'+sessionObjects.length+'_objetos');a.download=batchName+'_produccion.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
     els.status.innerHTML='<span class="badge">ZIP de lote generado</span> '+sessionObjects.length+' objeto'+(sessionObjects.length===1?'':'s')+' · cada uno con su producción completa.';
   }catch(e){els.status.textContent='No se pudo crear el ZIP de lote: '+e.message}
   finally{
     const restore=sessionObjects.find(o=>o.id===originalId)||sessionObjects[0];
-    if(restore){activeObjectId=restore.id;currentSvgPlastic=!!restore.svgPlastic;applyObjectSettings(restore.settings||{});els.projectName.value=restore.name;try{await inspectImageAndActivate(restore.dataURL,restore.fileName,restore.fileType,{quiet:true,fromPaste:!!restore.fromPaste});generate()}catch{} }
+    if(restore){activeObjectId=restore.id;currentSvgPlastic=!!restore.svgPlastic;applyObjectSettings(restore.settings||{});try{await inspectImageAndActivate(restore.dataURL,restore.fileName,restore.fileType,{quiet:true,fromPaste:!!restore.fromPaste});generate()}catch{} }
     objectSwitching=false;renderObjectList();setBusy(false);
   }
 }
