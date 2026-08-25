@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>3DCD LAB · Creador de llaveros · recorte mejorado</title>
+<title>3DCD LAB · Accesorios 3 · pegado inteligente + objetos sincronizados</title>
 <style>
 :root{--bg:#dfe8f2;--panel:#f7f9fc;--txt:#182234;--muted:#66748a;--accent:#168ccb;--green:#168a63;--line:#c5d1df;--app-h:100dvh;--header-h:78px;--bottom-safe:max(6px,env(safe-area-inset-bottom))}
 *{box-sizing:border-box}html,body{width:100%;height:100%;overscroll-behavior:none}body{margin:0;background:linear-gradient(180deg,#eaf0f7,#dbe6f1);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden;min-height:var(--app-h)}
@@ -20,22 +20,35 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
 .specs{display:grid;grid-template-columns:1fr 1fr;gap:7px}.spec{background:#eef3f8;border:1px solid #c5d1df;border-radius:11px;padding:9px}.spec b{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}.spec span{font-size:13px}
 .stage{grid-area:stage;display:grid;grid-template-rows:minmax(0,1fr);gap:0;min-width:0;min-height:0;align-self:stretch}.viewtabs{display:flex;gap:8px}.viewtabs button{width:auto;min-width:135px;background:#dce7f2}.viewtabs button.active{outline:2px solid var(--accent);background:#c9e7f7}.viewer{position:relative;min-height:0;height:100%;background:#e8eef5;border:1px solid #b9c5d1;border-radius:18px;overflow:hidden;isolation:isolate;box-shadow:inset 0 0 0 3px #d3dbe4;cursor:pointer}.viewer canvas{display:block;width:100%;height:100%;pointer-events:none}.viewer:after{content:'';position:absolute;inset:0;border:3px solid rgba(125,139,154,.34);border-radius:17px;pointer-events:none;z-index:20}.placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px;pointer-events:none}.hint{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.88);border:1px solid #c4d0dc;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted);pointer-events:none}.status{font-size:12px;color:var(--muted);line-height:1.5}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef3f8;border:1px solid #c5d1df;color:var(--green);font-size:11px}
 .summary,.specs,.hint{display:none!important}.glbpreviewbtn{position:absolute;left:12px;top:12px;z-index:40;width:auto;padding:9px 13px;border-radius:11px;font-size:11px;background:#168ccb;color:#fff;box-shadow:0 3px 10px rgba(44,62,80,.14)}.glbpreviewbtn:disabled{opacity:.45}.glbmodal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(26,35,47,.62);backdrop-filter:blur(5px)}.glbmodal.open{display:flex}.glbcard{width:min(920px,96vw);height:min(720px,90dvh);display:grid;grid-template-rows:auto minmax(0,1fr);background:#f5f7fa;border:1px solid #c4cfda;border-radius:20px;overflow:hidden;box-shadow:0 22px 70px rgba(0,0,0,.32)}.glbbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid #ccd5df}.glbbar strong{margin-right:auto;font-size:13px}.glbbar button{width:auto;padding:8px 12px;font-size:11px}.glbwrap{position:relative;min-height:0;background:#ffffff;overflow:hidden}.glbwrap:before{content:'';position:absolute;left:50%;top:70%;width:42%;height:8%;transform:translate(-50%,-50%);border-radius:50%;background:rgba(63,72,84,.11);filter:blur(22px);pointer-events:none}#glbCanvas{position:relative;z-index:1;display:block;width:100%;height:100%;touch-action:none;cursor:grab}#glbCanvas:active{cursor:grabbing}.glbnotice{position:absolute;left:12px;bottom:12px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.84);border:1px solid #c7d1dc;font-size:11px;color:#536174;pointer-events:none}.projectrow{display:grid;grid-template-columns:1fr 1fr;gap:7px}.projectname{width:100%;padding:10px;border:1px solid #c5d1df;border-radius:11px;background:#fff;color:#26364a;font:inherit}.projectfile{display:none}
+
+.objectbar{display:flex;flex-direction:column;gap:8px}.objectbarhead{display:flex;gap:7px}.objectbarhead button{padding:9px 8px;font-size:11px}.objectlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.objectcard{position:relative;display:grid;grid-template-columns:42px minmax(0,1fr);gap:7px;align-items:center;padding:6px;border:1px solid #c5d1df;border-radius:11px;background:#eef3f8;cursor:pointer;min-width:0}.objectcard.active{outline:2px solid var(--accent);background:#dff1fb}.objectthumb{width:42px;height:42px;border-radius:8px;background:#fff;border:1px solid #d1dae4;object-fit:contain}.objectmeta{min-width:0}.objectmeta b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.objectmeta span{display:block;font-size:9.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.objectx{position:absolute;right:3px;top:3px;width:18px!important;height:18px;padding:0!important;border-radius:50%!important;font-size:11px!important;line-height:18px;background:#fff!important;color:#6b7280!important;border:1px solid #cdd6df!important}.pastehint{font-size:11px;color:var(--muted);line-height:1.35}.pastehint kbd{padding:1px 5px;border:1px solid #c5d1df;border-bottom-width:2px;border-radius:5px;background:#fff;font:inherit;font-weight:800;color:#334155}.dropzone .paste-mini{display:block;margin-top:6px;font-size:11px;color:#536174}.busyveil{position:absolute;inset:0;z-index:45;display:none;align-items:center;justify-content:center;background:rgba(242,247,252,.72);backdrop-filter:blur(2px);font-size:12px;font-weight:800;color:#334155}.busyveil.show{display:flex}.syncallbtn{margin-top:2px;background:#e8eef5!important;border:1px solid #bac7d5!important;color:#334155!important}.syncallbtn.active{background:#d8f3e8!important;outline:2px solid #168a63;color:#0b684a!important}.syncstate{display:block;font-size:10.5px;color:var(--muted);line-height:1.35;margin-top:4px}
 @media(max-width:900px){body{overflow:hidden}main{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(260px,42vh) minmax(0,1fr);grid-template-areas:'stage' 'controls';height:calc(var(--app-h) - var(--header-h));overflow:hidden}.stage{min-height:0;height:auto}.controls{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-right:10px}.viewer{min-height:0;height:100%}}
 @media(max-width:600px){header{padding:10px 12px;height:48px;display:flex;align-items:center}header .sub{display:none}h1{font-size:16px;margin:0}main{height:calc(var(--app-h) - var(--header-h));grid-template-rows:minmax(230px,40vh) minmax(0,1fr);padding:7px;gap:7px}.panel{border-radius:13px;padding:9px}.shapegrid{gap:4px}.shapegrid button{padding:7px 2px;font-size:9.5px;min-height:38px}.controls{padding-right:7px}.dropzone{inset:9px}.dropzone.loaded{inset:9px 9px auto auto;max-width:145px;padding:7px 9px}}
 </style>
 </head>
 <body>
-<header><h1>3DCD LAB · Creador de llaveros</h1><div class="sub">Prepará la pieza y descargá el STL junto con el diseño a tamaño real.</div></header>
+<header><h1>3DCD LAB · Creador de llaveros</h1><div class="sub">Pegá o cargá imágenes, trabajá varios objetos en la misma sesión y descargá cada pieza lista para producción.</div></header>
 <main>
 <section class="stage">
     <div class="viewer panel" id="viewer">
       <button type="button" class="glbpreviewbtn" id="previewGLB" disabled>Previsualizar GLB</button>
-      <div class="dropzone" id="dropzone"><strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span></div>
+      <div class="dropzone" id="dropzone"><strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span><span class="paste-mini">o pegá directamente con ⌘V / Ctrl+V</span></div><div class="busyveil" id="busyveil">Preparando objeto…</div>
     </div>
   <div hidden><span id="sumSize"></span><span id="sumBorder"></span><span id="sumHeight"></span></div>
 </section>
 <section class="panel controls">
   <input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" hidden>
+  <div class="group objectbar">
+    <label>Objetos de esta sesión</label>
+    <div class="objectbarhead">
+      <button id="pasteClipboard" type="button" class="secondary">Pegar imagen</button>
+      <button id="newBlank" type="button" class="secondary">Nuevo objeto</button>
+    </div>
+    <div class="pastehint">Copiá una imagen afuera y pegala acá con <kbd>⌘V</kbd> o <kbd>Ctrl+V</kbd>. Cada imagen queda guardada como Objeto 1, Objeto 2, etc.</div>
+    <button id="syncAllBtn" type="button" class="secondary syncallbtn" aria-pressed="false">Aplicar cambios a todos · DESACTIVADO</button>
+    <span class="syncstate" id="syncAllState">Cada objeto conserva sus parámetros propios.</span>
+    <div class="objectlist" id="objectList"></div>
+  </div>
   <div class="group">
     <label>Formato de la pieza</label>
     <div class="shapegrid" id="shapegrid">
@@ -72,7 +85,7 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
   </div>
   <div class="group cutoutOnly" id="cutoutControls">
     <label>Recorte de la figura</label>
-    <div class="recutHelp" id="cutHelp">Automático: usa la transparencia real del PNG o SVG. Si la imagen no tiene transparencia, elimina solamente el fondo conectado con el contorno exterior.</div>
+    <div class="recutHelp" id="cutHelp">Automático: PNG cargado respeta transparencia real. Todo lo pegado con ⌘V se aplana primero sobre blanco y luego se recorta por fondo exterior, ignorando la forma del lazo de Photoshop.</div>
     <div style="height:10px"></div>
     <label>Tolerancia del fondo</label>
     <div class="row"><input id="cutTolerance" type="range" min="8" max="140" value="48"><div class="value" id="cutToleranceV">48</div></div>
@@ -84,8 +97,17 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
     <div class="row"><input id="cutSmooth" type="range" min="1" max="8" value="3"><div class="value" id="cutSmoothV">3</div></div>
   </div>
   <div class="group">
-    <label>Ancho interior de la imagen</label>
-    <div class="row"><input id="widthMm" type="range" min="25" max="120" value="55"><div class="value" id="widthV">57 mm total</div></div><div class="status" id="widthDetail" style="margin-top:7px">Interior 55 mm + borde de 1 mm por lado = 57 mm exteriores.</div>
+    <label>Medida interior de la figura</label>
+    <div class="optiongrid" id="dimensionMode" style="margin-bottom:10px">
+      <button type="button" data-dim="height" class="active">Usar ALTO como referencia</button>
+      <button type="button" data-dim="width">Usar ANCHO como referencia</button>
+    </div>
+    <label>Alto interior</label>
+    <div class="row"><input id="heightMm" type="range" min="25" max="140" value="70"><div class="value" id="heightV">70 mm</div></div>
+    <div style="height:9px"></div>
+    <label>Ancho interior</label>
+    <div class="row"><input id="widthMm" type="range" min="20" max="140" value="55"><div class="value" id="widthV">55 mm</div></div>
+    <div class="status" id="widthDetail" style="margin-top:7px">Solo una medida manda a la vez. Si elegís ALTO, el ancho se calcula solo sin deformar la figura; si elegís ANCHO, se calcula el alto.</div>
   </div>
   <div class="group">
     <label>Terminación</label>
@@ -147,26 +169,35 @@ if(window.visualViewport){
   visualViewport.addEventListener('resize',syncVisibleViewport,{passive:true});
   visualViewport.addEventListener('scroll',syncVisibleViewport,{passive:true});
 }
-const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status'),autoBg:$('#autoBg'),autoBgChip:$('#autoBgChip'),cutTolerance:$('#cutTolerance'),cutMargin:$('#cutMargin'),cutSmooth:$('#cutSmooth'),projectName:$('#projectName'),saveProject:$('#saveProject'),openProject:$('#openProject'),projectFile:$('#projectFile')};
+const $=s=>document.querySelector(s),els={file:$('#file'),drop:$('#dropzone'),width:$('#widthMm'),height:$('#heightMm'),designScale:$('#designScale'),download:$('#download'),status:$('#status'),autoBg:$('#autoBg'),autoBgChip:$('#autoBgChip'),cutTolerance:$('#cutTolerance'),cutMargin:$('#cutMargin'),cutSmooth:$('#cutSmooth'),projectName:$('#projectName'),saveProject:$('#saveProject'),openProject:$('#openProject'),projectFile:$('#projectFile')};
 const work=document.createElement('canvas'),ctx=work.getContext('2d',{willReadFrequently:true});
-let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.88,bgColor='#ffffff',detectedBgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1,lastInnerBoundsPx=null,lastOuterBoundsPx=null,sourceHasTransparency=false,currentFileType='',sourceDataURL='',sourceFileName='imagen.png',previewMode='2d',stlTriangles=[],viewYaw=-0.65,viewPitch=0.72,viewZoom=1,currentGlbUrl='',preparedSourceCanvas=null;
-const CFG={threshold:48,simplify:3,base:2,total:2.75,hole:3.2,ring:8,marginPx:10,cakePinLength:15,cakePinWidth:4};
-let autoTimer=null;
+let sourceImg=null,shape='cutout',hasBorder=true,wallWidth=1,meshMode='optimized',attachmentMode='keychain',designScale=.88,bgColor='#ffffff',detectedBgColor='#ffffff',subjectCanvas=null,original=null,mask=null,innerMask=null,innerContour=null,outerContour=null,lastSTL='',lastPNG=null,lastInner=null,lastOuter=null,lastBounds=null,lastScale=1,lastInnerBoundsPx=null,lastOuterBoundsPx=null,sourceHasTransparency=false,currentFileType='',sourceDataURL='',sourceFileName='imagen.png',previewMode='2d',stlTriangles=[],viewYaw=-0.65,viewPitch=0.72,viewZoom=1,currentGlbUrl='',preparedSourceCanvas=null,dimensionBasis='height',lastPhysicalW=55,lastPhysicalH=70,sourceFromPaste=false;
+const CFG={threshold:48,simplify:3,base:2,total:2.75,hole:3.2,ring:8,marginPx:10,cakePinLength:18,cakePinWidth:4};
+let autoTimer=null,syncAllSettings=false;
 function scheduleGenerate(delay=80){
   clearTimeout(autoTimer);
+  if(syncAllSettings && typeof activeObjectId!=='undefined' && activeObjectId && !objectSwitching) propagateCurrentSettingsToAll();
   if(!sourceImg)return;
   autoTimer=setTimeout(()=>generate(),delay);
 }
 function updateMeasureLabels(){
-  const inner=+els.width.value, total=inner+(hasBorder?wallWidth*2:0);
-  $('#widthV').textContent=total.toFixed(0)+' mm total';
-  $('#widthDetail').textContent=hasBorder
-    ? 'Interior '+inner.toFixed(0)+' mm + borde de '+wallWidth+' mm por lado = '+total.toFixed(0)+' mm exteriores.'
-    : 'Sin borde: la medida exterior coincide con el interior, '+inner.toFixed(0)+' mm.';
+  const iw=Number.isFinite(lastPhysicalW)?lastPhysicalW:+els.width.value;
+  const ih=Number.isFinite(lastPhysicalH)?lastPhysicalH:+els.height.value;
+  const ew=iw+(hasBorder?wallWidth*2:0), eh=ih+(hasBorder?wallWidth*2:0);
+  $('#widthV').textContent=iw.toFixed(1)+' mm';
+  $('#heightV').textContent=ih.toFixed(1)+' mm';
+  $('#widthDetail').textContent=(dimensionBasis==='height'?'Referencia: ALTO. ':'Referencia: ANCHO. ')+(hasBorder?'Exterior aprox. '+ew.toFixed(1)+' × '+eh.toFixed(1)+' mm con borde de '+wallWidth+' mm.':'Sin borde: '+iw.toFixed(1)+' × '+ih.toFixed(1)+' mm.');
   $('#specHeight').textContent=(hasBorder?CFG.total:CFG.base)+' mm';
   $('#sumHeight').textContent=(hasBorder?CFG.total:CFG.base)+' mm';
 }
-els.width.oninput=()=>{updateMeasureLabels();scheduleGenerate(100)};
+function setDimensionBasis(mode){
+  dimensionBasis=mode==='width'?'width':'height';
+  document.querySelectorAll('#dimensionMode button').forEach(x=>x.classList.toggle('active',x.dataset.dim===dimensionBasis));
+  updateMeasureLabels();scheduleGenerate(60);
+}
+document.querySelectorAll('#dimensionMode button').forEach(b=>b.onclick=()=>setDimensionBasis(b.dataset.dim));
+els.height.oninput=()=>{dimensionBasis='height';document.querySelectorAll('#dimensionMode button').forEach(x=>x.classList.toggle('active',x.dataset.dim==='height'));lastPhysicalH=+els.height.value;updateMeasureLabels();scheduleGenerate(70)};
+els.width.oninput=()=>{dimensionBasis='width';document.querySelectorAll('#dimensionMode button').forEach(x=>x.classList.toggle('active',x.dataset.dim==='width'));lastPhysicalW=+els.width.value;updateMeasureLabels();scheduleGenerate(70)};
 els.designScale.oninput=()=>{designScale=+els.designScale.value/100;$('#designScaleV').textContent=els.designScale.value+'%';scheduleGenerate(80)};
 els.cutTolerance.oninput=()=>{CFG.threshold=+els.cutTolerance.value;$('#cutToleranceV').textContent=els.cutTolerance.value;if(sourceImg)extractSubject();scheduleGenerate(80)};
 els.cutMargin.oninput=()=>{CFG.marginPx=+els.cutMargin.value;$('#cutMarginV').textContent=els.cutMargin.value+' px';scheduleGenerate(80)};
@@ -206,8 +237,8 @@ document.querySelectorAll('#wallWidthMode button').forEach(b=>b.onclick=()=>{
 document.querySelectorAll('#attachmentMode button').forEach(b=>b.onclick=()=>{
   attachmentMode=b.dataset.attachment;
   document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x===b));
-  const texts={keychain:'Aro superior para usar como llavero.',none:'Sin aro: sirve como chapita, imán o aplique.',cake:'Pinche inferior de 30 mm para insertar en tortas o decoraciones.'};
-  const specs={keychain:'Aro 3,2 mm',none:'Sin agarre',cake:'Pinche 30 mm'};
+  const texts={keychain:'Aro superior para usar como llavero.',none:'Sin aro: sirve como chapita, imán o aplique.',cake:'Pinche inferior de 18 mm, ubicado automáticamente en el punto más bajo de la figura.'};
+  const specs={keychain:'Aro 3,2 mm',none:'Sin agarre',cake:'Pinche 18 mm'};
   $('#attachmentHelp').textContent=texts[attachmentMode];
   $('#specAttachment').textContent=specs[attachmentMode];
   scheduleGenerate();
@@ -287,7 +318,7 @@ function buildPreparedSourceCanvas(max=900){
   const sw=Math.max(1,Math.round(sourceImg.width*sc)),sh=Math.max(1,Math.round(sourceImg.height*sc));
   const base=document.createElement('canvas');base.width=sw;base.height=sh;const bctx=base.getContext('2d',{willReadFrequently:true});
   bctx.clearRect(0,0,sw,sh);bctx.drawImage(sourceImg,0,0,sw,sh);
-  const edgePad=Math.max(18,Math.round(Math.min(sw,sh)*0.08));
+  const edgePad=Math.max(96,Math.round(Math.max(sw,sh)*0.22)); // lienzo virtual amplio: evita que figuras pegadas al borde cierren el contorno
   const c=document.createElement('canvas');c.width=sw+edgePad*2;c.height=sh+edgePad*2;const x=c.getContext('2d',{willReadFrequently:true});
   x.clearRect(0,0,c.width,c.height);
   if(!sourceHasTransparency){
@@ -325,7 +356,34 @@ function prepareCanvas(){
     const src=preparedSourceCanvas||buildPreparedSourceCanvas(900);work.width=src.width;work.height=src.height;ctx.clearRect(0,0,work.width,work.height);ctx.drawImage(src,0,0);original=ctx.getImageData(0,0,work.width,work.height);
   }else if(shape==='portrait')composePreset(600,800);else composePreset(700,700);
 }
-function loadFile(f){const ok=/^image\/(png|jpeg|webp|svg\+xml)$/.test(f.type)||/\.svg$/i.test(f.name);if(!ok){els.status.textContent='Usá PNG, JPG, WebP o SVG.';return}currentFileType=f.type||(/\.svg$/i.test(f.name)?'image/svg+xml':'');sourceFileName=f.name||'imagen';const reader=new FileReader();reader.onload=()=>sourceDataURL=reader.result;reader.readAsDataURL(f);const url=URL.createObjectURL(f),img=new Image();img.onload=()=>{sourceImg=img;const tc=document.createElement('canvas'),ts=Math.min(1,300/Math.max(img.width,img.height));tc.width=Math.max(1,Math.round(img.width*ts));tc.height=Math.max(1,Math.round(img.height*ts));const tctx=tc.getContext('2d',{willReadFrequently:true});tctx.clearRect(0,0,tc.width,tc.height);tctx.drawImage(img,0,0,tc.width,tc.height);const td=tctx.getImageData(0,0,tc.width,tc.height).data;let transparent=0;for(let i=3;i<td.length;i+=4)if(td[i]<245)transparent++;sourceHasTransparency=transparent>Math.max(3,tc.width*tc.height*.0005);els.drop.classList.add('loaded');els.drop.innerHTML='<strong>Cambiar imagen</strong><span></span>';detectedBgColor=detectEdgeBackground();els.autoBgChip.style.background=detectedBgColor;preparedSourceCanvas=buildPreparedSourceCanvas(900);if(shape==='cutout')extractSubject();prepareCanvas();mask=innerMask=innerContour=outerContour=null;lastSTL='';lastPNG=null;els.download.disabled=true;els.saveProject.disabled=false;els.status.innerHTML='<span class="badge">Imagen cargada</span> '+sourceImg.width+' × '+sourceImg.height+' px · '+(sourceHasTransparency?'transparencia detectada':'fondo exterior '+detectedBgColor)+' · generando automáticamente…';URL.revokeObjectURL(url);scheduleGenerate(20)};img.onerror=()=>{URL.revokeObjectURL(url);els.status.textContent='No pude abrir ese archivo. En SVG, verificá que sea un SVG válido y autónomo.'};img.src=url}
+function readFileAsDataURL(f){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error||Error('No pude leer la imagen'));r.readAsDataURL(f)})}
+function flattenPasteOnWhite(dataURL){
+  return new Promise((resolve,reject)=>{
+    const im=new Image();
+    im.onload=()=>{
+      const c=document.createElement('canvas');c.width=im.naturalWidth||im.width;c.height=im.naturalHeight||im.height;
+      const x=c.getContext('2d',{alpha:false});x.fillStyle='#ffffff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0);
+      resolve(c.toDataURL('image/png'));
+    };
+    im.onerror=()=>reject(Error('No pude preparar la imagen pegada.'));
+    im.src=dataURL;
+  });
+}
+function inspectImageAndActivate(dataURL,fileName='imagen.png',fileType='',opts={}){
+  return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{
+    sourceImg=img;sourceDataURL=dataURL;sourceFileName=fileName||'imagen.png';currentFileType=fileType||'';sourceFromPaste=!!opts.fromPaste;
+    const tc=document.createElement('canvas'),ts=Math.min(1,300/Math.max(img.width,img.height));tc.width=Math.max(1,Math.round(img.width*ts));tc.height=Math.max(1,Math.round(img.height*ts));const tctx=tc.getContext('2d',{willReadFrequently:true});tctx.clearRect(0,0,tc.width,tc.height);tctx.drawImage(img,0,0,tc.width,tc.height);const td=tctx.getImageData(0,0,tc.width,tc.height).data;let semi=0,fully=0;for(let i=3;i<td.length;i+=4){if(td[i]<245)semi++;if(td[i]<32)fully++}const px=tc.width*tc.height,semiRatio=semi/px,fullRatio=fully/px;
+    // REGLA DE PEGADO: el portapapeles de Photoshop puede traer alpha con la forma del lazo.
+    // Para que ⌘V se comporte igual que un JPG arrastrado, ignoramos ese alpha y reconstruimos
+    // la silueta eliminando únicamente el fondo exterior conectado a los bordes.
+    sourceHasTransparency=sourceFromPaste ? false : (fullRatio>0.002 || semiRatio>0.01);
+    els.drop.classList.add('loaded');els.drop.innerHTML='<strong>Cambiar imagen</strong><span></span>';detectedBgColor=detectEdgeBackground();els.autoBgChip.style.background=detectedBgColor;preparedSourceCanvas=buildPreparedSourceCanvas(900);if(shape==='cutout')extractSubject();prepareCanvas();mask=innerMask=innerContour=outerContour=null;lastSTL='';lastPNG=null;els.download.disabled=true;els.saveProject.disabled=false;
+    if(!opts.quiet)els.status.innerHTML='<span class="badge">Imagen cargada</span> '+sourceImg.width+' × '+sourceImg.height+' px · '+(sourceHasTransparency?'transparencia real detectada':(sourceFromPaste?'pegado tratado como JPG · fondo exterior ':'fondo exterior ')+detectedBgColor)+' · lienzo virtual ampliado · generando…';
+    scheduleGenerate(20);resolve(img)
+  };img.onerror=()=>reject(Error('No pude abrir esa imagen.'));img.src=dataURL})
+}
+async function loadFile(f,opts={}){const ok=/^image\/(png|jpeg|webp|svg\+xml)$/.test(f.type)||/\.svg$/i.test(f.name);if(!ok){els.status.textContent='Usá PNG, JPG, WebP o SVG.';return}try{const dataURL=await readFileAsDataURL(f);await acceptNewObjectSource(dataURL,f.name||'imagen',f.type||(/\.svg$/i.test(f.name)?'image/svg+xml':''),opts)}catch(e){els.status.textContent='No pude abrir ese archivo: '+e.message}}
+
 function buildMask(){return smartForegroundMask(original.data,work.width,work.height,false)}
 function dilate(src,r,w,h){if(r<=0)return src.slice();let a=src.slice(),b=new Uint8Array(src.length);for(let k=0;k<r;k++){b.fill(0);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let v=0;for(let yy=-1;yy<=1&&!v;yy++)for(let xx=-1;xx<=1;xx++){const nx=x+xx,ny=y+yy;if(nx>=0&&ny>=0&&nx<w&&ny<h&&a[ny*w+nx]){v=1;break}}b[y*w+x]=v}[a,b]=[b,a]}return a}
 function circularDilate(src,r,w,h){if(r<=0)return src.slice();const out=src.slice(),offsets=[];for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)if(dx*dx+dy*dy<=r*r+.25)offsets.push([dx,dy]);const boundary=[];for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(!src[i])continue;if(x===0||y===0||x===w-1||y===h-1||!src[i-1]||!src[i+1]||!src[i-w]||!src[i+w])boundary.push([x,y])}for(const[x,y]of boundary)for(const[dx,dy]of offsets){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<w&&ny<h)out[ny*w+nx]=1}return out}
@@ -365,7 +423,14 @@ function generate(){try{
   }
   innerContour=simplify(trace(innerMask,work.width,work.height),shape==='cutout'?CFG.simplify:2);
   if(innerContour.length<3)throw Error('No pude construir una figura cerrada');
-  const b=bounds(innerContour),innerW=+els.width.value,scale=innerW/Math.max(1,b.w),innerH=b.h*scale;
+  const b=bounds(innerContour);
+  const targetW=+els.width.value,targetH=+els.height.value;
+  const scale=dimensionBasis==='height' ? targetH/Math.max(1,b.h) : targetW/Math.max(1,b.w);
+  const innerW=b.w*scale,innerH=b.h*scale;
+  lastPhysicalW=innerW;lastPhysicalH=innerH;
+  // Mantiene ambas medidas sincronizadas sin deformar la figura.
+  if(innerW>=+els.width.min&&innerW<=+els.width.max)els.width.value=innerW;
+  if(innerH>=+els.height.min&&innerH<=+els.height.max)els.height.value=innerH;
   let inner=toMM(innerContour,b,scale),outer;
   if(hasBorder){
     const wallPx=Math.max(1,Math.round(wallWidth/scale)),outerMask=circularDilate(innerMask,wallPx,work.width,work.height);
@@ -447,6 +512,20 @@ function verticalCenterAnchor(poly,mode='top'){
 }
 function topAnchor(poly){return verticalCenterAnchor(poly,'top')}
 function bottomAnchor(poly){return verticalCenterAnchor(poly,'bottom')}
+function cakeAnchor(poly){
+  // Para el pinche no usamos el centro: buscamos el punto realmente más bajo
+  // de la silueta y promediamos solo sus vecinos inmediatos para evitar ruido.
+  if(!poly||!poly.length)return[0,0];
+  let idx=0,minY=poly[0][1];
+  for(let i=1;i<poly.length;i++)if(poly[i][1]<minY){minY=poly[i][1];idx=i}
+  const local=[],n=poly.length,band=1.6;
+  for(let d=-4;d<=4;d++){
+    const p=poly[(idx+d+n)%n];
+    if(p[1]<=minY+band)local.push(p);
+  }
+  const x=local.length?local.reduce((a,p)=>a+p[0],0)/local.length:poly[idx][0];
+  return[x,minY];
+}
 function buildUnifiedSTL(inner,outer){
   const body=hasBorder?outer:inner;
   const pieceHeight=hasBorder?CFG.total:CFG.base;
@@ -459,7 +538,7 @@ function buildUnifiedSTL(inner,outer){
     attachment=annulus(x,cy,ro,ri,0,pieceHeight);
     if(neckTop>neckBottom)attachment+=extrude([[x-neckW/2,neckBottom],[x+neckW/2,neckBottom],[x+neckW/2,neckTop],[x-neckW/2,neckTop]],0,pieceHeight);
   }else if(attachmentMode==='cake'){
-    const [x,bottom]=bottomAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength,overlap=1.4;
+    const [x,bottom]=cakeAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength,overlap=1.4;
     attachment=extrude([[x-w/2,bottom+overlap],[x+w/2,bottom+overlap],[x+w/2,bottom-L+4],[x,bottom-L],[x-w/2,bottom-L+4]],0,pieceHeight);
   }
   return 'solid pieza_unificada\n'+baseBody+wallBody+attachment+'endsolid pieza_unificada\n';
@@ -471,7 +550,7 @@ function injectPngDpi(blob,dpi=300){return blob.arrayBuffer().then(buf=>{
 })}
 function u32be(n){return new Uint8Array([(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255])}
 function createPNGBlob(withCutLine=false){return new Promise(resolve=>{
-  const b=bounds(innerContour),physicalW=+els.width.value,physicalH=b.h*lastScale,dpi=300;
+  const b=bounds(innerContour),physicalW=lastPhysicalW,physicalH=lastPhysicalH,dpi=300;
   const outW=Math.max(1,Math.round(physicalW/25.4*dpi)),outH=Math.max(1,Math.round(physicalH/25.4*dpi));
   const c=document.createElement('canvas');c.width=outW;c.height=outH;const x=c.getContext('2d'),sx=outW/Math.max(1,b.w),sy=outH/Math.max(1,b.h);
   x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
@@ -624,7 +703,7 @@ function drawFlatPreview(){
     const [x,top]=topAnchor(body),ro=CFG.ring/2,cy=top+ro-.8;
     minX=Math.min(minX,x-ro);maxX=Math.max(maxX,x+ro);maxY=Math.max(maxY,cy+ro);
   }else if(attachmentMode==='cake'){
-    const [x,bottom]=bottomAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength;
+    const [x,bottom]=cakeAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength;
     minX=Math.min(minX,x-w/2);maxX=Math.max(maxX,x+w/2);minY=Math.min(minY,bottom-L);
   }
   const spanX=Math.max(1,maxX-minX),spanY=Math.max(1,maxY-minY),pad=34;
@@ -640,7 +719,7 @@ function drawFlatPreview(){
     const q=map([x,cy]);pctx.beginPath();pctx.arc(q[0],q[1],ro*sc,0,Math.PI*2);pctx.fill();
     pctx.save();pctx.globalCompositeOperation='destination-out';pctx.beginPath();pctx.arc(q[0],q[1],ri*sc,0,Math.PI*2);pctx.fill();pctx.restore();
   }else if(attachmentMode==='cake'){
-    const [x,bottom]=bottomAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength,overlap=1.4;
+    const [x,bottom]=cakeAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength,overlap=1.4;
     const pin=[[x-w/2,bottom+overlap],[x+w/2,bottom+overlap],[x+w/2,bottom-L+4],[x,bottom-L],[x-w/2,bottom-L+4]];
     polyPath(pctx,pin,map);pctx.fill();
   }
@@ -702,7 +781,49 @@ function laserSVG(raw,label='contorno'){
   const d=poly.map((p,i)=>(i?'L':'M')+(p[0]-b.minX).toFixed(3)+' '+(b.maxY-p[1]).toFixed(3)).join(' ')+' Z';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w.toFixed(3)}mm" height="${h.toFixed(3)}mm" viewBox="0 0 ${w.toFixed(3)} ${h.toFixed(3)}"><!-- ${label} simplificado para láser: ${raw.length} puntos originales, ${poly.length} puntos exportados --><path d="${d}" fill="none" stroke="#ff0000" stroke-width="0.1" vector-effect="non-scaling-stroke"/></svg>`;
 }
-function settingsSnapshot(){return {version:1,name:els.projectName.value||'',shape,hasBorder,wallWidth,attachmentMode,designScale,bgColor,width:+els.width.value,cutTolerance:+els.cutTolerance.value,cutMargin:+els.cutMargin.value,cutSmooth:+els.cutSmooth.value,sourceDataURL,sourceFileName,currentFileType}}
+
+// ===== Objetos múltiples + portapapeles =====
+let sessionObjects=[],activeObjectId=null,objectSeq=0,objectSwitching=false;
+const objectListEl=$('#objectList'),busyVeil=$('#busyveil');
+function setBusy(v){busyVeil?.classList.toggle('show',!!v)}
+function objectSettings(){return {shape,hasBorder,wallWidth,attachmentMode,designScale,bgColor,width:+els.width.value,height:+els.height.value,dimensionBasis,cutTolerance:+els.cutTolerance.value,cutMargin:+els.cutMargin.value,cutSmooth:+els.cutSmooth.value}}
+function propagateCurrentSettingsToAll(){if(!syncAllSettings||objectSwitching||!activeObjectId)return;const s=objectSettings();for(const o of sessionObjects)o.settings={...s};}
+function updateSyncAllUI(){const b=$('#syncAllBtn'),t=$('#syncAllState');if(!b)return;b.classList.toggle('active',syncAllSettings);b.setAttribute('aria-pressed',syncAllSettings?'true':'false');b.textContent='Aplicar cambios a todos · '+(syncAllSettings?'ACTIVADO':'DESACTIVADO');if(t)t.textContent=syncAllSettings?'Todo cambio de medida, recorte, borde, grosor o tipo de pieza se replica en todos los objetos.':'Cada objeto conserva sus parámetros propios.'}
+$('#syncAllBtn').onclick=()=>{saveActiveObject();syncAllSettings=!syncAllSettings;if(syncAllSettings)propagateCurrentSettingsToAll();updateSyncAllUI();els.status.innerHTML='<span class="badge">Cambios globales '+(syncAllSettings?'ACTIVADOS':'DESACTIVADOS')+'</span> '+(syncAllSettings?'Los parámetros actuales se aplicaron a todos los objetos.':'Desde ahora podés editar cada objeto por separado.')};updateSyncAllUI();
+function saveActiveObject(){const o=sessionObjects.find(x=>x.id===activeObjectId);if(!o||objectSwitching||!sourceDataURL)return;o.settings=objectSettings();o.dataURL=sourceDataURL;o.fileName=sourceFileName;o.fileType=currentFileType;o.fromPaste=sourceFromPaste;o.detectedBgColor=detectedBgColor;o.hasTransparency=sourceHasTransparency;o.name=els.projectName.value||o.name;renderObjectList()}
+function applyObjectSettings(s={}){shape=s.shape||'cutout';hasBorder=s.hasBorder!==false;wallWidth=+s.wallWidth||1;attachmentMode=s.attachmentMode||'keychain';designScale=+s.designScale||.88;bgColor=s.bgColor||'#ffffff';els.width.value=s.width||55;els.height.value=s.height||70;dimensionBasis=s.dimensionBasis||'height';lastPhysicalW=+els.width.value;lastPhysicalH=+els.height.value;els.designScale.value=Math.round(designScale*100);els.cutTolerance.value=s.cutTolerance||48;els.cutMargin.value=s.cutMargin??10;els.cutSmooth.value=s.cutSmooth||3;CFG.threshold=+els.cutTolerance.value;CFG.marginPx=+els.cutMargin.value;CFG.simplify=+els.cutSmooth.value;document.querySelectorAll('#shapegrid button').forEach(x=>x.classList.toggle('active',x.dataset.shape===shape));document.querySelectorAll('#dimensionMode button').forEach(x=>x.classList.toggle('active',x.dataset.dim===dimensionBasis));document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',(x.dataset.border==='yes')===hasBorder));document.querySelectorAll('#wallWidthMode button').forEach(x=>x.classList.toggle('active',+x.dataset.wall===wallWidth));document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x.dataset.attachment===attachmentMode));document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x.dataset.color.toLowerCase()===bgColor.toLowerCase()));$('#designControls').classList.toggle('hidden',shape==='cutout');$('#cutoutControls').classList.toggle('hidden',shape!=='cutout');$('#wallOptions').style.display=hasBorder?'block':'none';$('#designScaleV').textContent=Math.round(designScale*100)+'%';$('#cutToleranceV').textContent=els.cutTolerance.value;$('#cutMarginV').textContent=els.cutMargin.value+' px';$('#cutSmoothV').textContent=els.cutSmooth.value;updateMeasureLabels()}
+function renderObjectList(){if(!objectListEl)return;objectListEl.innerHTML='';for(const o of sessionObjects){const card=document.createElement('div');card.className='objectcard'+(o.id===activeObjectId?' active':'');card.title='Abrir '+o.name;const im=document.createElement('img');im.className='objectthumb';im.src=o.dataURL;const meta=document.createElement('div');meta.className='objectmeta';meta.innerHTML='<b>'+escapeHtml(o.name)+'</b><span>'+escapeHtml(o.fileName||'imagen')+'</span>';const del=document.createElement('button');del.className='objectx';del.type='button';del.textContent='×';del.title='Eliminar';del.onclick=e=>{e.stopPropagation();deleteObject(o.id)};card.append(im,meta,del);card.onclick=()=>switchObject(o.id);objectListEl.append(card)}}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function acceptNewObjectSource(dataURL,fileName='pegado.png',fileType='image/png',opts={}){setBusy(true);try{saveActiveObject();if(opts.fromPaste){dataURL=await flattenPasteOnWhite(dataURL);fileType='image/png';fileName=(fileName||'pegado').replace(/\.[^.]+$/,'')+'_aplanado.png'}const id=++objectSeq;const o={id,name:'Objeto '+id,dataURL,fileName,fileType,fromPaste:!!opts.fromPaste,settings:objectSettings()};sessionObjects.push(o);activeObjectId=id;els.projectName.value=o.name;objectSwitching=true;applyObjectSettings(o.settings);await inspectImageAndActivate(dataURL,fileName,fileType,{quiet:true,fromPaste:!!opts.fromPaste});objectSwitching=false;o.hasTransparency=sourceHasTransparency;o.detectedBgColor=detectedBgColor;renderObjectList();els.status.innerHTML='<span class="badge">'+(opts.fromPaste?'Pegado · recorte reconstruido':'Objeto nuevo')+'</span> '+o.name+' · '+sourceImg.width+' × '+sourceImg.height+' px · '+(opts.fromPaste?'alpha del lazo ignorado · fondo exterior detectado.':'podés seguir pegando sin cerrar nada.');scheduleGenerate(20)}finally{objectSwitching=false;setBusy(false)}}
+async function switchObject(id){if(id===activeObjectId)return;const target=sessionObjects.find(x=>x.id===id);if(!target)return;setBusy(true);try{saveActiveObject();activeObjectId=id;objectSwitching=true;applyObjectSettings(target.settings||{});els.projectName.value=target.name;await inspectImageAndActivate(target.dataURL,target.fileName,target.fileType,{quiet:true,fromPaste:!!target.fromPaste});objectSwitching=false;renderObjectList();els.status.innerHTML='<span class="badge">Objeto activo</span> '+target.name+' · parámetros independientes recuperados.';scheduleGenerate(20)}catch(e){els.status.textContent='No pude abrir ese objeto: '+e.message}finally{objectSwitching=false;setBusy(false)}}
+function deleteObject(id){const idx=sessionObjects.findIndex(x=>x.id===id);if(idx<0)return;const was=id===activeObjectId;sessionObjects.splice(idx,1);if(!was){renderObjectList();return}activeObjectId=null;if(sessionObjects.length){switchObject(sessionObjects[Math.max(0,idx-1)].id)}else{sourceImg=null;sourceDataURL='';subjectCanvas=null;preparedSourceCanvas=null;els.download.disabled=true;els.saveProject.disabled=true;els.drop.classList.remove('loaded');els.drop.innerHTML='<strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span><span class="paste-mini">o pegá directamente con ⌘V / Ctrl+V</span>';els.status.textContent='Pegá o cargá una imagen para comenzar.';renderObjectList()}}
+function newBlankObject(){saveActiveObject();els.file.click()}
+async function pasteFromClipboardAPI(){try{if(!navigator.clipboard?.read)throw Error('Usá ⌘V / Ctrl+V directamente.');const items=await navigator.clipboard.read();for(const item of items){const type=item.types.find(t=>t.startsWith('image/'));if(type){const blob=await item.getType(type);const ext=type.split('/')[1].replace('jpeg','jpg');const f=new File([blob],'pegado_'+(objectSeq+1)+'.'+ext,{type});await loadFile(f,{fromPaste:true});return}}throw Error('El portapapeles no contiene una imagen.')}catch(e){els.status.textContent='Pegado: '+e.message}}
+document.addEventListener('paste',async e=>{const items=[...(e.clipboardData?.items||[])];const it=items.find(x=>x.type?.startsWith('image/'));if(!it)return;e.preventDefault();const blob=it.getAsFile();if(!blob)return;const ext=(blob.type.split('/')[1]||'png').replace('jpeg','jpg');const f=new File([blob],'pegado_'+(objectSeq+1)+'.'+ext,{type:blob.type});await loadFile(f,{fromPaste:true})});
+$('#pasteClipboard').onclick=pasteFromClipboardAPI;$('#newBlank').onclick=newBlankObject;
+['input','change'].forEach(ev=>document.querySelector('.controls').addEventListener(ev,e=>{if(activeObjectId&&!objectSwitching&&e.target!==els.projectFile)queueMicrotask(saveActiveObject)}));
+function projectSnapshot(){
+  saveActiveObject();
+  return {
+    version:3,
+    kind:'3DCD_multiobject_project',
+    savedAt:new Date().toISOString(),
+    syncAllSettings:!!syncAllSettings,
+    objectSeq,
+    activeObjectId,
+    objects:sessionObjects.map(o=>({
+      id:o.id,
+      name:o.name,
+      dataURL:o.dataURL,
+      fileName:o.fileName,
+      fileType:o.fileType,
+      fromPaste:!!o.fromPaste,
+      detectedBgColor:o.detectedBgColor||'#ffffff',
+      hasTransparency:!!o.hasTransparency,
+      settings:{...(o.settings||{})}
+    }))
+  };
+}
 function dataURLToBytes(dataURL){const parts=dataURL.split(','),bin=atob(parts[1]||''),out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
 function bytesToText(bytes){return new TextDecoder().decode(bytes)}
 function parseStoreZip(buffer){
@@ -711,17 +832,56 @@ function parseStoreZip(buffer){
   return files
 }
 async function saveEditableProject(){
-  if(!sourceImg||!sourceDataURL)return;
-  const data=settingsSnapshot(),name=sanitizeName(data.name),ext=(sourceFileName.split('.').pop()||'png').replace(/[^a-z0-9]/gi,'');
-  const blob=makeZip([{name:'proyecto.json',data:JSON.stringify(data,null,2)},{name:'imagen_original.'+ext,data:dataURLToBytes(sourceDataURL)}]),a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=name+'_editable.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);els.status.innerHTML='<span class="badge">Proyecto guardado</span> ZIP editable listo para retomar.'
-}
-function applyProject(data){
-  els.projectName.value=data.name||'';shape=data.shape||'cutout';hasBorder=data.hasBorder!==false;wallWidth=+data.wallWidth||1;attachmentMode=data.attachmentMode||'keychain';designScale=+data.designScale||.88;bgColor=data.bgColor||'#ffffff';els.width.value=data.width||55;els.designScale.value=Math.round(designScale*100);els.cutTolerance.value=data.cutTolerance||48;els.cutMargin.value=data.cutMargin??10;els.cutSmooth.value=data.cutSmooth||3;
-  document.querySelectorAll('#shapegrid button').forEach(x=>x.classList.toggle('active',x.dataset.shape===shape));document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',(x.dataset.border==='yes')===hasBorder));document.querySelectorAll('#wallWidthMode button').forEach(x=>x.classList.toggle('active',+x.dataset.wall===wallWidth));document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x.dataset.attachment===attachmentMode));document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x.dataset.color.toLowerCase()===bgColor.toLowerCase()));$('#designControls').classList.toggle('hidden',shape==='cutout');$('#wallOptions').style.display=hasBorder?'block':'none';$('#designScaleV').textContent=Math.round(designScale*100)+'%';if($('#cutToleranceV'))$('#cutToleranceV').textContent=els.cutTolerance.value;if($('#cutMarginV'))$('#cutMarginV').textContent=els.cutMargin.value+' px';if($('#cutSmoothV'))$('#cutSmoothV').textContent=els.cutSmooth.value;updateMeasureLabels();
+  if(!sessionObjects.length)return;
+  const data=projectSnapshot();
+  const label=sessionObjects.length===1?sanitizeName(sessionObjects[0].name||'proyecto'):sanitizeName('lote_'+sessionObjects.length+'_objetos');
+  const files=[{name:'proyecto.json',data:JSON.stringify(data,null,2)}];
+  // Además del JSON autosuficiente, guardamos copias de las fuentes para inspección/recuperación manual.
+  data.objects.forEach((o,i)=>{
+    if(!o.dataURL)return;
+    const mime=(o.dataURL.match(/^data:([^;]+)/)||[])[1]||o.fileType||'image/png';
+    const ext=mime.includes('jpeg')?'jpg':mime.includes('svg')?'svg':mime.includes('webp')?'webp':'png';
+    files.push({name:'fuentes/'+String(i+1).padStart(2,'0')+'_'+sanitizeName(o.name||('objeto_'+(i+1)))+'.'+ext,data:dataURLToBytes(o.dataURL)});
+  });
+  const blob=makeZip(files),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=label+'_editable.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  els.status.innerHTML='<span class="badge">Proyecto completo guardado</span> '+data.objects.length+' objeto'+(data.objects.length===1?'':'s')+' · imágenes + parámetros + estado global.';
 }
 async function openEditableProject(f){
-  try{const files=parseStoreZip(await f.arrayBuffer()),raw=files['proyecto.json'];if(!raw)throw Error('No contiene proyecto.json');const data=JSON.parse(bytesToText(raw));if(!data.sourceDataURL)throw Error('No contiene la imagen original');applyProject(data);sourceDataURL=data.sourceDataURL;sourceFileName=data.sourceFileName||'imagen.png';currentFileType=data.currentFileType||'';const img=new Image();img.onload=()=>{sourceImg=img;sourceHasTransparency=/image\/(png|svg)/.test(currentFileType);detectedBgColor=detectEdgeBackground();els.autoBgChip.style.background=detectedBgColor;preparedSourceCanvas=buildPreparedSourceCanvas(900);if(shape==='cutout')extractSubject();prepareCanvas();els.drop.classList.add('loaded');els.drop.innerHTML='<strong>Cambiar imagen</strong><span></span>';els.saveProject.disabled=false;scheduleGenerate(20);els.status.innerHTML='<span class="badge">Proyecto abierto</span> '+(data.name||'Sin nombre')};img.onerror=()=>{els.status.textContent='No se pudo recuperar la imagen del proyecto.'};img.src=sourceDataURL}catch(e){els.status.textContent='No se pudo abrir el proyecto: '+e.message}
+  setBusy(true);
+  try{
+    const files=parseStoreZip(await f.arrayBuffer()),raw=files['proyecto.json'];if(!raw)throw Error('No contiene proyecto.json');
+    const data=JSON.parse(bytesToText(raw));
+    // Compatibilidad con editables antiguos de un solo objeto.
+    if(!Array.isArray(data.objects)){
+      if(!data.sourceDataURL)throw Error('El editable no contiene imágenes recuperables.');
+      data.objects=[{id:1,name:data.name||'Objeto 1',dataURL:data.sourceDataURL,fileName:data.sourceFileName||'imagen.png',fileType:data.currentFileType||'',fromPaste:false,settings:{shape:data.shape,hasBorder:data.hasBorder,wallWidth:data.wallWidth,attachmentMode:data.attachmentMode,designScale:data.designScale,bgColor:data.bgColor,width:data.width,height:data.height,dimensionBasis:data.dimensionBasis,cutTolerance:data.cutTolerance,cutMargin:data.cutMargin,cutSmooth:data.cutSmooth}}];
+      data.activeObjectId=1;data.objectSeq=1;data.syncAllSettings=false;
+    }
+    if(!data.objects.length)throw Error('El proyecto está vacío.');
+    sessionObjects=data.objects.map((o,i)=>({
+      id:Number.isFinite(+o.id)?+o.id:i+1,
+      name:o.name||('Objeto '+(i+1)),
+      dataURL:o.dataURL,
+      fileName:o.fileName||'imagen.png',
+      fileType:o.fileType||'',
+      fromPaste:!!o.fromPaste,
+      detectedBgColor:o.detectedBgColor||'#ffffff',
+      hasTransparency:!!o.hasTransparency,
+      settings:{...(o.settings||{})}
+    })).filter(o=>!!o.dataURL);
+    if(!sessionObjects.length)throw Error('No pude recuperar las imágenes del proyecto.');
+    objectSeq=Math.max(+data.objectSeq||0,...sessionObjects.map(o=>+o.id||0));
+    syncAllSettings=!!data.syncAllSettings;updateSyncAllUI();
+    const wanted=sessionObjects.find(o=>o.id===+data.activeObjectId)||sessionObjects[0];
+    activeObjectId=wanted.id;objectSwitching=true;
+    applyObjectSettings(wanted.settings||{});els.projectName.value=wanted.name;
+    await inspectImageAndActivate(wanted.dataURL,wanted.fileName,wanted.fileType,{quiet:true,fromPaste:!!wanted.fromPaste});
+    objectSwitching=false;renderObjectList();generate();
+    els.saveProject.disabled=false;els.download.disabled=false;
+    els.status.innerHTML='<span class="badge">Proyecto completo abierto</span> '+sessionObjects.length+' objeto'+(sessionObjects.length===1?'':'s')+' restaurado'+(sessionObjects.length===1?'':'s')+' tal cual.';
+  }catch(e){els.status.textContent='No se pudo abrir el proyecto: '+e.message}
+  finally{objectSwitching=false;setBusy(false)}
 }
 els.saveProject.onclick=saveEditableProject;els.openProject.onclick=()=>els.projectFile.click();els.projectFile.onchange=()=>{const f=els.projectFile.files[0];if(f)openEditableProject(f);els.projectFile.value=''};
 function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
@@ -823,29 +983,48 @@ $('#previewGLB').onclick=e=>{e.stopPropagation();openGLBPreview()};$('#glbClose'
 function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
 function join(parts){let n=parts.reduce((s,a)=>s+a.length,0),o=new Uint8Array(n),p=0;for(const a of parts){o.set(a,p);p+=a.length}return o}
 function makeZip(files){const enc=new TextEncoder(),locals=[],centrals=[];let offset=0;for(const f of files){const name=enc.encode(f.name),data=f.data instanceof Uint8Array?f.data:enc.encode(f.data),crc=crc32(data);const local=join([u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);locals.push(local);const central=join([u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]);centrals.push(central);offset+=local.length}const cd=join(centrals),body=join(locals),end=join([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(cd.length),u32(body.length),u16(0)]);return new Blob([body,cd,end],{type:'application/zip'})}
+function currentProductionText(project){
+  const names={cutout:'figura_recortada',square:'cuadrado',portrait:'rectangulo_vertical',circle:'circulo'};
+  const iw=lastPhysicalW,ih=lastPhysicalH,ew=iw+(hasBorder?wallWidth*2:0),eh=ih+(hasBorder?wallWidth*2:0);
+  return 'Proyecto: '+project+'\nFormato: '+names[shape]+'\nSTL único y unido\nMalla: optimizada\nBase: 2 mm\nEspesor de accesorios: '+(hasBorder?'3 mm':'2 mm')+'\nTerminación: '+(hasBorder?'borde de '+wallWidth+' mm hacia afuera y 3 mm de altura total':'sin borde, base plana de 2 mm')+'\nPNG: 300 dpi · interior físico '+iw.toFixed(1)+' × '+ih.toFixed(1)+' mm\nExterior aproximado del STL: '+ew.toFixed(1)+' × '+eh.toFixed(1)+' mm\nReferencia de escala: '+(dimensionBasis==='height'?'ALTO':'ANCHO')+'\n'+(shape==='cutout'?'':'Diseño interior: '+Math.round(designScale*100)+'% · fondo '+bgColor+'\n')+'Tipo de pieza: '+({keychain:'llavero con aro de 3,2 mm',none:'chapita / imán sin agarre',cake:'topper con pinche inferior de 30 mm'}[attachmentMode])+'\n'+(hasBorder?'SVG láser interior: área de la gráfica.\nSVG láser exterior: base completa con borde.\n':'SVG láser único: coincide con la pieza sin borde.\n');
+}
+async function productionFilesForCurrentObject(folder,project){
+  generate();
+  const pngClean=await createPNGBlob(false),pngCut=await createPNGBlob(true),cleanBytes=new Uint8Array(await pngClean.arrayBuffer()),cutBytes=new Uint8Array(await pngCut.arrayBuffer());
+  const prefix=folder?folder.replace(/\/$/,'')+'/':'';
+  const files=[
+    {name:prefix+project+'_unificado.stl',data:lastSTL},
+    {name:prefix+project+'_corte_cutter_300dpi.png',data:cutBytes},
+    {name:prefix+project+'_limpio_DTF_UV_300dpi.png',data:cleanBytes}
+  ];
+  if(hasBorder){files.push({name:prefix+project+'_corte_laser_INTERIOR_grafica.svg',data:laserSVG(lastInner,'Contorno interior para gráfica, papel o DTF UV')},{name:prefix+project+'_corte_laser_EXTERIOR_base.svg',data:laserSVG(lastOuter,'Contorno exterior para base de MDF, acrílico u otro material')});}
+  else files.push({name:prefix+project+'_corte_laser_sin_borde.svg',data:laserSVG(lastInner,'Contorno único sin borde')});
+  files.push({name:prefix+'MEDIDAS.txt',data:currentProductionText(project)});
+  return files;
+}
 async function downloadZip(){
+  if(!sessionObjects.length)return;
+  setBusy(true);saveActiveObject();clearTimeout(autoTimer);
+  const originalId=activeObjectId;
   try{
-    const pngClean=await createPNGBlob(false),pngCut=await createPNGBlob(true),cleanBytes=new Uint8Array(await pngClean.arrayBuffer()),cutBytes=new Uint8Array(await pngCut.arrayBuffer());
-    const names={cutout:'figura_recortada',square:'cuadrado',portrait:'rectangulo_vertical',circle:'circulo'},project=sanitizeName(els.projectName.value||names[shape]);
-    const txt='Proyecto: '+project+'\nFormato: '+names[shape]+'\nSTL único y unido\nMalla: optimizada\nBase: 2 mm\nEspesor de accesorios: '+(hasBorder?'3 mm':'2 mm')+'\nTerminación: '+(hasBorder?'borde de '+wallWidth+' mm hacia afuera y 3 mm de altura total':'sin borde, base plana de 2 mm')+'\nPNG: 300 dpi · ancho interior físico exacto '+(+els.width.value).toFixed(1)+' mm\nAncho exterior del STL: '+((+els.width.value)+(hasBorder?wallWidth*2:0)).toFixed(1)+' mm\n'+(shape==='cutout'?'':'Diseño interior: '+Math.round(designScale*100)+'% · fondo '+bgColor+'\n')+'Tipo de pieza: '+({keychain:'llavero con aro de 3,2 mm',none:'chapita / imán sin agarre',cake:'topper con pinche inferior de 30 mm'}[attachmentMode])+'\n'+(hasBorder?'SVG láser interior: área de la gráfica ('+(+els.width.value).toFixed(1)+' mm de ancho).\nSVG láser exterior: base completa con borde ('+((+els.width.value)+wallWidth*2).toFixed(1)+' mm de ancho).\n':'SVG láser único: coincide con la pieza sin borde.\n');
-    const files=[
-      {name:project+'_unificado.stl',data:lastSTL},
-      {name:project+'_corte_cutter_300dpi.png',data:cutBytes},
-      {name:project+'_limpio_DTF_UV_300dpi.png',data:cleanBytes}
-    ];
-    if(hasBorder){
-      files.push(
-        {name:project+'_corte_laser_INTERIOR_grafica.svg',data:laserSVG(lastInner,'Contorno interior para gráfica, papel o DTF UV')},
-        {name:project+'_corte_laser_EXTERIOR_base.svg',data:laserSVG(lastOuter,'Contorno exterior para base de MDF, acrílico u otro material')}
-      );
-    }else{
-      files.push({name:project+'_corte_laser_sin_borde.svg',data:laserSVG(lastInner,'Contorno único sin borde')});
+    const files=[];
+    for(let i=0;i<sessionObjects.length;i++){
+      const o=sessionObjects[i];
+      activeObjectId=o.id;objectSwitching=true;applyObjectSettings(o.settings||{});els.projectName.value=o.name;
+      await inspectImageAndActivate(o.dataURL,o.fileName,o.fileType,{quiet:true,fromPaste:!!o.fromPaste});
+      const project=sanitizeName(o.name||('objeto_'+(i+1))),folder=String(i+1).padStart(2,'0')+'_'+project;
+      files.push(...await productionFilesForCurrentObject(folder,project));
     }
-    files.push({name:'MEDIDAS.txt',data:txt});
+    files.unshift({name:'LEEME_LOTE.txt',data:'3DCD LAB · Producción por lote\nObjetos exportados: '+sessionObjects.length+'\nCada carpeta contiene STL, PNG cutter, PNG DTF UV, SVG láser y MEDIDAS.txt según la configuración propia de ese objeto.\n'});
     const blob=makeZip(files),a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);a.download=project+'_produccion.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-    els.status.innerHTML='<span class="badge">ZIP generado</span> STL, dos PNG y '+(hasBorder?'SVG láser interior + exterior':'SVG láser único')+'.';
-  }catch(e){els.status.textContent='No se pudo crear el ZIP: '+e.message}
+    a.href=URL.createObjectURL(blob);a.download='lote_'+sessionObjects.length+'_objetos_produccion.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+    els.status.innerHTML='<span class="badge">ZIP de lote generado</span> '+sessionObjects.length+' objeto'+(sessionObjects.length===1?'':'s')+' · cada uno con su producción completa.';
+  }catch(e){els.status.textContent='No se pudo crear el ZIP de lote: '+e.message}
+  finally{
+    const restore=sessionObjects.find(o=>o.id===originalId)||sessionObjects[0];
+    if(restore){activeObjectId=restore.id;applyObjectSettings(restore.settings||{});els.projectName.value=restore.name;try{await inspectImageAndActivate(restore.dataURL,restore.fileName,restore.fileType,{quiet:true,fromPaste:!!restore.fromPaste});generate()}catch{} }
+    objectSwitching=false;renderObjectList();setBusy(false);
+  }
 }
 els.download.onclick=downloadZip;
 </script>
