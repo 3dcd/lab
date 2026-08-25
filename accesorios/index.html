@@ -111,8 +111,8 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
   </div>
   <div class="group imageOnly" id="imageThicknessGroup">
     <label>Espesor del plástico</label>
-    <div class="row"><input id="imageThickness" type="range" min="1.5" max="5" step="0.25" value="2"><div class="value" id="imageThicknessV">2,00 mm</div></div>
-    <div class="recutHelp">Controla el espesor de la base de la pieza. Si tiene borde, el filete queda 0,75 mm más alto.</div>
+    <div class="row"><input id="imageThickness" type="range" min="0.5" max="5" step="0.25" value="2"><div class="value" id="imageThicknessV">2,00 mm</div></div>
+    <div class="recutHelp">Controla el espesor de la base. Desde 0,50 mm para piezas muy finas o flexibles. Si tiene borde, el filete queda 0,75 mm más alto.</div>
   </div>
   <div class="group imageOnly" id="imageTerminationGroup">
     <label>Terminación</label>
@@ -138,7 +138,8 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
     <div class="recutHelp">Respetar huecos convierte los interiores cerrados del SVG en agujeros reales del plástico. Rellenar huecos crea una pieza maciza.</div>
     <div style="height:10px"></div>
     <label>Espesor del plástico</label>
-    <div class="row"><input id="svgThickness" type="range" min="1.5" max="5" step="0.25" value="2.75"><div class="value" id="svgThicknessV">2,75 mm</div></div>
+    <div class="row"><input id="svgThickness" type="range" min="0.5" max="5" step="0.25" value="2.75"><div class="value" id="svgThicknessV">2,75 mm</div></div>
+    <div class="recutHelp">0,50–1,00 mm sirve para redes, láminas o pruebas flexibles; verificá que tu altura de capa y material sean adecuados.</div>
   </div>
   <div class="group" id="attachmentGroup">
     <label>Tipo de pieza</label>
@@ -326,6 +327,43 @@ function edgeBackgroundMask(data,w,h){
   const fg=new Uint8Array(w*h);for(let i=0;i<fg.length;i++)fg[i]=background[i]?0:(data[i*4+3]>18?1:0);
   return meaningfulComponents(fg,w,h);
 }
+function componentInfo(src,w,h){
+  const seen=new Uint8Array(src.length),dirs=[[1,0],[-1,0],[0,1],[0,-1]],items=[];
+  for(let i=0;i<src.length;i++){
+    if(!src[i]||seen[i])continue;
+    const q=[i],pix=[];seen[i]=1;let minX=w,minY=h,maxX=-1,maxY=-1,sx=0,sy=0;
+    while(q.length){const p=q.pop(),x=p%w,y=(p/w)|0;pix.push(p);sx+=x;sy+=y;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);for(const[dx,dy]of dirs){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<w&&ny<h){const n=ny*w+nx;if(src[n]&&!seen[n]){seen[n]=1;q.push(n)}}}}
+    items.push({pix,minX,minY,maxX,maxY,cx:sx/pix.length,cy:sy/pix.length,size:pix.length});
+  }
+  return items.sort((a,b)=>b.size-a.size);
+}
+function drawMaskBridge(dst,w,h,a,b,r){
+  const dx=b[0]-a[0],dy=b[1]-a[1],steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)));
+  for(let k=0;k<=steps;k++){
+    const t=k/steps,cx=Math.round(a[0]+dx*t),cy=Math.round(a[1]+dy*t);
+    for(let yy=-r;yy<=r;yy++)for(let xx=-r;xx<=r;xx++)if(xx*xx+yy*yy<=r*r){const x=cx+xx,y=cy+yy;if(x>=0&&y>=0&&x<w&&y<h)dst[y*w+x]=1}
+  }
+}
+function closestBBoxPoints(a,b){
+  const ax=Math.max(a.minX,Math.min(b.cx,a.maxX)),ay=Math.max(a.minY,Math.min(b.cy,a.maxY));
+  const bx=Math.max(b.minX,Math.min(a.cx,b.maxX)),by=Math.max(b.minY,Math.min(a.cy,b.maxY));
+  return [[ax,ay],[bx,by]];
+}
+function unifySvgImageComponents(src,w,h,marginPx){
+  // SVG usado COMO IMAGEN: conservar todos los elementos visibles del logo.
+  // Si vienen separados (texto + símbolo + texto), generamos puentes mínimos entre
+  // componentes antes del margen para construir una única pieza física.
+  const comps=componentInfo(src,w,h).filter(c=>c.size>=Math.max(3,Math.round(w*h*.000004)));
+  if(comps.length<=1)return src.slice();
+  const out=src.slice(),connected=[comps[0]],pending=comps.slice(1),bridgeR=Math.max(1,Math.round(Math.max(2,marginPx)*.32));
+  while(pending.length){
+    let bestI=0,bestA=connected[0],bestD=Infinity;
+    for(let i=0;i<pending.length;i++)for(const a of connected){const b=pending[i],dx=Math.max(0,Math.max(a.minX-b.maxX,b.minX-a.maxX)),dy=Math.max(0,Math.max(a.minY-b.maxY,b.minY-a.maxY)),d=dx*dx+dy*dy;if(d<bestD){bestD=d;bestI=i;bestA=a}}
+    const b=pending.splice(bestI,1)[0],pts=closestBBoxPoints(bestA,b);drawMaskBridge(out,w,h,pts[0],pts[1],bridgeR);connected.push(b);
+  }
+  return out;
+}
+
 function smartForegroundMask(data,w,h,keepAll=false){
   // Un único criterio automático: transparencia real cuando existe; de lo contrario,
   // fondo conectado desde los bordes. Nunca elimina blancos internos aislados.
@@ -348,7 +386,7 @@ function detectEdgeBackground(){
 function buildPreparedSourceCanvas(max=900){
   // SVG: raster de trabajo de alta resolución para que la vista y la detección no dependan
   // de los pocos píxeles declarados por Illustrator. El original SVG se conserva intacto.
-  if(isCurrentSVG()){const touch=matchMedia('(pointer:coarse)').matches;max=Math.max(max,touch?1000:1400);}
+  if(isCurrentSVG()){const touch=matchMedia('(pointer:coarse)').matches;const target=currentSvgPlastic?(touch?720:1100):(touch?900:1400);max=Math.max(max,target);}
   const nativeMax=Math.max(sourceImg.width,sourceImg.height)||1;
   const sc=isCurrentSVG()?Math.min(8,max/nativeMax):Math.min(1,max/nativeMax);
   const sw=Math.max(1,Math.round(sourceImg.width*sc)),sh=Math.max(1,Math.round(sourceImg.height*sc));
@@ -434,7 +472,7 @@ function svgPlasticMaskFromImageData(data,w,h){
   }
   return meaningfulComponents(out,w,h,Math.max(3,Math.round(w*h*.000004)));
 }
-function buildMask(){return currentSvgPlastic&&isCurrentSVG()?svgPlasticMaskFromImageData(original.data,work.width,work.height):smartForegroundMask(original.data,work.width,work.height,false)}
+function buildMask(){if(currentSvgPlastic&&isCurrentSVG())return svgPlasticMaskFromImageData(original.data,work.width,work.height);if(isCurrentSVG())return smartForegroundMask(original.data,work.width,work.height,true);return smartForegroundMask(original.data,work.width,work.height,false)}
 function findHoleContours(src,w,h,minPixels=Math.max(12,Math.round(w*h*.000025))){
   // Fondo que NO está conectado al borde = agujero interior real.
   const exterior=new Uint8Array(src.length),q=[],push=i=>{if(i>=0&&i<src.length&&!src[i]&&!exterior[i]){exterior[i]=1;q.push(i)}};
@@ -495,19 +533,21 @@ function fitOuterToExactSize(poly,innerW,innerH,wall){
 }
 function generate(){try{
   prepareCanvas();lastHoleContours=[];lastOuterHoleContours=[];lastHolesMM=[];lastOuterHolesMM=[];
-  const svgPlastic=currentSvgPlastic&&isCurrentSVG();if(svgPlastic){shape='cutout';hasBorder=false;} 
+  const svgPlastic=currentSvgPlastic&&isCurrentSVG();if(svgPlastic){shape='cutout';hasBorder=false;attachmentMode='none';} 
   if(shape==='cutout'){
-    mask=svgPlastic?buildMask():largestComponent(buildMask(),work.width,work.height);
+    const rawMask=buildMask();
+    mask=svgPlastic?rawMask:(isCurrentSVG()?rawMask:largestComponent(rawMask,work.width,work.height));
     if(svgPlastic&&!svgKeepHoles)mask=fillInternalHoles(mask,work.width,work.height);
     if(svgPlastic)innerMask=mask.slice();
     else{
-      // Los SVG como imagen se rasterizan a más resolución para conservar detalle.
-      // Compensamos ese aumento para que el mismo valor de margen produzca
-      // el mismo filete visual que en un PNG/JPG normal.
+      // SVG COMO IMAGEN: conservar TODOS los componentes del logo. En un SVG transparente
+      // no descartamos texto/símbolos separados como hacía largestComponent().
       const rasterMax=preparedSourceCanvas?Math.max(preparedSourceCanvas._scaledW||0,preparedSourceCanvas._scaledH||0):0;
       const marginScale=(isCurrentSVG()&&rasterMax>900)?(rasterMax/900):1;
       const effectiveMargin=Math.max(0,Math.round(CFG.marginPx*marginScale));
-      innerMask=circularDilate(mask,effectiveMargin,work.width,work.height);
+      const silhouette=isCurrentSVG()?unifySvgImageComponents(mask,work.width,work.height,effectiveMargin):mask;
+      innerMask=circularDilate(silhouette,effectiveMargin,work.width,work.height);
+      if(isCurrentSVG())innerMask=largestComponent(innerMask,work.width,work.height);
     }
   }else{mask=presetMask(shape,work.width,work.height);innerMask=mask.slice()}
   innerContour=simplify(trace(innerMask,work.width,work.height),shape==='cutout'?CFG.simplify:2);
@@ -529,7 +569,7 @@ function generate(){try{
     // Plástico 3D puro: por ahora no agregamos aro, pinche ni ningún agarre automático.
     lastSTL='solid pieza_svg_con_huecos\n'+baseBody+wallBody+'endsolid pieza_svg_con_huecos\n';
   }else lastSTL=buildUnifiedSTL(inner,outer);
-  stlTriangles=parseAsciiSTL(lastSTL);$('#previewGLB').disabled=!stlTriangles.length;previewMode='2d';renderCurrentPreview();createPNGBlob(false).then(blob=>lastPNG=blob);
+  stlTriangles=parseAsciiSTL(lastSTL);$('#previewGLB').disabled=!stlTriangles.length;previewMode='2d';renderCurrentPreview();createPNGBlob(false).then(blob=>{lastPNG=blob;rememberGenerationRuntime()});rememberGenerationRuntime();
   const names={cutout:'Figura recortada',square:'Cuadrado',portrait:'Rectángulo vertical',circle:'Círculo'},extW=innerW+(hasBorder?wallWidth*2:0);
   $('#sumSize').textContent=innerW.toFixed(1)+' × '+innerH.toFixed(1)+' mm';$('#sumBorder').textContent=extW.toFixed(1)+' mm';updateMeasureLabels();els.download.disabled=false;
   els.status.innerHTML='<span class="badge">'+(svgPlastic?'SVG · PLÁSTICO 3D':'Diseño generado')+'</span> '+names[shape]+' · interior '+innerW.toFixed(1)+' mm · '+(svgPlastic?(svgKeepHoles?(lastHoleContours.length+' hueco'+(lastHoleContours.length===1?'':'s')+' interno'+(lastHoleContours.length===1?'':'s')+' respetado'+(lastHoleContours.length===1?'':'s')+'.'):'interiores rellenados · pieza maciza.'):'PNG interior a 300 dpi.');
@@ -783,10 +823,11 @@ function drawFlatPreview(){
   pctx.clearRect(0,0,W,H);pctx.fillStyle='#e8eef5';pctx.fillRect(0,0,W,H);
   const body=hasBorder?lastOuter:lastInner,bb=bounds(body);
   let minX=bb.minX,maxX=bb.maxX,minY=bb.minY,maxY=bb.maxY;
-  if(attachmentMode==='keychain'){
+  const previewAttachment=(currentSvgPlastic&&isCurrentSVG())?'none':attachmentMode;
+  if(previewAttachment==='keychain'){
     const [x,top]=topAnchor(body),ro=CFG.ring/2,cy=top+ro-.8;
     minX=Math.min(minX,x-ro);maxX=Math.max(maxX,x+ro);maxY=Math.max(maxY,cy+ro);
-  }else if(attachmentMode==='cake'){
+  }else if(previewAttachment==='cake'){
     const [x,bottom]=cakeAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength;
     minX=Math.min(minX,x-w/2);maxX=Math.max(maxX,x+w/2);minY=Math.min(minY,bottom-L);
   }
@@ -798,11 +839,11 @@ function drawFlatPreview(){
   // Silueta exterior y accesorios en gris pleno.
   pctx.fillStyle='#9aa3ad';
   polyPath(pctx,body,map);pctx.fill();
-  if(attachmentMode==='keychain'){
+  if(previewAttachment==='keychain'){
     const [x,top]=topAnchor(body),ro=CFG.ring/2,ri=CFG.hole/2,cy=top+ro-.8;
     const q=map([x,cy]);pctx.beginPath();pctx.arc(q[0],q[1],ro*sc,0,Math.PI*2);pctx.fill();
     pctx.save();pctx.globalCompositeOperation='destination-out';pctx.beginPath();pctx.arc(q[0],q[1],ri*sc,0,Math.PI*2);pctx.fill();pctx.restore();
-  }else if(attachmentMode==='cake'){
+  }else if(previewAttachment==='cake'){
     const [x,bottom]=cakeAnchor(body),w=CFG.cakePinWidth,L=CFG.cakePinLength,overlap=1.4;
     const pin=[[x-w/2,bottom+overlap],[x+w/2,bottom+overlap],[x+w/2,bottom-L+4],[x,bottom-L],[x-w/2,bottom-L+4]];
     polyPath(pctx,pin,map);pctx.fill();
@@ -873,6 +914,14 @@ function laserSVGCompound(outer,holes=[],label='contorno con huecos'){
 
 // ===== Objetos múltiples + portapapeles =====
 let sessionObjects=[],activeObjectId=null,objectSeq=0,objectSwitching=false;
+// Caché sólo en memoria: evita reconstruir imágenes y STL al volver a un objeto sin cambios.
+function generationKey(o){return JSON.stringify({svgPlastic:!!o?.svgPlastic,settings:o?.settings||objectSettings()})}
+function rememberSourceRuntime(o){if(!o||!sourceImg)return;o._sourceRuntime={sourceImg,sourceDataURL,sourceFileName,currentFileType,sourceFromPaste,sourceHasTransparency,detectedBgColor,preparedSourceCanvas,subjectCanvas}}
+function restoreSourceRuntime(o){const r=o?._sourceRuntime;if(!r)return false;sourceImg=r.sourceImg;sourceDataURL=r.sourceDataURL;sourceFileName=r.sourceFileName;currentFileType=r.currentFileType;sourceFromPaste=r.sourceFromPaste;sourceHasTransparency=r.sourceHasTransparency;detectedBgColor=r.detectedBgColor;preparedSourceCanvas=r.preparedSourceCanvas;subjectCanvas=r.subjectCanvas;els.drop.classList.add('loaded');els.drop.innerHTML='<strong>Cambiar imagen</strong><span></span>';els.autoBgChip.style.background=detectedBgColor;els.saveProject.disabled=false;return true}
+function rememberGenerationRuntime(){const o=sessionObjects.find(x=>x.id===activeObjectId);if(!o||objectSwitching)return;const wc=document.createElement('canvas');wc.width=work.width;wc.height=work.height;wc.getContext('2d').drawImage(work,0,0);o._genRuntime={key:generationKey(o),workCanvas:wc,original,mask,innerMask,innerContour,outerContour,lastSTL,lastPNG,lastInner,lastOuter,lastBounds,lastScale,lastInnerBoundsPx,lastOuterBoundsPx,stlTriangles,lastPhysicalW,lastPhysicalH,lastHoleContours,lastOuterHoleContours,lastHolesMM,lastOuterHolesMM}}
+function restoreGenerationRuntime(o){const r=o?._genRuntime;if(!r||r.key!==generationKey(o))return false;work.width=r.workCanvas.width;work.height=r.workCanvas.height;ctx.clearRect(0,0,work.width,work.height);ctx.drawImage(r.workCanvas,0,0);original=r.original;mask=r.mask;innerMask=r.innerMask;innerContour=r.innerContour;outerContour=r.outerContour;lastSTL=r.lastSTL;lastPNG=r.lastPNG;lastInner=r.lastInner;lastOuter=r.lastOuter;lastBounds=r.lastBounds;lastScale=r.lastScale;lastInnerBoundsPx=r.lastInnerBoundsPx;lastOuterBoundsPx=r.lastOuterBoundsPx;stlTriangles=r.stlTriangles;lastPhysicalW=r.lastPhysicalW;lastPhysicalH=r.lastPhysicalH;lastHoleContours=r.lastHoleContours;lastOuterHoleContours=r.lastOuterHoleContours;lastHolesMM=r.lastHolesMM;lastOuterHolesMM=r.lastOuterHolesMM;$('#previewGLB').disabled=!stlTriangles?.length;els.download.disabled=!lastSTL;previewMode='2d';updateMeasureLabels();renderCurrentPreview();return true}
+function invalidateActiveGeneration(){const o=sessionObjects.find(x=>x.id===activeObjectId);if(o)o._genRuntime=null}
+
 const objectListEl=$('#objectList'),busyVeil=$('#busyveil');
 function setBusy(v){busyVeil?.classList.toggle('show',!!v)}
 function objectSettings(){return {shape,hasBorder,wallWidth,attachmentMode,designScale,bgColor,width:+els.width.value,height:+els.height.value,dimensionBasis,cutTolerance:+els.cutTolerance.value,cutMargin:+els.cutMargin.value,cutSmooth:+els.cutSmooth.value,svgKeepHoles,svgPlasticThickness,imageThickness}}
@@ -882,9 +931,10 @@ function updateObjectModeUI(){
   document.querySelectorAll('.svg3dOnly').forEach(el=>el.classList.toggle('hidden',!plastic));
   $('#attachmentGroup')?.classList.toggle('hidden',plastic);
   if(plastic){
-    shape='cutout';hasBorder=false;
+    shape='cutout';hasBorder=false;attachmentMode='none';
     document.querySelectorAll('#shapegrid button').forEach(x=>x.classList.toggle('active',x.dataset.shape==='cutout'));
     document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',x.dataset.border==='no'));
+    document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x.dataset.attachment==='none'));
   }else{
     // En imágenes, los controles dependen además de la forma elegida.
     // Figura recortada NO usa tamaño del diseño/fondo; las formas prefijadas sí.
@@ -914,6 +964,7 @@ function setSyncConfirmation(ok,message=''){
   if(t)t.textContent=message||(allParamsConfirmed?'Todos tienen los parámetros del objeto de referencia. Si cambiás cualquier ajuste, esta confirmación se apaga.':'Cada objeto se edita de forma independiente. Tocá este botón cuando quieras igualar todos al objeto activo.');
 }
 function markParametersDirty(){
+  invalidateActiveGeneration();
   if(allParamsConfirmed)setSyncConfirmation(false,'Hubo cambios después de la última sincronización. Los objetos vuelven a considerarse independientes hasta que vuelvas a aplicar los parámetros.');
 }
 function applyCurrentSettingsToAllOnce(){
@@ -952,8 +1003,8 @@ controlsPanel.addEventListener('click',e=>{
   if(e.target.closest('#syncAllBtn')||e.target.closest('.objectcard')||e.target.closest('#pasteClipboard')||e.target.closest('#newBlank')||e.target.closest('#saveProject')||e.target.closest('#openProject')||e.target.closest('#download'))return;
   if(e.target.closest('#shapegrid button,#borderMode button,#wallWidthMode button,#attachmentMode button,#dimensionMode button,#bgPalette button,#autoBg'))markParametersDirty();
 },{capture:true});
-function saveActiveObject(){const o=sessionObjects.find(x=>x.id===activeObjectId);if(!o||objectSwitching||!sourceDataURL)return;o.settings=objectSettings();o.dataURL=sourceDataURL;o.fileName=sourceFileName;o.fileType=currentFileType;o.fromPaste=sourceFromPaste;o.detectedBgColor=detectedBgColor;o.hasTransparency=sourceHasTransparency;o.svgPlastic=!!currentSvgPlastic;renderObjectList()}
-function applyObjectSettings(s={}){shape=s.shape||'cutout';hasBorder=s.hasBorder!==false;wallWidth=+s.wallWidth||1;attachmentMode=s.attachmentMode||'keychain';designScale=+s.designScale||.88;bgColor=s.bgColor||'#ffffff';svgKeepHoles=s.svgKeepHoles!==false;svgPlasticThickness=Math.max(1.5,Math.min(5,+s.svgPlasticThickness||2.75));imageThickness=Math.max(1.5,Math.min(5,+s.imageThickness||2));els.width.value=s.width||55;els.height.value=s.height||70;dimensionBasis=s.dimensionBasis||'height';lastPhysicalW=+els.width.value;lastPhysicalH=+els.height.value;els.designScale.value=Math.round(designScale*100);els.cutTolerance.value=s.cutTolerance||48;els.cutMargin.value=s.cutMargin??10;els.cutSmooth.value=s.cutSmooth||3;CFG.threshold=+els.cutTolerance.value;CFG.marginPx=+els.cutMargin.value;CFG.simplify=+els.cutSmooth.value;document.querySelectorAll('#shapegrid button').forEach(x=>x.classList.toggle('active',x.dataset.shape===shape));document.querySelectorAll('#dimensionMode button').forEach(x=>x.classList.toggle('active',x.dataset.dim===dimensionBasis));document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',(x.dataset.border==='yes')===hasBorder));document.querySelectorAll('#wallWidthMode button').forEach(x=>x.classList.toggle('active',+x.dataset.wall===wallWidth));document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x.dataset.attachment===attachmentMode));document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x.dataset.color.toLowerCase()===bgColor.toLowerCase()));$('#designControls').classList.toggle('hidden',shape==='cutout');$('#cutoutControls').classList.toggle('hidden',shape!=='cutout');$('#wallOptions').style.display=hasBorder?'block':'none';$('#designScaleV').textContent=Math.round(designScale*100)+'%';$('#cutToleranceV').textContent=els.cutTolerance.value;$('#cutMarginV').textContent=els.cutMargin.value+' px';$('#cutSmoothV').textContent=els.cutSmooth.value;updateObjectModeUI();updateMeasureLabels()}
+function saveActiveObject(){const o=sessionObjects.find(x=>x.id===activeObjectId);if(!o||objectSwitching||!sourceDataURL)return;o.settings=objectSettings();o.dataURL=sourceDataURL;o.fileName=sourceFileName;o.fileType=currentFileType;o.fromPaste=sourceFromPaste;o.detectedBgColor=detectedBgColor;o.hasTransparency=sourceHasTransparency;o.svgPlastic=!!currentSvgPlastic;rememberSourceRuntime(o);renderObjectList()}
+function applyObjectSettings(s={}){shape=s.shape||'cutout';hasBorder=s.hasBorder!==false;wallWidth=+s.wallWidth||1;attachmentMode=s.attachmentMode||'keychain';designScale=+s.designScale||.88;bgColor=s.bgColor||'#ffffff';svgKeepHoles=s.svgKeepHoles!==false;svgPlasticThickness=Math.max(.5,Math.min(5,+s.svgPlasticThickness||2.75));imageThickness=Math.max(.5,Math.min(5,+s.imageThickness||2));els.width.value=s.width||55;els.height.value=s.height||70;dimensionBasis=s.dimensionBasis||'height';lastPhysicalW=+els.width.value;lastPhysicalH=+els.height.value;els.designScale.value=Math.round(designScale*100);els.cutTolerance.value=s.cutTolerance||48;els.cutMargin.value=s.cutMargin??10;els.cutSmooth.value=s.cutSmooth||3;CFG.threshold=+els.cutTolerance.value;CFG.marginPx=+els.cutMargin.value;CFG.simplify=+els.cutSmooth.value;document.querySelectorAll('#shapegrid button').forEach(x=>x.classList.toggle('active',x.dataset.shape===shape));document.querySelectorAll('#dimensionMode button').forEach(x=>x.classList.toggle('active',x.dataset.dim===dimensionBasis));document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',(x.dataset.border==='yes')===hasBorder));document.querySelectorAll('#wallWidthMode button').forEach(x=>x.classList.toggle('active',+x.dataset.wall===wallWidth));document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x.dataset.attachment===attachmentMode));document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x.dataset.color.toLowerCase()===bgColor.toLowerCase()));$('#designControls').classList.toggle('hidden',shape==='cutout');$('#cutoutControls').classList.toggle('hidden',shape!=='cutout');$('#wallOptions').style.display=hasBorder?'block':'none';$('#designScaleV').textContent=Math.round(designScale*100)+'%';$('#cutToleranceV').textContent=els.cutTolerance.value;$('#cutMarginV').textContent=els.cutMargin.value+' px';$('#cutSmoothV').textContent=els.cutSmooth.value;updateObjectModeUI();updateMeasureLabels()}
 function renderObjectList(){if(!objectListEl)return;objectListEl.innerHTML='';for(const o of sessionObjects){
   const card=document.createElement('div');card.className='objectcard'+(o.id===activeObjectId?' active':'')+(o.svgPlastic?' svgplastic':'');card.title='Abrir '+o.name;
   const im=document.createElement('img');im.className='objectthumb';im.src=o.dataURL;const meta=document.createElement('div');meta.className='objectmeta';
@@ -971,8 +1022,8 @@ function chooseSVGImportMode(){
     asPlastic.onclick=()=>finish(true);
   });
 }
-async function acceptNewObjectSource(dataURL,fileName='pegado.png',fileType='image/png',opts={}){setBusy(true);try{saveActiveObject();if(opts.fromPaste){dataURL=await flattenPasteOnWhite(dataURL);fileType='image/png';fileName=(fileName||'pegado').replace(/\.[^.]+$/,'')+'_aplanado.png'}let svgPlastic=false;if(isSVGType(fileType,fileName,dataURL)){setBusy(false);svgPlastic=opts.svgPlastic!==undefined?!!opts.svgPlastic:await chooseSVGImportMode();setBusy(true)}const id=++objectSeq;const o={id,name:'Objeto '+id,dataURL,fileName,fileType,fromPaste:!!opts.fromPaste,svgPlastic,settings:objectSettings()};sessionObjects.push(o);markParametersDirty();activeObjectId=id;currentSvgPlastic=!!o.svgPlastic;objectSwitching=true;applyObjectSettings(o.settings);await inspectImageAndActivate(dataURL,fileName,fileType,{quiet:true,fromPaste:!!opts.fromPaste});updateObjectModeUI();objectSwitching=false;o.hasTransparency=sourceHasTransparency;o.detectedBgColor=detectedBgColor;renderObjectList();els.status.innerHTML='<span class="badge">'+(opts.fromPaste?'Pegado · recorte reconstruido':'Objeto nuevo')+'</span> '+o.name+' · '+sourceImg.width+' × '+sourceImg.height+' px · '+(opts.fromPaste?'alpha del lazo ignorado · fondo exterior detectado.':'podés seguir pegando sin cerrar nada.');scheduleGenerate(20)}finally{objectSwitching=false;setBusy(false)}}
-async function switchObject(id){if(id===activeObjectId)return;const target=sessionObjects.find(x=>x.id===id);if(!target)return;setBusy(true);try{saveActiveObject();activeObjectId=id;currentSvgPlastic=!!target.svgPlastic;objectSwitching=true;applyObjectSettings(target.settings||{});await inspectImageAndActivate(target.dataURL,target.fileName,target.fileType,{quiet:true,fromPaste:!!target.fromPaste});updateObjectModeUI();objectSwitching=false;renderObjectList();els.status.innerHTML='<span class="badge">Objeto activo</span> '+target.name+' · parámetros independientes recuperados.';scheduleGenerate(20)}catch(e){els.status.textContent='No pude abrir ese objeto: '+e.message}finally{objectSwitching=false;setBusy(false)}}
+async function acceptNewObjectSource(dataURL,fileName='pegado.png',fileType='image/png',opts={}){setBusy(true);try{saveActiveObject();if(opts.fromPaste){dataURL=await flattenPasteOnWhite(dataURL);fileType='image/png';fileName=(fileName||'pegado').replace(/\.[^.]+$/,'')+'_aplanado.png'}let svgPlastic=false;if(isSVGType(fileType,fileName,dataURL)){setBusy(false);svgPlastic=opts.svgPlastic!==undefined?!!opts.svgPlastic:await chooseSVGImportMode();setBusy(true)}const id=++objectSeq;const o={id,name:'Objeto '+id,dataURL,fileName,fileType,fromPaste:!!opts.fromPaste,svgPlastic,settings:objectSettings()};sessionObjects.push(o);markParametersDirty();activeObjectId=id;currentSvgPlastic=!!o.svgPlastic;objectSwitching=true;applyObjectSettings(o.settings);await inspectImageAndActivate(dataURL,fileName,fileType,{quiet:true,fromPaste:!!opts.fromPaste});updateObjectModeUI();objectSwitching=false;o.hasTransparency=sourceHasTransparency;o.detectedBgColor=detectedBgColor;rememberSourceRuntime(o);renderObjectList();els.status.innerHTML='<span class="badge">'+(opts.fromPaste?'Pegado · recorte reconstruido':'Objeto nuevo')+'</span> '+o.name+' · '+sourceImg.width+' × '+sourceImg.height+' px · '+(opts.fromPaste?'alpha del lazo ignorado · fondo exterior detectado.':'podés seguir pegando sin cerrar nada.');scheduleGenerate(20)}finally{objectSwitching=false;setBusy(false)}}
+async function switchObject(id){if(id===activeObjectId)return;const target=sessionObjects.find(x=>x.id===id);if(!target)return;setBusy(true);try{saveActiveObject();activeObjectId=id;currentSvgPlastic=!!target.svgPlastic;objectSwitching=true;applyObjectSettings(target.settings||{});if(!restoreSourceRuntime(target)){await inspectImageAndActivate(target.dataURL,target.fileName,target.fileType,{quiet:true,fromPaste:!!target.fromPaste});rememberSourceRuntime(target)}updateObjectModeUI();objectSwitching=false;renderObjectList();if(restoreGenerationRuntime(target)){els.status.innerHTML='<span class="badge">Objeto activo · caché</span> '+target.name+' · vista recuperada sin recalcular.'}else{els.status.innerHTML='<span class="badge">Objeto activo</span> '+target.name+' · parámetros independientes recuperados.';scheduleGenerate(20)}}catch(e){els.status.textContent='No pude abrir ese objeto: '+e.message}finally{objectSwitching=false;setBusy(false)}}
 function deleteObject(id){const idx=sessionObjects.findIndex(x=>x.id===id);if(idx<0)return;const was=id===activeObjectId;sessionObjects.splice(idx,1);if(!was){renderObjectList();return}activeObjectId=null;if(sessionObjects.length){switchObject(sessionObjects[Math.max(0,idx-1)].id)}else{sourceImg=null;sourceDataURL='';subjectCanvas=null;preparedSourceCanvas=null;els.download.disabled=true;els.saveProject.disabled=true;els.drop.classList.remove('loaded');els.drop.innerHTML='<strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span><span class="paste-mini">o pegá directamente con ⌘V / Ctrl+V</span>';els.status.textContent='Pegá o cargá una imagen para comenzar.';renderObjectList()}}
 function newBlankObject(){saveActiveObject();els.file.click()}
 async function pasteFromClipboardAPI(){try{if(!navigator.clipboard?.read)throw Error('Usá ⌘V / Ctrl+V directamente.');const items=await navigator.clipboard.read();for(const item of items){const type=item.types.find(t=>t.startsWith('image/'));if(type){const blob=await item.getType(type);const ext=type.split('/')[1].replace('jpeg','jpg');const f=new File([blob],'pegado_'+(objectSeq+1)+'.'+ext,{type});await loadFile(f,{fromPaste:true});return}}throw Error('El portapapeles no contiene una imagen.')}catch(e){els.status.textContent='Pegado: '+e.message}}
