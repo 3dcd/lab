@@ -1218,20 +1218,32 @@ function currentProductionText(project){
   if(currentSvgPlastic&&isCurrentSVG())return 'Proyecto: '+project+'\nModo: SVG PLÁSTICO 3D\nGeometría vectorial convertida a plástico\nMedida física: '+iw.toFixed(1)+' × '+ih.toFixed(1)+' mm\nEspesor: '+svgPlasticThickness.toFixed(2)+' mm\nInteriores: '+(svgKeepHoles?'respetar huecos':'rellenar huecos')+'\nSin agarres automáticos.\nOriginal SVG incluido en el ZIP.\n';
   return 'Proyecto: '+project+'\nFormato: '+names[shape]+'\nSTL único y unido\nMalla: optimizada\nBase: 2 mm\nEspesor de accesorios: '+(hasBorder?'3 mm':'2 mm')+'\nTerminación: '+(hasBorder?'borde de '+wallWidth+' mm hacia afuera y 3 mm de altura total':'sin borde, base plana de 2 mm')+'\nPNG: 300 dpi · interior físico '+iw.toFixed(1)+' × '+ih.toFixed(1)+' mm\nExterior aproximado del STL: '+ew.toFixed(1)+' × '+eh.toFixed(1)+' mm\nReferencia de escala: '+(dimensionBasis==='height'?'ALTO':'ANCHO')+'\n'+(shape==='cutout'?'':'Diseño interior: '+Math.round(designScale*100)+'% · fondo '+bgColor+'\n')+(currentSvgPlastic&&isCurrentSVG()?'Modo SVG: PLÁSTICO 3D · huecos internos preservados.\n':'')+'Tipo de pieza: '+({keychain:'llavero con aro de 3,2 mm',none:'chapita / imán sin agarre',cake:'topper con pinche inferior de 18 mm'}[attachmentMode])+'\n'+(hasBorder?'SVG láser interior: área de la gráfica.\nSVG láser exterior: base completa con borde.\n':'SVG láser único: coincide con la pieza sin borde.\n');
 }
-async function productionFilesForCurrentObject(folder,project){
+async function productionFilesForCurrentObject(objectIndex,project){
   generate();
-  const pngClean=await createPNGBlob(false),pngCut=await createPNGBlob(true),cleanBytes=new Uint8Array(await pngClean.arrayBuffer()),cutBytes=new Uint8Array(await pngCut.arrayBuffer());
-  const prefix=folder?folder.replace(/\/$/,'')+'/':'';
+  const pngClean=await createPNGBlob(false),pngCut=await createPNGBlob(true),
+        cleanBytes=new Uint8Array(await pngClean.arrayBuffer()),
+        cutBytes=new Uint8Array(await pngCut.arrayBuffer());
+  const n=String(objectIndex+1).padStart(2,'0');
+  const base=n+'_'+project;
   const files=[
-    {name:prefix+project+'_unificado.stl',data:lastSTL},
-    {name:prefix+project+'_corte_cutter_300dpi.png',data:cutBytes},
-    {name:prefix+project+'_limpio_DTF_UV_300dpi.png',data:cleanBytes}
+    {name:'03_MODELOS_3D/'+base+'.stl',data:lastSTL},
+    {name:'01_IMPRESION/'+base+'_corte_cutter_300dpi.png',data:cutBytes},
+    {name:'02_DTF_UV/'+base+'_limpio_DTF_UV_300dpi.png',data:cleanBytes}
   ];
   const svgPlastic=currentSvgPlastic&&isCurrentSVG();
-  if(hasBorder){files.push({name:prefix+project+'_corte_laser_INTERIOR_grafica.svg',data:svgPlastic?(svgKeepHoles?laserSVGCompound(lastInner,lastHolesMM,'Contorno SVG plástico con huecos'):laserSVG(lastInner,'Contorno SVG plástico macizo')):laserSVG(lastInner,'Contorno interior para gráfica, papel o DTF UV')},{name:prefix+project+'_corte_laser_EXTERIOR_base.svg',data:svgPlastic?(svgKeepHoles?laserSVGCompound(lastOuter,lastOuterHolesMM,'Contorno exterior SVG con huecos'):laserSVG(lastOuter,'Contorno SVG plástico macizo')):laserSVG(lastOuter,'Contorno exterior para base de MDF, acrílico u otro material')});}
-  else files.push({name:prefix+project+'_corte_laser_sin_borde.svg',data:svgPlastic?(svgKeepHoles?laserSVGCompound(lastInner,lastHolesMM,'Contorno SVG plástico con huecos'):laserSVG(lastInner,'Contorno SVG plástico macizo')):laserSVG(lastInner,'Contorno único sin borde')});
-  if(isCurrentSVG())files.push({name:prefix+project+'_ORIGINAL_VECTOR.svg',data:dataURLToBytes(sourceDataURL)});
-  files.push({name:prefix+'MEDIDAS.txt',data:currentProductionText(project)});
+  if(hasBorder){
+    files.push(
+      {name:'04_CORTE_LASER/INTERIOR/'+base+'_INTERIOR_grafica.svg',
+       data:svgPlastic?(svgKeepHoles?laserSVGCompound(lastInner,lastHolesMM,'Contorno SVG plástico con huecos'):laserSVG(lastInner,'Contorno SVG plástico macizo')):laserSVG(lastInner,'Contorno interior para gráfica, papel o DTF UV')},
+      {name:'04_CORTE_LASER/EXTERIOR/'+base+'_EXTERIOR_base.svg',
+       data:svgPlastic?(svgKeepHoles?laserSVGCompound(lastOuter,lastOuterHolesMM,'Contorno exterior SVG con huecos'):laserSVG(lastOuter,'Contorno SVG plástico macizo')):laserSVG(lastOuter,'Contorno exterior para base de MDF, acrílico u otro material')}
+    );
+  }else{
+    files.push({name:'04_CORTE_LASER/SIN_BORDE/'+base+'_sin_borde.svg',
+      data:svgPlastic?(svgKeepHoles?laserSVGCompound(lastInner,lastHolesMM,'Contorno SVG plástico con huecos'):laserSVG(lastInner,'Contorno SVG plástico macizo')):laserSVG(lastInner,'Contorno único sin borde')});
+  }
+  if(isCurrentSVG())files.push({name:'05_ORIGINALES_SVG/'+base+'_ORIGINAL_VECTOR.svg',data:dataURLToBytes(sourceDataURL)});
+  files.push({name:'06_MEDIDAS/'+base+'_MEDIDAS.txt',data:currentProductionText(project)});
   return files;
 }
 async function downloadZip(){
@@ -1245,9 +1257,9 @@ async function downloadZip(){
       activeObjectId=o.id;currentSvgPlastic=!!o.svgPlastic;objectSwitching=true;applyObjectSettings(o.settings||{});
       await inspectImageAndActivate(o.dataURL,o.fileName,o.fileType,{quiet:true,fromPaste:!!o.fromPaste});
       const project=sanitizeName(o.name||('objeto_'+(i+1))),folder=String(i+1).padStart(2,'0')+'_'+project;
-      files.push(...await productionFilesForCurrentObject(folder,project));
+      files.push(...await productionFilesForCurrentObject(i,project));
     }
-    files.unshift({name:'LEEME_LOTE.txt',data:'3DCD LAB · Producción por lote\nObjetos exportados: '+sessionObjects.length+'\nCada carpeta contiene STL, PNG cutter, PNG DTF UV, SVG láser y MEDIDAS.txt según la configuración propia de ese objeto.\n'});
+    files.unshift({name:'LEEME_LOTE.txt',data:'3DCD LAB · Producción por lote\nObjetos exportados: '+sessionObjects.length+'\nLos archivos están agrupados por tipo de producción: IMPRESION, DTF_UV, MODELOS_3D, CORTE_LASER, ORIGINALES_SVG y MEDIDAS. Cada archivo conserva el número y nombre de su objeto.\n'});
     const blob=makeZip(files),a=document.createElement('a');
     a.href=URL.createObjectURL(blob);const batchName=(els.projectName.value||'').trim()?sanitizeName(els.projectName.value):('lote_'+sessionObjects.length+'_objetos');a.download=batchName+'_produccion.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
     els.status.innerHTML='<span class="badge">ZIP de lote generado</span> '+sessionObjects.length+' objeto'+(sessionObjects.length===1?'':'s')+' · cada uno con su producción completa.';
