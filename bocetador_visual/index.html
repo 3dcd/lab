@@ -267,7 +267,7 @@
     ctx.fillText('EDIFICIO', top.x+8, top.y-8);
     ctx.fillStyle='#ffffffcc';ctx.beginPath();ctx.arc(base.x,base.y,4,0,Math.PI*2);ctx.fill();
 
-    $('#badge').textContent(S.mode==='camera' ? 'Cámara · arrastrar / pellizcar' : 'Mover edificio sobre el piso');
+    $('#badge').textContent = (S.mode==='camera' ? 'Cámara · arrastrar / pellizcar' : 'Mover edificio sobre el piso');
   }
 
   function promptText(){
