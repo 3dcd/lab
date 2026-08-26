@@ -7,7 +7,7 @@
 <style>
 :root{--bg:#dfe8f2;--panel:#f7f9fc;--txt:#182234;--muted:#66748a;--accent:#168ccb;--green:#168a63;--line:#c5d1df;--app-h:100dvh;--header-h:78px;--bottom-safe:max(6px,env(safe-area-inset-bottom))}
 *{box-sizing:border-box}html,body{width:100%;height:100%;overscroll-behavior:none}body{margin:0;background:linear-gradient(180deg,#eaf0f7,#dbe6f1);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden;min-height:var(--app-h)}
-header{padding:17px 20px;background:#f5f8fc;border-bottom:1px solid var(--line)}h1{font-size:20px;margin:0 0 5px}.sub{font-size:13px;color:var(--muted);max-width:1000px}
+header{padding:12px 20px;background:#f5f8fc;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}.headercopy{min-width:0;flex:1}.clearDataBtn{width:auto!important;flex:0 0 auto;padding:9px 12px!important;border:1px solid #c5d1df!important;background:#fff!important;color:#6b7280!important;font-size:11px!important}.clearDataBtn:hover{background:#f3f6f9!important;color:#b42318!important}h1{font-size:20px;margin:0 0 5px}.sub{font-size:13px;color:var(--muted);max-width:1000px}
 main{display:grid;grid-template-columns:330px minmax(0,1fr);grid-template-areas:'controls stage';gap:15px;padding:15px 15px var(--bottom-safe);height:calc(var(--app-h) - var(--header-h));min-height:0;overflow:hidden}
 .panel{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 14px 30px rgba(43,67,94,.12)}
 .controls{grid-area:controls;display:flex;flex-direction:column;gap:13px;align-self:stretch;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:10px}.group{border-bottom:1px solid var(--line);padding-bottom:13px}.group:last-child{border:0;padding-bottom:0}
@@ -23,16 +23,19 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
 
 .objectbar{display:flex;flex-direction:column;gap:8px}.objectbarhead{display:flex;gap:7px}.objectbarhead button{padding:9px 8px;font-size:11px}.objectlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.objectcard{position:relative;display:grid;grid-template-columns:42px minmax(0,1fr);gap:7px;align-items:center;padding:6px;border:1px solid #c5d1df;border-radius:11px;background:#eef3f8;cursor:pointer;min-width:0}.objectcard.active{outline:2px solid var(--accent);background:#dff1fb}.objectcard.svgplastic{background:#ddf7f2;border-color:#86cfc0}.objectcard.svgplastic.active{outline:2px solid #159b83;background:#c8f0e7}.svg3dOnly.hidden,.imageOnly.hidden,#attachmentGroup.hidden{display:none!important}.svg3dmodebadge{display:inline-block;padding:5px 9px;border-radius:999px;background:#d2f4ec;border:1px solid #79c9b7;color:#08735f;font-size:11px;font-weight:900;margin-bottom:9px}.objectthumb{width:42px;height:42px;border-radius:8px;background:#fff;border:1px solid #d1dae4;object-fit:contain}.objectmeta{min-width:0}.objectmeta b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.objectmeta span{display:block;font-size:9.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.objectx{position:absolute;right:3px;top:3px;width:18px!important;height:18px;padding:0!important;border-radius:50%!important;font-size:11px!important;line-height:18px;background:#fff!important;color:#6b7280!important;border:1px solid #cdd6df!important}.objectsvgmode{position:absolute;right:24px;top:3px;width:18px!important;height:18px;padding:0!important;border-radius:50%!important;font-size:10px!important;line-height:18px;background:#fff!important;color:#66748a!important;border:1px solid #cdd6df!important}.objectsvgmode.plastic{background:#dfe9ff!important;color:#254ea3!important;border-color:#7f9fdd!important;font-weight:1000}.pastehint{font-size:11px;color:var(--muted);line-height:1.35}.pastehint kbd{padding:1px 5px;border:1px solid #c5d1df;border-bottom-width:2px;border-radius:5px;background:#fff;font:inherit;font-weight:800;color:#334155}.dropzone .paste-mini{display:block;margin-top:6px;font-size:11px;color:#536174}.busyveil{position:absolute;inset:0;z-index:45;display:none;align-items:center;justify-content:center;background:rgba(242,247,252,.72);backdrop-filter:blur(2px);font-size:12px;font-weight:800;color:#334155}.busyveil.show{display:flex}.syncallbtn{margin-top:2px;background:#e8eef5!important;border:1px solid #bac7d5!important;color:#334155!important}.syncallbtn.active{background:#d8f3e8!important;outline:2px solid #168a63;color:#0b684a!important}.syncstate{display:block;font-size:10.5px;color:var(--muted);line-height:1.35;margin-top:4px}
 @media(max-width:900px){body{overflow:hidden}main{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(260px,42vh) minmax(0,1fr);grid-template-areas:'stage' 'controls';height:calc(var(--app-h) - var(--header-h));overflow:hidden}.stage{min-height:0;height:auto}.controls{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-right:10px}.viewer{min-height:0;height:100%}}
-@media(max-width:600px){header{padding:10px 12px;height:48px;display:flex;align-items:center}header .sub{display:none}h1{font-size:16px;margin:0}main{height:calc(var(--app-h) - var(--header-h));grid-template-rows:minmax(230px,40vh) minmax(0,1fr);padding:7px;gap:7px}.panel{border-radius:13px;padding:9px}.shapegrid{gap:4px}.shapegrid button{padding:7px 2px;font-size:9.5px;min-height:38px}.controls{padding-right:7px}.dropzone{inset:9px}.dropzone.loaded{inset:9px 9px auto auto;max-width:145px;padding:7px 9px}}
+@media(max-width:600px){header{padding:7px 9px;height:48px;display:flex;align-items:center;gap:7px}header .sub{display:none}h1{font-size:15px;margin:0}.clearDataBtn{padding:7px 9px!important;font-size:10px!important} main{height:calc(var(--app-h) - var(--header-h));grid-template-rows:minmax(230px,40vh) minmax(0,1fr);padding:7px;gap:7px}.panel{border-radius:13px;padding:9px}.shapegrid{gap:4px}.shapegrid button{padding:7px 2px;font-size:9.5px;min-height:38px}.controls{padding-right:7px}.dropzone{inset:9px}.dropzone.loaded{inset:9px 9px auto auto;max-width:145px;padding:7px 9px}}
 </style>
 </head>
 <body>
-<header><h1>3DCD LAB · Creador de llaveros</h1><div class="sub">Pegá o cargá imágenes, trabajá varios objetos en la misma sesión y descargá cada pieza lista para producción.</div></header>
+<header>
+  <div class="headercopy"><h1>3DCD LAB · Creador de llaveros</h1><div class="sub">Pegá o cargá imágenes, trabajá varios objetos en la misma sesión y descargá cada pieza lista para producción.</div></div>
+  <button type="button" id="clearLocalData" class="clearDataBtn" title="Borra la sesión guardada automáticamente en este navegador">Borrar datos</button>
+</header>
 <main>
 <section class="stage">
     <div class="viewer panel" id="viewer">
       <button type="button" class="glbpreviewbtn" id="previewGLB" disabled>Previsualizar GLB</button>
-      <div class="dropzone" id="dropzone"><strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span><span class="paste-mini">o pegá directamente con ⌘V / Ctrl+V</span></div><div class="busyveil" id="busyveil">Preparando objeto…</div>
+      <div class="dropzone" id="dropzone"><strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span><span class="paste-mini">o pegá directamente con ⌘V / Ctrl+V · editable ZIP: arrastralo acá</span></div><div class="busyveil" id="busyveil">Preparando objeto…</div>
     </div>
   <div hidden><span id="sumSize"></span><span id="sumBorder"></span><span id="sumHeight"></span></div>
 </section>
@@ -156,9 +159,9 @@ button{appearance:none;border:0;border-radius:12px;padding:12px;background:#dce7
     <input id="projectName" class="projectname" type="text" maxlength="80" placeholder="Ej.: Medalla cumpleaños">
     <div class="projectrow" style="margin-top:8px">
       <button id="saveProject" type="button" class="secondary" disabled>Guardar editable</button>
-      <button id="openProject" type="button" class="secondary">Abrir editable</button>
+      <button id="openProject" type="button" class="secondary">Abrir editable · ZIP</button>
     </div>
-    <input id="projectFile" class="projectfile" type="file" accept=".zip,application/zip">
+    <input id="projectFile" class="projectfile" type="file" accept=".zip,application/zip"><div class="recutHelp" style="margin-top:7px">También podés arrastrar un editable ZIP sobre cualquier sector de la aplicación para abrirlo. La última sesión se guarda automáticamente en este navegador aunque cierres la pestaña.</div>
   </div>
   <button id="download" class="secondary" disabled>Descargar producción · ZIP</button>
   <div class="status" id="status">Cargá una imagen para comenzar.</div>
@@ -866,6 +869,10 @@ function drawFlatPreview(){
   polyPath(pctx,body,map);pctx.strokeStyle='#7f8994';pctx.lineWidth=1.2;pctx.stroke();
 }
 
+function fileTimestamp(d=new Date()){
+  const p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+'-'+p(d.getMinutes());
+}
 function sanitizeName(v){return (v||'proyecto').trim().replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_-]+/g,'_').replace(/^_+|_+$/g,'')||'proyecto'}
 
 // Simplificación específica para corte láser. No altera el STL.
@@ -966,6 +973,7 @@ function setSyncConfirmation(ok,message=''){
 function markParametersDirty(){
   invalidateActiveGeneration();
   if(allParamsConfirmed)setSyncConfirmation(false,'Hubo cambios después de la última sincronización. Los objetos vuelven a considerarse independientes hasta que vuelvas a aplicar los parámetros.');
+  scheduleAutoPersist();
 }
 function applyCurrentSettingsToAllOnce(){
   if(objectSwitching||!activeObjectId||!sessionObjects.length)return false;
@@ -1003,7 +1011,7 @@ controlsPanel.addEventListener('click',e=>{
   if(e.target.closest('#syncAllBtn')||e.target.closest('.objectcard')||e.target.closest('#pasteClipboard')||e.target.closest('#newBlank')||e.target.closest('#saveProject')||e.target.closest('#openProject')||e.target.closest('#download'))return;
   if(e.target.closest('#shapegrid button,#borderMode button,#wallWidthMode button,#attachmentMode button,#dimensionMode button,#bgPalette button,#autoBg'))markParametersDirty();
 },{capture:true});
-function saveActiveObject(){const o=sessionObjects.find(x=>x.id===activeObjectId);if(!o||objectSwitching||!sourceDataURL)return;o.settings=objectSettings();o.dataURL=sourceDataURL;o.fileName=sourceFileName;o.fileType=currentFileType;o.fromPaste=sourceFromPaste;o.detectedBgColor=detectedBgColor;o.hasTransparency=sourceHasTransparency;o.svgPlastic=!!currentSvgPlastic;rememberSourceRuntime(o);renderObjectList()}
+function saveActiveObject(){const o=sessionObjects.find(x=>x.id===activeObjectId);if(!o||objectSwitching||!sourceDataURL)return;o.settings=objectSettings();o.dataURL=sourceDataURL;o.fileName=sourceFileName;o.fileType=currentFileType;o.fromPaste=sourceFromPaste;o.detectedBgColor=detectedBgColor;o.hasTransparency=sourceHasTransparency;o.svgPlastic=!!currentSvgPlastic;rememberSourceRuntime(o);renderObjectList();scheduleAutoPersist()}
 function applyObjectSettings(s={}){shape=s.shape||'cutout';hasBorder=s.hasBorder!==false;wallWidth=+s.wallWidth||1;attachmentMode=s.attachmentMode||'keychain';designScale=+s.designScale||.88;bgColor=s.bgColor||'#ffffff';svgKeepHoles=s.svgKeepHoles!==false;svgPlasticThickness=Math.max(.5,Math.min(5,+s.svgPlasticThickness||2.75));imageThickness=Math.max(.5,Math.min(5,+s.imageThickness||2));els.width.value=s.width||55;els.height.value=s.height||70;dimensionBasis=s.dimensionBasis||'height';lastPhysicalW=+els.width.value;lastPhysicalH=+els.height.value;els.designScale.value=Math.round(designScale*100);els.cutTolerance.value=s.cutTolerance||48;els.cutMargin.value=s.cutMargin??10;els.cutSmooth.value=s.cutSmooth||3;CFG.threshold=+els.cutTolerance.value;CFG.marginPx=+els.cutMargin.value;CFG.simplify=+els.cutSmooth.value;document.querySelectorAll('#shapegrid button').forEach(x=>x.classList.toggle('active',x.dataset.shape===shape));document.querySelectorAll('#dimensionMode button').forEach(x=>x.classList.toggle('active',x.dataset.dim===dimensionBasis));document.querySelectorAll('#borderMode button').forEach(x=>x.classList.toggle('active',(x.dataset.border==='yes')===hasBorder));document.querySelectorAll('#wallWidthMode button').forEach(x=>x.classList.toggle('active',+x.dataset.wall===wallWidth));document.querySelectorAll('#attachmentMode button').forEach(x=>x.classList.toggle('active',x.dataset.attachment===attachmentMode));document.querySelectorAll('#bgPalette .swatch').forEach(x=>x.classList.toggle('active',x.dataset.color.toLowerCase()===bgColor.toLowerCase()));$('#designControls').classList.toggle('hidden',shape==='cutout');$('#cutoutControls').classList.toggle('hidden',shape!=='cutout');$('#wallOptions').style.display=hasBorder?'block':'none';$('#designScaleV').textContent=Math.round(designScale*100)+'%';$('#cutToleranceV').textContent=els.cutTolerance.value;$('#cutMarginV').textContent=els.cutMargin.value+' px';$('#cutSmoothV').textContent=els.cutSmooth.value;updateObjectModeUI();updateMeasureLabels()}
 function renderObjectList(){if(!objectListEl)return;objectListEl.innerHTML='';for(const o of sessionObjects){
   const card=document.createElement('div');card.className='objectcard'+(o.id===activeObjectId?' active':'')+(o.svgPlastic?' svgplastic':'');card.title='Abrir '+o.name;
@@ -1024,12 +1032,123 @@ function chooseSVGImportMode(){
 }
 async function acceptNewObjectSource(dataURL,fileName='pegado.png',fileType='image/png',opts={}){setBusy(true);try{saveActiveObject();if(opts.fromPaste){dataURL=await flattenPasteOnWhite(dataURL);fileType='image/png';fileName=(fileName||'pegado').replace(/\.[^.]+$/,'')+'_aplanado.png'}let svgPlastic=false;if(isSVGType(fileType,fileName,dataURL)){setBusy(false);svgPlastic=opts.svgPlastic!==undefined?!!opts.svgPlastic:await chooseSVGImportMode();setBusy(true)}const id=++objectSeq;const o={id,name:'Objeto '+id,dataURL,fileName,fileType,fromPaste:!!opts.fromPaste,svgPlastic,settings:objectSettings()};sessionObjects.push(o);markParametersDirty();activeObjectId=id;currentSvgPlastic=!!o.svgPlastic;objectSwitching=true;applyObjectSettings(o.settings);await inspectImageAndActivate(dataURL,fileName,fileType,{quiet:true,fromPaste:!!opts.fromPaste});updateObjectModeUI();objectSwitching=false;o.hasTransparency=sourceHasTransparency;o.detectedBgColor=detectedBgColor;rememberSourceRuntime(o);renderObjectList();els.status.innerHTML='<span class="badge">'+(opts.fromPaste?'Pegado · recorte reconstruido':'Objeto nuevo')+'</span> '+o.name+' · '+sourceImg.width+' × '+sourceImg.height+' px · '+(opts.fromPaste?'alpha del lazo ignorado · fondo exterior detectado.':'podés seguir pegando sin cerrar nada.');scheduleGenerate(20)}finally{objectSwitching=false;setBusy(false)}}
 async function switchObject(id){if(id===activeObjectId)return;const target=sessionObjects.find(x=>x.id===id);if(!target)return;setBusy(true);try{saveActiveObject();activeObjectId=id;currentSvgPlastic=!!target.svgPlastic;objectSwitching=true;applyObjectSettings(target.settings||{});if(!restoreSourceRuntime(target)){await inspectImageAndActivate(target.dataURL,target.fileName,target.fileType,{quiet:true,fromPaste:!!target.fromPaste});rememberSourceRuntime(target)}updateObjectModeUI();objectSwitching=false;renderObjectList();if(restoreGenerationRuntime(target)){els.status.innerHTML='<span class="badge">Objeto activo · caché</span> '+target.name+' · vista recuperada sin recalcular.'}else{els.status.innerHTML='<span class="badge">Objeto activo</span> '+target.name+' · parámetros independientes recuperados.';scheduleGenerate(20)}}catch(e){els.status.textContent='No pude abrir ese objeto: '+e.message}finally{objectSwitching=false;setBusy(false)}}
-function deleteObject(id){const idx=sessionObjects.findIndex(x=>x.id===id);if(idx<0)return;const was=id===activeObjectId;sessionObjects.splice(idx,1);if(!was){renderObjectList();return}activeObjectId=null;if(sessionObjects.length){switchObject(sessionObjects[Math.max(0,idx-1)].id)}else{sourceImg=null;sourceDataURL='';subjectCanvas=null;preparedSourceCanvas=null;els.download.disabled=true;els.saveProject.disabled=true;els.drop.classList.remove('loaded');els.drop.innerHTML='<strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span><span class="paste-mini">o pegá directamente con ⌘V / Ctrl+V</span>';els.status.textContent='Pegá o cargá una imagen para comenzar.';renderObjectList()}}
+function deleteObject(id){const idx=sessionObjects.findIndex(x=>x.id===id);if(idx<0)return;const was=id===activeObjectId;sessionObjects.splice(idx,1);scheduleAutoPersist(80);if(!was){renderObjectList();return}activeObjectId=null;if(sessionObjects.length){switchObject(sessionObjects[Math.max(0,idx-1)].id)}else{sourceImg=null;sourceDataURL='';subjectCanvas=null;preparedSourceCanvas=null;els.download.disabled=true;els.saveProject.disabled=true;els.drop.classList.remove('loaded');els.drop.innerHTML='<strong>Cargar imagen</strong><span>PNG, JPG, WebP o SVG · tocá acá</span><span class="paste-mini">o pegá directamente con ⌘V / Ctrl+V</span>';els.status.textContent='Pegá o cargá una imagen para comenzar.';renderObjectList()}}
 function newBlankObject(){saveActiveObject();els.file.click()}
 async function pasteFromClipboardAPI(){try{if(!navigator.clipboard?.read)throw Error('Usá ⌘V / Ctrl+V directamente.');const items=await navigator.clipboard.read();for(const item of items){const type=item.types.find(t=>t.startsWith('image/'));if(type){const blob=await item.getType(type);const ext=type.split('/')[1].replace('jpeg','jpg');const f=new File([blob],'pegado_'+(objectSeq+1)+'.'+ext,{type});await loadFile(f,{fromPaste:true});return}}throw Error('El portapapeles no contiene una imagen.')}catch(e){els.status.textContent='Pegado: '+e.message}}
 document.addEventListener('paste',async e=>{const items=[...(e.clipboardData?.items||[])];const it=items.find(x=>x.type?.startsWith('image/'));if(!it)return;e.preventDefault();const blob=it.getAsFile();if(!blob)return;const ext=(blob.type.split('/')[1]||'png').replace('jpeg','jpg');const f=new File([blob],'pegado_'+(objectSeq+1)+'.'+ext,{type:blob.type});await loadFile(f,{fromPaste:true})});
 $('#pasteClipboard').onclick=pasteFromClipboardAPI;$('#newBlank').onclick=newBlankObject;
 ['input','change'].forEach(ev=>document.querySelector('.controls').addEventListener(ev,e=>{if(activeObjectId&&!objectSwitching&&e.target!==els.projectFile&&e.target!==els.projectName)queueMicrotask(saveActiveObject)}));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MEMORIA AUTOMÁTICA LOCAL
+// IndexedDB permite conservar proyectos con varias imágenes, incluso al cerrar
+// la pestaña/navegador. No forma parte del ZIP: es sólo la última sesión local.
+// ─────────────────────────────────────────────────────────────────────────────
+const AUTO_DB_NAME='3DCD_ACCESORIOS_LOCAL';
+const AUTO_DB_VERSION=1;
+const AUTO_STORE='session';
+const AUTO_KEY='ultima_sesion';
+let autoPersistTimer=null,autoPersistSuspended=false,autoRestoreInProgress=false,autoPersistWriting=false;
+
+function openAutoDB(){
+  return new Promise((resolve,reject)=>{
+    if(!('indexedDB' in window)){reject(Error('IndexedDB no disponible'));return}
+    const req=indexedDB.open(AUTO_DB_NAME,AUTO_DB_VERSION);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(AUTO_STORE))db.createObjectStore(AUTO_STORE)};
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||Error('No pude abrir la memoria local'));
+  });
+}
+async function writeAutoSession(data){
+  if(autoPersistSuspended||autoRestoreInProgress)return;
+  const db=await openAutoDB();
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(AUTO_STORE,'readwrite');
+    tx.objectStore(AUTO_STORE).put(data,AUTO_KEY);
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
+  });
+  db.close();
+}
+async function readAutoSession(){
+  const db=await openAutoDB();
+  const value=await new Promise((resolve,reject)=>{
+    const tx=db.transaction(AUTO_STORE,'readonly'),req=tx.objectStore(AUTO_STORE).get(AUTO_KEY);
+    req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);
+  });
+  db.close();return value;
+}
+async function clearAutoSession(){
+  autoPersistSuspended=true;clearTimeout(autoPersistTimer);
+  try{
+    const db=await openAutoDB();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(AUTO_STORE,'readwrite');
+      tx.objectStore(AUTO_STORE).delete(AUTO_KEY);
+      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
+    });
+    db.close();
+  }catch{}
+}
+function scheduleAutoPersist(delay=350){
+  if(autoPersistSuspended||autoRestoreInProgress||autoPersistWriting)return;
+  clearTimeout(autoPersistTimer);
+  autoPersistTimer=setTimeout(async()=>{
+    if(autoPersistSuspended||autoRestoreInProgress||autoPersistWriting)return;
+    try{
+      if(!sessionObjects.length){
+        await clearAutoSession();
+        autoPersistSuspended=false;
+        return;
+      }
+      autoPersistWriting=true;
+      const snap=projectSnapshot();
+      snap.autoSavedAt=new Date().toISOString();
+      await writeAutoSession(snap);
+    }catch(e){console.warn('Autoguardado local:',e)}finally{autoPersistWriting=false}
+  },delay);
+}
+async function restoreAutoSession(data){
+  if(!data||!Array.isArray(data.objects)||!data.objects.length)return false;
+  autoRestoreInProgress=true;setBusy(true);
+  try{
+    sessionObjects=data.objects.map((o,i)=>({
+      id:Number.isFinite(+o.id)?+o.id:i+1,
+      name:o.name||('Objeto '+(i+1)),
+      dataURL:o.dataURL,
+      fileName:o.fileName||'imagen.png',
+      fileType:o.fileType||'',
+      fromPaste:!!o.fromPaste,
+      detectedBgColor:o.detectedBgColor||'#ffffff',
+      hasTransparency:!!o.hasTransparency,
+      svgPlastic:!!o.svgPlastic,
+      settings:{...(o.settings||{})}
+    })).filter(o=>!!o.dataURL);
+    if(!sessionObjects.length)return false;
+    objectSeq=Math.max(+data.objectSeq||0,...sessionObjects.map(o=>+o.id||0));
+    const wanted=sessionObjects.find(o=>o.id===+data.activeObjectId)||sessionObjects[0];
+    activeObjectId=wanted.id;currentSvgPlastic=!!wanted.svgPlastic;objectSwitching=true;
+    applyObjectSettings(wanted.settings||{});
+    els.projectName.value=data.projectName||'';
+    await inspectImageAndActivate(wanted.dataURL,wanted.fileName,wanted.fileType,{quiet:true,fromPaste:!!wanted.fromPaste});
+    objectSwitching=false;renderObjectList();generate();
+    els.saveProject.disabled=false;els.download.disabled=false;
+    const when=data.autoSavedAt||data.savedAt;
+    let timeText='';
+    if(when){try{timeText=' · '+new Date(when).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'})}catch{}}
+    els.status.innerHTML='<span class="badge">Sesión recuperada</span> '+sessionObjects.length+' objeto'+(sessionObjects.length===1?'':'s')+' restaurado'+(sessionObjects.length===1?'':'s')+timeText+'.';
+    return true;
+  }catch(e){
+    console.warn('No pude restaurar la sesión local:',e);return false;
+  }finally{
+    objectSwitching=false;autoRestoreInProgress=false;setBusy(false);
+  }
+}
+async function bootAutoSession(){
+  try{
+    const saved=await readAutoSession();
+    if(saved)await restoreAutoSession(saved);
+  }catch(e){console.warn('Memoria automática no disponible:',e)}
+}
 function projectSnapshot(){
   saveActiveObject();
   return {
@@ -1073,7 +1192,7 @@ async function saveEditableProject(){
     files.push({name:'fuentes/'+String(i+1).padStart(2,'0')+'_'+sanitizeName(o.name||('objeto_'+(i+1)))+'.'+ext,data:dataURLToBytes(o.dataURL)});
   });
   const blob=makeZip(files),a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=label+'_editable.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  a.href=URL.createObjectURL(blob);a.download=label+'_'+fileTimestamp()+'_editable.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
   els.status.innerHTML='<span class="badge">Proyecto completo guardado</span> '+data.objects.length+' objeto'+(data.objects.length===1?'':'s')+' · imágenes + parámetros completos.';
 }
 async function openEditableProject(f){
@@ -1109,10 +1228,32 @@ async function openEditableProject(f){
     objectSwitching=false;renderObjectList();generate();
     els.saveProject.disabled=false;els.download.disabled=false;
     els.status.innerHTML='<span class="badge">Proyecto completo abierto</span> '+sessionObjects.length+' objeto'+(sessionObjects.length===1?'':'s')+' restaurado'+(sessionObjects.length===1?'':'s')+' tal cual.';
+    scheduleAutoPersist(50);
   }catch(e){els.status.textContent='No se pudo abrir el proyecto: '+e.message}
   finally{objectSwitching=false;setBusy(false)}
 }
+els.projectName.addEventListener('input',()=>scheduleAutoPersist());
 els.saveProject.onclick=saveEditableProject;els.openProject.onclick=()=>els.projectFile.click();els.projectFile.onchange=()=>{const f=els.projectFile.files[0];if(f)openEditableProject(f);els.projectFile.value=''};
+function isEditableZipFile(f){
+  return !!f && (/\.zip$/i.test(f.name||'') || f.type==='application/zip' || f.type==='application/x-zip-compressed');
+}
+document.addEventListener('dragover',e=>{
+  const items=[...(e.dataTransfer?.items||[])];
+  if(items.some(it=>it.kind==='file' && (it.type==='application/zip' || it.type==='application/x-zip-compressed'))){
+    e.preventDefault();
+    if(e.dataTransfer)e.dataTransfer.dropEffect='copy';
+  }
+},{capture:true});
+document.addEventListener('drop',e=>{
+  const files=[...(e.dataTransfer?.files||[])];
+  const editable=files.find(isEditableZipFile);
+  if(!editable)return;
+  e.preventDefault();
+  e.stopPropagation();
+  if(typeof e.stopImmediatePropagation==='function')e.stopImmediatePropagation();
+  openEditableProject(editable);
+},{capture:true});
+
 function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
 
 function pad4(n){return (n+3)&~3}
@@ -1261,7 +1402,7 @@ async function downloadZip(){
     }
     files.unshift({name:'LEEME_LOTE.txt',data:'3DCD LAB · Producción por lote\nObjetos exportados: '+sessionObjects.length+'\nLos archivos están agrupados por tipo de producción: IMPRESION, DTF_UV, MODELOS_3D, CORTE_LASER, ORIGINALES_SVG y MEDIDAS. Cada archivo conserva el número y nombre de su objeto.\n'});
     const blob=makeZip(files),a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);const batchName=(els.projectName.value||'').trim()?sanitizeName(els.projectName.value):('lote_'+sessionObjects.length+'_objetos');a.download=batchName+'_produccion.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+    a.href=URL.createObjectURL(blob);const batchName=(els.projectName.value||'').trim()?sanitizeName(els.projectName.value):('lote_'+sessionObjects.length+'_objetos');a.download=batchName+'_'+fileTimestamp()+'_produccion.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
     els.status.innerHTML='<span class="badge">ZIP de lote generado</span> '+sessionObjects.length+' objeto'+(sessionObjects.length===1?'':'s')+' · cada uno con su producción completa.';
   }catch(e){els.status.textContent='No se pudo crear el ZIP de lote: '+e.message}
   finally{
@@ -1271,6 +1412,16 @@ async function downloadZip(){
   }
 }
 els.download.onclick=downloadZip;
+
+const clearLocalBtn=$('#clearLocalData');
+if(clearLocalBtn)clearLocalBtn.onclick=async()=>{
+  if(!confirm('¿Borrar la sesión guardada en este navegador y comenzar de cero?'))return;
+  await clearAutoSession();
+  location.reload();
+};
+
+// Recupera automáticamente la última sesión después de inicializar toda la app.
+setTimeout(()=>bootAutoSession(),60);
 </script>
 </body>
 </html>
