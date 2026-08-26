@@ -119,7 +119,7 @@
 
   const defaults = {
     bw:30, bd:24, bh:55,
-    elev:48, az:-38, dist:135,
+    elev:48, az:-38, dist:165,
     ox:0, oz:0,
     seed: 7,
     mode:'camera'
@@ -156,7 +156,7 @@
       y:S.dist*Math.sin(el),
       z:S.dist*Math.cos(el)*Math.cos(az)
     };
-    const target={x:S.ox,y:Math.min(S.bh*.22,12),z:S.oz};
+    const target={x:S.ox,y:S.bh*.35,z:S.oz};
     let f={x:target.x-cam.x,y:target.y-cam.y,z:target.z-cam.z};
     let fl=Math.hypot(f.x,f.y,f.z); f={x:f.x/fl,y:f.y/fl,z:f.z/fl};
     const up0={x:0,y:1,z:0};
@@ -173,7 +173,7 @@
     const Y=q.x*u.x+q.y*u.y+q.z*u.z;
     const Z=q.x*f.x+q.y*f.y+q.z*f.z;
     const rect=wrap.getBoundingClientRect();
-    const focal=Math.min(rect.width,rect.height)*1.05;
+    const focal=Math.min(rect.width,rect.height)*0.82;
     return {x:rect.width/2+X*focal/Z,y:rect.height*.55-Y*focal/Z,z:Z};
   }
 
@@ -219,6 +219,13 @@
     const grad=ctx.createLinearGradient(0,0,0,r.height);
     grad.addColorStop(0,'#b9d9f1'); grad.addColorStop(1,'#e7edf2');
     ctx.fillStyle=grad;ctx.fillRect(0,0,r.width,r.height);
+    // referencia visual central del área útil
+    ctx.strokeStyle='#24324618';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(r.width/2-10,r.height*.55); ctx.lineTo(r.width/2+10,r.height*.55);
+    ctx.moveTo(r.width/2,r.height*.55-10); ctx.lineTo(r.width/2,r.height*.55+10);
+    ctx.stroke();
 
     // piso
     poly([{x:-120,y:0,z:-120},{x:120,y:0,z:-120},{x:120,y:0,z:120},{x:-120,y:0,z:120}],'#b9c9a8','#8ca17a55');
@@ -344,8 +351,8 @@ No copies literalmente el aspecto gráfico de los cubos del boceto: convertí es
   $('#modeCam').onclick=()=>setMode('camera');
   $('#modeObj').onclick=()=>setMode('object');
   $('#topView').onclick=()=>{S.elev=82;S.az=-20;S.dist=160;syncSliders();save();render();updatePrompt()};
-  $('#view45').onclick=()=>{S.elev=46;S.az=-38;S.dist=135;syncSliders();save();render();updatePrompt()};
-  $('#frontView').onclick=()=>{S.elev=20;S.az=-25;S.dist=120;syncSliders();save();render();updatePrompt()};
+  $('#view45').onclick=()=>{S.elev=46;S.az=-38;S.dist=165;syncSliders();save();render();updatePrompt()};
+  $('#frontView').onclick=()=>{S.elev=20;S.az=-25;S.dist=150;syncSliders();save();render();updatePrompt()};
   $('#randomTown').onclick=()=>{S.seed=Math.floor(Math.random()*100000);save();render()};
 
   $('#reset').onclick=()=>{
