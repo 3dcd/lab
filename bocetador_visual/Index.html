@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Bocetador visual de prompt · Ciudad + edificio</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#171c24; --panel2:#202734; --txt:#edf2f7; --muted:#a7b0bf;
+    --line:#30394a; --accent:#7da2ff; --accent2:#9fe1c4; --danger:#ff8c8c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  body{padding:14px}
+  .app{max-width:1180px;margin:auto}
+  .top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+  h1{font-size:18px;margin:0}
+  .hint{font-size:12px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .canvasWrap{position:relative;aspect-ratio:16/10;background:#c9d8e8;touch-action:none;user-select:none}
+  canvas{width:100%;height:100%;display:block;touch-action:none}
+  .badge{position:absolute;left:10px;top:10px;background:#0b0f15cc;border:1px solid #ffffff22;border-radius:999px;padding:7px 10px;font-size:12px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;padding:10px;border-top:1px solid var(--line);background:#11161d}
+  button{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:10px;padding:9px 11px;font-weight:650;cursor:pointer}
+  button.primary{background:#2b5fd9;border-color:#3c70ec}
+  button.soft{background:#1c2635}
+  button.danger{color:#ffc3c3}
+  .side{padding:14px}
+  .section{border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px}
+  .section:last-child{border:0;margin:0;padding:0}
+  .section h2{font-size:13px;margin:0 0 10px;color:#d9e1ee}
+  label{display:grid;grid-template-columns:1fr 70px;gap:10px;align-items:center;margin:9px 0;font-size:12px;color:var(--muted)}
+  input[type=range]{width:100%}
+  output{font-variant-numeric:tabular-nums;color:var(--txt);text-align:right}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .seg button.active{outline:2px solid var(--accent);background:#263653}
+  .promptCard{margin-top:12px}
+  .promptHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .promptHead strong{font-size:14px}
+  textarea{width:100%;min-height:240px;resize:vertical;background:#11161d;color:#eaf0f8;border:0;padding:14px;line-height:1.45;font-size:13px;outline:none}
+  .promptActions{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line)}
+  .status{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+  @media(max-width:860px){
+    body{padding:8px}
+    .grid{grid-template-columns:1fr}
+    .side{padding:10px}
+    .canvasWrap{aspect-ratio:4/3}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div>
+      <h1>Bocetador visual de prompt · Ciudad + edificio</h1>
+      <div class="hint">Arrastrá para cambiar la cámara · pellizcá o usá la rueda para acercar/alejar.</div>
+    </div>
+    <button id="reset" class="danger">Borrar datos</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="canvasWrap" id="wrap">
+        <canvas id="c"></canvas>
+        <div class="badge" id="badge">Cámara</div>
+      </div>
+      <div class="toolbar">
+        <button id="modeCam" class="active">Cámara</button>
+        <button id="modeObj">Mover edificio</button>
+        <button id="topView" class="soft">Vista superior</button>
+        <button id="view45" class="soft">Vista 45°</button>
+        <button id="frontView" class="soft">Vista baja</button>
+        <button id="randomTown" class="soft">Variar pueblo</button>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="section">
+        <h2>Edificio principal</h2>
+        <label>Ancho <span><input id="w" type="range" min="12" max="55" step="1"></span><output id="wo"></output></label>
+        <label>Profundidad <span><input id="d" type="range" min="12" max="55" step="1"></span><output id="do"></output></label>
+        <label>Altura <span><input id="h" type="range" min="15" max="90" step="1"></span><output id="ho"></output></label>
+      </div>
+      <div class="section">
+        <h2>Cámara</h2>
+        <label>Altura visual <span><input id="elev" type="range" min="12" max="88" step="1"></span><output id="elevo"></output></label>
+        <label>Giro <span><input id="az" type="range" min="-180" max="180" step="1"></span><output id="azo"></output></label>
+        <label>Distancia <span><input id="dist" type="range" min="70" max="240" step="1"></span><output id="disto"></output></label>
+      </div>
+      <div class="section">
+        <h2>Qué exporta</h2>
+        <div class="hint">Un PNG del boceto + un TXT con el prompt enriquecido. El ZIP guarda ambos y un JSON con la escena.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card promptCard">
+    <div class="promptHead">
+      <strong>Prompt generado automáticamente</strong>
+      <span class="hint">Se actualiza con cada cambio.</span>
+    </div>
+    <textarea id="prompt"></textarea>
+    <div class="promptActions">
+      <button id="copyPrompt">Copiar prompt</button>
+      <button id="downloadPrompt">Descargar prompt</button>
+      <button id="downloadPng">Descargar PNG</button>
+      <button id="downloadZip" class="primary">Exportar ZIP de prueba</button>
+      <span class="status" id="status"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const canvas = $('#c'), ctx = canvas.getContext('2d'), wrap = $('#wrap');
+  const promptBox = $('#prompt'), status = $('#status');
+
+  const defaults = {
+    bw:30, bd:24, bh:55,
+    elev:48, az:-38, dist:165,
+    ox:0, oz:0,
+    seed: 7,
+    mode:'camera'
+  };
+  let S = {...defaults};
+  try { S = {...S, ...JSON.parse(localStorage.getItem('bocetadorCiudad')||'{}')}; } catch(e){}
+
+  const sliders = {
+    w:['bw','wo',' m'], d:['bd','do',' m'], h:['bh','ho',' m'],
+    elev:['elev','elevo','°'], az:['az','azo','°'], dist:['dist','disto','']
+  };
+
+  function save(){ localStorage.setItem('bocetadorCiudad', JSON.stringify(S)); }
+
+  Object.entries(sliders).forEach(([id,[key,out,suf]])=>{
+    const el=$('#'+id), o=$('#'+out);
+    el.value=S[key];
+    const update=()=>{ S[key]=+el.value; o.textContent=el.value+suf; save(); render(); updatePrompt(); };
+    el.addEventListener('input',update); update();
+  });
+
+  function resize(){
+    const r=wrap.getBoundingClientRect(), dpr=Math.min(devicePixelRatio||1,2);
+    canvas.width=Math.round(r.width*dpr); canvas.height=Math.round(r.height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    render();
+  }
+  new ResizeObserver(resize).observe(wrap);
+
+  function cameraBasis(){
+    const az=S.az*Math.PI/180, el=S.elev*Math.PI/180;
+    const cam = {
+      x:S.dist*Math.cos(el)*Math.sin(az),
+      y:S.dist*Math.sin(el),
+      z:S.dist*Math.cos(el)*Math.cos(az)
+    };
+    const target={x:S.ox,y:S.bh*.35,z:S.oz};
+    let f={x:target.x-cam.x,y:target.y-cam.y,z:target.z-cam.z};
+    let fl=Math.hypot(f.x,f.y,f.z); f={x:f.x/fl,y:f.y/fl,z:f.z/fl};
+    const up0={x:0,y:1,z:0};
+    let r={x:f.y*up0.z-f.z*up0.y,y:f.z*up0.x-f.x*up0.z,z:f.x*up0.y-f.y*up0.x};
+    let rl=Math.hypot(r.x,r.y,r.z); r={x:r.x/rl,y:r.y/rl,z:r.z/rl};
+    let u={x:r.y*f.z-r.z*f.y,y:r.z*f.x-r.x*f.z,z:r.x*f.y-r.y*f.x};
+    return {cam,f,r,u};
+  }
+
+  function project(p){
+    const {cam,r,u,f}=cameraBasis();
+    const q={x:p.x-cam.x,y:p.y-cam.y,z:p.z-cam.z};
+    const X=q.x*r.x+q.y*r.y+q.z*r.z;
+    const Y=q.x*u.x+q.y*u.y+q.z*u.z;
+    const Z=q.x*f.x+q.y*f.y+q.z*f.z;
+    const rect=wrap.getBoundingClientRect();
+    const focal=Math.min(rect.width,rect.height)*0.82;
+    return {x:rect.width/2+X*focal/Z,y:rect.height*.55-Y*focal/Z,z:Z};
+  }
+
+  function poly(points, fill, stroke='#00000025', lw=1){
+    const q=points.map(project); if(q.some(v=>v.z<=1)) return;
+    ctx.beginPath(); ctx.moveTo(q[0].x,q[0].y);
+    for(let i=1;i<q.length;i++) ctx.lineTo(q[i].x,q[i].y);
+    ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
+    ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.stroke();
+  }
+
+  function line(a,b,color='#ffffff55',lw=1){
+    const A=project(a),B=project(b); if(A.z<=1||B.z<=1)return;
+    ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.stroke();
+  }
+
+  function box(x,z,w,d,h, colors){
+    const x0=x-w/2,x1=x+w/2,z0=z-d/2,z1=z+d/2,y0=0,y1=h;
+    const A={x:x0,y:y0,z:z0}, B={x:x1,y:y0,z:z0}, C={x:x1,y:y0,z:z1}, D={x:x0,y:y0,z:z1};
+    const E={x:x0,y:y1,z:z0}, F={x:x1,y:y1,z:z0}, G={x:x1,y:y1,z:z1}, H={x:x0,y:y1,z:z1};
+    const faces=[
+      {p:[A,B,F,E], c:colors[1]},
+      {p:[B,C,G,F], c:colors[2]},
+      {p:[C,D,H,G], c:colors[1]},
+      {p:[D,A,E,H], c:colors[2]},
+      {p:[E,F,G,H], c:colors[0]}
+    ];
+    faces.sort((fa,fb)=> {
+      const za=fa.p.reduce((s,p)=>s+project(p).z,0)/4;
+      const zb=fb.p.reduce((s,p)=>s+project(p).z,0)/4;
+      return zb-za;
+    });
+    faces.forEach(f=>poly(f.p,f.c,'#1a223044',.8));
+  }
+
+  function rand(i){
+    let x=Math.sin(i*999+S.seed*77)*43758.5453; return x-Math.floor(x);
+  }
+
+  function render(){
+    const r=wrap.getBoundingClientRect();
+    ctx.clearRect(0,0,r.width,r.height);
+    const grad=ctx.createLinearGradient(0,0,0,r.height);
+    grad.addColorStop(0,'#b9d9f1'); grad.addColorStop(1,'#e7edf2');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,r.width,r.height);
+    // referencia visual central del área útil
+    ctx.strokeStyle='#24324618';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(r.width/2-10,r.height*.55); ctx.lineTo(r.width/2+10,r.height*.55);
+    ctx.moveTo(r.width/2,r.height*.55-10); ctx.lineTo(r.width/2,r.height*.55+10);
+    ctx.stroke();
+
+    // piso
+    poly([{x:-120,y:0,z:-120},{x:120,y:0,z:-120},{x:120,y:0,z:120},{x:-120,y:0,z:120}],'#b9c9a8','#8ca17a55');
+
+    // grilla
+    for(let i=-100;i<=100;i+=10){
+      line({x:i,y:.02,z:-100},{x:i,y:.02,z:100},'#ffffff35');
+      line({x:-100,y:.02,z:i},{x:100,y:.02,z:i},'#ffffff35');
+    }
+
+    // casas simples alrededor
+    for(let i=0;i<24;i++){
+      const a=rand(i)*Math.PI*2, rad=34+rand(i+31)*63;
+      const x=Math.cos(a)*rad, z=Math.sin(a)*rad;
+      if(Math.hypot(x-S.ox,z-S.oz)<28) continue;
+      const w=7+rand(i+2)*8, d=7+rand(i+5)*8, h=5+rand(i+9)*9;
+      const roof=rand(i+12)>.5?'#b66f55':'#8f7866';
+      box(x,z,w,d,h,[roof,'#e7dfce','#d6ceb9']);
+    }
+
+    // arbolitos
+    for(let i=0;i<34;i++){
+      const a=rand(i+100)*Math.PI*2, rad=28+rand(i+140)*78;
+      const x=Math.cos(a)*rad, z=Math.sin(a)*rad;
+      if(Math.hypot(x-S.ox,z-S.oz)<22) continue;
+      box(x,z,1.4,1.4,3.5,['#6b5038','#76573b','#5f4632']);
+      const p=project({x,y:6,z}); if(p.z>1){
+        const s=Math.max(2,140/p.z);
+        ctx.beginPath();ctx.arc(p.x,p.y,s*1.9,0,Math.PI*2);ctx.fillStyle='#678f58';ctx.fill();
+      }
+    }
+
+    // edificio principal
+    box(S.ox,S.oz,S.bw,S.bd,S.bh,['#d9dde3','#f0f2f5','#c6ccd5']);
+    // ventanas esquemáticas en cara frontal aproximada como puntos
+    const top=project({x:S.ox,y:S.bh,z:S.oz});
+    const base=project({x:S.ox,y:0,z:S.oz});
+    ctx.fillStyle='#18202b'; ctx.font='600 12px system-ui';
+    ctx.fillText('EDIFICIO', top.x+8, top.y-8);
+    ctx.fillStyle='#ffffffcc';ctx.beginPath();ctx.arc(base.x,base.y,4,0,Math.PI*2);ctx.fill();
+
+    $('#badge').textContent = (S.mode==='camera' ? 'Cámara · arrastrar / pellizcar' : 'Mover edificio sobre el piso');
+  }
+
+  function promptText(){
+    const view = S.elev>72 ? 'vista aérea muy alta, casi cenital' :
+                 S.elev>52 ? 'vista aérea elevada' :
+                 S.elev>30 ? 'vista oblicua a 45 grados aproximadamente' : 'vista baja y oblicua';
+    const distance = S.dist>185 ? 'encuadre amplio, mostrando bastante pueblo alrededor' :
+                     S.dist>115 ? 'encuadre medio, mostrando el edificio y su contexto inmediato' :
+                     'encuadre cercano, con el edificio como protagonista dominante';
+    return `Generá una imagen fotorrealista y coherente de un pequeño pueblo urbano visto desde una cámara ${view}. El elemento principal debe ser UN ÚNICO EDIFICIO de varias plantas, claramente reconocible y prioritario en la composición.
+
+Usá el PNG de boceto adjunto como GUÍA ESTRUCTURAL DE CÁMARA Y COMPOSICIÓN, no como diseño final. Respetá especialmente la posición aparente del edificio, su orientación, su volumen general y el ángulo de cámara indicados por el boceto.
+
+DATOS DE LA ESCENA:
+- Edificio principal: ancho aproximado ${S.bw} m, profundidad ${S.bd} m, altura ${S.bh} m.
+- Cámara: elevación ${S.elev}°, giro horizontal ${S.az}°, distancia visual ${S.dist}.
+- Encuadre: ${distance}.
+- El edificio está apoyado en el suelo y debe conservar proporciones arquitectónicas creíbles.
+- Alrededor del edificio debe haber casas bajas de pueblo, calles simples, árboles, veredas y pequeños espacios verdes.
+- El pueblo NO debe competir visualmente con el edificio: funciona como contexto y referencia de escala.
+- No agregar rascacielos ni otros edificios altos cercanos.
+- Mantener una estética de localidad argentina tranquila, de baja densidad, con viviendas de una o dos plantas.
+- Luz diurna natural, detalle realista, materiales arquitectónicos creíbles, perspectiva fotográfica correcta.
+- El resultado debe parecer una fotografía aérea real obtenida desde la posición de cámara sugerida por el boceto.
+
+OBJETIVO CRÍTICO:
+Quiero poder volver a generar ESTA MISMA ESCENA GENERAL desde otras ópticas. Por eso mantené estable la identidad conceptual del edificio, su escala relativa y el carácter del pueblo. Si luego recibís otro boceto con la misma descripción pero otro ángulo, interpretalo como EL MISMO LUGAR Y EL MISMO EDIFICIO vistos desde una cámara diferente.
+
+No copies literalmente el aspecto gráfico de los cubos del boceto: convertí esas formas simples en arquitectura y entorno realistas.`;
+  }
+
+  function updatePrompt(){ promptBox.value=promptText(); }
+
+  // interacción
+  let pointers=new Map(), lastDist=null, lastMid=null;
+  canvas.addEventListener('pointerdown',e=>{
+    canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(!pointers.has(e.pointerId)) return;
+    const prev=pointers.get(e.pointerId), curr={x:e.clientX,y:e.clientY};
+    pointers.set(e.pointerId,curr);
+    const arr=[...pointers.values()];
+    if(arr.length===1){
+      const dx=curr.x-prev.x, dy=curr.y-prev.y;
+      if(S.mode==='camera'){
+        S.az += dx*.45;
+        S.elev = Math.max(8,Math.min(89,S.elev-dy*.35));
+      }else{
+        // mover sobre plano de forma intuitiva según orientación de cámara
+        const a=S.az*Math.PI/180, scale=S.dist/550;
+        S.ox += (dx*Math.cos(a)-dy*Math.sin(a))*scale;
+        S.oz += (-dx*Math.sin(a)-dy*Math.cos(a))*scale;
+      }
+      syncSliders(); save(); render(); updatePrompt();
+    } else if(arr.length===2){
+      const d=Math.hypot(arr[0].x-arr[1].x,arr[0].y-arr[1].y);
+      if(lastDist!=null){
+        S.dist=Math.max(60,Math.min(260,S.dist-(d-lastDist)*.6));
+        syncSliders(); save(); render(); updatePrompt();
+      }
+      lastDist=d;
+    }
+  });
+  function endPointer(e){ pointers.delete(e.pointerId); if(pointers.size<2) lastDist=null; }
+  canvas.addEventListener('pointerup',endPointer); canvas.addEventListener('pointercancel',endPointer);
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault(); S.dist=Math.max(60,Math.min(260,S.dist+e.deltaY*.16));
+    syncSliders();save();render();updatePrompt();
+  },{passive:false});
+
+  function syncSliders(){
+    [['elev','elev'],['az','az'],['dist','dist']].forEach(([id,k])=>{
+      $('#'+id).value=S[k];
+      const out = id==='elev'?'elevo':id==='az'?'azo':'disto';
+      $('#'+out).textContent=Math.round(S[k])+(id==='dist'?'':'°');
+    });
+  }
+
+  function setMode(m){ S.mode=m; $('#modeCam').classList.toggle('active',m==='camera'); $('#modeObj').classList.toggle('active',m==='object'); save();render(); }
+  $('#modeCam').onclick=()=>setMode('camera');
+  $('#modeObj').onclick=()=>setMode('object');
+  $('#topView').onclick=()=>{S.elev=82;S.az=-20;S.dist=160;syncSliders();save();render();updatePrompt()};
+  $('#view45').onclick=()=>{S.elev=46;S.az=-38;S.dist=165;syncSliders();save();render();updatePrompt()};
+  $('#frontView').onclick=()=>{S.elev=20;S.az=-25;S.dist=150;syncSliders();save();render();updatePrompt()};
+  $('#randomTown').onclick=()=>{S.seed=Math.floor(Math.random()*100000);save();render()};
+
+  $('#reset').onclick=()=>{
+    if(!confirm('¿Borrar la escena guardada y volver al inicio?')) return;
+    S={...defaults}; save(); location.reload();
+  };
+
+  $('#copyPrompt').onclick=async()=>{
+    await navigator.clipboard.writeText(promptBox.value); flash('Prompt copiado');
+  };
+  $('#downloadPrompt').onclick=()=>downloadBlob(new Blob([promptBox.value],{type:'text/plain;charset=utf-8'}),'PROMPT_CIUDAD.txt');
+  $('#downloadPng').onclick=()=> exportPng();
+
+  function flash(t){ status.textContent=t; clearTimeout(flash.t); flash.t=setTimeout(()=>status.textContent='',1800); }
+  function downloadBlob(blob,name){
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  }
+  function exportPng(returnBlob=false){
+    return new Promise(res=>{
+      // ya está en alta resolución según DPR
+      canvas.toBlob(b=>{
+        if(returnBlob) res(b); else {downloadBlob(b,'BOCETO_CIUDAD.png');res(b);}
+      },'image/png');
+    });
+  }
+
+  // ZIP STORE mínimo, sin librerías externas
+  function crc32(bytes){
+    let c=0xffffffff;
+    for(let i=0;i<bytes.length;i++){
+      c^=bytes[i];
+      for(let k=0;k<8;k++) c=(c>>>1)^((c&1)?0xedb88320:0);
+    }
+    return (c^0xffffffff)>>>0;
+  }
+  function u16(n){return [n&255,(n>>>8)&255]}
+  function u32(n){return [n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]}
+  async function makeZip(files){
+    const enc=new TextEncoder(), chunks=[], central=[]; let offset=0;
+    for(const f of files){
+      const name=enc.encode(f.name);
+      const data=f.data instanceof Uint8Array ? f.data : new Uint8Array(await f.data.arrayBuffer());
+      const crc=crc32(data);
+      const local=new Uint8Array([
+        ...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+        ...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...name
+      ]);
+      chunks.push(local,data);
+      const cent=new Uint8Array([
+        ...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+        ...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset),...name
+      ]);
+      central.push(cent); offset += local.length+data.length;
+    }
+    const centralSize=central.reduce((s,a)=>s+a.length,0);
+    const end=new Uint8Array([
+      ...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),
+      ...u32(centralSize),...u32(offset),...u16(0)
+    ]);
+    return new Blob([...chunks,...central,end],{type:'application/zip'});
+  }
+
+  $('#downloadZip').onclick=async()=>{
+    flash('Armando ZIP…');
+    const png=await exportPng(true);
+    const enc=new TextEncoder();
+    const scene={
+      tipo:'bocetador_visual_prompt',
+      edificio:{ancho_m:S.bw,profundidad_m:S.bd,altura_m:S.bh,posicion:{x:S.ox,z:S.oz}},
+      camara:{elevacion_grados:S.elev,giro_grados:S.az,distancia:S.dist},
+      objetivo:'Generar el mismo pueblo y edificio desde distintas vistas respetando el boceto.'
+    };
+    const zip=await makeZip([
+      {name:'BOCETO_CIUDAD.png',data:png},
+      {name:'PROMPT_CIUDAD.txt',data:new Blob([promptBox.value])},
+      {name:'ESCENA.json',data:new Blob([JSON.stringify(scene,null,2)])}
+    ]);
+    const dt=new Date(), pad=n=>String(n).padStart(2,'0');
+    const name=`Bocetador_Ciudad_${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}_${pad(dt.getHours())}-${pad(dt.getMinutes())}.zip`;
+    downloadBlob(zip,name); flash('ZIP exportado');
+  };
+
+  updatePrompt(); render(); syncSliders();
+})();
+</script>
+</body>
+</html>
