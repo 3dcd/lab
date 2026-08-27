@@ -427,6 +427,25 @@ body.mode-delivered .status.delivered{
   .priceRow{grid-template-columns:1fr 125px}
 }
 
+
+.item-editor{
+  grid-template-columns:1.3fr .65fr 1fr auto;
+}
+.stamp-select{
+  grid-column:1/-1;
+  width:100%;
+  border:2px solid var(--line);
+  border-radius:13px;
+  padding:10px 11px;
+  background:#fff;
+  font-weight:800;
+}
+@media(max-width:520px){
+  .item-editor{
+    grid-template-columns:1.15fr .65fr 1fr auto;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -468,7 +487,7 @@ body.mode-delivered .status.delivered{
 <button class="fab" id="addBtn" aria-label="Nuevo ingreso">＋</button>
 
 <div class="menu" id="menu">
-  <button id="pricesBtn">Precios</button>
+  <button id="pricesBtn">Precios de estampado</button>
   <button id="exportBtn">Exportar respaldo</button>
   <button id="importBtn">Importar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
@@ -483,7 +502,7 @@ body.mode-delivered .status.delivered{
   <div class="sheet pricesSheet">
     <div class="dragbar"></div>
     <div class="sheethead">
-      <h2>Precios</h2>
+      <h2>Precios de estampado</h2>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="bigbtn camera" id="savePricesBtn" style="padding:10px 14px;border-radius:14px">Guardar</button>
         <button class="closebtn" id="closePricesBtn">×</button>
@@ -539,7 +558,7 @@ body.mode-delivered .status.delivered{
 <script>
 const KEY='recibidos_3dcd_v1';
 const COUNTER_KEY='recibidos_3dcd_counter_v1';
-const PRICES_KEY='recibidos_3dcd_prices_v1';
+const PRICES_KEY='recibidos_3dcd_estampados_precios_v1';
 
 const $=s=>document.querySelector(s);
 const listEl=$('#list');
@@ -554,7 +573,14 @@ let activeFilter='received';
 let editingId=null;
 let draftPhoto='';
 let draftItems=[];
-const PRICE_TYPES=['Chomba','Remera','Buzo','Buzo con capucha','Polar','Campera','Pantalón','Bombacha','Otra'];
+const STAMP_TYPES=[
+  '1 chico',
+  '2 chicos',
+  '3 chicos',
+  '1 grande',
+  '1 grande + 1 chico',
+  '1 grande + 2 chicos'
+];
 let prices={};
 
 const nowIso=()=>new Date().toISOString();
@@ -625,6 +651,7 @@ function load(){
   }catch{records=[]}
   records.forEach(r=>{
     if(!r.receivedAt)r.receivedAt=r.createdAt||nowIso();
+    (r.items||[]).forEach(i=>{if(!i.stamp)i.stamp='1 chico'});
   });
   const max=Math.max(0,...records.map(r=>Number(r.numero||0)));
   const stored=Number(localStorage.getItem(COUNTER_KEY)||1);
@@ -637,10 +664,10 @@ function loadPrices(){
     const x=JSON.parse(localStorage.getItem(PRICES_KEY)||'{}');
     prices=x&&typeof x==='object'?x:{};
   }catch{prices={}}
-  PRICE_TYPES.forEach(t=>{if(prices[t]==null)prices[t]=''});
+  STAMP_TYPES.forEach(t=>{if(prices[t]==null)prices[t]=''});
 }
 function renderPrices(){
-  $('#pricesList').innerHTML=PRICE_TYPES.map(type=>`
+  $('#pricesList').innerHTML=STAMP_TYPES.map(type=>`
     <div class="priceRow">
       <label>${esc(type)}</label>
       <div class="priceInputWrap">
@@ -669,11 +696,17 @@ function savePrices(){
   closePrices();
 }
 
+
+function stampPrice(type){
+  const v=Number(prices[type]||0);
+  return Number.isFinite(v)?v:0;
+}
+
 function statusLabel(r){return r.status==='delivered'?'Entregado':'Recibido'}
 function itemSummary(r){
   const items=Array.isArray(r.items)?r.items:[];
   if(!items.length)return 'Sin prendas detalladas';
-  return items.map(i=>`${i.qty||1} ${i.type||'prenda'}${i.color?' · '+i.color:''}`).join(' / ');
+  return items.map(i=>`${i.qty||1} ${i.type||'prenda'}${i.color?' · '+i.color:''}${i.stamp?' · '+i.stamp:''}`).join(' / ');
 }
 function totalUnits(r){
   return (r.items||[]).reduce((a,i)=>a+Number(i.qty||0),0);
@@ -715,7 +748,7 @@ function render(){
       </div>
       <div class="cardbody">
         <div class="items">
-          ${(r.items||[]).map(i=>`<div class="itemrow"><strong>${esc(i.type||'Prenda')}</strong><span>${esc(i.qty||1)} u.${i.color?' · '+esc(i.color):''}</span></div>`).join('')}
+          ${(r.items||[]).map(i=>`<div class="itemrow"><strong>${esc(i.type||'Prenda')}</strong><span>${esc(i.qty||1)} u.${i.color?' · '+esc(i.color):''}${i.stamp?' · '+esc(i.stamp):''}</span></div>`).join('')}
         </div>
         ${r.notes?`<div class="notes">${esc(r.notes)}</div>`:''}
         <div class="actions">
@@ -732,7 +765,7 @@ function render(){
 }
 
 function newItem(){
-  return {type:'Chomba',qty:'',color:''};
+  return {type:'Chomba',qty:'',color:'',stamp:'1 chico'};
 }
 function renderItemsEditor(){
   if(!draftItems.length)draftItems=[newItem()];
@@ -744,6 +777,9 @@ function renderItemsEditor(){
       <input data-k="qty" type="number" min="1" step="1" value="${esc(it.qty??'')}" inputmode="numeric" placeholder="Cant.">
       <input data-k="color" value="${esc(it.color||'')}" placeholder="Color">
       <button class="removeitem" data-remove="${idx}" aria-label="Eliminar">×</button>
+      <select class="stamp-select" data-k="stamp">
+        ${STAMP_TYPES.map(x=>`<option ${it.stamp===x?'selected':''}>${x}</option>`).join('')}
+      </select>
     </div>
   `).join('');
 }
@@ -814,7 +850,12 @@ async function pickPhoto(file){
 function collectDraft(){
   const client=$('#client').value.trim()||'Cliente';
   const items=draftItems
-    .map(i=>({type:String(i.type||'Prenda').trim(),qty:Math.max(1,Number(i.qty||1)),color:String(i.color||'').trim()}))
+    .map(i=>({
+      type:String(i.type||'Prenda').trim(),
+      qty:Math.max(1,Number(i.qty||1)),
+      color:String(i.color||'').trim(),
+      stamp:String(i.stamp||'1 chico')
+    }))
     .filter(i=>i.type);
   if(!items.length){alert('Agregá al menos una prenda.');return null}
   return {client,items,notes:$('#notes').value.trim(),photo:draftPhoto};
@@ -841,7 +882,7 @@ function saveDraft(){
   return r;
 }
 function textForRecord(r){
-  const lines=(r.items||[]).map(i=>`• ${i.qty} ${i.type}${i.color?' · '+i.color:''}`);
+  const lines=(r.items||[]).map(i=>`• ${i.qty} ${i.type}${i.color?' · '+i.color:''}${i.stamp?' · '+i.stamp:''}`);
   return `${r.status==='delivered'?'ENTREGADO':'RECIBIDO'}\nCliente: ${r.client}\n${lines.join('\n')}${r.notes?`\nObs.: ${r.notes}`:''}\n${new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date(r.status==='delivered'?(r.deliveredAt||r.createdAt):(r.receivedAt||r.createdAt)))}`;
 }
 
@@ -1013,7 +1054,7 @@ function currentText(){
   if(!data.length)return 'TODOS LOS MOVIMIENTOS\nSin registros.';
   const rows=data.map(r=>{
     const when=r.status==='delivered'?`Entregado ${shortStamp(r.deliveredAt||r.createdAt)}`:`Recibido ${shortStamp(r.receivedAt||r.createdAt)}`;
-    return `• ${r.client}: ${(r.items||[]).map(i=>`${i.qty} ${i.type}${i.color?' '+i.color:''}`).join(', ')} — ${when}`;
+    return `• ${r.client}: ${(r.items||[]).map(i=>`${i.qty} ${i.type}${i.color?' '+i.color:''}${i.stamp?' · '+i.stamp:''}`).join(', ')} — ${when}`;
   });
   return `TODOS LOS MOVIMIENTOS\n\n${rows.join('\n')}\n\nRegistros: ${data.length}`;
 }
