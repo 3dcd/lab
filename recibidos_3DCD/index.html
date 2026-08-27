@@ -406,6 +406,27 @@ body.mode-delivered .status.delivered{
   .card{transition:none}
 }
 
+
+.pricesSheet{width:min(620px,100%)}
+.pricesList{display:grid;gap:10px}
+.priceRow{
+  display:grid;grid-template-columns:1fr 150px;gap:10px;align-items:center;
+  background:#f7f9fa;border:2px solid var(--line);border-radius:18px;padding:11px 12px
+}
+.priceRow label{font-size:14px;font-weight:900;color:#2e3439}
+.priceInputWrap{
+  display:flex;align-items:center;gap:6px;background:#fff;border:2px solid var(--line);
+  border-radius:14px;padding:0 10px
+}
+.priceInputWrap span{font-size:14px;font-weight:900;color:#68717c}
+.priceInputWrap input{
+  width:100%;border:0;background:transparent;padding:11px 0;outline:none;
+  font-size:16px;font-weight:900;text-align:right
+}
+@media(max-width:480px){
+  .priceRow{grid-template-columns:1fr 125px}
+}
+
 </style>
 </head>
 <body>
@@ -447,6 +468,7 @@ body.mode-delivered .status.delivered{
 <button class="fab" id="addBtn" aria-label="Nuevo ingreso">＋</button>
 
 <div class="menu" id="menu">
+  <button id="pricesBtn">Precios</button>
   <button id="exportBtn">Exportar respaldo</button>
   <button id="importBtn">Importar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
@@ -454,6 +476,21 @@ body.mode-delivered .status.delivered{
 </div>
 
 
+</div>
+
+
+<div class="modalback" id="pricesModal">
+  <div class="sheet pricesSheet">
+    <div class="dragbar"></div>
+    <div class="sheethead">
+      <h2>Precios</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="bigbtn camera" id="savePricesBtn" style="padding:10px 14px;border-radius:14px">Guardar</button>
+        <button class="closebtn" id="closePricesBtn">×</button>
+      </div>
+    </div>
+    <div class="pricesList" id="pricesList"></div>
+  </div>
 </div>
 
 <div class="modalback" id="modal">
@@ -502,6 +539,7 @@ body.mode-delivered .status.delivered{
 <script>
 const KEY='recibidos_3dcd_v1';
 const COUNTER_KEY='recibidos_3dcd_counter_v1';
+const PRICES_KEY='recibidos_3dcd_prices_v1';
 
 const $=s=>document.querySelector(s);
 const listEl=$('#list');
@@ -516,6 +554,8 @@ let activeFilter='received';
 let editingId=null;
 let draftPhoto='';
 let draftItems=[];
+const PRICE_TYPES=['Chomba','Remera','Buzo','Buzo con capucha','Polar','Campera','Pantalón','Bombacha','Otra'];
+let prices={};
 
 const nowIso=()=>new Date().toISOString();
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -591,6 +631,44 @@ function load(){
   if(stored<=max)localStorage.setItem(COUNTER_KEY,String(max+1));
   render();
 }
+
+function loadPrices(){
+  try{
+    const x=JSON.parse(localStorage.getItem(PRICES_KEY)||'{}');
+    prices=x&&typeof x==='object'?x:{};
+  }catch{prices={}}
+  PRICE_TYPES.forEach(t=>{if(prices[t]==null)prices[t]=''});
+}
+function renderPrices(){
+  $('#pricesList').innerHTML=PRICE_TYPES.map(type=>`
+    <div class="priceRow">
+      <label>${esc(type)}</label>
+      <div class="priceInputWrap">
+        <span>$</span>
+        <input data-price="${esc(type)}" type="number" min="0" step="100" inputmode="numeric" value="${esc(prices[type]??'')}" placeholder="0">
+      </div>
+    </div>
+  `).join('');
+}
+function openPrices(){
+  loadPrices();
+  renderPrices();
+  $('#pricesModal').classList.add('show');
+  menu.classList.remove('show');
+}
+function closePrices(){
+  $('#pricesModal').classList.remove('show');
+}
+function savePrices(){
+  const next={};
+  $('#pricesList').querySelectorAll('[data-price]').forEach(inp=>{
+    next[inp.dataset.price]=inp.value===''?'':Math.max(0,Number(inp.value||0));
+  });
+  prices=next;
+  localStorage.setItem(PRICES_KEY,JSON.stringify(prices));
+  closePrices();
+}
+
 function statusLabel(r){return r.status==='delivered'?'Entregado':'Recibido'}
 function itemSummary(r){
   const items=Array.isArray(r.items)?r.items:[];
@@ -1074,6 +1152,9 @@ listEl.addEventListener('click',async e=>{
 $('#undoBtn').onclick=undo;
 $('#redoBtn').onclick=redo;
 updateHistoryButtons();
+$('#pricesBtn').onclick=openPrices;
+$('#closePricesBtn').onclick=closePrices;
+$('#savePricesBtn').onclick=savePrices;
 $('#menuBtn').onclick=()=>menu.classList.toggle('show');
 document.addEventListener('click',e=>{
   if(!menu.contains(e.target) && e.target!==$('#menuBtn'))menu.classList.remove('show');
@@ -1085,6 +1166,7 @@ $('#exportBtn').onclick=()=>{
     version:1,
     exportedAt:nowIso(),
     records,
+    prices,
     nextNumber:Number(localStorage.getItem(COUNTER_KEY)||1)
   };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
@@ -1106,6 +1188,10 @@ $('#importFile').onchange=async e=>{
     if(!confirm('¿Reemplazar los datos actuales por este respaldo?'))return;
     pushHistory();
     records=x.records;
+    if(x.prices&&typeof x.prices==='object'){
+      prices=x.prices;
+      localStorage.setItem(PRICES_KEY,JSON.stringify(prices));
+    }
     localStorage.setItem(COUNTER_KEY,String(Math.max(Number(x.nextNumber||1),Math.max(0,...records.map(r=>Number(r.numero||0)))+1)));
     save();
   }catch{
@@ -1124,7 +1210,7 @@ $('#clearDeliveredBtn').onclick=()=>{
 };
 
 window.addEventListener('beforeunload',save);
-load();updateHistoryButtons();
+load();loadPrices();updateHistoryButtons();
 </script>
 </body>
 </html>
