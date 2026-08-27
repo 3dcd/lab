@@ -243,6 +243,29 @@ body.mode-all #shareCurrent{background:#e1eff9;border-color:#8eb8da;color:#285f8
 body.mode-received #showAllBtn{background:#ffffffc9}
 body.mode-delivered #showAllBtn{background:#ffffffd9}
 body.mode-all #showAllBtn{background:#244f73;color:#fff;border-color:#244f73}
+
+.miniConfirm{
+  position:fixed;inset:0;z-index:140;display:none;align-items:flex-end;justify-content:center;
+  padding:18px;background:rgba(20,22,25,.22)
+}
+.miniConfirm.show{display:flex}
+.miniConfirmCard{
+  width:min(520px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;
+  box-shadow:0 18px 48px rgba(0,0,0,.22);padding:14px;display:grid;grid-template-columns:44px 1fr;gap:10px 12px;align-items:center
+}
+.miniConfirmIcon{
+  width:44px;height:44px;border-radius:15px;background:#f4dce1;color:#7e2f3d;
+  display:grid;place-items:center;font-size:22px;font-weight:900
+}
+.miniConfirmText b{display:block;font-size:15px}
+.miniConfirmText span{display:block;margin-top:4px;color:var(--muted);font-size:12px;font-weight:700}
+.miniConfirmActions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1.15fr;gap:8px;margin-top:2px}
+.miniConfirmActions button{
+  border:1px solid var(--line);border-radius:14px;padding:11px 12px;background:#fff;font-size:12px;font-weight:900
+}
+#miniOk{background:#7e2f3d;color:#fff;border-color:#7e2f3d}
+@media(min-width:700px){.miniConfirm{align-items:center}}
+
 </style>
 </head>
 <body>
@@ -284,6 +307,21 @@ body.mode-all #showAllBtn{background:#244f73;color:#fff;border-color:#244f73}
   <button id="importBtn">Importar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
   <input type="file" id="importFile" accept=".json,application/json" hidden>
+</div>
+
+
+<div class="miniConfirm" id="miniConfirm">
+  <div class="miniConfirmCard">
+    <div class="miniConfirmIcon">↩</div>
+    <div class="miniConfirmText">
+      <b>¿Volver a En mi poder?</b>
+      <span id="miniConfirmClient"></span>
+    </div>
+    <div class="miniConfirmActions">
+      <button id="miniCancel">Cancelar</button>
+      <button id="miniOk">Sí, volver</button>
+    </div>
+  </div>
 </div>
 
 <div class="modalback" id="modal">
@@ -339,6 +377,7 @@ const modal=$('#modal');
 const menu=$('#menu');
 
 let records=[];
+let pendingReopenId=null;
 let activeFilter='received';
 let editingId=null;
 let draftPhoto='';
@@ -713,6 +752,27 @@ document.querySelectorAll('[data-state]').forEach(btn=>btn.onclick=()=>{
 $('#showAllBtn').onclick=()=>{activeFilter='all';render()};
 $('#shareCurrent').onclick=shareCurrent;
 
+
+function askReopen(r){
+  pendingReopenId=r.id;
+  $('#miniConfirmClient').textContent=r.client||'';
+  $('#miniConfirm').classList.add('show');
+}
+function closeReopenConfirm(){
+  pendingReopenId=null;
+  $('#miniConfirm').classList.remove('show');
+}
+$('#miniCancel').onclick=closeReopenConfirm;
+$('#miniOk').onclick=()=>{
+  const r=records.find(x=>x.id===pendingReopenId);
+  if(r){
+    r.status='received';
+    r.deliveredAt=null;
+    save();
+  }
+  closeReopenConfirm();
+};
+
 listEl.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-act]');
   if(!btn)return;
@@ -724,17 +784,13 @@ listEl.addEventListener('click',async e=>{
   if(act==='share'){await shareRecord(r);return}
   if(act==='edit'){openEdit(r);return}
   if(act==='deliver'){
-    if(!confirm(`¿Seguro que querés marcar como ENTREGADO el registro de ${r.client}?`))return;
     r.status='delivered';
     r.deliveredAt=nowIso();
     save();
     return;
   }
   if(act==='reopen'){
-    if(!confirm(`¿Seguro que querés volver a RECIBIDO el registro de ${r.client}?`))return;
-    r.status='received';
-    r.deliveredAt=null;
-    save();
+    askReopen(r);
     return;
   }
   if(act==='delete'){
