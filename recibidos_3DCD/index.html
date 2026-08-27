@@ -400,38 +400,10 @@ body.mode-delivered .status.delivered{
 
 
 .card{
-  transform-origin:center center;
-  max-height:900px;
-  opacity:1;
-  transition:
-    transform .42s cubic-bezier(.22,.75,.18,1),
-    opacity .36s ease,
-    max-height .42s cubic-bezier(.4,0,.2,1),
-    margin .42s cubic-bezier(.4,0,.2,1),
-    padding .42s cubic-bezier(.4,0,.2,1),
-    border-width .34s ease;
+  transition:transform .26s ease;
 }
-.card.state-exit{
-  transform:scale(.58);
-  opacity:0;
-  max-height:0!important;
-  margin-top:-10px!important;
-  margin-bottom:-10px!important;
-  padding-top:0!important;
-  padding-bottom:0!important;
-  border-width:0!important;
-  overflow:hidden;
-  pointer-events:none;
-}
-@keyframes cardSettle{
-  from{opacity:.55;transform:translateY(8px) scale(.985)}
-  to{opacity:1;transform:translateY(0) scale(1)}
-}
-.list .card:not(.state-exit){animation:cardSettle .24s cubic-bezier(.2,.7,.2,1) both}
 @media (prefers-reduced-motion: reduce){
   .card{transition:none}
-  .card.state-exit{transform:none;opacity:0;max-height:0!important}
-  .list .card:not(.state-exit){animation:none}
 }
 
 </style>
@@ -1032,15 +1004,35 @@ $('#shareCurrent').onclick=shareCurrent;
 
 
 
-function animateStateChange(cardEl,commit){
-  if(!cardEl || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
-    commit();
-    return;
-  }
-  cardEl.style.maxHeight=cardEl.scrollHeight+'px';
-  cardEl.offsetHeight;
-  cardEl.classList.add('state-exit');
-  setTimeout(commit,430);
+
+
+function capturePositions(){
+  const map=new Map();
+  listEl.querySelectorAll('.card').forEach(el=>{
+    map.set(el.dataset.id,el.getBoundingClientRect().top);
+  });
+  return map;
+}
+function animateReflow(before){
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+  requestAnimationFrame(()=>{
+    listEl.querySelectorAll('.card').forEach(el=>{
+      const oldTop=before.get(el.dataset.id);
+      if(oldTop==null)return;
+      const newTop=el.getBoundingClientRect().top;
+      const dy=oldTop-newTop;
+      if(Math.abs(dy)<1)return;
+      el.style.transition='none';
+      el.style.transform=`translateY(${dy}px)`;
+      el.offsetHeight;
+      el.style.transition='transform .28s ease';
+      el.style.transform='translateY(0)';
+      setTimeout(()=>{
+        el.style.transition='';
+        el.style.transform='';
+      },300);
+    });
+  });
 }
 
 listEl.addEventListener('click',async e=>{
@@ -1054,25 +1046,21 @@ listEl.addEventListener('click',async e=>{
   if(act==='edit'){openEdit(r);return}
   if(act==='deliver'){
     pushHistory();
-    const cardEl=btn.closest('.card');
-    btn.disabled=true;
-    animateStateChange(cardEl,()=>{
-      r.status='delivered';
-      r.deliveredAt=nowIso();
-      save();
-    });
+    const before=capturePositions();
+    r.status='delivered';
+    r.deliveredAt=nowIso();
+    save();
+    animateReflow(before);
     return;
   }
   if(act==='reopen'){
     pushHistory();
-    const cardEl=btn.closest('.card');
-    btn.disabled=true;
-    animateStateChange(cardEl,()=>{
-      r.status='received';
-      r.receivedAt=nowIso();
-      r.deliveredAt=null;
-      save();
-    });
+    const before=capturePositions();
+    r.status='received';
+    r.receivedAt=nowIso();
+    r.deliveredAt=null;
+    save();
+    animateReflow(before);
     return;
   }
   if(act==='delete'){
