@@ -951,12 +951,15 @@ function renderItemsEditor(){
       </select>
     </div>
   `).join('');
+  updateDraftValue();
 }
 
 function draftValue(){
-  return draftItems.reduce((sum,i)=>{
-    const effectiveQty=Math.max(1,Number(i.qty||1));
-    return sum+(effectiveQty*stampPrice(i.stamp));
+  return (draftItems||[]).reduce((sum,i)=>{
+    if(!i)return sum;
+    const raw=String(i.qty??'').trim();
+    const effectiveQty=raw==='' ? 1 : Math.max(1,Number(raw)||1);
+    return sum+(effectiveQty*stampPrice(i.stamp||'1 chico'));
   },0);
 }
 function updateDraftValue(){
