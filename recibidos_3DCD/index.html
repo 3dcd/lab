@@ -388,6 +388,27 @@ body.mode-all .stat.delivered b{color:#7e2f3d}
   box-shadow:0 12px 28px rgba(126,47,61,.22) !important;
 }
 
+
+/* Más identidad de estado */
+body.mode-all .card.received,
+body.mode-received .card.received{
+  background:#d8f3e8 !important;
+  border-color:#42ad92 !important;
+}
+body.mode-all .card.delivered,
+body.mode-delivered .card.delivered{
+  background:#efd3d9 !important;
+  border-color:#a94f62 !important;
+}
+body.mode-all .status.received,
+body.mode-received .status.received{
+  background:#168c72 !important;color:#fff !important;
+}
+body.mode-all .status.delivered,
+body.mode-delivered .status.delivered{
+  background:#8e3549 !important;color:#fff !important;
+}
+
 </style>
 </head>
 <body>
@@ -559,6 +580,7 @@ function render(){
   document.body.classList.add(activeFilter==='received'?'mode-received':activeFilter==='delivered'?'mode-delivered':'mode-all');
   document.querySelectorAll('[data-state]').forEach(b=>b.classList.toggle('selected',b.dataset.state===activeFilter));
   $('#showAllBtn').classList.toggle('active',activeFilter==='all');
+  $('#shareCurrent').style.display=activeFilter==='all'?'inline-flex':'none';
 
   if(!data.length){
     listEl.innerHTML=`<div class="empty">${activeFilter==='received'?'No tenés prendas pendientes registradas. Tocá ＋ cuando recibas una bolsa.':'No hay registros para mostrar.'}</div>`;
@@ -763,56 +785,98 @@ async function recordCardBlob(r){
  ctx.fillStyle='#7b8388';ctx.font='700 16px Arial';ctx.fillText(`Registro N° ${String(r.numero).padStart(3,'0')}`,x+44,y+h-42);
  return await new Promise(res=>c.toBlob(res,'image/png',.96))
 }
-async function currentCardBlob(){
- const data=viewRecords();
- const W=900,cardH=150,gap=14,topH=132;
- const contentH=Math.max(700,topH+80+data.length*(cardH+gap)+70);
- const H=contentH+68,c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');
- ctx.clearRect(0,0,W,H);
- const accent=activeFilter==='received'?'#087f73':activeFilter==='delivered'?'#7e2f3d':'#285f8b';
- const soft=activeFilter==='received'?'#eefbf7':activeFilter==='delivered'?'#fff4f6':'#f1f7fc';
- const x=28,y=28,w=844,h=H-56;
- ctx.save();ctx.shadowColor='rgba(0,0,0,.18)';ctx.shadowBlur=26;ctx.shadowOffsetY=10;ctx.fillStyle='#fff';rr(ctx,x,y,w,h,42);ctx.fill();ctx.restore();
- ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,42);ctx.stroke();
 
- ctx.fillStyle=soft;rr(ctx,x+16,y+16,w-32,topH,28);ctx.fill();
- ctx.fillStyle=accent;ctx.font='900 30px Arial';ctx.fillText('Recibidos 3DCD',x+38,y+55);
- ctx.font='900 23px Arial';ctx.fillText(viewTitle(),x+38,y+88);
- ctx.fillStyle='#65706f';ctx.font='700 17px Arial';
+function shortStamp(v){
+  if(!v)return '';
+  try{
+    return new Intl.DateTimeFormat('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(v));
+  }catch{return ''}
+}
+
+async function currentCardBlob(){
+ const data=[...records].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+ const received=data.filter(r=>r.status==='received');
+ const delivered=data.filter(r=>r.status==='delivered');
+
+ const W=900,headH=132,recvH=154,recvGap=14,delH=72,delGap=9;
+ const innerH=headH+42+(received.length*(recvH+recvGap))+(delivered.length?(46+delivered.length*(delH+delGap)):0)+70;
+ const H=Math.max(760,innerH+56);
+ const c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');
+ ctx.clearRect(0,0,W,H);
+
+ const x=28,y=28,w=844,h=H-56;
+ ctx.save();ctx.shadowColor='rgba(0,0,0,.18)';ctx.shadowBlur=26;ctx.shadowOffsetY=10;
+ ctx.fillStyle='#fff';rr(ctx,x,y,w,h,42);ctx.fill();ctx.restore();
+ ctx.strokeStyle='#285f8b';ctx.lineWidth=4;rr(ctx,x,y,w,h,42);ctx.stroke();
+
+ ctx.fillStyle='#e4f0f9';rr(ctx,x+16,y+16,w-32,headH,28);ctx.fill();
+ ctx.fillStyle='#174f78';ctx.font='900 30px Arial';ctx.fillText('Recibidos 3DCD',x+38,y+55);
+ ctx.font='900 23px Arial';ctx.fillText('TODOS LOS MOVIMIENTOS',x+38,y+88);
+ ctx.fillStyle='#586873';ctx.font='700 17px Arial';
  ctx.fillText(new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date()),x+38,y+115);
 
- let cy=y+topH+36;
- if(!data.length){
-   ctx.fillStyle='#f7f9fa';rr(ctx,x+28,cy,w-56,135,24);ctx.fill();
-   ctx.strokeStyle='#dce3e7';ctx.lineWidth=2;rr(ctx,x+28,cy,w-56,135,24);ctx.stroke();
-   ctx.fillStyle='#68717c';ctx.font='800 23px Arial';ctx.fillText('No hay registros para mostrar.',x+60,cy+76);
- }else{
-   for(const r of data){
-     const stateAccent=r.status==='received'?'#087f73':'#7e2f3d';
-     const stateSoft=r.status==='received'?'#f2fcf8':'#fff6f7';
-     ctx.fillStyle=stateSoft;rr(ctx,x+24,cy,w-48,cardH,26);ctx.fill();
-     ctx.strokeStyle=r.status==='received'?'#8dd5c7':'#d7a2ac';ctx.lineWidth=3;rr(ctx,x+24,cy,w-48,cardH,26);ctx.stroke();
+ let cy=y+headH+36;
 
-     const im=await imgData(r.photo),ps=94,px=x+44,py=cy+28;
-     if(im){
-       ctx.save();rr(ctx,px,py,ps,ps,18);ctx.clip();
-       const sc=Math.max(ps/im.width,ps/im.height),iw=im.width*sc,ih=im.height*sc;
-       ctx.drawImage(im,px+(ps-iw)/2,py+(ps-ih)/2,iw,ih);ctx.restore();
-     }else{
-       ctx.fillStyle='#edf0f3';rr(ctx,px,py,ps,ps,18);ctx.fill();
-     }
+ // RECIBIDOS: stronger green, photo + date
+ for(const r of received){
+   ctx.fillStyle='#d8f3e8';rr(ctx,x+24,cy,w-48,recvH,26);ctx.fill();
+   ctx.strokeStyle='#42ad92';ctx.lineWidth=4;rr(ctx,x+24,cy,w-48,recvH,26);ctx.stroke();
 
-     ctx.fillStyle='#15171a';ctx.font='900 24px Arial';
-     let ty=wrap(ctx,r.client||'Sin cliente',px+118,cy+49,430,29,2);
-     ctx.fillStyle='#68717c';ctx.font='700 17px Arial';
-     wrap(ctx,itemSummary(r),px+118,ty+3,430,23,3);
+   const im=await imgData(r.photo),ps=96,px=x+44,py=cy+28;
+   if(im){
+     ctx.save();rr(ctx,px,py,ps,ps,18);ctx.clip();
+     const sc=Math.max(ps/im.width,ps/im.height),iw=im.width*sc,ih=im.height*sc;
+     ctx.drawImage(im,px+(ps-iw)/2,py+(ps-ih)/2,iw,ih);ctx.restore();
+   }else{
+     ctx.fillStyle='#edf1f1';rr(ctx,px,py,ps,ps,18);ctx.fill();
+   }
 
-     ctx.fillStyle=stateAccent;ctx.font='900 16px Arial';ctx.textAlign='right';
-     ctx.fillText(r.status==='received'?'RECIBIDO':'ENTREGADO',x+w-50,cy+42);ctx.textAlign='left';
-     cy+=cardH+gap;
+   ctx.fillStyle='#15171a';ctx.font='900 24px Arial';
+   let ty=wrap(ctx,r.client||'Sin cliente',px+118,cy+47,430,28,2);
+   ctx.fillStyle='#53645f';ctx.font='700 17px Arial';
+   wrap(ctx,itemSummary(r),px+118,ty+2,430,22,2);
+
+   ctx.fillStyle='#168c72';ctx.font='900 15px Arial';ctx.textAlign='right';
+   ctx.fillText('RECIBIDO',x+w-50,cy+38);
+   ctx.fillStyle='#52635f';ctx.font='700 14px Arial';
+   ctx.fillText(shortStamp(r.createdAt),x+w-50,cy+62);
+   ctx.textAlign='left';
+
+   cy+=recvH+recvGap;
+ }
+
+ // DELIVERED: compact section, no photo
+ if(delivered.length){
+   cy+=8;
+   ctx.fillStyle='#8e3549';ctx.font='900 18px Arial';ctx.fillText('ENTREGADOS',x+30,cy+20);
+   cy+=40;
+
+   for(const r of delivered){
+     ctx.fillStyle='#efd3d9';rr(ctx,x+24,cy,w-48,delH,20);ctx.fill();
+     ctx.strokeStyle='#a94f62';ctx.lineWidth=3;rr(ctx,x+24,cy,w-48,delH,20);ctx.stroke();
+
+     ctx.fillStyle='#2b1d20';ctx.font='900 20px Arial';
+     let client=String(r.client||'Sin cliente');
+     while(ctx.measureText(client).width>235&&client.length>5)client=client.slice(0,-1);
+     if(client!==String(r.client||'Sin cliente'))client+='…';
+     ctx.fillText(client,x+48,cy+43);
+
+     ctx.fillStyle='#593c42';ctx.font='700 16px Arial';
+     let summary=itemSummary(r);
+     while(ctx.measureText(summary).width>330&&summary.length>8)summary=summary.slice(0,-1);
+     if(summary!==itemSummary(r))summary+='…';
+     ctx.fillText(summary,x+295,cy+43);
+
+     ctx.fillStyle='#8e3549';ctx.font='800 14px Arial';ctx.textAlign='right';
+     ctx.fillText(shortStamp(r.deliveredAt||r.createdAt),x+w-48,cy+43);
+     ctx.textAlign='left';
+
+     cy+=delH+delGap;
    }
  }
- ctx.fillStyle='#7b8388';ctx.font='700 15px Arial';ctx.fillText(`Registros: ${data.length}`,x+38,y+h-30);
+
+ ctx.fillStyle='#6f777d';ctx.font='700 15px Arial';
+ ctx.fillText(`En mi poder: ${received.length}   ·   Entregados: ${delivered.length}`,x+38,y+h-30);
  return await new Promise(res=>c.toBlob(res,'image/png',.96))
 }
 async function shareRecord(r){
@@ -828,14 +892,17 @@ function viewTitle(){
   return activeFilter==='received'?'EN MI PODER':activeFilter==='delivered'?'ENTREGADOS':'TODOS LOS MOVIMIENTOS';
 }
 function currentText(){
-  const data=viewRecords();
-  if(!data.length)return `${viewTitle()}\nSin registros.`;
-  const rows=data.map(r=>`• ${r.client}: ${(r.items||[]).map(i=>`${i.qty} ${i.type}${i.color?' '+i.color:''}`).join(', ')}`);
-  return `${viewTitle()}\nActualizado ${new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date())}\n\n${rows.join('\n')}\n\nRegistros: ${data.length}`;
+  const data=[...records].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  if(!data.length)return 'TODOS LOS MOVIMIENTOS\nSin registros.';
+  const rows=data.map(r=>{
+    const when=r.status==='delivered'?`Entregado ${shortStamp(r.deliveredAt||r.createdAt)}`:`Recibido ${shortStamp(r.createdAt)}`;
+    return `• ${r.client}: ${(r.items||[]).map(i=>`${i.qty} ${i.type}${i.color?' '+i.color:''}`).join(', ')} — ${when}`;
+  });
+  return `TODOS LOS MOVIMIENTOS\n\n${rows.join('\n')}\n\nRegistros: ${data.length}`;
 }
 async function shareCurrent(){
- const text=currentText(),blob=await currentCardBlob(),file=new File([blob],`3dcd-${activeFilter}-${new Date().toISOString().slice(0,10)}.png`,{type:'image/png'});
- if(navigator.share){try{if(navigator.canShare?.({files:[file]}))await navigator.share({title:viewTitle(),text,files:[file]});else await navigator.share({title:viewTitle(),text});return}catch(e){if(e?.name==='AbortError')return}}
+ const text=currentText(),blob=await currentCardBlob(),file=new File([blob],`3dcd-todos-${new Date().toISOString().slice(0,10)}.png`,{type:'image/png'});
+ if(navigator.share){try{if(navigator.canShare?.({files:[file]}))await navigator.share({title:'Todos los movimientos',text,files:[file]});else await navigator.share({title:'Todos los movimientos',text});return}catch(e){if(e?.name==='AbortError')return}}
  try{await navigator.clipboard.writeText(text)}catch{}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)
 }
 
