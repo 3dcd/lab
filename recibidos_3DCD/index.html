@@ -446,6 +446,69 @@ body.mode-delivered .status.delivered{
   }
 }
 
+
+.workTotal{
+  margin-top:10px;
+  display:flex;
+  align-items:baseline;
+  gap:9px;
+  flex-wrap:wrap;
+}
+.workTotal span{
+  font-size:9px;
+  font-weight:950;
+  letter-spacing:.55px;
+  color:rgba(20,35,33,.62);
+}
+.workTotal b{
+  font-size:24px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:-.5px;
+  color:#103b34;
+}
+body.mode-delivered .workTotal span,
+body.mode-all .workTotal span{color:rgba(255,255,255,.72)}
+body.mode-delivered .workTotal b,
+body.mode-all .workTotal b{color:#fff}
+
+
+.cameraSheet{width:min(560px,100%)}
+.squareCamera{
+  width:100%;
+  aspect-ratio:1/1;
+  position:relative;
+  overflow:hidden;
+  border:3px solid #111827;
+  border-radius:24px;
+  background:#0b0d10;
+}
+.squareCamera video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.cameraGuide{
+  position:absolute;
+  inset:12px;
+  border:2px solid rgba(255,255,255,.78);
+  border-radius:18px;
+  pointer-events:none;
+  box-shadow:0 0 0 999px rgba(0,0,0,.06);
+}
+.captureBtn{
+  width:100%;
+  margin-top:12px;
+  border:0;
+  border-radius:17px;
+  padding:14px;
+  background:#111827;
+  color:#fff;
+  font-size:14px;
+  font-weight:950;
+}
+
 </style>
 </head>
 <body>
@@ -455,6 +518,10 @@ body.mode-delivered .status.delivered{
       <div class="brand">
         <h1>Recibidos 3DCD</h1>
         <small>Entradas y entregas de prendas</small>
+        <div class="workTotal">
+          <span>TRABAJO EN CURSO</span>
+          <b id="workTotalValue">$ 0</b>
+        </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="iconbtn" id="undoBtn" aria-label="Deshacer" title="Deshacer">↶</button>
@@ -488,15 +555,33 @@ body.mode-delivered .status.delivered{
 
 <div class="menu" id="menu">
   <button id="pricesBtn">Precios de estampado</button>
-  <button id="exportBtn">Exportar respaldo</button>
+  <button id="exportBtn">Exportar respaldo ZIP</button>
   <button id="importBtn">Importar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
-  <input type="file" id="importFile" accept=".json,application/json" hidden>
+  <input type="file" id="importFile" accept=".zip,.json,application/zip,application/json" hidden>
 </div>
 
 
 </div>
 
+
+
+<div class="modalback" id="cameraModal">
+  <div class="sheet cameraSheet">
+    <div class="sheethead">
+      <div>
+        <h2>Foto cuadrada</h2>
+        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:3px">Lo que ves en el cuadrado es lo que se guarda.</div>
+      </div>
+      <button class="closebtn" id="closeCameraBtn">×</button>
+    </div>
+    <div class="squareCamera">
+      <video id="cameraVideo" playsinline autoplay muted></video>
+      <div class="cameraGuide"></div>
+    </div>
+    <button class="captureBtn" id="captureBtn">● Sacar foto</button>
+  </div>
+</div>
 
 <div class="modalback" id="pricesModal">
   <div class="sheet pricesSheet">
@@ -516,7 +601,10 @@ body.mode-delivered .status.delivered{
   <div class="sheet">
     <div class="dragbar"></div>
     <div class="sheethead">
-      <h2 id="sheetTitle">Nuevo ingreso</h2>
+      <div style="min-width:0">
+        <h2 id="sheetTitle">Nuevo ingreso</h2>
+        <div id="draftTotal" style="font-size:13px;font-weight:950;color:var(--received);margin-top:3px">$ 0</div>
+      </div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="bigbtn camera" id="topSaveBtn" style="padding:10px 14px;border-radius:14px">Guardar</button>
         <button class="closebtn" id="closeBtn">×</button>
@@ -573,6 +661,7 @@ let activeFilter='received';
 let editingId=null;
 let draftPhoto='';
 let draftItems=[];
+let cameraStream=null;
 const STAMP_TYPES=[
   '1 chico',
   '2 chicos',
@@ -693,6 +782,8 @@ function savePrices(){
   });
   prices=next;
   localStorage.setItem(PRICES_KEY,JSON.stringify(prices));
+  render();
+  updateDraftValue();
   closePrices();
 }
 
@@ -700,6 +791,18 @@ function savePrices(){
 function stampPrice(type){
   const v=Number(prices[type]||0);
   return Number.isFinite(v)?v:0;
+}
+
+
+function moneyAR(n){
+  return '$ '+Math.round(Number(n||0)).toLocaleString('es-AR');
+}
+function pendingWorkTotal(){
+  return records
+    .filter(r=>r.status==='received')
+    .reduce((sum,r)=>sum+(r.items||[]).reduce((a,i)=>{
+      return a+(Math.max(0,Number(i.qty||0))*stampPrice(i.stamp));
+    },0),0);
 }
 
 function statusLabel(r){return r.status==='delivered'?'Entregado':'Recibido'}
@@ -720,6 +823,7 @@ function render(){
   const delivered=records.filter(r=>r.status==='delivered').length;
   $('#receivedCount').textContent=received;
   $('#deliveredCount').textContent=delivered;
+  $('#workTotalValue').textContent=moneyAR(pendingWorkTotal());
 
   const data=filtered();
   $('#listCount').textContent=`${data.length} registro${data.length===1?'':'s'}`;
@@ -783,6 +887,15 @@ function renderItemsEditor(){
     </div>
   `).join('');
 }
+
+function draftValue(){
+  return draftItems.reduce((sum,i)=>sum+(Math.max(0,Number(i.qty||0))*stampPrice(i.stamp)),0);
+}
+function updateDraftValue(){
+  const el=$('#draftTotal');
+  if(el)el.textContent=moneyAR(draftValue());
+}
+
 function renderDraftPhoto(){
   $('#photoBox').innerHTML=draftPhoto?`<img src="${draftPhoto}" alt="Foto">`:'Sin foto';
 }
@@ -1064,9 +1177,51 @@ async function shareCurrent(){
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)
 }
 
+
+async function openSquareCamera(){
+  // Requires HTTPS (or localhost). Fallback to native capture if unavailable.
+  if(!navigator.mediaDevices?.getUserMedia){
+    $('#cameraInput').click();
+    return;
+  }
+  try{
+    cameraStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'}},
+      audio:false
+    });
+    $('#cameraVideo').srcObject=cameraStream;
+    $('#cameraModal').classList.add('show');
+  }catch(err){
+    $('#cameraInput').click();
+  }
+}
+function closeSquareCamera(){
+  $('#cameraModal').classList.remove('show');
+  if(cameraStream){
+    cameraStream.getTracks().forEach(t=>t.stop());
+    cameraStream=null;
+  }
+  $('#cameraVideo').srcObject=null;
+}
+function captureSquarePhoto(){
+  const v=$('#cameraVideo');
+  if(!v.videoWidth||!v.videoHeight)return;
+  const size=Math.min(v.videoWidth,v.videoHeight);
+  const sx=(v.videoWidth-size)/2;
+  const sy=(v.videoHeight-size)/2;
+  const c=document.createElement('canvas');
+  c.width=720;c.height=720;
+  c.getContext('2d').drawImage(v,sx,sy,size,size,0,0,720,720);
+  draftPhoto=c.toDataURL('image/jpeg',.82);
+  renderDraftPhoto();
+  closeSquareCamera();
+}
+$('#closeCameraBtn').onclick=closeSquareCamera;
+$('#captureBtn').onclick=captureSquarePhoto;
+
 $('#addBtn').onclick=openNew;
 $('#closeBtn').onclick=closeModal;
-$('#cameraBtn').onclick=()=>$('#cameraInput').click();
+$('#cameraBtn').onclick=openSquareCamera;
 $('#galleryBtn').onclick=()=>$('#galleryInput').click();
 $('#cameraInput').onchange=e=>{pickPhoto(e.target.files?.[0]);e.target.value=''};
 $('#galleryInput').onchange=e=>{pickPhoto(e.target.files?.[0]);e.target.value=''};
@@ -1087,6 +1242,7 @@ $('#itemsEditor').addEventListener('input',e=>{
   const k=e.target.dataset.k;
   if(!k || !draftItems[idx])return;
   draftItems[idx][k]=e.target.value;
+  updateDraftValue();
 });
 $('#itemsEditor').addEventListener('click',e=>{
   if(e.target.dataset.k==='qty'){
@@ -1100,6 +1256,7 @@ $('#itemsEditor').addEventListener('change',e=>{
   const k=e.target.dataset.k;
   if(!k || !draftItems[idx])return;
   draftItems[idx][k]=e.target.value;
+  updateDraftValue();
 });
 $('#itemsEditor').addEventListener('click',e=>{
   const btn=e.target.closest('[data-remove]');
@@ -1201,30 +1358,130 @@ document.addEventListener('click',e=>{
   if(!menu.contains(e.target) && e.target!==$('#menuBtn'))menu.classList.remove('show');
 });
 
+
+function crc32(bytes){
+  let crc=0xffffffff;
+  for(const b of bytes){
+    crc^=b;
+    for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);
+  }
+  return (crc^0xffffffff)>>>0;
+}
+function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
+function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
+function concatBytes(parts){
+  const len=parts.reduce((a,p)=>a+p.length,0),out=new Uint8Array(len);
+  let off=0;for(const p of parts){out.set(p,off);off+=p.length}return out;
+}
+function textBytes(t){return new TextEncoder().encode(String(t))}
+function dataUrlBytes(url){
+  const m=String(url||'').match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
+  if(!m)return null;
+  const mime=m[1]||'application/octet-stream';
+  let bytes;
+  if(m[2]){
+    const bin=atob(m[3]),arr=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+    bytes=arr;
+  }else bytes=textBytes(decodeURIComponent(m[3]));
+  return {mime,bytes};
+}
+function zipStore(files){
+  let offset=0;
+  const locals=[],centrals=[];
+  for(const f of files){
+    const name=textBytes(f.name),data=f.data instanceof Uint8Array?f.data:new Uint8Array(f.data);
+    const crc=crc32(data);
+    const local=concatBytes([
+      u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),
+      u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data
+    ]);
+    locals.push(local);
+    const central=concatBytes([
+      u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),
+      u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),
+      u16(0),u16(0),u32(0),u32(offset),name
+    ]);
+    centrals.push(central);
+    offset+=local.length;
+  }
+  const centralBytes=concatBytes(centrals);
+  const localBytes=concatBytes(locals);
+  const end=concatBytes([
+    u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),
+    u32(centralBytes.length),u32(localBytes.length),u16(0)
+  ]);
+  return new Blob([localBytes,centralBytes,end],{type:'application/zip'});
+}
+function safeFilePart(s){
+  return String(s||'cliente').trim().replace(/[^a-z0-9áéíóúñü_-]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,45)||'cliente';
+}
+
 $('#exportBtn').onclick=()=>{
   const payload={
     app:'recibidos-3dcd',
-    version:1,
+    version:2,
     exportedAt:nowIso(),
     records,
     prices,
     nextNumber:Number(localStorage.getItem(COUNTER_KEY)||1)
   };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const files=[
+    {name:'recibidos.json',data:textBytes(JSON.stringify(payload,null,2))},
+    {name:'LEEME.txt',data:textBytes('Respaldo Recibidos 3DCD\n- recibidos.json: datos editables completos.\n- imagenes/: fotos de los registros.\n')}
+  ];
+  records.forEach(r=>{
+    if(!r.photo)return;
+    const p=dataUrlBytes(r.photo);
+    if(!p)return;
+    const ext=p.mime.includes('png')?'png':'jpg';
+    files.push({
+      name:`imagenes/${String(r.numero||0).padStart(3,'0')}-${safeFilePart(r.client)}.${ext}`,
+      data:p.bytes
+    });
+  });
+  const blob=zipStore(files);
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`recibidos-3dcd-${new Date().toISOString().slice(0,10)}.json`;
+  a.download=`recibidos-3dcd-${new Date().toISOString().slice(0,10)}.zip`;
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   menu.classList.remove('show');
 };
+
+function readU16(a,o){return a[o]|(a[o+1]<<8)}
+function readU32(a,o){return (a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0}
+function unzipStored(arrayBuffer){
+  const a=new Uint8Array(arrayBuffer),files={};
+  let o=0;
+  while(o+30<=a.length && readU32(a,o)===0x04034b50){
+    const method=readU16(a,o+8);
+    const compSize=readU32(a,o+18);
+    const nameLen=readU16(a,o+26),extraLen=readU16(a,o+28);
+    const name=new TextDecoder().decode(a.slice(o+30,o+30+nameLen));
+    const dataStart=o+30+nameLen+extraLen;
+    if(method!==0)throw new Error('ZIP comprimido no compatible');
+    files[name]=a.slice(dataStart,dataStart+compSize);
+    o=dataStart+compSize;
+  }
+  return files;
+}
+
 $('#importBtn').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=async e=>{
   const f=e.target.files?.[0];
   e.target.value='';
   if(!f)return;
   try{
-    const x=JSON.parse(await f.text());
+    let x;
+    if(/\.zip$/i.test(f.name)){
+      const files=unzipStored(await f.arrayBuffer());
+      const entry=files['recibidos.json'];
+      if(!entry)throw new Error('Falta recibidos.json');
+      x=JSON.parse(new TextDecoder().decode(entry));
+    }else{
+      x=JSON.parse(await f.text());
+    }
     if(x.app!=='recibidos-3dcd' || !Array.isArray(x.records))throw new Error();
     if(!confirm('¿Reemplazar los datos actuales por este respaldo?'))return;
     pushHistory();
@@ -1235,7 +1492,8 @@ $('#importFile').onchange=async e=>{
     }
     localStorage.setItem(COUNTER_KEY,String(Math.max(Number(x.nextNumber||1),Math.max(0,...records.map(r=>Number(r.numero||0)))+1)));
     save();
-  }catch{
+  }catch(err){
+    console.error(err);
     alert('Ese archivo no parece ser un respaldo válido de Recibidos 3DCD.');
   }
   menu.classList.remove('show');
@@ -1251,7 +1509,7 @@ $('#clearDeliveredBtn').onclick=()=>{
 };
 
 window.addEventListener('beforeunload',save);
-load();loadPrices();updateHistoryButtons();
+load();loadPrices();render();updateHistoryButtons();
 </script>
 </body>
 </html>
