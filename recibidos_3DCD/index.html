@@ -7,22 +7,25 @@
 <title>Recibidos 3DCD</title>
 <style>
 :root{
-  --bg:#f3f4f6;
+  --bg:#eef2f5;
   --card:#ffffff;
   --ink:#15171a;
-  --muted:#72777f;
-  --line:#e3e6ea;
-  --shadow:0 10px 28px rgba(20,23,26,.08);
+  --muted:#68717c;
+  --line:#dbe1e7;
+  --shadow:0 12px 30px rgba(20,23,26,.10);
 
-  --received:#0f766e;
-  --received-soft:#dff6f2;
-  --received-border:#b8e9e1;
+  --received:#087f73;
+  --received-soft:#d8f5ef;
+  --received-border:#a8e4d9;
 
-  --delivered:#6b7280;
-  --delivered-soft:#eceff2;
-  --delivered-border:#d8dde2;
+  --delivered:#64748b;
+  --delivered-soft:#e7edf3;
+  --delivered-border:#ccd6e0;
 
-  --accent:#111827;
+  --accent:#1f2937;
+  --accent-soft:#e7edf7;
+  --warm:#d97706;
+  --warm-soft:#fff1d6;
   --danger:#a52b2b;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -69,14 +72,15 @@ body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
 .stat b{display:block;font-size:26px;line-height:1;font-weight:950}
 .stat span{display:block;margin-top:6px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.45px}
 .toolbar{
-  display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none
+  display:flex;gap:9px;overflow-x:auto;padding:4px 0 7px;scrollbar-width:none
 }
 .toolbar::-webkit-scrollbar{display:none}
 .chip{
-  white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 13px;
-  font-size:12px;font-weight:900;color:#30343a
+  white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 14px;
+  font-size:12px;font-weight:900;color:#30343a;box-shadow:0 3px 10px rgba(0,0,0,.04)
 }
-.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 6px 14px rgba(31,41,55,.18)}
+#shareCurrent{background:var(--warm-soft);border-color:#f0cf97;color:#9a5a06}
 .section-title{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   margin:16px 2px 10px;
@@ -115,10 +119,10 @@ body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
 }
 .status.received{background:var(--received-soft);color:var(--received)}
 .status.delivered{background:var(--delivered-soft);color:var(--delivered)}
-.cardbody{padding:0 12px 12px}
+.cardbody{padding:0 12px 14px}
 .items{
-  background:#f8f9fa;border:1px solid #eceef1;border-radius:17px;padding:10px 11px;
-  display:grid;gap:7px
+  background:#f6f8fa;border:1px solid #e3e8ee;border-radius:17px;padding:11px 12px;
+  display:grid;gap:8px
 }
 .itemrow{display:flex;justify-content:space-between;gap:12px;font-size:13px}
 .itemrow strong{font-weight:900}
@@ -126,8 +130,8 @@ body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
 .notes{font-size:12px;color:#4d5259;line-height:1.45;margin-top:9px}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .action{
-  min-height:42px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:9px 12px;
-  font-size:12px;font-weight:900
+  min-height:44px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:10px 13px;
+  font-size:12px;font-weight:900;box-shadow:0 3px 10px rgba(0,0,0,.035)
 }
 .action.primary{background:var(--received);border-color:var(--received);color:#fff}
 .action.gray{background:var(--delivered);border-color:var(--delivered);color:#fff}
@@ -137,7 +141,7 @@ body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
   right:max(18px,env(safe-area-inset-right));
   bottom:max(18px,env(safe-area-inset-bottom));
   z-index:30;
-  width:64px;height:64px;border-radius:22px;border:0;background:var(--accent);color:#fff;
+  width:64px;height:64px;border-radius:22px;border:0;background:linear-gradient(145deg,#263547,#111827);color:#fff;
   font-size:34px;line-height:1;font-weight:400;box-shadow:0 16px 35px rgba(17,24,39,.32)
 }
 .empty{
@@ -172,7 +176,7 @@ body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
 .field textarea{min-height:76px;resize:vertical}
 .photoPick{
   display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:center;
-  padding:10px;border:1px solid var(--line);border-radius:20px;background:#f8f9fa
+  padding:11px;border:1px solid #d8e0e7;border-radius:20px;background:#f4f7f9
 }
 .photoBox{
   width:92px;height:92px;border-radius:20px;overflow:hidden;background:#e9edf1;border:1px solid var(--line);
@@ -186,8 +190,8 @@ body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
 .bigbtn.camera{background:var(--accent);color:#fff}
 .bigbtn.gallery{background:#fff;border:1px solid var(--line);color:#30343a}
 .item-editor{
-  display:grid;grid-template-columns:1.5fr .8fr 1fr auto;gap:7px;align-items:end;
-  background:#f8f9fa;border:1px solid #eceef1;border-radius:18px;padding:10px
+  display:grid;grid-template-columns:1.5fr .8fr 1fr auto;gap:8px;align-items:end;
+  background:#f5f8fa;border:1px solid #dfe6ec;border-radius:18px;padding:11px
 }
 .item-editor input,.item-editor select{width:100%;border:1px solid var(--line);border-radius:13px;padding:10px 11px;background:#fff}
 .removeitem{width:40px;height:40px;border-radius:13px;border:1px solid #ead7d7;background:#fff;color:var(--danger);font-weight:950}
@@ -408,7 +412,7 @@ function render(){
 }
 
 function newItem(){
-  return {type:'Chomba',qty:1,color:''};
+  return {type:'Chomba',qty:'',color:''};
 }
 function renderItemsEditor(){
   if(!draftItems.length)draftItems=[newItem()];
@@ -417,7 +421,7 @@ function renderItemsEditor(){
       <select data-k="type">
         ${['Chomba','Remera','Buzo','Buzo con capucha','Polar','Campera','Pantalón','Bombacha','Otra'].map(x=>`<option ${it.type===x?'selected':''}>${x}</option>`).join('')}
       </select>
-      <input data-k="qty" type="number" min="1" step="1" value="${esc(it.qty||1)}" inputmode="numeric">
+      <input data-k="qty" type="number" min="1" step="1" value="${esc(it.qty??'')}" inputmode="numeric" placeholder="Cant.">
       <input data-k="color" value="${esc(it.color||'')}" placeholder="Color">
       <button class="removeitem" data-remove="${idx}" aria-label="Eliminar">×</button>
     </div>
@@ -569,6 +573,11 @@ $('#addItemBtn').onclick=()=>{
   draftItems.push(newItem());
   renderItemsEditor();
 };
+$('#itemsEditor').addEventListener('focusin',e=>{
+  if(e.target.dataset.k==='qty'){
+    setTimeout(()=>e.target.select(),0);
+  }
+});
 $('#itemsEditor').addEventListener('input',e=>{
   const row=e.target.closest('.item-editor');
   if(!row)return;
@@ -576,6 +585,11 @@ $('#itemsEditor').addEventListener('input',e=>{
   const k=e.target.dataset.k;
   if(!k || !draftItems[idx])return;
   draftItems[idx][k]=e.target.value;
+});
+$('#itemsEditor').addEventListener('click',e=>{
+  if(e.target.dataset.k==='qty'){
+    try{e.target.select()}catch{}
+  }
 });
 $('#itemsEditor').addEventListener('change',e=>{
   const row=e.target.closest('.item-editor');
