@@ -244,29 +244,6 @@ body.mode-received #showAllBtn{background:#ffffffc9}
 body.mode-delivered #showAllBtn{background:#ffffffd9}
 body.mode-all #showAllBtn{background:#244f73;color:#fff;border-color:#244f73}
 
-.miniConfirm{
-  position:fixed;inset:0;z-index:140;display:none;align-items:flex-end;justify-content:center;
-  padding:18px;background:rgba(20,22,25,.22)
-}
-.miniConfirm.show{display:flex}
-.miniConfirmCard{
-  width:min(520px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;
-  box-shadow:0 18px 48px rgba(0,0,0,.22);padding:14px;display:grid;grid-template-columns:44px 1fr;gap:10px 12px;align-items:center
-}
-.miniConfirmIcon{
-  width:44px;height:44px;border-radius:15px;background:#f4dce1;color:#7e2f3d;
-  display:grid;place-items:center;font-size:22px;font-weight:900
-}
-.miniConfirmText b{display:block;font-size:15px}
-.miniConfirmText span{display:block;margin-top:4px;color:var(--muted);font-size:12px;font-weight:700}
-.miniConfirmActions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1.15fr;gap:8px;margin-top:2px}
-.miniConfirmActions button{
-  border:1px solid var(--line);border-radius:14px;padding:11px 12px;background:#fff;font-size:12px;font-weight:900
-}
-#miniOk{background:#7e2f3d;color:#fff;border-color:#7e2f3d}
-@media(min-width:700px){.miniConfirm{align-items:center}}
-
-
 body.mode-all .card.received{
   border:2px solid #5ebaa9;
   background:#f7fffc;
@@ -416,6 +393,11 @@ body.mode-delivered .status.delivered{
 }
 #topSaveBtn{min-width:88px}
 
+
+#undoBtn:disabled,#redoBtn:disabled{
+  opacity:.35;filter:grayscale(.4);box-shadow:none;cursor:default
+}
+
 </style>
 </head>
 <body>
@@ -426,7 +408,11 @@ body.mode-delivered .status.delivered{
         <h1>Recibidos 3DCD</h1>
         <small>Entradas y entregas de prendas</small>
       </div>
-      <button class="iconbtn" id="menuBtn" aria-label="Menú">⋯</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="iconbtn" id="undoBtn" aria-label="Deshacer" title="Deshacer">↶</button>
+        <button class="iconbtn" id="redoBtn" aria-label="Rehacer" title="Rehacer">↷</button>
+        <button class="iconbtn" id="menuBtn" aria-label="Menú">⋯</button>
+      </div>
     </div>
   </div>
 
@@ -460,18 +446,6 @@ body.mode-delivered .status.delivered{
 </div>
 
 
-<div class="miniConfirm" id="miniConfirm">
-  <div class="miniConfirmCard">
-    <div class="miniConfirmIcon">↩</div>
-    <div class="miniConfirmText">
-      <b>¿Volver a En mi poder?</b>
-      <span id="miniConfirmClient"></span>
-    </div>
-    <div class="miniConfirmActions">
-      <button id="miniCancel">Cancelar</button>
-      <button id="miniOk">Sí, volver</button>
-    </div>
-  </div>
 </div>
 
 <div class="modalback" id="modal">
@@ -527,7 +501,9 @@ const modal=$('#modal');
 const menu=$('#menu');
 
 let records=[];
-let pendingReopenId=null;
+let undoStack=[];
+let redoStack=[];
+const HISTORY_LIMIT=5;
 let activeFilter='received';
 let editingId=null;
 let draftPhoto='';
@@ -546,6 +522,50 @@ function nextNumber(){
   localStorage.setItem(COUNTER_KEY,String(n+1));
   return n;
 }
+
+function snapshot(){
+  return JSON.stringify(records);
+}
+function restoreSnapshot(raw){
+  try{
+    const parsed=JSON.parse(raw);
+    if(Array.isArray(parsed)){
+      records=parsed;
+      localStorage.setItem(KEY,JSON.stringify(records));
+      render();
+      return true;
+    }
+  }catch{}
+  return false;
+}
+function pushHistory(){
+  undoStack.push(snapshot());
+  if(undoStack.length>HISTORY_LIMIT)undoStack.shift();
+  redoStack=[];
+  updateHistoryButtons();
+}
+function updateHistoryButtons(){
+  const u=$('#undoBtn'),r=$('#redoBtn');
+  if(u)u.disabled=undoStack.length===0;
+  if(r)r.disabled=redoStack.length===0;
+}
+function undo(){
+  if(!undoStack.length)return;
+  redoStack.push(snapshot());
+  if(redoStack.length>HISTORY_LIMIT)redoStack.shift();
+  const prev=undoStack.pop();
+  restoreSnapshot(prev);
+  updateHistoryButtons();
+}
+function redo(){
+  if(!redoStack.length)return;
+  undoStack.push(snapshot());
+  if(undoStack.length>HISTORY_LIMIT)undoStack.shift();
+  const next=redoStack.pop();
+  restoreSnapshot(next);
+  updateHistoryButtons();
+}
+
 function save(){
   localStorage.setItem(KEY,JSON.stringify(records));
   render();
@@ -717,6 +737,7 @@ function saveDraft(){
   const data=collectDraft();
   if(!data)return null;
 
+  pushHistory();
   let r=editingId?records.find(x=>x.id===editingId):null;
   if(!r){
     r={
@@ -974,27 +995,6 @@ $('#showAllBtn').onclick=()=>{activeFilter='all';render()};
 $('#shareCurrent').onclick=shareCurrent;
 
 
-function askReopen(r){
-  pendingReopenId=r.id;
-  $('#miniConfirmClient').textContent=r.client||'';
-  $('#miniConfirm').classList.add('show');
-}
-function closeReopenConfirm(){
-  pendingReopenId=null;
-  $('#miniConfirm').classList.remove('show');
-}
-$('#miniCancel').onclick=closeReopenConfirm;
-$('#miniOk').onclick=()=>{
-  const r=records.find(x=>x.id===pendingReopenId);
-  if(r){
-    r.status='received';
-    r.receivedAt=nowIso();
-    r.deliveredAt=null;
-    save();
-  }
-  closeReopenConfirm();
-};
-
 listEl.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-act]');
   if(!btn)return;
@@ -1005,22 +1005,31 @@ listEl.addEventListener('click',async e=>{
 
   if(act==='edit'){openEdit(r);return}
   if(act==='deliver'){
+    pushHistory();
     r.status='delivered';
     r.deliveredAt=nowIso();
     save();
     return;
   }
   if(act==='reopen'){
-    askReopen(r);
+    pushHistory();
+    r.status='received';
+    r.receivedAt=nowIso();
+    r.deliveredAt=null;
+    save();
     return;
   }
   if(act==='delete'){
     if(!confirm(`¿Eliminar el registro de ${r.client}?`))return;
+    pushHistory();
     records=records.filter(x=>x.id!==r.id);
     save();
   }
 });
 
+$('#undoBtn').onclick=undo;
+$('#redoBtn').onclick=redo;
+updateHistoryButtons();
 $('#menuBtn').onclick=()=>menu.classList.toggle('show');
 document.addEventListener('click',e=>{
   if(!menu.contains(e.target) && e.target!==$('#menuBtn'))menu.classList.remove('show');
@@ -1051,6 +1060,7 @@ $('#importFile').onchange=async e=>{
     const x=JSON.parse(await f.text());
     if(x.app!=='recibidos-3dcd' || !Array.isArray(x.records))throw new Error();
     if(!confirm('¿Reemplazar los datos actuales por este respaldo?'))return;
+    pushHistory();
     records=x.records;
     localStorage.setItem(COUNTER_KEY,String(Math.max(Number(x.nextNumber||1),Math.max(0,...records.map(r=>Number(r.numero||0)))+1)));
     save();
@@ -1063,13 +1073,14 @@ $('#clearDeliveredBtn').onclick=()=>{
   const n=records.filter(r=>r.status==='delivered').length;
   if(!n){alert('No hay entregados para eliminar.');return}
   if(!confirm(`¿Eliminar ${n} registro${n===1?'':'s'} entregado${n===1?'':'s'}?`))return;
+  pushHistory();
   records=records.filter(r=>r.status!=='delivered');
   save();
   menu.classList.remove('show');
 };
 
 window.addEventListener('beforeunload',save);
-load();
+load();updateHistoryButtons();
 </script>
 </body>
 </html>
