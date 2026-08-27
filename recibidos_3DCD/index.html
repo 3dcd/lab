@@ -401,28 +401,37 @@ body.mode-delivered .status.delivered{
 
 .card{
   transform-origin:center center;
-  transition:transform .28s cubic-bezier(.2,.9,.25,1),opacity .24s ease,max-height .34s cubic-bezier(.4,0,.2,1),margin .34s cubic-bezier(.4,0,.2,1),border-width .28s ease;
   max-height:900px;
+  opacity:1;
+  transition:
+    transform .42s cubic-bezier(.22,.75,.18,1),
+    opacity .36s ease,
+    max-height .42s cubic-bezier(.4,0,.2,1),
+    margin .42s cubic-bezier(.4,0,.2,1),
+    padding .42s cubic-bezier(.4,0,.2,1),
+    border-width .34s ease;
 }
-.card.delivering{
-  transform:scale(.78);
+.card.state-exit{
+  transform:scale(.58);
   opacity:0;
   max-height:0!important;
-  margin-top:-12px!important;
-  margin-bottom:-12px!important;
+  margin-top:-10px!important;
+  margin-bottom:-10px!important;
+  padding-top:0!important;
+  padding-bottom:0!important;
   border-width:0!important;
   overflow:hidden;
   pointer-events:none;
 }
 @keyframes cardSettle{
-  from{opacity:.72;transform:translateY(5px)}
-  to{opacity:1;transform:translateY(0)}
+  from{opacity:.55;transform:translateY(8px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
 }
-.list .card:not(.delivering){animation:cardSettle .20s ease both}
+.list .card:not(.state-exit){animation:cardSettle .24s cubic-bezier(.2,.7,.2,1) both}
 @media (prefers-reduced-motion: reduce){
   .card{transition:none}
-  .card.delivering{transform:none;opacity:0}
-  .list .card:not(.delivering){animation:none}
+  .card.state-exit{transform:none;opacity:0;max-height:0!important}
+  .list .card:not(.state-exit){animation:none}
 }
 
 </style>
@@ -1022,6 +1031,18 @@ $('#showAllBtn').onclick=()=>{activeFilter='all';render()};
 $('#shareCurrent').onclick=shareCurrent;
 
 
+
+function animateStateChange(cardEl,commit){
+  if(!cardEl || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+    commit();
+    return;
+  }
+  cardEl.style.maxHeight=cardEl.scrollHeight+'px';
+  cardEl.offsetHeight;
+  cardEl.classList.add('state-exit');
+  setTimeout(commit,430);
+}
+
 listEl.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-act]');
   if(!btn)return;
@@ -1034,28 +1055,24 @@ listEl.addEventListener('click',async e=>{
   if(act==='deliver'){
     pushHistory();
     const cardEl=btn.closest('.card');
-    if(cardEl){
-      cardEl.classList.add('delivering');
-      btn.disabled=true;
-    }
-    const finishDelivery=()=>{
+    btn.disabled=true;
+    animateStateChange(cardEl,()=>{
       r.status='delivered';
       r.deliveredAt=nowIso();
       save();
-    };
-    if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
-      finishDelivery();
-    }else{
-      setTimeout(finishDelivery,320);
-    }
+    });
     return;
   }
   if(act==='reopen'){
     pushHistory();
-    r.status='received';
-    r.receivedAt=nowIso();
-    r.deliveredAt=null;
-    save();
+    const cardEl=btn.closest('.card');
+    btn.disabled=true;
+    animateStateChange(cardEl,()=>{
+      r.status='received';
+      r.receivedAt=nowIso();
+      r.deliveredAt=null;
+      save();
+    });
     return;
   }
   if(act==='delete'){
