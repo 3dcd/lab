@@ -409,6 +409,13 @@ body.mode-delivered .status.delivered{
   background:#8e3549 !important;color:#fff !important;
 }
 
+
+.sheethead{
+  position:sticky;top:0;z-index:3;background:#fff;
+  padding:4px 0 10px;margin-bottom:10px;border-bottom:2px solid var(--line)
+}
+#topSaveBtn{min-width:88px}
+
 </style>
 </head>
 <body>
@@ -472,7 +479,10 @@ body.mode-delivered .status.delivered{
     <div class="dragbar"></div>
     <div class="sheethead">
       <h2 id="sheetTitle">Nuevo ingreso</h2>
-      <button class="closebtn" id="closeBtn">×</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="bigbtn camera" id="topSaveBtn" style="padding:10px 14px;border-radius:14px">Guardar</button>
+        <button class="closebtn" id="closeBtn">×</button>
+      </div>
     </div>
 
     <div class="form">
@@ -502,10 +512,7 @@ body.mode-delivered .status.delivered{
         <textarea id="notes" placeholder="Ej: bolsa negra, falta confirmar un talle..."></textarea>
       </div>
 
-      <div class="sheetfoot">
-        <button class="secondarySave" id="saveOnlyBtn">Guardar</button>
-        <button class="primarySave" id="saveShareBtn">Guardar y compartir</button>
-      </div>
+
     </div>
   </div>
 </div>
@@ -696,8 +703,7 @@ async function pickPhoto(file){
   }
 }
 function collectDraft(){
-  const client=$('#client').value.trim();
-  if(!client){alert('Poné el nombre del cliente.');return null}
+  const client=$('#client').value.trim()||'Cliente';
   const items=draftItems
     .map(i=>({type:String(i.type||'Prenda').trim(),qty:Math.max(1,Number(i.qty||1)),color:String(i.color||'').trim()}))
     .filter(i=>i.type);
@@ -901,9 +907,9 @@ function currentText(){
   return `TODOS LOS MOVIMIENTOS\n\n${rows.join('\n')}\n\nRegistros: ${data.length}`;
 }
 async function shareCurrent(){
- const text=currentText(),blob=await currentCardBlob(),file=new File([blob],`3dcd-todos-${new Date().toISOString().slice(0,10)}.png`,{type:'image/png'});
- if(navigator.share){try{if(navigator.canShare?.({files:[file]}))await navigator.share({title:'Todos los movimientos',text,files:[file]});else await navigator.share({title:'Todos los movimientos',text});return}catch(e){if(e?.name==='AbortError')return}}
- try{await navigator.clipboard.writeText(text)}catch{}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)
+ const blob=await currentCardBlob(),file=new File([blob],`3dcd-todos-${new Date().toISOString().slice(0,10)}.png`,{type:'image/png'});
+ if(navigator.share){try{if(navigator.canShare?.({files:[file]}))await navigator.share({title:'Todos los movimientos',files:[file]});else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)}return}catch(e){if(e?.name==='AbortError')return}}
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)
 }
 
 $('#addBtn').onclick=openNew;
@@ -951,16 +957,10 @@ $('#itemsEditor').addEventListener('click',e=>{
   renderItemsEditor();
 });
 
-$('#saveOnlyBtn').onclick=()=>{
+$('#topSaveBtn').onclick=()=>{
   const r=saveDraft();
   if(!r)return;
   closeModal();
-};
-$('#saveShareBtn').onclick=async()=>{
-  const r=saveDraft();
-  if(!r)return;
-  closeModal();
-  await shareRecord(r);
 };
 
 document.querySelectorAll('[data-state]').forEach(btn=>btn.onclick=()=>{
