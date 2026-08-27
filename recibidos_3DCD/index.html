@@ -516,6 +516,33 @@ body.mode-all .workTotal b{color:#fff}
 body.mode-delivered .workTotal span{color:#ffe4e9}
 body.mode-all .workTotal span{color:#e7f2fb}
 
+
+#cameraModal{z-index:220!important}
+#cameraModal .sheet{position:relative;z-index:221}
+#modal{z-index:120}
+#pricesModal{z-index:160}
+
+
+.cardStateBox{
+  display:grid;
+  justify-items:end;
+  gap:7px;
+  min-width:92px;
+}
+.cardAmount{
+  font-size:17px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:-.3px;
+  white-space:nowrap;
+}
+.card.received .cardAmount{color:#087f73}
+.card.delivered .cardAmount{color:#8e3549}
+@media(max-width:390px){
+  .cardAmount{font-size:15px}
+  .cardStateBox{min-width:78px}
+}
+
 </style>
 </head>
 <body>
@@ -869,7 +896,10 @@ function render(){
           <h3>${esc(r.client||'Sin cliente')}</h3>
           <p>${esc(itemSummary(r))}<br>${fmtDate(r.status==='delivered'?(r.deliveredAt||r.createdAt):(r.receivedAt||r.createdAt))}</p>
         </div>
-        <span class="status ${r.status}">${statusLabel(r)}</span>
+        <div class="cardStateBox">
+          <b class="cardAmount">${moneyAR(recordValue(r))}</b>
+          <span class="status ${r.status}">${statusLabel(r)}</span>
+        </div>
       </div>
       <div class="cardbody">
         <div class="items">
@@ -910,7 +940,10 @@ function renderItemsEditor(){
 }
 
 function draftValue(){
-  return draftItems.reduce((sum,i)=>sum+(Math.max(0,Number(i.qty||0))*stampPrice(i.stamp)),0);
+  return draftItems.reduce((sum,i)=>{
+    const effectiveQty=Math.max(1,Number(i.qty||1));
+    return sum+(effectiveQty*stampPrice(i.stamp));
+  },0);
 }
 function updateDraftValue(){
   const el=$('#draftTotal');
@@ -1129,9 +1162,10 @@ async function currentCardBlob(){
    wrap(ctx,itemSummary(r),px+118,ty+2,430,22,2);
 
    ctx.fillStyle='#168c72';ctx.font='900 15px Arial';ctx.textAlign='right';
-   ctx.fillText('RECIBIDO',x+w-50,cy+38);
-   ctx.fillStyle='#52635f';ctx.font='700 14px Arial';
-   ctx.fillText(shortStamp(r.receivedAt||r.createdAt),x+w-50,cy+62);
+   ctx.fillText('RECIBIDO',x+w-50,cy+34);
+   ctx.font='900 20px Arial';ctx.fillText(moneyAR(recordValue(r)),x+w-50,cy+61);
+   ctx.fillStyle='#52635f';ctx.font='700 13px Arial';
+   ctx.fillText(shortStamp(r.receivedAt||r.createdAt),x+w-50,cy+85);
    ctx.textAlign='left';
 
    cy+=recvH+recvGap;
@@ -1159,7 +1193,9 @@ async function currentCardBlob(){
      if(summary!==itemSummary(r))summary+='…';
      ctx.fillText(summary,x+295,cy+43);
 
-     ctx.fillStyle='#8e3549';ctx.font='800 14px Arial';ctx.textAlign='right';
+     ctx.fillStyle='#8e3549';ctx.font='900 15px Arial';ctx.textAlign='right';
+     ctx.fillText(moneyAR(recordValue(r)),x+w-175,cy+43);
+     ctx.font='800 13px Arial';
      ctx.fillText(shortStamp(r.deliveredAt||r.createdAt),x+w-48,cy+43);
      ctx.textAlign='left';
 
@@ -1234,8 +1270,19 @@ function captureSquarePhoto(){
   c.width=720;c.height=720;
   c.getContext('2d').drawImage(v,sx,sy,size,size,0,0,720,720);
   draftPhoto=c.toDataURL('image/jpeg',.82);
-  renderDraftPhoto();
+
+  // First return to the editor, then paint the captured square there.
   closeSquareCamera();
+  requestAnimationFrame(()=>{
+    renderDraftPhoto();
+    const box=$('#photoBox');
+    if(box){
+      box.animate(
+        [{transform:'scale(.96)',opacity:.55},{transform:'scale(1)',opacity:1}],
+        {duration:180,easing:'ease-out'}
+      );
+    }
+  });
 }
 $('#closeCameraBtn').onclick=closeSquareCamera;
 $('#captureBtn').onclick=captureSquarePhoto;
