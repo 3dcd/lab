@@ -543,6 +543,19 @@ body.mode-all .workTotal span{color:#e7f2fb}
   .cardStateBox{min-width:78px}
 }
 
+
+.budgetAction{
+  background:#fff4d9;
+  border-color:#e6bd66;
+  color:#8a5a08;
+}
+body.mode-delivered .budgetAction,
+body.mode-all .budgetAction{
+  background:#fff1cf;
+  border-color:#d9aa49;
+  color:#7a4b00;
+}
+
 </style>
 </head>
 <body>
@@ -908,6 +921,7 @@ function render(){
         ${r.notes?`<div class="notes">${esc(r.notes)}</div>`:''}
         <div class="actions">
           
+          <button class="action budgetAction" data-act="budget">Presupuesto</button>
           <button class="action" data-act="edit">Editar</button>
           ${r.status==='received'
             ?`<button class="action primary" data-act="deliver">Marcar entregado</button>`
@@ -1207,6 +1221,114 @@ async function currentCardBlob(){
  ctx.fillText(`En mi poder: ${received.length}   ·   Entregados: ${delivered.length}`,x+38,y+h-30);
  return await new Promise(res=>c.toBlob(res,'image/png',.96))
 }
+
+async function budgetCardBlob(r){
+  const W=900,H=1260,c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  const x=34,y=34,w=832,h=1188;
+  const accent='#8a5a08',soft='#fff7e6';
+
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,.18)';ctx.shadowBlur=28;ctx.shadowOffsetY=10;
+  ctx.fillStyle='#fff';rr(ctx,x,y,w,h,42);ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,42);ctx.stroke();
+
+  ctx.fillStyle=soft;rr(ctx,x+18,y+18,w-36,150,30);ctx.fill();
+  ctx.fillStyle=accent;ctx.font='900 31px Arial';ctx.fillText('PRESUPUESTO',x+44,y+62);
+  ctx.fillStyle='#15171a';ctx.font='900 29px Arial';
+  wrap(ctx,r.client||'Cliente',x+44,y+103,w-88,34,2);
+  ctx.fillStyle='#6d6251';ctx.font='700 17px Arial';
+  ctx.fillText(new Intl.DateTimeFormat('es-AR',{dateStyle:'short'}).format(new Date()),x+44,y+139);
+
+  let cy=y+205;
+  const im=await imgData(r.photo);
+
+  if(im){
+    const ps=200,px=x+44,py=cy;
+    ctx.fillStyle='#f1f1f1';rr(ctx,px,py,ps,ps,28);ctx.fill();
+    ctx.save();rr(ctx,px,py,ps,ps,28);ctx.clip();
+    const sc=Math.max(ps/im.width,ps/im.height),iw=im.width*sc,ih=im.height*sc;
+    ctx.drawImage(im,px+(ps-iw)/2,py+(ps-ih)/2,iw,ih);ctx.restore();
+
+    ctx.fillStyle='#54585d';ctx.font='700 20px Arial';
+    ctx.fillText('Detalle del trabajo',px+230,py+38);
+    ctx.fillStyle='#15171a';ctx.font='900 25px Arial';
+    wrap(ctx,itemSummary(r),px+230,py+82,480,32,4);
+    cy=py+230;
+  }else{
+    ctx.fillStyle='#54585d';ctx.font='700 20px Arial';ctx.fillText('Detalle del trabajo',x+44,cy);
+    ctx.fillStyle='#15171a';ctx.font='900 25px Arial';
+    cy=wrap(ctx,itemSummary(r),x+44,cy+40,w-88,32,4)+10;
+  }
+
+  const items=r.items||[];
+  const rowH=82;
+  const boxH=Math.max(190,80+items.length*rowH);
+  ctx.fillStyle='#f8f9fa';rr(ctx,x+34,cy,w-68,boxH,28);ctx.fill();
+  ctx.strokeStyle='#e0e3e6';ctx.lineWidth=2;rr(ctx,x+34,cy,w-68,boxH,28);ctx.stroke();
+
+  let iy=cy+54;
+  for(const it of items){
+    const qty=Math.max(1,Number(it.qty||1));
+    const lineTotal=qty*stampPrice(it.stamp);
+
+    ctx.fillStyle='#15171a';ctx.font='900 23px Arial';
+    wrap(ctx,`${it.type||'Prenda'}${it.color?' · '+it.color:''}`,x+58,iy,430,28,2);
+
+    ctx.fillStyle='#6d7176';ctx.font='700 17px Arial';
+    ctx.fillText(`${qty} u. · ${it.stamp||'1 chico'}`,x+58,iy+32);
+
+    ctx.textAlign='right';
+    ctx.fillStyle=accent;ctx.font='900 23px Arial';
+    ctx.fillText(moneyAR(lineTotal),x+w-62,iy+14);
+    ctx.textAlign='left';
+
+    iy+=rowH;
+  }
+
+  const total=recordValue(r);
+  const totalY=Math.min(y+h-190,cy+boxH+42);
+  ctx.fillStyle='#15171a';rr(ctx,x+34,totalY,w-68,120,28);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.68)';ctx.font='800 18px Arial';
+  ctx.fillText('TOTAL',x+62,totalY+46);
+  ctx.fillStyle='#fff';ctx.font='900 46px Arial';ctx.textAlign='right';
+  ctx.fillText(moneyAR(total),x+w-62,totalY+78);
+  ctx.textAlign='left';
+
+  ctx.fillStyle='#7b8388';ctx.font='700 15px Arial';
+  ctx.fillText('Presupuesto generado con Recibidos 3DCD',x+44,y+h-32);
+
+  return await new Promise(res=>c.toBlob(res,'image/png',.96));
+}
+
+async function shareBudget(r){
+  const blob=await budgetCardBlob(r);
+  const file=new File(
+    [blob],
+    `presupuesto-${String(r.numero||0).padStart(3,'0')}-${safeFilePart(r.client)}.png`,
+    {type:'image/png'}
+  );
+
+  if(navigator.share){
+    try{
+      if(navigator.canShare?.({files:[file]})){
+        await navigator.share({title:`Presupuesto - ${r.client||'Cliente'}`,files:[file]});
+        return;
+      }
+    }catch(e){
+      if(e?.name==='AbortError')return;
+    }
+  }
+
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=file.name;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1200);
+}
+
 async function shareRecord(r){
  const text=textForRecord(r),blob=await recordCardBlob(r),file=new File([blob],`3dcd-${r.status}-${String(r.numero).padStart(3,'0')}.png`,{type:'image/png'});
  if(navigator.share){try{if(navigator.canShare?.({files:[file]}))await navigator.share({title:`${statusLabel(r)} - ${r.client}`,text,files:[file]});else await navigator.share({title:`${statusLabel(r)} - ${r.client}`,text});return}catch(e){if(e?.name==='AbortError')return}}
@@ -1387,6 +1509,7 @@ listEl.addEventListener('click',async e=>{
   if(!r)return;
   const act=btn.dataset.act;
 
+  if(act==='budget'){await shareBudget(r);return}
   if(act==='edit'){openEdit(r);return}
   if(act==='deliver'){
     pushHistory();
