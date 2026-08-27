@@ -555,6 +555,9 @@ function load(){
     records=JSON.parse(localStorage.getItem(KEY)||'[]');
     if(!Array.isArray(records))records=[];
   }catch{records=[]}
+  records.forEach(r=>{
+    if(!r.receivedAt)r.receivedAt=r.createdAt||nowIso();
+  });
   const max=Math.max(0,...records.map(r=>Number(r.numero||0)));
   const stored=Number(localStorage.getItem(COUNTER_KEY)||1);
   if(stored<=max)localStorage.setItem(COUNTER_KEY,String(max+1));
@@ -600,7 +603,7 @@ function render(){
         <div class="thumb">${r.photo?`<img src="${r.photo}" alt="Foto">`:'📦'}</div>
         <div class="client">
           <h3>${esc(r.client||'Sin cliente')}</h3>
-          <p>${esc(itemSummary(r))}<br>${fmtDate(r.createdAt)}</p>
+          <p>${esc(itemSummary(r))}<br>${fmtDate(r.status==='delivered'?(r.deliveredAt||r.createdAt):(r.receivedAt||r.createdAt))}</p>
         </div>
         <span class="status ${r.status}">${statusLabel(r)}</span>
       </div>
@@ -720,6 +723,7 @@ function saveDraft(){
       id:uid(),
       numero:nextNumber(),
       createdAt:nowIso(),
+      receivedAt:nowIso(),
       deliveredAt:null,
       status:'received'
     };
@@ -731,7 +735,7 @@ function saveDraft(){
 }
 function textForRecord(r){
   const lines=(r.items||[]).map(i=>`• ${i.qty} ${i.type}${i.color?' · '+i.color:''}`);
-  return `${r.status==='delivered'?'ENTREGADO':'RECIBIDO'}\nCliente: ${r.client}\n${lines.join('\n')}${r.notes?`\nObs.: ${r.notes}`:''}\n${new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date(r.status==='delivered'&&r.deliveredAt?r.deliveredAt:r.createdAt))}`;
+  return `${r.status==='delivered'?'ENTREGADO':'RECIBIDO'}\nCliente: ${r.client}\n${lines.join('\n')}${r.notes?`\nObs.: ${r.notes}`:''}\n${new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date(r.status==='delivered'?(r.deliveredAt||r.createdAt):(r.receivedAt||r.createdAt)))}`;
 }
 
 function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
@@ -748,7 +752,7 @@ async function recordCardBlob(r){
  ctx.fillStyle=soft;rr(ctx,x+18,y+18,w-36,150,30);ctx.fill();
  ctx.fillStyle=accent;ctx.font='900 32px Arial';ctx.fillText('Recibidos 3DCD',x+44,y+64);
  ctx.font='900 24px Arial';ctx.fillText(rec?'EN MI PODER':'ENTREGADO',x+44,y+101);
- ctx.font='700 18px Arial';ctx.fillStyle='#65706f';ctx.fillText(fmtDate(rec?r.createdAt:(r.deliveredAt||r.createdAt)),x+44,y+132);
+ ctx.font='700 18px Arial';ctx.fillStyle='#65706f';ctx.fillText(fmtDate(rec?(r.receivedAt||r.createdAt):(r.deliveredAt||r.createdAt)),x+44,y+132);
 
  let cy=y+205;
  const im=await imgData(r.photo);
@@ -845,7 +849,7 @@ async function currentCardBlob(){
    ctx.fillStyle='#168c72';ctx.font='900 15px Arial';ctx.textAlign='right';
    ctx.fillText('RECIBIDO',x+w-50,cy+38);
    ctx.fillStyle='#52635f';ctx.font='700 14px Arial';
-   ctx.fillText(shortStamp(r.createdAt),x+w-50,cy+62);
+   ctx.fillText(shortStamp(r.receivedAt||r.createdAt),x+w-50,cy+62);
    ctx.textAlign='left';
 
    cy+=recvH+recvGap;
@@ -901,7 +905,7 @@ function currentText(){
   const data=[...records].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(!data.length)return 'TODOS LOS MOVIMIENTOS\nSin registros.';
   const rows=data.map(r=>{
-    const when=r.status==='delivered'?`Entregado ${shortStamp(r.deliveredAt||r.createdAt)}`:`Recibido ${shortStamp(r.createdAt)}`;
+    const when=r.status==='delivered'?`Entregado ${shortStamp(r.deliveredAt||r.createdAt)}`:`Recibido ${shortStamp(r.receivedAt||r.createdAt)}`;
     return `• ${r.client}: ${(r.items||[]).map(i=>`${i.qty} ${i.type}${i.color?' '+i.color:''}`).join(', ')} — ${when}`;
   });
   return `TODOS LOS MOVIMIENTOS\n\n${rows.join('\n')}\n\nRegistros: ${data.length}`;
@@ -984,6 +988,7 @@ $('#miniOk').onclick=()=>{
   const r=records.find(x=>x.id===pendingReopenId);
   if(r){
     r.status='received';
+    r.receivedAt=nowIso();
     r.deliveredAt=null;
     save();
   }
