@@ -509,6 +509,13 @@ body.mode-all .workTotal b{color:#fff}
   font-weight:950;
 }
 
+
+body.mode-received .workTotal b{color:#075f56}
+body.mode-delivered .workTotal b{color:#fff3f5}
+body.mode-all .workTotal b{color:#fff}
+body.mode-delivered .workTotal span{color:#ffe4e9}
+body.mode-all .workTotal span{color:#e7f2fb}
+
 </style>
 </head>
 <body>
@@ -519,7 +526,7 @@ body.mode-all .workTotal b{color:#fff}
         <h1>Recibidos 3DCD</h1>
         <small>Entradas y entregas de prendas</small>
         <div class="workTotal">
-          <span>TRABAJO EN CURSO</span>
+          <span id="workTotalLabel">TRABAJO EN CURSO</span>
           <b id="workTotalValue">$ 0</b>
         </div>
       </div>
@@ -797,12 +804,24 @@ function stampPrice(type){
 function moneyAR(n){
   return '$ '+Math.round(Number(n||0)).toLocaleString('es-AR');
 }
-function pendingWorkTotal(){
+function recordValue(r){
+  return (r.items||[]).reduce((sum,i)=>{
+    return sum+(Math.max(0,Number(i.qty||0))*stampPrice(i.stamp));
+  },0);
+}
+function statusWorkTotal(status){
   return records
-    .filter(r=>r.status==='received')
-    .reduce((sum,r)=>sum+(r.items||[]).reduce((a,i)=>{
-      return a+(Math.max(0,Number(i.qty||0))*stampPrice(i.stamp));
-    },0),0);
+    .filter(r=>status==='all' || r.status===status)
+    .reduce((sum,r)=>sum+recordValue(r),0);
+}
+function currentViewMoney(){
+  if(activeFilter==='received'){
+    return {label:'TRABAJO EN CURSO',value:statusWorkTotal('received')};
+  }
+  if(activeFilter==='delivered'){
+    return {label:'PARA COBRAR',value:statusWorkTotal('delivered')};
+  }
+  return {label:'TOTAL GENERAL',value:statusWorkTotal('all')};
 }
 
 function statusLabel(r){return r.status==='delivered'?'Entregado':'Recibido'}
@@ -823,7 +842,9 @@ function render(){
   const delivered=records.filter(r=>r.status==='delivered').length;
   $('#receivedCount').textContent=received;
   $('#deliveredCount').textContent=delivered;
-  $('#workTotalValue').textContent=moneyAR(pendingWorkTotal());
+    const moneyState=currentViewMoney();
+  $('#workTotalLabel').textContent=moneyState.label;
+  $('#workTotalValue').textContent=moneyAR(moneyState.value);
 
   const data=filtered();
   $('#listCount').textContent=`${data.length} registro${data.length===1?'':'s'}`;
