@@ -221,9 +221,9 @@ body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
   .stats{grid-template-columns:repeat(2,180px);justify-content:start}
 }
 
-body.mode-received{background:linear-gradient(180deg,#9fdbc9 0,#ccebe2 320px,#e9f5f1 100%)}
-body.mode-delivered{background:linear-gradient(180deg,#a65a68 0,#d9aeb6 320px,#f3e8eb 100%)}
-body.mode-all{background:linear-gradient(180deg,#6fa0c9 0,#b7d2e7 320px,#edf4f9 100%)}
+body.mode-received{background:#9fdbc9}
+body.mode-delivered{background:#a65a68}
+body.mode-all{background:#6fa0c9}
 .statbtn{appearance:none;text-align:left;width:100%;cursor:pointer;transition:.18s;outline:none}
 .statbtn.selected{transform:translateY(-2px)}
 .statbtn.received.selected{border-color:#5bc4b6;box-shadow:0 14px 34px rgba(8,127,115,.20)}
@@ -265,6 +265,56 @@ body.mode-all #showAllBtn{background:#244f73;color:#fff;border-color:#244f73}
 }
 #miniOk{background:#7e2f3d;color:#fff;border-color:#7e2f3d}
 @media(min-width:700px){.miniConfirm{align-items:center}}
+
+
+body.mode-all .card.received{
+  border:2px solid #5ebaa9;
+  border-left:8px solid #087f73;
+  background:#f7fffc;
+}
+body.mode-all .card.delivered{
+  border:2px solid #c58b96;
+  border-left:8px solid #7e2f3d;
+  background:#fff8fa;
+  opacity:1;
+}
+body.mode-all .card.received .status.received{
+  background:#087f73;color:#fff;
+}
+body.mode-all .card.delivered .status.delivered{
+  background:#7e2f3d;color:#fff;
+}
+body.mode-received .card.received{
+  border-left:8px solid #087f73;
+  background:#f8fffd;
+}
+body.mode-delivered .card.delivered{
+  border-left:8px solid #7e2f3d;
+  background:#fff8fa;
+  opacity:1;
+}
+body.mode-delivered .status.delivered{
+  background:#7e2f3d;color:#fff;
+}
+body.mode-received .status.received{
+  background:#087f73;color:#fff;
+}
+
+
+body.mode-all .stat.received{
+  background:#d8f5ef;
+  border-color:#72c8b8;
+  color:#075f56;
+}
+body.mode-all .stat.delivered{
+  background:#f4dce1;
+  border-color:#d08c99;
+  color:#7e2f3d;
+}
+body.mode-all .stat.received span,
+body.mode-all .stat.received b{color:#075f56}
+body.mode-all .stat.delivered span,
+body.mode-all .stat.delivered b{color:#7e2f3d}
 
 </style>
 </head>
@@ -589,8 +639,8 @@ function wrap(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){const words=String(te
 async function imgData(src){if(!src)return null;return await new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src=src})}
 async function recordCardBlob(r){
  const W=1080,H=1500,c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d'),rec=r.status!=='delivered';
- const bg=rec?'#9fdbc9':'#a65a68',soft=rec?'#e9f5f1':'#f3e8eb',accent=rec?'#087f73':'#7e2f3d';
- ctx.fillStyle=soft;ctx.fillRect(0,0,W,H);ctx.fillStyle=bg;ctx.fillRect(0,0,W,260);
+ const bg=rec?'#9fdbc9':'#a65a68',accent=rec?'#087f73':'#7e2f3d';
+ ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
  ctx.fillStyle='#fff';ctx.font='900 54px Arial';ctx.fillText('Recibidos 3DCD',58,82);
  ctx.font='900 40px Arial';ctx.fillText(rec?'EN MI PODER':'ENTREGADO',58,145);
  ctx.font='700 24px Arial';ctx.fillStyle='rgba(255,255,255,.88)';ctx.fillText(fmtDate(rec?r.createdAt:(r.deliveredAt||r.createdAt)),58,192);
@@ -623,10 +673,8 @@ async function currentCardBlob(){
  const data=viewRecords();
  const W=1080,cardH=205,gap=22,topH=260,H=Math.max(1350,topH+data.length*(cardH+gap)+110),c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');
  const bg=activeFilter==='received'?'#9fdbc9':activeFilter==='delivered'?'#a65a68':'#6fa0c9';
- const soft=activeFilter==='received'?'#e9f5f1':activeFilter==='delivered'?'#f3e8eb':'#edf4f9';
  const accent=activeFilter==='received'?'#087f73':activeFilter==='delivered'?'#7e2f3d':'#285f8b';
- ctx.fillStyle=soft;ctx.fillRect(0,0,W,H);
- ctx.fillStyle=bg;ctx.fillRect(0,0,W,topH);
+ ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
  ctx.fillStyle='#fff';ctx.font='900 54px Arial';ctx.fillText('Recibidos 3DCD',58,82);
  ctx.font='900 38px Arial';ctx.fillText(viewTitle(),58,142);
  ctx.font='700 24px Arial';ctx.fillStyle='rgba(255,255,255,.88)';
@@ -639,9 +687,9 @@ async function currentCardBlob(){
  } else {
    for(const r of data){
      ctx.save();ctx.shadowColor='rgba(0,0,0,.12)';ctx.shadowBlur=22;ctx.shadowOffsetY=8;
-     ctx.fillStyle='#fff';rr(ctx,50,y,980,cardH,34);ctx.fill();ctx.restore();
+     ctx.fillStyle=r.status==='received'?'#f7fffc':'#fff8fa';rr(ctx,50,y,980,cardH,34);ctx.fill();ctx.restore();
 
-     ctx.fillStyle=r.status==='received'?'#087f73':'#7e2f3d';rr(ctx,50,y,12,cardH,6);ctx.fill();
+     ctx.fillStyle=r.status==='received'?'#087f73':'#7e2f3d';rr(ctx,50,y,14,cardH,7);ctx.fill();
 
      const im=await imgData(r.photo);
      if(im){
