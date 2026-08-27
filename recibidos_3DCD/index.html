@@ -603,7 +603,7 @@ function render(){
         </div>
         ${r.notes?`<div class="notes">${esc(r.notes)}</div>`:''}
         <div class="actions">
-          <button class="action" data-act="share">Compartir</button>
+          
           <button class="action" data-act="edit">Editar</button>
           ${r.status==='received'
             ?`<button class="action primary" data-act="deliver">Marcar entregado</button>`
@@ -998,7 +998,6 @@ listEl.addEventListener('click',async e=>{
   if(!r)return;
   const act=btn.dataset.act;
 
-  if(act==='share'){await shareRecord(r);return}
   if(act==='edit'){openEdit(r);return}
   if(act==='deliver'){
     r.status='delivered';
