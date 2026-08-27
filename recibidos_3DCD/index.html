@@ -95,8 +95,8 @@ body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
   box-shadow:var(--shadow);
   overflow:hidden;
 }
-.card.received{border-left:5px solid var(--received)}
-.card.delivered{border-left:5px solid var(--delivered);opacity:.86}
+.card.received{border-left:0}
+.card.delivered{border-left:0;opacity:.86}
 .cardhead{
   display:grid;grid-template-columns:62px 1fr auto;gap:12px;align-items:center;
   padding:12px;
@@ -269,12 +269,10 @@ body.mode-all #showAllBtn{background:#244f73;color:#fff;border-color:#244f73}
 
 body.mode-all .card.received{
   border:2px solid #5ebaa9;
-  border-left:8px solid #087f73;
   background:#f7fffc;
 }
 body.mode-all .card.delivered{
   border:2px solid #c58b96;
-  border-left:8px solid #7e2f3d;
   background:#fff8fa;
   opacity:1;
 }
@@ -285,11 +283,9 @@ body.mode-all .card.delivered .status.delivered{
   background:#7e2f3d;color:#fff;
 }
 body.mode-received .card.received{
-  border-left:8px solid #087f73;
   background:#f8fffd;
 }
 body.mode-delivered .card.delivered{
-  border-left:8px solid #7e2f3d;
   background:#fff8fa;
   opacity:1;
 }
@@ -315,6 +311,82 @@ body.mode-all .stat.received span,
 body.mode-all .stat.received b{color:#075f56}
 body.mode-all .stat.delivered span,
 body.mode-all .stat.delivered b{color:#7e2f3d}
+
+
+/* Contenedores visuales más definidos */
+.card{border-width:2px}
+.stat{border-width:2px}
+.chip{border-width:2px}
+.iconbtn{border-width:2px}
+.items{border-width:2px}
+.action{border-width:2px}
+.photoPick{border-width:2px}
+.photoBox{border-width:2px}
+.item-editor{border-width:2px}
+.field input,.field textarea,.field select{border-width:2px}
+.additem{border-width:2px}
+.secondarySave{border-width:2px}
+.closebtn{border-width:2px}
+.miniConfirmCard{border-width:2px}
+.miniConfirmActions button{border-width:2px}
+
+
+/* Editor realmente flotante */
+.modalback{
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  overflow:auto;
+}
+.sheet{
+  width:min(720px,100%);
+  max-height:calc(100vh - 36px);
+  margin:auto;
+  border-radius:28px;
+  padding:16px 14px max(18px,env(safe-area-inset-bottom));
+  overflow:auto;
+}
+@media(max-width:699px){
+  .modalback{align-items:flex-start;padding:18px 14px 26px}
+  .sheet{
+    width:100%;
+    max-height:none;
+    min-height:auto;
+    margin:0 auto 26px;
+    border-radius:28px;
+    overflow:visible;
+  }
+  .sheetfoot{
+    position:static;
+    background:#fff;
+    padding-top:14px;
+  }
+}
+
+
+/* Los dos botones superiores conservan siempre su identidad */
+.statbtn.received{
+  background:#d8f5ef !important;
+  border-color:#69c9b8 !important;
+  color:#075f56 !important;
+}
+.statbtn.received b,.statbtn.received span{color:#075f56 !important}
+.statbtn.delivered{
+  background:#f4dce1 !important;
+  border-color:#d28d99 !important;
+  color:#7e2f3d !important;
+}
+.statbtn.delivered b,.statbtn.delivered span{color:#7e2f3d !important}
+.statbtn.received.selected{
+  background:#bcebdd !important;
+  border-color:#087f73 !important;
+  box-shadow:0 12px 28px rgba(8,127,115,.22) !important;
+}
+.statbtn.delivered.selected{
+  background:#e8bcc5 !important;
+  border-color:#7e2f3d !important;
+  box-shadow:0 12px 28px rgba(126,47,61,.22) !important;
+}
 
 </style>
 </head>
@@ -645,8 +717,7 @@ async function recordCardBlob(r){
  ctx.font='900 40px Arial';ctx.fillText(rec?'EN MI PODER':'ENTREGADO',58,145);
  ctx.font='700 24px Arial';ctx.fillStyle='rgba(255,255,255,.88)';ctx.fillText(fmtDate(rec?r.createdAt:(r.deliveredAt||r.createdAt)),58,192);
 
- ctx.save();ctx.shadowColor='rgba(0,0,0,.13)';ctx.shadowBlur=28;ctx.shadowOffsetY=10;ctx.fillStyle='#fff';rr(ctx,50,300,980,1090,38);ctx.fill();ctx.restore();
- ctx.fillStyle=accent;rr(ctx,50,300,12,1090,6);ctx.fill();
+ ctx.save();ctx.shadowColor='rgba(0,0,0,.13)';ctx.shadowBlur=28;ctx.shadowOffsetY=10;ctx.fillStyle='#fff';rr(ctx,50,300,980,1090,38);ctx.fill();ctx.restore();ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,50,300,980,1090,38);ctx.stroke();
 
  let y=350;const im=await imgData(r.photo);
  if(im){
@@ -688,8 +759,7 @@ async function currentCardBlob(){
    for(const r of data){
      ctx.save();ctx.shadowColor='rgba(0,0,0,.12)';ctx.shadowBlur=22;ctx.shadowOffsetY=8;
      ctx.fillStyle=r.status==='received'?'#f7fffc':'#fff8fa';rr(ctx,50,y,980,cardH,34);ctx.fill();ctx.restore();
-
-     ctx.fillStyle=r.status==='received'?'#087f73':'#7e2f3d';rr(ctx,50,y,14,cardH,7);ctx.fill();
+     ctx.strokeStyle=r.status==='received'?'#5ebaa9':'#c58b96';ctx.lineWidth=4;rr(ctx,50,y,980,cardH,34);ctx.stroke();
 
      const im=await imgData(r.photo);
      if(im){
