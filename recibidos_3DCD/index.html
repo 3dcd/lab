@@ -1159,9 +1159,9 @@ async function currentCardBlob(){
  ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,42);ctx.stroke();
 
  ctx.fillStyle=headBg;rr(ctx,x+16,y+16,w-32,headH,28);ctx.fill();
- ctx.fillStyle=headText;ctx.font='900 60px Arial';ctx.fillText('Recibidos 3DCD',x+38,y+66);
- ctx.font='900 46px Arial';ctx.fillText(viewTitle(),x+38,y+116);
- ctx.fillStyle='#586873';ctx.font='700 34px Arial';
+ ctx.fillStyle=headText;ctx.font='900 42px Arial';ctx.fillText('Recibidos 3DCD',x+38,y+66);
+ ctx.font='900 34px Arial';ctx.fillText(viewTitle(),x+38,y+116);
+ ctx.fillStyle='#586873';ctx.font='700 24px Arial';
  ctx.fillText(new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date()),x+38,y+158);
 
  let cy=y+headH+36;
@@ -1180,15 +1180,15 @@ async function currentCardBlob(){
      ctx.fillStyle='#edf1f1';rr(ctx,px,py,ps,ps,18);ctx.fill();
    }
 
-   ctx.fillStyle='#15171a';ctx.font='900 48px Arial';
+   ctx.fillStyle='#15171a';ctx.font='900 34px Arial';
    let ty=wrap(ctx,r.client||'Sin cliente',px+150,cy+58,350,52,2);
-   ctx.fillStyle='#53645f';ctx.font='700 34px Arial';
+   ctx.fillStyle='#53645f';ctx.font='700 24px Arial';
    wrap(ctx,itemSummary(r),px+150,ty+4,350,38,2);
 
-   ctx.fillStyle='#168c72';ctx.font='900 30px Arial';ctx.textAlign='right';
+   ctx.fillStyle='#168c72';ctx.font='900 22px Arial';ctx.textAlign='right';
    ctx.fillText('EN MI PODER',x+w-50,cy+48);
-   ctx.font='900 40px Arial';ctx.fillText(moneyAR(recordValue(r)),x+w-50,cy+94);
-   ctx.fillStyle='#52635f';ctx.font='700 26px Arial';
+   ctx.font='900 22px Arial';ctx.fillText(moneyAR(recordValue(r)),x+w-50,cy+94);
+   ctx.fillStyle='#52635f';ctx.font='700 19px Arial';
    ctx.fillText(shortStamp(r.receivedAt||r.createdAt),x+w-50,cy+132);
    ctx.textAlign='left';
 
@@ -1198,29 +1198,29 @@ async function currentCardBlob(){
  // ENTREGADOS: compact rows
  if(delivered.length){
    if(received.length)cy+=8;
-   ctx.fillStyle='#8e3549';ctx.font='900 36px Arial';ctx.fillText('ENTREGADOS',x+30,cy+36);
+   ctx.fillStyle='#8e3549';ctx.font='900 26px Arial';ctx.fillText('ENTREGADOS',x+30,cy+36);
    cy+=40;
 
    for(const r of delivered){
      ctx.fillStyle='#efd3d9';rr(ctx,x+24,cy,w-48,delH,20);ctx.fill();
      ctx.strokeStyle='#a94f62';ctx.lineWidth=3;rr(ctx,x+24,cy,w-48,delH,20);ctx.stroke();
 
-     ctx.fillStyle='#2b1d20';ctx.font='900 40px Arial';
+     ctx.fillStyle='#2b1d20';ctx.font='900 22px Arial';
      let client=String(r.client||'Sin cliente');
      while(ctx.measureText(client).width>235&&client.length>5)client=client.slice(0,-1);
      if(client!==String(r.client||'Sin cliente'))client+='…';
-     ctx.fillText(client,x+48,cy+58);
+     ctx.fillText(client,x+48,cy+42);
 
-     ctx.fillStyle='#593c42';ctx.font='700 32px Arial';
+     ctx.fillStyle='#593c42';ctx.font='700 22px Arial';
      let summary=itemSummary(r);
      while(ctx.measureText(summary).width>330&&summary.length>8)summary=summary.slice(0,-1);
      if(summary!==itemSummary(r))summary+='…';
-     ctx.fillText(summary,x+295,cy+96);
+     ctx.fillText(summary,x+48,cy+84);
 
-     ctx.fillStyle='#8e3549';ctx.font='900 30px Arial';ctx.textAlign='right';
-     ctx.fillText(moneyAR(recordValue(r)),x+w-48,cy+54);
-     ctx.font='800 26px Arial';
-     ctx.fillText(shortStamp(r.deliveredAt||r.createdAt),x+w-48,cy+96);
+     ctx.fillStyle='#8e3549';ctx.font='900 22px Arial';ctx.textAlign='right';
+     ctx.fillText(moneyAR(recordValue(r)),x+w-48,cy+42);
+     ctx.font='800 19px Arial';
+     ctx.fillText(shortStamp(r.deliveredAt||r.createdAt),x+w-48,cy+88);
      ctx.textAlign='left';
 
      cy+=delH+delGap;
@@ -1230,13 +1230,13 @@ async function currentCardBlob(){
  // TOTAL visible for the exact section being shared
  cy+=26;
  ctx.fillStyle=accent;rr(ctx,x+24,cy,w-48,totalH,26);ctx.fill();
- ctx.fillStyle='rgba(255,255,255,.76)';ctx.font='800 36px Arial';ctx.textAlign='left';
+ ctx.fillStyle='rgba(255,255,255,.76)';ctx.font='800 25px Arial';ctx.textAlign='left';
  ctx.fillText(viewTitle()+' · TOTAL',x+52,cy+52);
- ctx.fillStyle='#fff';ctx.font='900 84px Arial';ctx.textAlign='right';
+ ctx.fillStyle='#fff';ctx.font='900 52px Arial';ctx.textAlign='right';
  ctx.fillText(moneyAR(data.reduce((sum,r)=>sum+recordValue(r),0)),x+w-52,cy+112);
  ctx.textAlign='left';
 
- ctx.fillStyle='#6f777d';ctx.font='700 30px Arial';
+ ctx.fillStyle='#6f777d';ctx.font='700 21px Arial';
  if(activeFilter==='received'){
    ctx.fillText(`En mi poder: ${received.length} registro${received.length===1?'':'s'}`,x+38,y+h-30);
  }else if(activeFilter==='delivered'){
@@ -1261,10 +1261,10 @@ async function budgetCardBlob(r){
   ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,42);ctx.stroke();
 
   ctx.fillStyle=soft;rr(ctx,x+18,y+18,w-36,150,30);ctx.fill();
-  ctx.fillStyle=accent;ctx.font='900 62px Arial';ctx.fillText('PRESUPUESTO',x+44,y+62);
-  ctx.fillStyle='#15171a';ctx.font='900 58px Arial';
+  ctx.fillStyle=accent;ctx.font='900 42px Arial';ctx.fillText('PRESUPUESTO',x+44,y+62);
+  ctx.fillStyle='#15171a';ctx.font='900 40px Arial';
   wrap(ctx,r.client||'Cliente',x+44,y+103,w-88,34,2);
-  ctx.fillStyle='#6d6251';ctx.font='700 34px Arial';
+  ctx.fillStyle='#6d6251';ctx.font='700 24px Arial';
   ctx.fillText(new Intl.DateTimeFormat('es-AR',{dateStyle:'short'}).format(new Date()),x+44,y+139);
 
   let cy=y+205;
@@ -1277,19 +1277,19 @@ async function budgetCardBlob(r){
     const sc=Math.max(ps/im.width,ps/im.height),iw=im.width*sc,ih=im.height*sc;
     ctx.drawImage(im,px+(ps-iw)/2,py+(ps-ih)/2,iw,ih);ctx.restore();
 
-    ctx.fillStyle='#54585d';ctx.font='700 40px Arial';
+    ctx.fillStyle='#54585d';ctx.font='700 27px Arial';
     ctx.fillText('Detalle del trabajo',px+230,py+38);
-    ctx.fillStyle='#15171a';ctx.font='900 50px Arial';
+    ctx.fillStyle='#15171a';ctx.font='900 34px Arial';
     wrap(ctx,itemSummary(r),px+230,py+82,480,32,4);
     cy=py+230;
   }else{
-    ctx.fillStyle='#54585d';ctx.font='700 40px Arial';ctx.fillText('Detalle del trabajo',x+44,cy);
-    ctx.fillStyle='#15171a';ctx.font='900 50px Arial';
+    ctx.fillStyle='#54585d';ctx.font='700 27px Arial';ctx.fillText('Detalle del trabajo',x+44,cy);
+    ctx.fillStyle='#15171a';ctx.font='900 34px Arial';
     cy=wrap(ctx,itemSummary(r),x+44,cy+40,w-88,32,4)+10;
   }
 
   const items=r.items||[];
-  const rowH=132;
+  const rowH=142;
   const boxH=Math.max(250,110+items.length*rowH);
   ctx.fillStyle='#f8f9fa';rr(ctx,x+34,cy,w-68,boxH,28);ctx.fill();
   ctx.strokeStyle='#e0e3e6';ctx.lineWidth=2;rr(ctx,x+34,cy,w-68,boxH,28);ctx.stroke();
@@ -1299,15 +1299,15 @@ async function budgetCardBlob(r){
     const qty=Math.max(1,Number(it.qty||1));
     const lineTotal=qty*stampPrice(it.stamp);
 
-    ctx.fillStyle='#15171a';ctx.font='900 46px Arial';
+    ctx.fillStyle='#15171a';ctx.font='900 32px Arial';
     wrap(ctx,`${it.type||'Prenda'}${it.color?' · '+it.color:''}`,x+58,iy,430,28,2);
 
-    ctx.fillStyle='#6d7176';ctx.font='700 34px Arial';
-    ctx.fillText(`${qty} u. · ${it.stamp||'1 chico'}`,x+58,iy+32);
+    ctx.fillStyle='#6d7176';ctx.font='700 24px Arial';
+    ctx.fillText(`${qty} u. · ${it.stamp||'1 chico'}`,x+58,iy+48);
 
     ctx.textAlign='right';
-    ctx.fillStyle=accent;ctx.font='900 46px Arial';
-    ctx.fillText(moneyAR(lineTotal),x+w-62,iy+14);
+    ctx.fillStyle=accent;ctx.font='900 32px Arial';
+    ctx.fillText(moneyAR(lineTotal),x+w-62,iy+28);
     ctx.textAlign='left';
 
     iy+=rowH;
@@ -1316,13 +1316,13 @@ async function budgetCardBlob(r){
   const total=recordValue(r);
   const totalY=Math.min(y+h-190,cy+boxH+42);
   ctx.fillStyle='#15171a';rr(ctx,x+34,totalY,w-68,120,28);ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,.68)';ctx.font='800 36px Arial';
+  ctx.fillStyle='rgba(255,255,255,.68)';ctx.font='800 25px Arial';
   ctx.fillText('TOTAL',x+62,totalY+46);
-  ctx.fillStyle='#fff';ctx.font='900 92px Arial';ctx.textAlign='right';
+  ctx.fillStyle='#fff';ctx.font='900 56px Arial';ctx.textAlign='right';
   ctx.fillText(moneyAR(total),x+w-62,totalY+78);
   ctx.textAlign='left';
 
-  ctx.fillStyle='#7b8388';ctx.font='700 30px Arial';
+  ctx.fillStyle='#7b8388';ctx.font='700 21px Arial';
   ctx.fillText('Presupuesto generado con Recibidos 3DCD',x+44,y+h-32);
 
   return await new Promise(res=>c.toBlob(res,'image/png',.96));
