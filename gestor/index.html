@@ -595,10 +595,10 @@ body.mode-all .budgetAction{
 
 
   <div class="backupReminder" id="backupReminder">
-    <div class="backupReminderText" id="backupReminderText"><b>Conviene hacer un respaldo</b><span></span></div>
+    <div class="backupReminderText" id="backupReminderText"><b>Tu Gestor tiene cambios sin respaldar</b><span></span></div>
     <div class="backupReminderActions">
       <button id="dismissBackupBtn" aria-label="Recordar después">Después</button>
-      <button class="backupNow" id="backupNowBtn">Respaldar</button>
+      <button class="backupNow" id="backupNowBtn">WhatsApp</button>
     </div>
   </div>
 
@@ -627,11 +627,11 @@ body.mode-all .budgetAction{
 <div class="menu" id="menu">
   <div class="backupStatus" id="backupStatus"><strong>Respaldo</strong><br>Sin respaldo registrado</div>
   <button id="pricesBtn">Precios de estampado</button>
+  <button id="shareBackupBtn">📲 Respaldar por WhatsApp</button>
   <button id="exportBtn">Guardar respaldo ZIP</button>
-  <button id="shareBackupBtn">Compartir respaldo</button>
   <button id="importBtn">Importar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
-  <input type="file" id="importFile" accept=".zip,.json,application/zip,application/json" hidden>
+  <input type="file" id="importFile" accept=".zip,.json,.txt,application/zip,application/json,text/plain" hidden>
 </div>
 
 
@@ -721,7 +721,7 @@ const KEY='recibidos_3dcd_v1';
 const COUNTER_KEY='recibidos_3dcd_counter_v1';
 const PRICES_KEY='recibidos_3dcd_estampados_precios_v1';
 const BACKUP_META_KEY='gestor_3dcd_backup_meta_v1';
-const BACKUP_CHANGE_LIMIT=15;
+const BACKUP_CHANGE_LIMIT=8;
 const BACKUP_DAY_LIMIT=7;
 
 const $=s=>document.querySelector(s);
@@ -800,7 +800,7 @@ function renderBackupState(){
   const text=$('#backupReminderText');
   if(text){
     const reason=backupMeta.changes>=BACKUP_CHANGE_LIMIT?`${backupMeta.changes} cambios desde el último respaldo`:`${Math.floor(backupAgeDays())} días sin respaldar`;
-    text.innerHTML=`<b>Conviene hacer un respaldo</b><span>${esc(reason)}</span>`;
+    text.innerHTML=`<b>¿Lo mandamos a WhatsApp?</b><span>${esc(reason)}</span>`;
   }
 }
 function registerBackupDone(){
@@ -1759,28 +1759,42 @@ function downloadBackup(){
   registerBackupDone();
   menu.classList.remove('show');
 }
+function shareBackupFilename(){
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');
+  return `GESTOR-3DCD-RESPALDO-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.txt`;
+}
+function makeShareableBackupFile(){
+  // Archivo de texto deliberadamente: los navegadores suelen bloquear compartir ZIP,
+  // mientras que text/plain sí puede pasar al panel nativo de Android/iOS.
+  const payload=backupPayload();
+  const body='GESTOR-3DCD-BACKUP\n'+JSON.stringify(payload);
+  return new File([body],shareBackupFilename(),{type:'text/plain'});
+}
 async function shareBackup(){
-  const blob=makeBackupBlob();
-  const file=new File([blob],backupFilename(),{type:'application/zip'});
+  const file=makeShareableBackupFile();
   try{
     if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-      await navigator.share({title:'Respaldo Gestor 3DCD',text:'Respaldo de Gestor 3DCD',files:[file]});
+      await navigator.share({title:'Respaldo Gestor 3DCD',files:[file]});
       registerBackupDone();
       menu.classList.remove('show');
       return;
     }
-    downloadBackup();
-    alert('Este navegador no permite compartir archivos directamente. Guardé el ZIP para que puedas enviarlo por WhatsApp.');
+    // Si el dispositivo no admite archivos en Web Share, guardamos el MISMO respaldo
+    // compatible para que el usuario pueda adjuntarlo manualmente en WhatsApp.
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(file);a.download=file.name;a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1200);
+    alert('Este navegador no puede entregar archivos directo a WhatsApp. Guardé el respaldo compatible para adjuntarlo como documento.');
   }catch(err){
     if(err?.name!=='AbortError'){
       console.error(err);
-      alert('No se pudo abrir Compartir. Podés usar “Guardar respaldo ZIP”.');
+      alert('El navegador no permitió abrir Compartir. Probá desde Chrome/Safari con la página publicada, o usá “Guardar respaldo ZIP”.');
     }
   }
 }
 $('#exportBtn').onclick=downloadBackup;
 $('#shareBackupBtn').onclick=shareBackup;
-$('#backupNowBtn').onclick=downloadBackup;
+$('#backupNowBtn').onclick=shareBackup;
 $('#dismissBackupBtn').onclick=()=>{
   backupMeta.dismissedUntil=new Date(Date.now()+86400000).toISOString();
   saveBackupMeta();renderBackupState();
@@ -1817,7 +1831,9 @@ $('#importFile').onchange=async e=>{
       if(!entry)throw new Error('Falta gestor.json o recibidos.json');
       x=JSON.parse(new TextDecoder().decode(entry));
     }else{
-      x=JSON.parse(await f.text());
+      let raw=await f.text();
+      if(raw.startsWith('GESTOR-3DCD-BACKUP\n'))raw=raw.slice('GESTOR-3DCD-BACKUP\n'.length);
+      x=JSON.parse(raw);
     }
     if(!['recibidos-3dcd','gestor-3dcd'].includes(x.app) || !Array.isArray(x.records))throw new Error();
     if(!confirm('¿Reemplazar los datos actuales por este respaldo?'))return;
