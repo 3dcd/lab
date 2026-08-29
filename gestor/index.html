@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f3f4f6">
-<title>Gestor 3DCD</title>
+<title>Recibidos 3DCD</title>
 <style>
 :root{
   --bg:#eef2f5;
@@ -556,21 +556,6 @@ body.mode-all .budgetAction{
   color:#7a4b00;
 }
 
-/* Respaldo asistido */
-.backupReminder{
-  display:none;align-items:center;justify-content:space-between;gap:12px;
-  margin:0 0 12px;padding:11px 12px;border:2px solid #e7bd68;border-radius:18px;
-  background:#fff4d9;color:#68430a;box-shadow:0 6px 18px rgba(0,0,0,.06)
-}
-.backupReminder.show{display:flex}
-.backupReminderText{min-width:0;font-size:12px;line-height:1.35;font-weight:800}
-.backupReminderText b{display:block;font-size:13px;margin-bottom:2px}
-.backupReminderActions{display:flex;gap:7px;flex:0 0 auto}
-.backupReminder button{border:1px solid #d7a64a;background:#fff;border-radius:12px;padding:8px 10px;font-size:11px;font-weight:950;color:#70470a}
-.backupReminder .backupNow{background:#9a630b;color:#fff;border-color:#9a630b}
-.backupStatus{padding:10px 11px;border-radius:14px;background:#f6f7f8;font-size:11px;font-weight:800;color:#5f6872;line-height:1.35}
-.backupStatus strong{color:#20252a}
-
 </style>
 </head>
 <body>
@@ -578,8 +563,8 @@ body.mode-all .budgetAction{
   <div class="top">
     <div class="toprow">
       <div class="brand">
-        <h1>Gestor 3DCD</h1>
-        <small>Gestión de trabajos, entregas y respaldos</small>
+        <h1>Recibidos 3DCD</h1>
+        <small>Entradas y entregas de prendas</small>
         <div class="workTotal">
           <span id="workTotalLabel">TRABAJO EN CURSO</span>
           <b id="workTotalValue">$ 0</b>
@@ -590,15 +575,6 @@ body.mode-all .budgetAction{
         <button class="iconbtn" id="redoBtn" aria-label="Rehacer" title="Rehacer">↷</button>
         <button class="iconbtn" id="menuBtn" aria-label="Menú">⋯</button>
       </div>
-    </div>
-  </div>
-
-
-  <div class="backupReminder" id="backupReminder">
-    <div class="backupReminderText" id="backupReminderText"><b>Tu Gestor tiene cambios sin respaldar</b><span></span></div>
-    <div class="backupReminderActions">
-      <button id="dismissBackupBtn" aria-label="Recordar después">Después</button>
-      <button class="backupNow" id="backupNowBtn">WhatsApp</button>
     </div>
   </div>
 
@@ -625,13 +601,11 @@ body.mode-all .budgetAction{
 <button class="fab" id="addBtn" aria-label="Nuevo ingreso">＋</button>
 
 <div class="menu" id="menu">
-  <div class="backupStatus" id="backupStatus"><strong>Respaldo</strong><br>Sin respaldo registrado</div>
   <button id="pricesBtn">Precios de estampado</button>
-  <button id="shareBackupBtn">📲 Respaldar por WhatsApp</button>
-  <button id="exportBtn">Guardar respaldo ZIP</button>
+  <button id="exportBtn">Compartir respaldo JSON</button>
   <button id="importBtn">Importar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
-  <input type="file" id="importFile" accept=".zip,.json,.txt,application/zip,application/json,text/plain" hidden>
+  <input type="file" id="importFile" accept=".json,application/json" hidden>
 </div>
 
 
@@ -720,9 +694,6 @@ body.mode-all .budgetAction{
 const KEY='recibidos_3dcd_v1';
 const COUNTER_KEY='recibidos_3dcd_counter_v1';
 const PRICES_KEY='recibidos_3dcd_estampados_precios_v1';
-const BACKUP_META_KEY='gestor_3dcd_backup_meta_v1';
-const BACKUP_CHANGE_LIMIT=8;
-const BACKUP_DAY_LIMIT=7;
 
 const $=s=>document.querySelector(s);
 const listEl=$('#list');
@@ -762,52 +733,6 @@ function nextNumber(){
   return n;
 }
 
-let backupMeta={lastAt:null,changes:0,firstChangeAt:null,dismissedUntil:null};
-function loadBackupMeta(){
-  try{
-    const x=JSON.parse(localStorage.getItem(BACKUP_META_KEY)||'{}');
-    backupMeta={lastAt:x.lastAt||null,changes:Math.max(0,Number(x.changes||0)),firstChangeAt:x.firstChangeAt||null,dismissedUntil:x.dismissedUntil||null};
-  }catch{backupMeta={lastAt:null,changes:0,firstChangeAt:null,dismissedUntil:null}}
-}
-function saveBackupMeta(){localStorage.setItem(BACKUP_META_KEY,JSON.stringify(backupMeta))}
-function markChanged(){
-  backupMeta.changes=Math.max(0,Number(backupMeta.changes||0))+1;
-  if(!backupMeta.firstChangeAt)backupMeta.firstChangeAt=nowIso();
-  saveBackupMeta();
-  renderBackupState();
-}
-function backupAgeDays(){
-  const base=backupMeta.lastAt||backupMeta.firstChangeAt;
-  if(!base)return 0;
-  return Math.max(0,(Date.now()-new Date(base).getTime())/86400000);
-}
-function backupDue(){
-  if(!backupMeta.changes)return false;
-  const dismissed=backupMeta.dismissedUntil&&new Date(backupMeta.dismissedUntil).getTime()>Date.now();
-  if(dismissed)return false;
-  return backupMeta.changes>=BACKUP_CHANGE_LIMIT || backupAgeDays()>=BACKUP_DAY_LIMIT;
-}
-function backupStamp(){
-  if(!backupMeta.lastAt)return 'Todavía no hiciste un respaldo desde Gestor';
-  return 'Último: '+new Intl.DateTimeFormat('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(backupMeta.lastAt));
-}
-function renderBackupState(){
-  const st=$('#backupStatus');
-  if(st)st.innerHTML=`<strong>Respaldo</strong><br>${esc(backupStamp())}${backupMeta.changes?` · ${backupMeta.changes} cambio${backupMeta.changes===1?'':'s'} pendiente${backupMeta.changes===1?'':'s'}`:' · al día ✓'}`;
-  const box=$('#backupReminder');
-  if(!box)return;
-  box.classList.toggle('show',backupDue());
-  const text=$('#backupReminderText');
-  if(text){
-    const reason=backupMeta.changes>=BACKUP_CHANGE_LIMIT?`${backupMeta.changes} cambios desde el último respaldo`:`${Math.floor(backupAgeDays())} días sin respaldar`;
-    text.innerHTML=`<b>¿Lo mandamos a WhatsApp?</b><span>${esc(reason)}</span>`;
-  }
-}
-function registerBackupDone(){
-  backupMeta={lastAt:nowIso(),changes:0,firstChangeAt:null,dismissedUntil:null};
-  saveBackupMeta();renderBackupState();
-}
-
 function snapshot(){
   return JSON.stringify(records);
 }
@@ -818,7 +743,6 @@ function restoreSnapshot(raw){
       records=parsed;
       localStorage.setItem(KEY,JSON.stringify(records));
       render();
-      markChanged();
       return true;
     }
   }catch{}
@@ -852,9 +776,8 @@ function redo(){
   updateHistoryButtons();
 }
 
-function save(trackChange=true){
+function save(){
   localStorage.setItem(KEY,JSON.stringify(records));
-  if(trackChange)markChanged();
   render();
 }
 function load(){
@@ -906,7 +829,6 @@ function savePrices(){
   });
   prices=next;
   localStorage.setItem(PRICES_KEY,JSON.stringify(prices));
-  markChanged();
   render();
   updateDraftValue();
   closePrices();
@@ -1160,7 +1082,7 @@ async function recordCardBlob(r){
  ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,radius);ctx.stroke();
 
  ctx.fillStyle=soft;rr(ctx,x+18,y+18,w-36,150,30);ctx.fill();
- ctx.fillStyle=accent;ctx.font='900 32px Arial';ctx.fillText('Gestor 3DCD',x+44,y+64);
+ ctx.fillStyle=accent;ctx.font='900 32px Arial';ctx.fillText('Recibidos 3DCD',x+44,y+64);
  ctx.font='900 24px Arial';ctx.fillText(rec?'EN MI PODER':'ENTREGADO',x+44,y+101);
  ctx.font='700 18px Arial';ctx.fillStyle='#65706f';ctx.fillText(fmtDate(rec?(r.receivedAt||r.createdAt):(r.deliveredAt||r.createdAt)),x+44,y+132);
 
@@ -1237,7 +1159,7 @@ async function currentCardBlob(){
  ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,42);ctx.stroke();
 
  ctx.fillStyle=headBg;rr(ctx,x+16,y+16,w-32,headH,28);ctx.fill();
- ctx.fillStyle=headText;ctx.font='900 42px Arial';ctx.fillText('Gestor 3DCD',x+38,y+66);
+ ctx.fillStyle=headText;ctx.font='900 42px Arial';ctx.fillText('Recibidos 3DCD',x+38,y+66);
  ctx.font='900 34px Arial';ctx.fillText(viewTitle(),x+38,y+116);
  ctx.fillStyle='#586873';ctx.font='700 24px Arial';
  ctx.fillText(new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date()),x+38,y+158);
@@ -1664,67 +1586,9 @@ document.addEventListener('click',e=>{
 });
 
 
-function crc32(bytes){
-  let crc=0xffffffff;
-  for(const b of bytes){
-    crc^=b;
-    for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);
-  }
-  return (crc^0xffffffff)>>>0;
-}
-function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
-function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
-function concatBytes(parts){
-  const len=parts.reduce((a,p)=>a+p.length,0),out=new Uint8Array(len);
-  let off=0;for(const p of parts){out.set(p,off);off+=p.length}return out;
-}
-function textBytes(t){return new TextEncoder().encode(String(t))}
-function dataUrlBytes(url){
-  const m=String(url||'').match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
-  if(!m)return null;
-  const mime=m[1]||'application/octet-stream';
-  let bytes;
-  if(m[2]){
-    const bin=atob(m[3]),arr=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
-    bytes=arr;
-  }else bytes=textBytes(decodeURIComponent(m[3]));
-  return {mime,bytes};
-}
-function zipStore(files){
-  let offset=0;
-  const locals=[],centrals=[];
-  for(const f of files){
-    const name=textBytes(f.name),data=f.data instanceof Uint8Array?f.data:new Uint8Array(f.data);
-    const crc=crc32(data);
-    const local=concatBytes([
-      u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),
-      u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data
-    ]);
-    locals.push(local);
-    const central=concatBytes([
-      u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),
-      u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),
-      u16(0),u16(0),u32(0),u32(offset),name
-    ]);
-    centrals.push(central);
-    offset+=local.length;
-  }
-  const centralBytes=concatBytes(centrals);
-  const localBytes=concatBytes(locals);
-  const end=concatBytes([
-    u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),
-    u32(centralBytes.length),u32(localBytes.length),u16(0)
-  ]);
-  return new Blob([localBytes,centralBytes,end],{type:'application/zip'});
-}
-function safeFilePart(s){
-  return String(s||'cliente').trim().replace(/[^a-z0-9áéíóúñü_-]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,45)||'cliente';
-}
-
 function backupPayload(){
   return {
-    app:'gestor-3dcd',
+    app:'recibidos-3dcd',
     version:3,
     exportedAt:nowIso(),
     records,
@@ -1732,91 +1596,43 @@ function backupPayload(){
     nextNumber:Number(localStorage.getItem(COUNTER_KEY)||1)
   };
 }
-function makeBackupBlob(){
-  const payload=backupPayload();
-  const files=[
-    {name:'gestor.json',data:textBytes(JSON.stringify(payload,null,2))},
-    {name:'LEEME.txt',data:textBytes('Respaldo Gestor 3DCD\n- gestor.json: datos editables completos.\n- imagenes/: fotos de los registros.\n')}
-  ];
-  records.forEach(r=>{
-    if(!r.photo)return;
-    const p=dataUrlBytes(r.photo);
-    if(!p)return;
-    const ext=p.mime.includes('png')?'png':'jpg';
-    files.push({name:`imagenes/${String(r.numero||0).padStart(3,'0')}-${safeFilePart(r.client)}.${ext}`,data:p.bytes});
-  });
-  return zipStore(files);
+function backupFileName(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return `recibidos-3dcd-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
 }
-function backupFilename(){
-  const d=new Date(),pad=n=>String(n).padStart(2,'0');
-  return `GESTOR-3DCD-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.zip`;
-}
-function downloadBackup(){
-  const blob=makeBackupBlob();
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=backupFilename();a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1200);
-  registerBackupDone();
-  menu.classList.remove('show');
-}
-function shareBackupFilename(){
-  const d=new Date(),pad=n=>String(n).padStart(2,'0');
-  return `GESTOR-3DCD-RESPALDO-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.txt`;
-}
-function makeShareableBackupFile(){
-  // Archivo de texto deliberadamente: los navegadores suelen bloquear compartir ZIP,
-  // mientras que text/plain sí puede pasar al panel nativo de Android/iOS.
-  const payload=backupPayload();
-  const body='GESTOR-3DCD-BACKUP\n'+JSON.stringify(payload);
-  return new File([body],shareBackupFilename(),{type:'text/plain'});
-}
-async function shareBackup(){
-  const file=makeShareableBackupFile();
+$('#exportBtn').onclick=async()=>{
   try{
+    // Las fotos ya viven dentro de cada registro como Data URL/Base64, por lo que
+    // este único JSON es un respaldo autocontenido: datos + precios + imágenes.
+    const json=JSON.stringify(backupPayload(),null,2);
+    const blob=new Blob([json],{type:'application/json'});
+    const file=new File([blob],backupFileName(),{type:'application/json'});
+
     if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-      await navigator.share({title:'Respaldo Gestor 3DCD',files:[file]});
-      registerBackupDone();
-      menu.classList.remove('show');
-      return;
+      await navigator.share({
+        title:'Respaldo Recibidos 3DCD',
+        text:'Respaldo completo de Recibidos 3DCD',
+        files:[file]
+      });
+    }else{
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=file.name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1200);
+      alert('Este navegador no permite compartir archivos directamente. Guardé el JSON para que puedas compartirlo manualmente.');
     }
-    // Si el dispositivo no admite archivos en Web Share, guardamos el MISMO respaldo
-    // compatible para que el usuario pueda adjuntarlo manualmente en WhatsApp.
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(file);a.download=file.name;a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href),1200);
-    alert('Este navegador no puede entregar archivos directo a WhatsApp. Guardé el respaldo compatible para adjuntarlo como documento.');
   }catch(err){
+    // Cancelar la hoja de compartir no es un error real.
     if(err?.name!=='AbortError'){
       console.error(err);
-      alert('El navegador no permitió abrir Compartir. Probá desde Chrome/Safari con la página publicada, o usá “Guardar respaldo ZIP”.');
+      alert('No se pudo preparar o compartir el respaldo JSON.');
     }
   }
-}
-$('#exportBtn').onclick=downloadBackup;
-$('#shareBackupBtn').onclick=shareBackup;
-$('#backupNowBtn').onclick=shareBackup;
-$('#dismissBackupBtn').onclick=()=>{
-  backupMeta.dismissedUntil=new Date(Date.now()+86400000).toISOString();
-  saveBackupMeta();renderBackupState();
+  menu.classList.remove('show');
 };
-
-function readU16(a,o){return a[o]|(a[o+1]<<8)}
-function readU32(a,o){return (a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0}
-function unzipStored(arrayBuffer){
-  const a=new Uint8Array(arrayBuffer),files={};
-  let o=0;
-  while(o+30<=a.length && readU32(a,o)===0x04034b50){
-    const method=readU16(a,o+8);
-    const compSize=readU32(a,o+18);
-    const nameLen=readU16(a,o+26),extraLen=readU16(a,o+28);
-    const name=new TextDecoder().decode(a.slice(o+30,o+30+nameLen));
-    const dataStart=o+30+nameLen+extraLen;
-    if(method!==0)throw new Error('ZIP comprimido no compatible');
-    files[name]=a.slice(dataStart,dataStart+compSize);
-    o=dataStart+compSize;
-  }
-  return files;
-}
 
 $('#importBtn').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=async e=>{
@@ -1824,18 +1640,8 @@ $('#importFile').onchange=async e=>{
   e.target.value='';
   if(!f)return;
   try{
-    let x;
-    if(/\.zip$/i.test(f.name)){
-      const files=unzipStored(await f.arrayBuffer());
-      const entry=files['gestor.json']||files['recibidos.json'];
-      if(!entry)throw new Error('Falta gestor.json o recibidos.json');
-      x=JSON.parse(new TextDecoder().decode(entry));
-    }else{
-      let raw=await f.text();
-      if(raw.startsWith('GESTOR-3DCD-BACKUP\n'))raw=raw.slice('GESTOR-3DCD-BACKUP\n'.length);
-      x=JSON.parse(raw);
-    }
-    if(!['recibidos-3dcd','gestor-3dcd'].includes(x.app) || !Array.isArray(x.records))throw new Error();
+    const x=JSON.parse(await f.text());
+    if(x.app!=='recibidos-3dcd' || !Array.isArray(x.records))throw new Error();
     if(!confirm('¿Reemplazar los datos actuales por este respaldo?'))return;
     pushHistory();
     records=x.records;
@@ -1847,7 +1653,7 @@ $('#importFile').onchange=async e=>{
     save();
   }catch(err){
     console.error(err);
-    alert('Ese archivo no parece ser un respaldo válido de Gestor 3DCD.');
+    alert('Ese archivo no parece ser un respaldo JSON válido de Recibidos 3DCD.');
   }
   menu.classList.remove('show');
 };
@@ -1861,8 +1667,8 @@ $('#clearDeliveredBtn').onclick=()=>{
   menu.classList.remove('show');
 };
 
-window.addEventListener('beforeunload',()=>save(false));
-loadBackupMeta();load();loadPrices();render();renderBackupState();updateHistoryButtons();
+window.addEventListener('beforeunload',save);
+load();loadPrices();render();updateHistoryButtons();
 </script>
 </body>
 </html>
