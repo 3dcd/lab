@@ -1665,9 +1665,16 @@ $('#exportBtn').onclick=async()=>{
     const jsonBytes=new TextEncoder().encode(json);
     const info=new TextEncoder().encode('Respaldo de Gestor. El archivo gestor.json contiene todos los datos y las imágenes embebidas.');
     const blob=zipStore([{name:'gestor.json',data:jsonBytes},{name:'LEEME.txt',data:info}]);
-    const file=new File([blob],backupFileName(),{type:'application/zip'});
+    // Android/WhatsApp suele rechazar application/zip en Web Share. El contenido
+    // sigue siendo un ZIP real y conserva la extensión .zip; sólo se anuncia
+    // como text/plain para que la hoja de compartir lo acepte.
+    const file=new File([blob],backupFileName(),{type:'text/plain'});
     if(!navigator.share){
       alert('Este navegador no permite abrir la hoja de compartir. No se descargó ningún archivo.');
+      return;
+    }
+    if(navigator.canShare && !navigator.canShare({files:[file]})){
+      alert('Este navegador no permite compartir archivos desde esta página. No se descargó ningún archivo.');
       return;
     }
     await navigator.share({title:'Guardar respaldo',files:[file]});
