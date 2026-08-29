@@ -1332,34 +1332,48 @@ async function budgetCardBlob(r){
 
 async function shareBudget(r){
   const blob=await budgetCardBlob(r);
+  if(!blob){alert('No se pudo generar el presupuesto.');return;}
   const file=new File(
     [blob],
     `presupuesto-${String(r.numero||0).padStart(3,'0')}-${safeFilePart(r.client)}.png`,
     {type:'image/png'}
   );
 
+  // Algunos móviles informan canShare=false aun cuando navigator.share sí acepta PNG.
+  // Por eso intentamos compartir el archivo directamente y sólo descargamos si falla.
   if(navigator.share){
     try{
-      if(navigator.canShare?.({files:[file]})){
-        await navigator.share({title:`Presupuesto - ${r.client||'Cliente'}`,files:[file]});
-        return;
-      }
+      await navigator.share({
+        title:`Presupuesto - ${r.client||'Cliente'}`,
+        text:`Presupuesto para ${r.client||'Cliente'}`,
+        files:[file]
+      });
+      return;
     }catch(e){
       if(e?.name==='AbortError')return;
+      console.warn('Compartir presupuesto no disponible; se descargará el PNG.',e);
     }
   }
 
+  const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
+  a.href=url;
   a.download=file.name;
+  a.style.display='none';
+  document.body.appendChild(a);
   a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1200);
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 
 async function shareRecord(r){
  const text=textForRecord(r),blob=await recordCardBlob(r),file=new File([blob],`3dcd-${r.status}-${String(r.numero).padStart(3,'0')}.png`,{type:'image/png'});
- if(navigator.share){try{if(navigator.canShare?.({files:[file]}))await navigator.share({title:`${statusLabel(r)} - ${r.client}`,text,files:[file]});else await navigator.share({title:`${statusLabel(r)} - ${r.client}`,text});return}catch(e){if(e?.name==='AbortError')return}}
- try{await navigator.clipboard.writeText(text)}catch{}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)
+ if(navigator.share){
+   try{await navigator.share({title:`${statusLabel(r)} - ${r.client}`,text,files:[file]});return}
+   catch(e){if(e?.name==='AbortError')return;console.warn('No se pudo compartir la ficha con archivo.',e)}
+ }
+ try{await navigator.clipboard.writeText(text)}catch{}
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)
 }
 function viewRecords(){
   if(activeFilter==='all')return [...records].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
@@ -1382,16 +1396,10 @@ async function shareCurrent(){
  const slug=activeFilter==='received'?'en-mi-poder':activeFilter==='delivered'?'entregados':'todos';
  const blob=await currentCardBlob(),file=new File([blob],`3dcd-${slug}-${new Date().toISOString().slice(0,10)}.png`,{type:'image/png'});
  if(navigator.share){
-   try{
-     if(navigator.canShare?.({files:[file]})){
-       await navigator.share({title:viewTitle(),files:[file]});
-     }else{
-       const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);
-     }
-     return;
-   }catch(e){if(e?.name==='AbortError')return}
+   try{await navigator.share({title:viewTitle(),files:[file]});return}
+   catch(e){if(e?.name==='AbortError')return;console.warn('No se pudo compartir el resumen con archivo.',e)}
  }
- const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)
 }
 
 
@@ -1601,9 +1609,9 @@ function backupPayload(){
 function backupStamp(){
   const d=new Date();
   const pad=n=>String(n).padStart(2,'0');
-  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} - ${pad(d.getHours())}-${pad(d.getMinutes())}`;
 }
-function backupFileName(){return `gestor-respaldo-${backupStamp()}.zip`}
+function backupFileName(){return `Gestor - Respaldo - ${backupStamp()}.zip`}
 
 // ZIP "store" (sin compresión): mantiene el respaldo 100% local y autocontenido,
 // sin depender de librerías externas ni conexión a Internet.
