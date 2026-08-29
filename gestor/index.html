@@ -1601,37 +1601,58 @@ function backupFileName(){
   const pad=n=>String(n).padStart(2,'0');
   return `recibidos-3dcd-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
 }
+function downloadBackupBlob(blob,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+}
+async function tryShareBackup(file){
+  if(!navigator.share)return false;
+  if(navigator.canShare && !navigator.canShare({files:[file]}))return false;
+  await navigator.share({title:'Respaldo Recibidos 3DCD',files:[file]});
+  return true;
+}
 $('#exportBtn').onclick=async()=>{
-  try{
-    // Las fotos ya viven dentro de cada registro como Data URL/Base64, por lo que
-    // este único JSON es un respaldo autocontenido: datos + precios + imágenes.
-    const json=JSON.stringify(backupPayload(),null,2);
-    const blob=new Blob([json],{type:'application/json'});
-    const file=new File([blob],backupFileName(),{type:'application/json'});
-
-    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-      await navigator.share({
-        title:'Respaldo Recibidos 3DCD',
-        text:'Respaldo completo de Recibidos 3DCD',
-        files:[file]
-      });
-    }else{
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
-      a.download=file.name;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1200);
-      alert('Este navegador no permite compartir archivos directamente. Guardé el JSON para que puedas compartirlo manualmente.');
-    }
-  }catch(err){
-    // Cancelar la hoja de compartir no es un error real.
-    if(err?.name!=='AbortError'){
-      console.error(err);
-      alert('No se pudo preparar o compartir el respaldo JSON.');
-    }
-  }
   menu.classList.remove('show');
+  let json,name;
+  try{
+    // Las fotos están embebidas como Data URL/Base64 dentro de records.
+    // El respaldo es un único JSON autocontenido.
+    json=JSON.stringify(backupPayload(),null,2);
+    name=backupFileName();
+  }catch(err){
+    console.error('Error preparando respaldo',err);
+    alert('No se pudo preparar el respaldo JSON.');
+    return;
+  }
+
+  // 1) Intento estándar como JSON.
+  const jsonBlob=new Blob([json],{type:'application/json'});
+  const jsonFile=new File([jsonBlob],name,{type:'application/json'});
+  try{
+    if(await tryShareBackup(jsonFile))return;
+  }catch(err){
+    if(err?.name==='AbortError')return;
+    console.warn('Compartir application/json falló; pruebo text/plain',err);
+  }
+
+  // 2) Compatibilidad Android/WhatsApp: mismo archivo .json, MIME de texto.
+  // WhatsApp suele aceptar esta variante aunque rechace application/json.
+  const textBlob=new Blob([json],{type:'text/plain;charset=utf-8'});
+  const textFile=new File([textBlob],name,{type:'text/plain'});
+  try{
+    if(await tryShareBackup(textFile))return;
+  }catch(err){
+    if(err?.name==='AbortError')return;
+    console.warn('Compartir text/plain falló; descargo respaldo',err);
+  }
+
+  // 3) Último recurso: siempre conservar el archivo en el dispositivo.
+  downloadBackupBlob(textBlob,name);
+  alert('Tu dispositivo no permitió abrir Compartir con este respaldo. Guardé el archivo JSON para que puedas enviarlo manualmente por WhatsApp.');
 };
 
 $('#importBtn').onclick=()=>$('#importFile').click();
