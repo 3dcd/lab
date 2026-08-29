@@ -604,7 +604,6 @@ body.mode-all .budgetAction{
 
 <div class="menu" id="menu">
   <button id="pricesBtn">Precios de estampado</button>
-  <button id="centralBackupBtn">Guardar en Respaldos</button>
   <button id="exportBtn">Guardar respaldo</button>
   <button id="importBtn">Restaurar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
@@ -1606,47 +1605,6 @@ function backupStamp(){
 }
 function backupFileName(){return `gestor-respaldo-${backupStamp()}.zip`}
 
-// Base compartida por todas las herramientas del ecosistema 3DCD.
-// Mientras estén bajo el mismo dominio/origen, cualquier HTML puede verla.
-const ECOSYSTEM_DB='3dcd_ecosistema_respaldos_v1';
-const ECOSYSTEM_STORE='backups';
-function ecosystemDb(){
-  return new Promise((resolve,reject)=>{
-    const req=indexedDB.open(ECOSYSTEM_DB,1);
-    req.onupgradeneeded=()=>{
-      const db=req.result;
-      if(!db.objectStoreNames.contains(ECOSYSTEM_STORE)){
-        const st=db.createObjectStore(ECOSYSTEM_STORE,{keyPath:'id'});
-        st.createIndex('appId','appId',{unique:false});
-        st.createIndex('createdAt','createdAt',{unique:false});
-      }
-    };
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
-  });
-}
-async function ecosystemPut(item){
-  const db=await ecosystemDb();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction(ECOSYSTEM_STORE,'readwrite');
-    tx.objectStore(ECOSYSTEM_STORE).put(item);
-    tx.oncomplete=()=>{db.close();resolve(item)};
-    tx.onerror=()=>{const e=tx.error;db.close();reject(e)};
-  });
-}
-async function ecosystemGet(id){
-  const db=await ecosystemDb();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction(ECOSYSTEM_STORE,'readonly');
-    const req=tx.objectStore(ECOSYSTEM_STORE).get(id);
-    req.onsuccess=()=>{const v=req.result;db.close();resolve(v)};
-    req.onerror=()=>{const e=req.error;db.close();reject(e)};
-  });
-}
-function cleanAppUrl(){
-  const u=new URL(location.href);u.search='';u.hash='';return u.href;
-}
-
 // ZIP "store" (sin compresión): mantiene el respaldo 100% local y autocontenido,
 // sin depender de librerías externas ni conexión a Internet.
 let _crcTable=null;
@@ -1700,51 +1658,26 @@ function unzipStored(arrayBuffer){
   return files;
 }
 
-function buildBackupZip(){
-  const json=JSON.stringify(backupPayload(),null,2);
-  const jsonBytes=new TextEncoder().encode(json);
-  const info=new TextEncoder().encode('Respaldo de Gestor. El archivo gestor.json contiene todos los datos y las imágenes embebidas.');
-  return zipStore([{name:'gestor.json',data:jsonBytes},{name:'LEEME.txt',data:info}]);
-}
-function downloadBlob(blob,name){
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1500);
-}
-async function restoreFromBackupBlob(blob,ask=true){
-  const z=unzipStored(await blob.arrayBuffer());
-  const entry=z['gestor.json']||z['recibidos.json'];
-  if(!entry)throw new Error('Falta gestor.json');
-  const x=JSON.parse(new TextDecoder().decode(entry));
-  if(x.app!=='recibidos-3dcd' || !Array.isArray(x.records))throw new Error('Respaldo no válido');
-  if(ask && !confirm('¿Reemplazar los datos actuales por este respaldo?'))return false;
-  pushHistory();records=x.records;
-  if(x.prices&&typeof x.prices==='object'){prices=x.prices;localStorage.setItem(PRICES_KEY,JSON.stringify(prices));}
-  localStorage.setItem(COUNTER_KEY,String(Math.max(Number(x.nextNumber||1),Math.max(0,...records.map(r=>Number(r.numero||0)))+1)));
-  save();
-  return true;
-}
-
-$('#centralBackupBtn').onclick=async()=>{
-  menu.classList.remove('show');
-  try{
-    const blob=buildBackupZip();
-    const id='gestor-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
-    await ecosystemPut({
-      id,appId:'gestor',appName:'Gestor',appUrl:cleanAppUrl(),createdAt:nowIso(),
-      fileName:backupFileName(),mime:'application/zip',size:blob.size,blob,formatVersion:1
-    });
-    alert('Respaldo guardado en la aplicación Respaldos.');
-  }catch(err){
-    console.error(err);alert('No se pudo guardar en Respaldos. Verificá que esta herramienta esté abierta desde el mismo sitio.');
-  }
-};
-
 $('#exportBtn').onclick=()=>{
   menu.classList.remove('show');
-  try{downloadBlob(buildBackupZip(),backupFileName())}
-  catch(err){console.error('No se pudo descargar el respaldo',err);alert('No se pudo generar el respaldo ZIP.')}
+  try{
+    const json=JSON.stringify(backupPayload(),null,2);
+    const jsonBytes=new TextEncoder().encode(json);
+    const info=new TextEncoder().encode('Respaldo de Gestor. El archivo gestor.json contiene todos los datos y las imágenes embebidas.');
+    const blob=zipStore([{name:'gestor.json',data:jsonBytes},{name:'LEEME.txt',data:info}]);
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=backupFileName();
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }catch(err){
+    console.error('No se pudo descargar el respaldo',err);
+    alert('No se pudo generar el respaldo ZIP.');
+  }
 };
 
 $('#importBtn').onclick=()=>$('#importFile').click();
@@ -1783,24 +1716,8 @@ $('#clearDeliveredBtn').onclick=()=>{
   menu.classList.remove('show');
 };
 
-async function checkIncomingEcosystemRestore(){
-  const u=new URL(location.href),id=u.searchParams.get('restoreBackup');
-  if(!id)return;
-  u.searchParams.delete('restoreBackup');
-  history.replaceState({},'',u.pathname+(u.search||'')+u.hash);
-  try{
-    const item=await ecosystemGet(id);
-    if(!item || item.appId!=='gestor' || !item.blob)throw new Error('No encontrado');
-    if(confirm(`¿Restaurar en Gestor el respaldo del ${fmtDate(item.createdAt)}?`)){
-      await restoreFromBackupBlob(item.blob,false);
-      alert('Respaldo restaurado.');
-    }
-  }catch(err){console.error(err);alert('No se pudo abrir ese respaldo desde la aplicación Respaldos.')}
-}
-
 window.addEventListener('beforeunload',save);
 load();loadPrices();render();updateHistoryButtons();
-setTimeout(checkIncomingEcosystemRestore,120);
 </script>
 </body>
 </html>
