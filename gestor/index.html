@@ -604,8 +604,8 @@ body.mode-all .budgetAction{
 
 <div class="menu" id="menu">
   <button id="pricesBtn">Precios de estampado</button>
-  <button id="exportBtn">Compartir respaldo</button>
-  <button id="importBtn">Importar respaldo</button>
+  <button id="exportBtn">Guardar en Google Drive</button>
+  <button id="importBtn">Restaurar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
   <input type="file" id="importFile" accept=".txt,.json,text/plain,application/json" hidden>
 </div>
@@ -1607,27 +1607,26 @@ $('#exportBtn').onclick=async()=>{
   menu.classList.remove('show');
   try{
     // JSON autocontenido por dentro (incluye las imágenes Data URL/Base64),
-    // documento TXT por fuera para máxima compatibilidad con WhatsApp móvil.
+    // documento TXT por fuera para máxima compatibilidad con la hoja de compartir móvil y Google Drive.
     const json=JSON.stringify(backupPayload(),null,2);
     const blob=new Blob([json],{type:'text/plain;charset=utf-8'});
     const file=new File([blob],backupFileName(),{type:'text/plain'});
 
     if(!navigator.share){
-      alert('Este navegador no permite abrir Compartir desde el Gestor. No se descargó ningún archivo.');
+      alert('Este navegador no permite abrir la hoja para guardar el respaldo en Google Drive. No se descargó ningún archivo.');
       return;
     }
 
     // No bloqueamos por canShare: algunos móviles informan mal la compatibilidad,
     // pero navigator.share sí logra abrir la hoja de compartir.
     await navigator.share({
-      title:'Respaldo Gestor',
-      text:'Respaldo completo de Gestor',
+      title:'Guardar respaldo Gestor en Google Drive',
       files:[file]
     });
   }catch(err){
     if(err?.name==='AbortError')return;
-    console.error('No se pudo compartir el respaldo',err);
-    alert('No se pudo abrir Compartir para el respaldo. No se descargó ningún archivo.');
+    console.error('No se pudo abrir la hoja para guardar en Google Drive',err);
+    alert('No se pudo abrir la hoja para guardar en Google Drive. No se descargó ningún archivo.');
   }
 };
 
