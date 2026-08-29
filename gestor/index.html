@@ -604,10 +604,10 @@ body.mode-all .budgetAction{
 
 <div class="menu" id="menu">
   <button id="pricesBtn">Precios de estampado</button>
-  <button id="exportBtn">Guardar en Google Drive</button>
+  <button id="exportBtn">Guardar respaldo</button>
   <button id="importBtn">Restaurar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
-  <input type="file" id="importFile" accept=".txt,.json,text/plain,application/json" hidden>
+  <input type="file" id="importFile" accept=".zip,.json,.txt,application/zip,application/json,text/plain" hidden>
 </div>
 
 
@@ -1591,65 +1591,116 @@ document.addEventListener('click',e=>{
 function backupPayload(){
   return {
     app:'recibidos-3dcd',
-    version:4,
+    version:5,
     exportedAt:nowIso(),
     records,
     prices,
     nextNumber:Number(localStorage.getItem(COUNTER_KEY)||1)
   };
 }
-function backupFileName(){
+function backupStamp(){
   const d=new Date();
   const pad=n=>String(n).padStart(2,'0');
-  return `gestor-respaldo-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`;
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
 }
+function backupFileName(){return `gestor-respaldo-${backupStamp()}.zip`}
+
+// ZIP "store" (sin compresión): mantiene el respaldo 100% local y autocontenido,
+// sin depender de librerías externas ni conexión a Internet.
+let _crcTable=null;
+function crc32(bytes){
+  if(!_crcTable){
+    _crcTable=new Uint32Array(256);
+    for(let n=0;n<256;n++){
+      let c=n;
+      for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+      _crcTable[n]=c>>>0;
+    }
+  }
+  let c=0xFFFFFFFF;
+  for(const b of bytes)c=_crcTable[(c^b)&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
+function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
+function concatBytes(parts){
+  const len=parts.reduce((a,b)=>a+b.length,0),out=new Uint8Array(len);
+  let o=0;for(const b of parts){out.set(b,o);o+=b.length}return out;
+}
+function zipStore(files){
+  const enc=new TextEncoder(),locals=[],centrals=[];let offset=0;
+  for(const f of files){
+    const name=enc.encode(f.name),data=f.data instanceof Uint8Array?f.data:new Uint8Array(f.data),crc=crc32(data);
+    const local=concatBytes([
+      u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data
+    ]);
+    locals.push(local);
+    const central=concatBytes([
+      u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name
+    ]);
+    centrals.push(central);offset+=local.length;
+  }
+  const centralData=concatBytes(centrals);
+  const end=concatBytes([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(centralData.length),u32(offset),u16(0)]);
+  return new Blob([...locals,centralData,end],{type:'application/zip'});
+}
+function readU16(a,o){return a[o]|(a[o+1]<<8)}
+function readU32(a,o){return (a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0}
+function unzipStored(arrayBuffer){
+  const a=new Uint8Array(arrayBuffer),files={};let o=0;
+  while(o+30<=a.length && readU32(a,o)===0x04034b50){
+    const method=readU16(a,o+8),compSize=readU32(a,o+18),nameLen=readU16(a,o+26),extraLen=readU16(a,o+28);
+    const name=new TextDecoder().decode(a.slice(o+30,o+30+nameLen));
+    const dataStart=o+30+nameLen+extraLen;
+    if(method!==0)throw new Error('ZIP comprimido no compatible');
+    files[name]=a.slice(dataStart,dataStart+compSize);o=dataStart+compSize;
+  }
+  return files;
+}
+
 $('#exportBtn').onclick=async()=>{
   menu.classList.remove('show');
   try{
-    // JSON autocontenido por dentro (incluye las imágenes Data URL/Base64),
-    // documento TXT por fuera para máxima compatibilidad con la hoja de compartir móvil y Google Drive.
     const json=JSON.stringify(backupPayload(),null,2);
-    const blob=new Blob([json],{type:'text/plain;charset=utf-8'});
-    const file=new File([blob],backupFileName(),{type:'text/plain'});
-
+    const jsonBytes=new TextEncoder().encode(json);
+    const info=new TextEncoder().encode('Respaldo de Gestor. El archivo gestor.json contiene todos los datos y las imágenes embebidas.');
+    const blob=zipStore([{name:'gestor.json',data:jsonBytes},{name:'LEEME.txt',data:info}]);
+    const file=new File([blob],backupFileName(),{type:'application/zip'});
     if(!navigator.share){
-      alert('Este navegador no permite abrir la hoja para guardar el respaldo en Google Drive. No se descargó ningún archivo.');
+      alert('Este navegador no permite abrir la hoja de compartir. No se descargó ningún archivo.');
       return;
     }
-
-    // No bloqueamos por canShare: algunos móviles informan mal la compatibilidad,
-    // pero navigator.share sí logra abrir la hoja de compartir.
-    await navigator.share({
-      title:'Guardar respaldo Gestor en Google Drive',
-      files:[file]
-    });
+    await navigator.share({title:'Guardar respaldo',files:[file]});
   }catch(err){
     if(err?.name==='AbortError')return;
-    console.error('No se pudo abrir la hoja para guardar en Google Drive',err);
-    alert('No se pudo abrir la hoja para guardar en Google Drive. No se descargó ningún archivo.');
+    console.error('No se pudo compartir el respaldo',err);
+    alert('No se pudo abrir la hoja de compartir. No se descargó ningún archivo.');
   }
 };
 
 $('#importBtn').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=async e=>{
-  const f=e.target.files?.[0];
-  e.target.value='';
-  if(!f)return;
+  const f=e.target.files?.[0];e.target.value='';if(!f)return;
   try{
-    const x=JSON.parse(await f.text());
+    let x;
+    if(/\.zip$/i.test(f.name)||f.type==='application/zip'){
+      const z=unzipStored(await f.arrayBuffer());
+      const entry=z['gestor.json']||z['recibidos.json'];
+      if(!entry)throw new Error('Falta gestor.json');
+      x=JSON.parse(new TextDecoder().decode(entry));
+    }else{
+      x=JSON.parse(await f.text());
+    }
     if(x.app!=='recibidos-3dcd' || !Array.isArray(x.records))throw new Error();
     if(!confirm('¿Reemplazar los datos actuales por este respaldo?'))return;
-    pushHistory();
-    records=x.records;
+    pushHistory();records=x.records;
     if(x.prices&&typeof x.prices==='object'){
-      prices=x.prices;
-      localStorage.setItem(PRICES_KEY,JSON.stringify(prices));
+      prices=x.prices;localStorage.setItem(PRICES_KEY,JSON.stringify(prices));
     }
     localStorage.setItem(COUNTER_KEY,String(Math.max(Number(x.nextNumber||1),Math.max(0,...records.map(r=>Number(r.numero||0)))+1)));
     save();
   }catch(err){
-    console.error(err);
-    alert('Ese archivo no parece ser un respaldo válido de Gestor.');
+    console.error(err);alert('Ese archivo no parece ser un respaldo válido de Gestor.');
   }
   menu.classList.remove('show');
 };
