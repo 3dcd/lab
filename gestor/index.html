@@ -3,9 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#f3f4f6">
 <title>Gestor</title>
 <style>
@@ -561,13 +558,9 @@ body.mode-all .budgetAction{
   color:#7a4b00;
 }
 
-
-.runtimeError{display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#fff7d6;color:#6a4700;border:1px solid #d9b34c;border-radius:14px;padding:12px 14px;font:700 12px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.18)}
-.runtimeError.show{display:block}
 </style>
 </head>
 <body>
-<div id="runtimeError" class="runtimeError">La aplicación encontró un problema al iniciar. Recargá la página. Si vuelve a aparecer, mandame una captura de este mensaje.</div>
 <div class="app">
   <div class="top">
     <div class="toprow">
@@ -700,17 +693,6 @@ body.mode-all .budgetAction{
   </div>
 </div>
 
-
-<script>
-(function(){
-  function showRuntimeError(msg){
-    try{var el=document.getElementById('runtimeError');if(el){el.textContent='Error de inicio: '+String(msg||'desconocido');el.className='runtimeError show';}}catch(_e){}
-  }
-  window.addEventListener('error',function(e){showRuntimeError((e&&e.message)||'JavaScript');});
-  window.addEventListener('unhandledrejection',function(e){var r=e&&e.reason;showRuntimeError((r&&r.message)||r||'promesa rechazada');});
-  window.__showRuntimeError=showRuntimeError;
-})();
-</script>
 <script>
 const KEY='recibidos_3dcd_v1';
 const COUNTER_KEY='recibidos_3dcd_counter_v1';
@@ -1630,9 +1612,7 @@ const ECOSYSTEM_DB='3dcd_ecosistema_respaldos_v1';
 const ECOSYSTEM_STORE='backups';
 function ecosystemDb(){
   return new Promise((resolve,reject)=>{
-    if(!window.indexedDB){reject(new Error('Este navegador no habilitó IndexedDB'));return;}
     const req=indexedDB.open(ECOSYSTEM_DB,1);
-    req.onblocked=()=>reject(new Error('La base local de Respaldos está bloqueada por otra pestaña'));
     req.onupgradeneeded=()=>{
       const db=req.result;
       if(!db.objectStoreNames.contains(ECOSYSTEM_STORE)){
