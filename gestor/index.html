@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f3f4f6">
-<title>Recibidos 3DCD</title>
+<title>Gestor</title>
 <style>
 :root{
   --bg:#eef2f5;
@@ -563,7 +563,7 @@ body.mode-all .budgetAction{
   <div class="top">
     <div class="toprow">
       <div class="brand">
-        <h1>Recibidos 3DCD</h1>
+        <h1>Gestor</h1>
         <small>Entradas y entregas de prendas</small>
         <div class="workTotal">
           <span id="workTotalLabel">TRABAJO EN CURSO</span>
@@ -602,10 +602,10 @@ body.mode-all .budgetAction{
 
 <div class="menu" id="menu">
   <button id="pricesBtn">Precios de estampado</button>
-  <button id="exportBtn">Compartir respaldo JSON</button>
+  <button id="exportBtn">Compartir respaldo</button>
   <button id="importBtn">Importar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
-  <input type="file" id="importFile" accept=".json,application/json" hidden>
+  <input type="file" id="importFile" accept=".txt,.json,text/plain,application/json" hidden>
 </div>
 
 
@@ -1082,7 +1082,7 @@ async function recordCardBlob(r){
  ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,radius);ctx.stroke();
 
  ctx.fillStyle=soft;rr(ctx,x+18,y+18,w-36,150,30);ctx.fill();
- ctx.fillStyle=accent;ctx.font='900 32px Arial';ctx.fillText('Recibidos 3DCD',x+44,y+64);
+ ctx.fillStyle=accent;ctx.font='900 32px Arial';ctx.fillText('Gestor',x+44,y+64);
  ctx.font='900 24px Arial';ctx.fillText(rec?'EN MI PODER':'ENTREGADO',x+44,y+101);
  ctx.font='700 18px Arial';ctx.fillStyle='#65706f';ctx.fillText(fmtDate(rec?(r.receivedAt||r.createdAt):(r.deliveredAt||r.createdAt)),x+44,y+132);
 
@@ -1159,7 +1159,7 @@ async function currentCardBlob(){
  ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,42);ctx.stroke();
 
  ctx.fillStyle=headBg;rr(ctx,x+16,y+16,w-32,headH,28);ctx.fill();
- ctx.fillStyle=headText;ctx.font='900 42px Arial';ctx.fillText('Recibidos 3DCD',x+38,y+66);
+ ctx.fillStyle=headText;ctx.font='900 42px Arial';ctx.fillText('Gestor',x+38,y+66);
  ctx.font='900 34px Arial';ctx.fillText(viewTitle(),x+38,y+116);
  ctx.fillStyle='#586873';ctx.font='700 24px Arial';
  ctx.fillText(new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date()),x+38,y+158);
@@ -1323,7 +1323,7 @@ async function budgetCardBlob(r){
   ctx.textAlign='left';
 
   ctx.fillStyle='#7b8388';ctx.font='700 21px Arial';
-  ctx.fillText('Presupuesto generado con Recibidos 3DCD',x+44,y+h-32);
+  ctx.fillText('Presupuesto generado con Gestor',x+44,y+h-32);
 
   return await new Promise(res=>c.toBlob(res,'image/png',.96));
 }
@@ -1589,7 +1589,7 @@ document.addEventListener('click',e=>{
 function backupPayload(){
   return {
     app:'recibidos-3dcd',
-    version:3,
+    version:4,
     exportedAt:nowIso(),
     records,
     prices,
@@ -1599,60 +1599,34 @@ function backupPayload(){
 function backupFileName(){
   const d=new Date();
   const pad=n=>String(n).padStart(2,'0');
-  return `recibidos-3dcd-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
-}
-function downloadBackupBlob(blob,name){
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=name;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
-}
-async function tryShareBackup(file){
-  if(!navigator.share)return false;
-  if(navigator.canShare && !navigator.canShare({files:[file]}))return false;
-  await navigator.share({title:'Respaldo Recibidos 3DCD',files:[file]});
-  return true;
+  return `gestor-respaldo-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`;
 }
 $('#exportBtn').onclick=async()=>{
   menu.classList.remove('show');
-  let json,name;
   try{
-    // Las fotos están embebidas como Data URL/Base64 dentro de records.
-    // El respaldo es un único JSON autocontenido.
-    json=JSON.stringify(backupPayload(),null,2);
-    name=backupFileName();
-  }catch(err){
-    console.error('Error preparando respaldo',err);
-    alert('No se pudo preparar el respaldo JSON.');
-    return;
-  }
+    // JSON autocontenido por dentro (incluye las imágenes Data URL/Base64),
+    // documento TXT por fuera para máxima compatibilidad con WhatsApp móvil.
+    const json=JSON.stringify(backupPayload(),null,2);
+    const blob=new Blob([json],{type:'text/plain;charset=utf-8'});
+    const file=new File([blob],backupFileName(),{type:'text/plain'});
 
-  // 1) Intento estándar como JSON.
-  const jsonBlob=new Blob([json],{type:'application/json'});
-  const jsonFile=new File([jsonBlob],name,{type:'application/json'});
-  try{
-    if(await tryShareBackup(jsonFile))return;
-  }catch(err){
-    if(err?.name==='AbortError')return;
-    console.warn('Compartir application/json falló; pruebo text/plain',err);
-  }
+    if(!navigator.share){
+      alert('Este navegador no permite abrir Compartir desde el Gestor. No se descargó ningún archivo.');
+      return;
+    }
 
-  // 2) Compatibilidad Android/WhatsApp: mismo archivo .json, MIME de texto.
-  // WhatsApp suele aceptar esta variante aunque rechace application/json.
-  const textBlob=new Blob([json],{type:'text/plain;charset=utf-8'});
-  const textFile=new File([textBlob],name,{type:'text/plain'});
-  try{
-    if(await tryShareBackup(textFile))return;
+    // No bloqueamos por canShare: algunos móviles informan mal la compatibilidad,
+    // pero navigator.share sí logra abrir la hoja de compartir.
+    await navigator.share({
+      title:'Respaldo Gestor',
+      text:'Respaldo completo de Gestor',
+      files:[file]
+    });
   }catch(err){
     if(err?.name==='AbortError')return;
-    console.warn('Compartir text/plain falló; descargo respaldo',err);
+    console.error('No se pudo compartir el respaldo',err);
+    alert('No se pudo abrir Compartir para el respaldo. No se descargó ningún archivo.');
   }
-
-  // 3) Último recurso: siempre conservar el archivo en el dispositivo.
-  downloadBackupBlob(textBlob,name);
-  alert('Tu dispositivo no permitió abrir Compartir con este respaldo. Guardé el archivo JSON para que puedas enviarlo manualmente por WhatsApp.');
 };
 
 $('#importBtn').onclick=()=>$('#importFile').click();
@@ -1674,7 +1648,7 @@ $('#importFile').onchange=async e=>{
     save();
   }catch(err){
     console.error(err);
-    alert('Ese archivo no parece ser un respaldo JSON válido de Recibidos 3DCD.');
+    alert('Ese archivo no parece ser un respaldo válido de Gestor.');
   }
   menu.classList.remove('show');
 };
