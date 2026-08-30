@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f3f4f6">
-<title>Recibidos 3DCD</title>
+<title>Gestor</title>
 <style>
 :root{
   --bg:#eef2f5;
@@ -30,6 +30,8 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+html{height:100%;min-height:100%;}
+body{min-height:100vh;min-height:100dvh;}
 button,input,textarea,select{font:inherit}
 button{cursor:pointer}
 body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
@@ -563,7 +565,7 @@ body.mode-all .budgetAction{
   <div class="top">
     <div class="toprow">
       <div class="brand">
-        <h1>Recibidos 3DCD</h1>
+        <h1>Gestor</h1>
         <small>Entradas y entregas de prendas</small>
         <div class="workTotal">
           <span id="workTotalLabel">TRABAJO EN CURSO</span>
@@ -602,10 +604,10 @@ body.mode-all .budgetAction{
 
 <div class="menu" id="menu">
   <button id="pricesBtn">Precios de estampado</button>
-  <button id="exportBtn">Exportar respaldo ZIP</button>
-  <button id="importBtn">Importar respaldo</button>
+  <button id="exportBtn">Guardar en Google Drive</button>
+  <button id="importBtn">Restaurar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
-  <input type="file" id="importFile" accept=".zip,.json,application/zip,application/json" hidden>
+  <input type="file" id="importFile" accept=".txt,.json,text/plain,application/json" hidden>
 </div>
 
 
@@ -1082,7 +1084,7 @@ async function recordCardBlob(r){
  ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,radius);ctx.stroke();
 
  ctx.fillStyle=soft;rr(ctx,x+18,y+18,w-36,150,30);ctx.fill();
- ctx.fillStyle=accent;ctx.font='900 32px Arial';ctx.fillText('Recibidos 3DCD',x+44,y+64);
+ ctx.fillStyle=accent;ctx.font='900 32px Arial';ctx.fillText('Gestor',x+44,y+64);
  ctx.font='900 24px Arial';ctx.fillText(rec?'EN MI PODER':'ENTREGADO',x+44,y+101);
  ctx.font='700 18px Arial';ctx.fillStyle='#65706f';ctx.fillText(fmtDate(rec?(r.receivedAt||r.createdAt):(r.deliveredAt||r.createdAt)),x+44,y+132);
 
@@ -1159,7 +1161,7 @@ async function currentCardBlob(){
  ctx.strokeStyle=accent;ctx.lineWidth=4;rr(ctx,x,y,w,h,42);ctx.stroke();
 
  ctx.fillStyle=headBg;rr(ctx,x+16,y+16,w-32,headH,28);ctx.fill();
- ctx.fillStyle=headText;ctx.font='900 42px Arial';ctx.fillText('Recibidos 3DCD',x+38,y+66);
+ ctx.fillStyle=headText;ctx.font='900 42px Arial';ctx.fillText('Gestor',x+38,y+66);
  ctx.font='900 34px Arial';ctx.fillText(viewTitle(),x+38,y+116);
  ctx.fillStyle='#586873';ctx.font='700 24px Arial';
  ctx.fillText(new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date()),x+38,y+158);
@@ -1323,7 +1325,7 @@ async function budgetCardBlob(r){
   ctx.textAlign='left';
 
   ctx.fillStyle='#7b8388';ctx.font='700 21px Arial';
-  ctx.fillText('Presupuesto generado con Recibidos 3DCD',x+44,y+h-32);
+  ctx.fillText('Presupuesto generado con Gestor',x+44,y+h-32);
 
   return await new Promise(res=>c.toBlob(res,'image/png',.96));
 }
@@ -1586,113 +1588,47 @@ document.addEventListener('click',e=>{
 });
 
 
-function crc32(bytes){
-  let crc=0xffffffff;
-  for(const b of bytes){
-    crc^=b;
-    for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);
-  }
-  return (crc^0xffffffff)>>>0;
-}
-function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
-function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
-function concatBytes(parts){
-  const len=parts.reduce((a,p)=>a+p.length,0),out=new Uint8Array(len);
-  let off=0;for(const p of parts){out.set(p,off);off+=p.length}return out;
-}
-function textBytes(t){return new TextEncoder().encode(String(t))}
-function dataUrlBytes(url){
-  const m=String(url||'').match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
-  if(!m)return null;
-  const mime=m[1]||'application/octet-stream';
-  let bytes;
-  if(m[2]){
-    const bin=atob(m[3]),arr=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
-    bytes=arr;
-  }else bytes=textBytes(decodeURIComponent(m[3]));
-  return {mime,bytes};
-}
-function zipStore(files){
-  let offset=0;
-  const locals=[],centrals=[];
-  for(const f of files){
-    const name=textBytes(f.name),data=f.data instanceof Uint8Array?f.data:new Uint8Array(f.data);
-    const crc=crc32(data);
-    const local=concatBytes([
-      u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),
-      u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data
-    ]);
-    locals.push(local);
-    const central=concatBytes([
-      u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),
-      u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),
-      u16(0),u16(0),u32(0),u32(offset),name
-    ]);
-    centrals.push(central);
-    offset+=local.length;
-  }
-  const centralBytes=concatBytes(centrals);
-  const localBytes=concatBytes(locals);
-  const end=concatBytes([
-    u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),
-    u32(centralBytes.length),u32(localBytes.length),u16(0)
-  ]);
-  return new Blob([localBytes,centralBytes,end],{type:'application/zip'});
-}
-function safeFilePart(s){
-  return String(s||'cliente').trim().replace(/[^a-z0-9áéíóúñü_-]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,45)||'cliente';
-}
-
-$('#exportBtn').onclick=()=>{
-  const payload={
+function backupPayload(){
+  return {
     app:'recibidos-3dcd',
-    version:2,
+    version:4,
     exportedAt:nowIso(),
     records,
     prices,
     nextNumber:Number(localStorage.getItem(COUNTER_KEY)||1)
   };
-  const files=[
-    {name:'recibidos.json',data:textBytes(JSON.stringify(payload,null,2))},
-    {name:'LEEME.txt',data:textBytes('Respaldo Recibidos 3DCD\n- recibidos.json: datos editables completos.\n- imagenes/: fotos de los registros.\n')}
-  ];
-  records.forEach(r=>{
-    if(!r.photo)return;
-    const p=dataUrlBytes(r.photo);
-    if(!p)return;
-    const ext=p.mime.includes('png')?'png':'jpg';
-    files.push({
-      name:`imagenes/${String(r.numero||0).padStart(3,'0')}-${safeFilePart(r.client)}.${ext}`,
-      data:p.bytes
-    });
-  });
-  const blob=zipStore(files);
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`recibidos-3dcd-${new Date().toISOString().slice(0,10)}.zip`;
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  menu.classList.remove('show');
-};
-
-function readU16(a,o){return a[o]|(a[o+1]<<8)}
-function readU32(a,o){return (a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0}
-function unzipStored(arrayBuffer){
-  const a=new Uint8Array(arrayBuffer),files={};
-  let o=0;
-  while(o+30<=a.length && readU32(a,o)===0x04034b50){
-    const method=readU16(a,o+8);
-    const compSize=readU32(a,o+18);
-    const nameLen=readU16(a,o+26),extraLen=readU16(a,o+28);
-    const name=new TextDecoder().decode(a.slice(o+30,o+30+nameLen));
-    const dataStart=o+30+nameLen+extraLen;
-    if(method!==0)throw new Error('ZIP comprimido no compatible');
-    files[name]=a.slice(dataStart,dataStart+compSize);
-    o=dataStart+compSize;
-  }
-  return files;
 }
+function backupFileName(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return `gestor-respaldo-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`;
+}
+$('#exportBtn').onclick=async()=>{
+  menu.classList.remove('show');
+  try{
+    // JSON autocontenido por dentro (incluye las imágenes Data URL/Base64),
+    // documento TXT por fuera para máxima compatibilidad con la hoja de compartir móvil y Google Drive.
+    const json=JSON.stringify(backupPayload(),null,2);
+    const blob=new Blob([json],{type:'text/plain;charset=utf-8'});
+    const file=new File([blob],backupFileName(),{type:'text/plain'});
+
+    if(!navigator.share){
+      alert('Este navegador no permite abrir la hoja para guardar el respaldo en Google Drive. No se descargó ningún archivo.');
+      return;
+    }
+
+    // No bloqueamos por canShare: algunos móviles informan mal la compatibilidad,
+    // pero navigator.share sí logra abrir la hoja de compartir.
+    await navigator.share({
+      title:'Guardar respaldo Gestor en Google Drive',
+      files:[file]
+    });
+  }catch(err){
+    if(err?.name==='AbortError')return;
+    console.error('No se pudo abrir la hoja para guardar en Google Drive',err);
+    alert('No se pudo abrir la hoja para guardar en Google Drive. No se descargó ningún archivo.');
+  }
+};
 
 $('#importBtn').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=async e=>{
@@ -1700,15 +1636,7 @@ $('#importFile').onchange=async e=>{
   e.target.value='';
   if(!f)return;
   try{
-    let x;
-    if(/\.zip$/i.test(f.name)){
-      const files=unzipStored(await f.arrayBuffer());
-      const entry=files['recibidos.json'];
-      if(!entry)throw new Error('Falta recibidos.json');
-      x=JSON.parse(new TextDecoder().decode(entry));
-    }else{
-      x=JSON.parse(await f.text());
-    }
+    const x=JSON.parse(await f.text());
     if(x.app!=='recibidos-3dcd' || !Array.isArray(x.records))throw new Error();
     if(!confirm('¿Reemplazar los datos actuales por este respaldo?'))return;
     pushHistory();
@@ -1721,7 +1649,7 @@ $('#importFile').onchange=async e=>{
     save();
   }catch(err){
     console.error(err);
-    alert('Ese archivo no parece ser un respaldo válido de Recibidos 3DCD.');
+    alert('Ese archivo no parece ser un respaldo válido de Gestor.');
   }
   menu.classList.remove('show');
 };
