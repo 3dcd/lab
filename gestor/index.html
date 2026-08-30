@@ -30,8 +30,8 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-html{height:100%;min-height:100%;}
-body{min-height:100vh;min-height:100dvh;}
+html{min-height:100%;background:var(--bg)}
+body{min-height:100vh;min-height:100dvh}
 button,input,textarea,select{font:inherit}
 button{cursor:pointer}
 body{padding-bottom:max(92px,env(safe-area-inset-bottom))}
@@ -607,7 +607,7 @@ body.mode-all .budgetAction{
   <button id="exportBtn">Guardar respaldo</button>
   <button id="importBtn">Restaurar respaldo</button>
   <button id="clearDeliveredBtn">Eliminar entregados</button>
-  <input type="file" id="importFile" accept=".zip,.json,.txt,application/zip,application/json,text/plain" hidden>
+  <input type="file" id="importFile" accept=".zip,.json,application/zip,application/json" hidden>
 </div>
 
 
@@ -1332,91 +1332,34 @@ async function budgetCardBlob(r){
 
 async function shareBudget(r){
   const blob=await budgetCardBlob(r);
-  if(!blob){alert('No se pudo generar el presupuesto.');return;}
   const file=new File(
     [blob],
     `presupuesto-${String(r.numero||0).padStart(3,'0')}-${safeFilePart(r.client)}.png`,
     {type:'image/png'}
   );
 
-  // En Android el tiempo necesario para generar el PNG puede consumir la
-  // activación del toque original. Mostramos una confirmación visual con un
-  // segundo botón: ese nuevo toque abre Web Share con el archivo ya preparado.
-  const old=document.getElementById('budgetShareOverlay');
-  if(old)old.remove();
-
-  const overlay=document.createElement('div');
-  overlay.id='budgetShareOverlay';
-  overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(30,18,21,.62);display:flex;align-items:flex-end;justify-content:center;padding:14px;box-sizing:border-box';
-
-  const panel=document.createElement('div');
-  panel.style.cssText='width:min(560px,100%);max-height:92dvh;overflow:auto;background:#fff;border-radius:24px;padding:14px;box-shadow:0 18px 60px rgba(0,0,0,.28)';
-
-  const title=document.createElement('div');
-  title.textContent='Presupuesto listo';
-  title.style.cssText='font:900 20px system-ui,-apple-system,sans-serif;color:#2b1d20;margin:2px 4px 12px';
-
-  const img=document.createElement('img');
-  const previewUrl=URL.createObjectURL(blob);
-  img.src=previewUrl;
-  img.alt='Vista previa del presupuesto';
-  img.style.cssText='display:block;width:100%;height:auto;border-radius:16px;background:#f4f4f4;border:1px solid #e5e5e5';
-
-  const actions=document.createElement('div');
-  actions.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px';
-
-  const cancel=document.createElement('button');
-  cancel.type='button';
-  cancel.textContent='Cerrar';
-  cancel.style.cssText='min-height:52px;border:0;border-radius:15px;background:#eee;color:#3d3335;font:800 16px system-ui,-apple-system,sans-serif';
-
-  const share=document.createElement('button');
-  share.type='button';
-  share.textContent='Compartir presupuesto';
-  share.style.cssText='min-height:52px;border:0;border-radius:15px;background:#8a5a08;color:#fff;font:900 16px system-ui,-apple-system,sans-serif';
-
-  const cleanup=()=>{URL.revokeObjectURL(previewUrl);overlay.remove()};
-  cancel.onclick=cleanup;
-  overlay.addEventListener('click',e=>{if(e.target===overlay)cleanup()});
-
-  share.onclick=async()=>{
-    if(navigator.share){
-      try{
-        await navigator.share({
-          title:`Presupuesto - ${r.client||'Cliente'}`,
-          text:`Presupuesto para ${r.client||'Cliente'}`,
-          files:[file]
-        });
-        cleanup();
+  if(navigator.share){
+    try{
+      if(navigator.canShare?.({files:[file]})){
+        await navigator.share({title:`Presupuesto - ${r.client||'Cliente'}`,files:[file]});
         return;
-      }catch(e){
-        if(e?.name==='AbortError')return;
-        console.warn('No se pudo compartir el presupuesto; se ofrecerá descarga.',e);
       }
+    }catch(e){
+      if(e?.name==='AbortError')return;
     }
-    const a=document.createElement('a');
-    a.href=previewUrl;
-    a.download=file.name;
-    a.style.display='none';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  };
+  }
 
-  actions.append(cancel,share);
-  panel.append(title,img,actions);
-  overlay.append(panel);
-  document.body.appendChild(overlay);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=file.name;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1200);
 }
 
 async function shareRecord(r){
  const text=textForRecord(r),blob=await recordCardBlob(r),file=new File([blob],`3dcd-${r.status}-${String(r.numero).padStart(3,'0')}.png`,{type:'image/png'});
- if(navigator.share){
-   try{await navigator.share({title:`${statusLabel(r)} - ${r.client}`,text,files:[file]});return}
-   catch(e){if(e?.name==='AbortError')return;console.warn('No se pudo compartir la ficha con archivo.',e)}
- }
- try{await navigator.clipboard.writeText(text)}catch{}
- const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)
+ if(navigator.share){try{if(navigator.canShare?.({files:[file]}))await navigator.share({title:`${statusLabel(r)} - ${r.client}`,text,files:[file]});else await navigator.share({title:`${statusLabel(r)} - ${r.client}`,text});return}catch(e){if(e?.name==='AbortError')return}}
+ try{await navigator.clipboard.writeText(text)}catch{}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)
 }
 function viewRecords(){
   if(activeFilter==='all')return [...records].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
@@ -1439,10 +1382,16 @@ async function shareCurrent(){
  const slug=activeFilter==='received'?'en-mi-poder':activeFilter==='delivered'?'entregados':'todos';
  const blob=await currentCardBlob(),file=new File([blob],`3dcd-${slug}-${new Date().toISOString().slice(0,10)}.png`,{type:'image/png'});
  if(navigator.share){
-   try{await navigator.share({title:viewTitle(),files:[file]});return}
-   catch(e){if(e?.name==='AbortError')return;console.warn('No se pudo compartir el resumen con archivo.',e)}
+   try{
+     if(navigator.canShare?.({files:[file]})){
+       await navigator.share({title:viewTitle(),files:[file]});
+     }else{
+       const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);
+     }
+     return;
+   }catch(e){if(e?.name==='AbortError')return}
  }
- const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)
 }
 
 
@@ -1594,7 +1543,7 @@ listEl.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-act]');
   if(!btn)return;
   const card=btn.closest('.card');
-  const r=records.find(x=>x.id===card?.dataset.id);
+  const r=records.find(x=>String(x.id)===String(card?.dataset.id));
   if(!r)return;
   const act=btn.dataset.act;
 
@@ -1656,8 +1605,6 @@ function backupStamp(){
 }
 function backupFileName(){return `Gestor - Respaldo - ${backupStamp()}.zip`}
 
-// ZIP "store" (sin compresión): mantiene el respaldo 100% local y autocontenido,
-// sin depender de librerías externas ni conexión a Internet.
 let _crcTable=null;
 function crc32(bytes){
   if(!_crcTable){
@@ -1682,13 +1629,9 @@ function zipStore(files){
   const enc=new TextEncoder(),locals=[],centrals=[];let offset=0;
   for(const f of files){
     const name=enc.encode(f.name),data=f.data instanceof Uint8Array?f.data:new Uint8Array(f.data),crc=crc32(data);
-    const local=concatBytes([
-      u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data
-    ]);
+    const local=concatBytes([u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);
     locals.push(local);
-    const central=concatBytes([
-      u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name
-    ]);
+    const central=concatBytes([u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]);
     centrals.push(central);offset+=local.length;
   }
   const centralData=concatBytes(centrals);
@@ -1713,48 +1656,39 @@ $('#exportBtn').onclick=()=>{
   menu.classList.remove('show');
   try{
     const json=JSON.stringify(backupPayload(),null,2);
-    const jsonBytes=new TextEncoder().encode(json);
-    const info=new TextEncoder().encode('Respaldo de Gestor. El archivo gestor.json contiene todos los datos y las imágenes embebidas.');
-    const blob=zipStore([{name:'gestor.json',data:jsonBytes},{name:'LEEME.txt',data:info}]);
+    const blob=zipStore([
+      {name:'gestor.json',data:new TextEncoder().encode(json)},
+      {name:'LEEME.txt',data:new TextEncoder().encode('Respaldo de Gestor. gestor.json contiene datos, precios e imágenes embebidas.')}
+    ]);
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    a.href=url;
-    a.download=backupFileName();
-    a.style.display='none';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    a.href=url;a.download=backupFileName();a.style.display='none';
+    document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
-  }catch(err){
-    console.error('No se pudo descargar el respaldo',err);
-    alert('No se pudo generar el respaldo ZIP.');
-  }
+  }catch(err){console.error(err);alert('No se pudo generar el respaldo ZIP.');}
 };
 
 $('#importBtn').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=async e=>{
-  const f=e.target.files?.[0];e.target.value='';if(!f)return;
+  const f=e.target.files?.[0];
+  e.target.value='';
+  if(!f)return;
   try{
-    let x;
-    if(/\.zip$/i.test(f.name)||f.type==='application/zip'){
-      const z=unzipStored(await f.arrayBuffer());
-      const entry=z['gestor.json']||z['recibidos.json'];
-      if(!entry)throw new Error('Falta gestor.json');
-      x=JSON.parse(new TextDecoder().decode(entry));
-    }else{
-      x=JSON.parse(await f.text());
-    }
-    if(x.app!=='recibidos-3dcd' || !Array.isArray(x.records))throw new Error();
+    let text;
+    if(f.name.toLowerCase().endsWith('.zip')){
+      const files=unzipStored(await f.arrayBuffer());
+      const data=files['gestor.json']||files['recibidos.json'];
+      if(!data)throw new Error('JSON no encontrado');
+      text=new TextDecoder().decode(data);
+    }else{text=await f.text();}
+    const x=JSON.parse(text);
+    if(x.app!=='recibidos-3dcd' || !Array.isArray(x.records))throw new Error('Formato inválido');
     if(!confirm('¿Reemplazar los datos actuales por este respaldo?'))return;
     pushHistory();records=x.records;
-    if(x.prices&&typeof x.prices==='object'){
-      prices=x.prices;localStorage.setItem(PRICES_KEY,JSON.stringify(prices));
-    }
+    if(x.prices&&typeof x.prices==='object'){prices=x.prices;localStorage.setItem(PRICES_KEY,JSON.stringify(prices));}
     localStorage.setItem(COUNTER_KEY,String(Math.max(Number(x.nextNumber||1),Math.max(0,...records.map(r=>Number(r.numero||0)))+1)));
     save();
-  }catch(err){
-    console.error(err);alert('Ese archivo no parece ser un respaldo válido de Gestor.');
-  }
+  }catch(err){console.error(err);alert('Ese archivo no parece ser un respaldo válido de Gestor.');}
   menu.classList.remove('show');
 };
 $('#clearDeliveredBtn').onclick=()=>{
